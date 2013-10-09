@@ -1,0 +1,138 @@
+September 30, 2013
+Version 0.4.0
+
+Minor name changes were made to multiple scripts, functions, parameters,
+  and output files
+
+AlignSets, AssemblePairs, BuildConsensus, EstimateError, FilterSeq, and 
+  MaskPrimers are now multithreaded.  The number of simultaneous processes
+  may be specified using '--nproc (value)'. Note this means file ordering
+  is no longer preserved between the input and output sequence files.
+
+Performance improvements were made to several tools.
+
+The universal '--verbose' parameter was replaced with '--log (file name)'
+  which specifies a log file for verbose output, and disables verbose logging
+  if not specified.  
+
+The report of input parameters and sequence counts is now separate from the log
+  and is always printed to standard output.
+
+Added a progress bar to the standard output of most tools.
+  
+Added a universal '--outname (file prefix)' parameter which changes the leading
+  portion of the output file name.  If not specified, the current file name 
+  is used (excluding the file extension, as per the previous behavior).
+
+Added a universal '--clean' parameter which if specified forces the tool not to
+  create an output file of sequences which failed processing.
+  
+IgCore:
++ Changes to parameters and internals of multiple functions
++ Added functions to support multithreading for single-end reads, paired-end 
+  reads, and barcode sets
++ Added safe annotation field renaming
++ Added progress bar, logging and output file name conversion support
++ Moved reusable AssemblePairs, BuildConsensus, PairSeq, and SplitSeq 
+  operations into IgCore
+
+AssemblePairs:
++ Coordinate information is now specified by a coordinate type, rather than a 
+  delimiter, using the '--coord (header type)' parameter, where the header type
+  may be one of (illumina, solexa, sra, 454, presto)
+
+CollapseSeq:
++ Sequences with a missing character count exceeding the user limit defined
+  by '-n (maximum missing count)' are now exported to a separate 
+  'collapse-undetermined' output file, rather than included in the 
+  'collapse-unique' sequence output.
+
+EstimateError:
++ Now outputs error estimations for positions, quality scores, nucleotide 
+  pairs, and annotation sets.  
++ Machine reported quality scores and empiracle quality scores have been added
+  to all output tables.
+
+FilterSeq:
++ Added 'length' subcommand to filter sequences by minimum length 
+
+
+PairSeq:
++ Coordinate information has been redefined as per AssemblePairs.
+
+ParseHeaders:
++ Added new subcommand 'convert' which attempts to reformat sequence headers 
+  into the pRESTO format.
++ The 'rename' subcommand will now append entries if the new field name already
+  exists in the sequence header, rather than replace the entry.
+
+
+-------------------------------------------------------------------------------
+August 13, 2013
+Version 0.3 (prerelease 6)
+
+Toolkit is now dependent upon pandas 0.12 for the estimateError tool.
+
+alignSets:
++ Changed MUSCLE execution to faster settings ('-diags', '-maxiters 2')
+
+filterQuality:
++ Added 'repeat' subcommand to filter sequences with '-n (value)' repetitions 
+  of a single character and 
++ Changed '-n' parameter of 'ambig' subcommand from fractional value to a 
+  raw count
+
+estimateError:
++ New tool which estimates error of sequence sets by comparison to a consensus
+
+maskPrimers:
++ Bug fixes to alignment position calculation of 'align' subcommand when primer
+  alignment begins before start of sequence
++ Removed '--vann' parameter
+
+
+-------------------------------------------------------------------------------
+August 7, 2013
+Version 0.3 (prerelease 5)
+
+License changed to Creative Commons Attribution-NonCommercial-ShareAlike 3.0 
+  Unported License
+
+IgPipeline Core:
++ Bug fixes to diversity calculation
++ Added support for files where all sequences do not share the same annotation 
+  fields
++ Added support for alternate scoring of gap and N-valued nucleotides
+
+alignSets:
++ Added '--mode' parameter with options of 'pad' and 'cut' to specify whether 
+  to extend or trim read groups to the same start position
++ Fixed intermittent 'muscle' subcommand stdout pipe deadlock when 
+  executing MUSCLE
+
+assemblePairs:
++ Added 'join' subcommand to support library preps where paired-end reads 
+  do not overlap
++ Speed improvements to p-value calculations
+
+buildConsensus:
++ '--div' parameter converted to '--maxdiv (value)' to allow filtering of read 
+  groups by diversity
++ Bug fixes to nucleotide frequency consensus method
++ '-q' parameter renamed to '--qual'
+
+collapseSequences:
++ Added support for files where all sequences do not share the same annotation 
+  fields
+
+splitSeqFile:
++ 'samplepair' subcommand added to allow random sampling from paired-end 
+  file sets
++ The behavior of the '-c' parameter of the 'sample' and 'samplepair' 
+  subcommands changed to allow multiple samplings with the same command
+
+
+-------------------------------------------------------------------------------
+May 18, 2013
+Version 0.3 (prerelease 4)
+
