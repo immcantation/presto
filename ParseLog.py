@@ -109,7 +109,7 @@ def tableLog(record_file, fields, out_args=default_out_args):
     return log_handle.name
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -121,7 +121,7 @@ def getParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser(seqin=False, seqout=False, log=False)], 
+                            parents=[getCommonParser(seq_in=False, seq_out=False, log=False)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
     parser.add_argument('-l', nargs='+', action='store', dest='record_file', required=True,
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, 'record_file')
     # Convert case of fields

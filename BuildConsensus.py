@@ -53,7 +53,7 @@ def processQueue(data_queue, result_queue, cons_func, cons_args={},
     """
     # Iterator over data queue until sentinel object reached
     for args in iter(data_queue.get, None):
-        # Define result dictionary for interation
+        # Define result dictionary for iteration
         results = {'id':args['id'],
                    'in_list':args['seq_list'],
                    'out_list':None,
@@ -246,7 +246,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     return out_files
         
         
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -290,7 +290,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

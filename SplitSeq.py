@@ -511,7 +511,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     return out_files
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -528,7 +528,7 @@ def getParser():
     
     # Subparser for file conversion
     parser_convert = subparsers.add_parser('convert', 
-                                           parents=[getCommonParser(seqout=False, annotation=False, log=False)],
+                                           parents=[getCommonParser(seq_out=False, annotation=False, log=False)],
                                            formatter_class=ArgumentDefaultsHelpFormatter,
                                            help='Converts sequence files')
     parser_convert.add_argument('--format', nargs='+', action='store', dest='out_format', 
@@ -606,7 +606,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields

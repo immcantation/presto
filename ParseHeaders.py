@@ -354,7 +354,7 @@ def convertHeaders(seq_file, out_args=default_out_args):
     return pass_handle.name
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -425,7 +425,7 @@ def getParser():
     parser_rename.set_defaults(modify_func=renameHeader)
             
     # Subparser to create a header table
-    parser_table = subparsers.add_parser('table', parents=[getCommonParser(seqout=False, log=False)],
+    parser_table = subparsers.add_parser('table', parents=[getCommonParser(seq_out=False, log=False)],
                                          formatter_class=ArgumentDefaultsHelpFormatter,
                                          help='Writes sequence headers to a table')
     parser_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -446,7 +446,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields

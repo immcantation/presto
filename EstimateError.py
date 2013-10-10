@@ -374,7 +374,7 @@ def estimateError(seq_file, cons_func=frequencyConsensus, cons_args={},
     return out_files
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -386,7 +386,7 @@ def getParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser(seqout=False, multiproc=True)], 
+                            parents=[getCommonParser(seq_out=False, multiproc=True)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
     parser.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field, 
@@ -412,7 +412,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

@@ -6,8 +6,8 @@ Removes primers and annotates sequences with primer and barcode identifiers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.10'
 
 # Imports
 import os, sys
@@ -208,7 +208,7 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
 
     Arguments: 
     align = an alignment dictionary from alignPrimers or scorePrimers
-    mode = defines the action taken; one of 'mask','cut','tag'
+    mode = defines the action taken; one of ['cut','mask','tag','trim']
     barcode = if True add sequence preceding primer to description
     delimiter = a tuple of delimiters for (annotations, field/values, value lists) 
 
@@ -221,6 +221,16 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
     # Build output sequence
     if mode == 'tag' or not align['align']:
         out_seq = seq
+    elif mode == 'trim':
+        if not reverse:  
+            out_seq = seq[align['start']:]
+        else:  
+            out_seq = seq[:align['end']]
+    elif mode == 'cut':
+        if not reverse:  
+            out_seq = seq[align['end']:]
+        else: 
+            out_seq = seq[:align['start']]
     elif mode == 'mask':
         if not reverse:
             out_seq = 'N' * (align['end'] - align['start']) + seq[align['end']:]
@@ -230,15 +240,9 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
             out_seq = seq[:align['start']] + 'N' * (min(align['end'], len(seq)) - align['start'])
             if hasattr(seq, 'letter_annotations') and 'phred_quality' in seq.letter_annotations:
                 out_seq.letter_annotations['phred_quality'] = seq.letter_annotations['phred_quality'][:len(out_seq)]
-        out_seq.annotations = seq.annotations
-    elif mode == 'cut':
-        if not reverse:
-            out_seq = seq[align['end']:]
-        else: 
-            out_seq = seq[:align['start']]
-        out_seq.annotations = seq.annotations
-    
+            
     # Add alignment annotations to output SeqRecord
+    out_seq.annotations = seq.annotations    
     out_seq.annotations['primer'] = align['primer']
     out_seq.annotations['prstart'] = align['start']
     out_seq.annotations['error'] = align['error']
@@ -272,7 +276,7 @@ def processQueue(data_queue, result_queue, primers, mode, align_func, align_args
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     primers = dictionary of primer sequences
-    mode = defines the action taken; one of 'cut','mask','tag'
+    mode = defines the action taken; one of ['cut','mask','tag','trim']
     align_func = the function to call for alignment
     align_args = a dictionary of arguments to pass to align_func
     max_error = maximum acceptable error rate for a valid alignment
@@ -286,7 +290,7 @@ def processQueue(data_queue, result_queue, primers, mode, align_func, align_args
     for args in iter(data_queue.get, None):
         in_seq = args['seq']
         
-        # Define result dictionary for interation
+        # Define result dictionary for iteration
         results = {'id':args['id'],
                    'in_seq':in_seq,
                    'out_seq':None,
@@ -438,7 +442,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     return out_files
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -458,8 +462,9 @@ def getParser():
     parser_parent.add_argument('-p', action='store', dest='primer_file', required=True, 
                                help='A FASTA or REGEX file containing primer sequences')
     parser_parent.add_argument('--mode', action='store', dest='mode', 
-                               choices=('cut', 'mask', 'tag'), default='mask', 
-                               help='Specifies whether or mask primers, cut primers, or only tag sample sequences')
+                               choices=('cut', 'mask', 'tag', 'trim'), default='mask', 
+                               help='Specifies whether or mask primers, cut primers, \
+                                     trim region preceding primer, or only tag sample sequences')
     parser_parent.add_argument('--maxerror', action='store', dest='max_error', type=float,
                                default=default_max_error, help='Maximum allowable error rate')
     parser_parent.add_argument('--reverse', action='store_true', dest='reverse', 
@@ -496,7 +501,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

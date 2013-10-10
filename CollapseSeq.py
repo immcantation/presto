@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.0'
-__date__      = '2013.9.27'
+__date__      = '2013.10.10'
 
 # Imports
 import os, re, sys
@@ -190,9 +190,12 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     log['START'] = 'CollapseSeq'
     log['FILE'] = os.path.basename(seq_file)
     log['MAX_MISSING'] = max_missing
-    log['UNIQ_FIELDS'] = ','.join([str(x) for x in uniq_fields]) if uniq_fields else None
-    log['COPY_FIELDS'] = ','.join([str(x) for x in copy_fields]) if copy_fields else None
-    log['COPY_ACTIONS'] = ','.join([str(x) for x in copy_actions]) if copy_actions else None
+    log['UNIQ_FIELDS'] = ','.join([str(x) for x in uniq_fields]) \
+                         if uniq_fields is not None else None
+    log['COPY_FIELDS'] = ','.join([str(x) for x in copy_fields]) \
+                         if copy_fields is not None else None
+    log['COPY_ACTIONS'] = ','.join([str(x) for x in copy_actions]) \
+                          if copy_actions is not None else None
     log['MAX_FIELD'] = max_field
     log['MIN_FIELD'] = min_field
     log['INNER'] = inner
@@ -289,7 +292,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     return uniq_handle.name
     
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -336,7 +339,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

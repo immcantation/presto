@@ -1,3 +1,12 @@
+October 10, 2013
+Version 0.4.1
+
+MaskPrimers:
++ Added 'trim' mode which will cut the region before primer alignment, but 
+  leave primer region unmodified. 
+
+
+-------------------------------------------------------------------------------
 September 30, 2013
 Version 0.4.0
 
@@ -55,7 +64,6 @@ EstimateError:
 
 FilterSeq:
 + Added 'length' subcommand to filter sequences by minimum length 
-
 
 PairSeq:
 + Coordinate information has been redefined as per AssemblePairs.

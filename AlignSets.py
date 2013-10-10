@@ -247,7 +247,7 @@ def processQueue(data_queue, result_queue, align_func, align_args={},
     # Iterator over data queue until sentinel object reached
     for args in iter(data_queue.get, None):
         seq_list = args['seq_list']
-        # Define result dictionary for interation
+        # Define result dictionary for iteration
         results = {'id':args['id'],
                    'in_list':seq_list,
                    'out_list':None,
@@ -387,7 +387,7 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     return out_files
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -434,7 +434,7 @@ def getParser():
     parser_offset.set_defaults(align_func=offsetSeqSet)
 
     # Offset table generation argument parser
-    parser_table = subparsers.add_parser('table', parents=[getCommonParser(seqin=False, seqout=False, log=False, multiproc=False)],
+    parser_table = subparsers.add_parser('table', parents=[getCommonParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
                                          formatter_class=ArgumentDefaultsHelpFormatter,
                                          help='Create a 5\' offset table by primer multiple alignment')
     parser_table.add_argument('-p', nargs='+', action='store', dest='primer_file', required=True, 
@@ -453,7 +453,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 

@@ -250,7 +250,7 @@ def processQueue(data_queue, result_queue, assemble_func, assemble_args={}, rc=N
         if rc == 'both' or rc == 'tail':  tail_seq = reverseComplement(args['seq_2'])
         else:  tail_seq = args['seq_2']
         
-        # Define result dictionary for interation
+        # Define result dictionary for iteration
         results = {'id':args['id'],
                    'in_seq_1':head_seq,
                    'in_seq_2':tail_seq,
@@ -443,7 +443,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     return out_files
         
         
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -502,7 +502,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

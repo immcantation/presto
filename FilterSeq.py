@@ -260,7 +260,7 @@ def processQueue(data_queue, result_queue, filter_func, filter_args={},
     # Iterator over data queue until sentinel object reached
     for args in iter(data_queue.get, None):
         in_seq = args['seq']        
-        # Define result dictionary for interation
+        # Define result dictionary for iteration
         results = {'id':args['id'],
                    'in_seq':in_seq,
                    'out_seq':None,
@@ -366,7 +366,7 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     return out_files
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -458,7 +458,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

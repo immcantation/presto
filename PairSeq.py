@@ -137,7 +137,7 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     return [(pass_handle_1.name, pass_handle_2.name)]
 
 
-def getParser():
+def getArgParser():
     """
     Defines the ArgumentParser
 
@@ -167,7 +167,7 @@ if __name__ == '__main__':
     Parses command line arguments and calls main function
     """
     # Parse arguments
-    parser = getParser()
+    parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields
