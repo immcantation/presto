@@ -6,8 +6,8 @@ Converts, sorts, samples and splits FASTA/FASTQ sequence files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.27'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -23,7 +23,7 @@ from IgCore import default_coord_choices, default_coord_type, default_out_args
 from IgCore import getAnnotationValues, parseAnnotation, indexSeqPairs, subsetSeqIndex
 from IgCore import getCommonParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile
+from IgCore import countSeqRecords, readSeqFile, getFileType
 
 
 def convertSeqFile(seq_file, out_format, out_args=default_out_args):
@@ -47,7 +47,7 @@ def convertSeqFile(seq_file, out_format, out_args=default_out_args):
     # Convert records for each output file type
     out_files = []
     for out_type in out_format:
-        __, seq_iter = readSeqFile(seq_file)
+        seq_iter = readSeqFile(seq_file)
         with getOutputHandle(seq_file, None, out_dir=out_args['out_dir'], 
                              out_name=out_args['out_name'], out_type=out_type) \
                 as out_handle:
@@ -90,10 +90,11 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     printLog(log)
     
     # Open file handles
-    in_type, seq_iter = readSeqFile(seq_file)
+    in_type = getFileType(seq_file)
+    seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     # Determine total numbers of records
-    rec_count = countSeqFile(seq_file)
+    rec_count = countSeqRecords(seq_file)
     
     # Loop through iterator writing each record and opening new output handle as needed
     start_time = time()
@@ -160,11 +161,12 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     printLog(log)
     
     # Open file handles
-    in_type, seq_iter = readSeqFile(seq_file)
+    in_type = getFileType(seq_file)
+    seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Determine total numbers of records
-    rec_count = countSeqFile(seq_file)
+    rec_count = countSeqRecords(seq_file)
 
     # Process sequences
     start_time = time()
@@ -172,7 +174,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     if threshold is None:
         # Sort records into files based on textual field
         # Create set of unique field tags
-        __, temp_iter = readSeqFile(seq_file)
+        temp_iter = readSeqFile(seq_file)
         tag_list = getAnnotationValues(temp_iter, field, unique=True, delimiter=out_args['delimiter'])
         # Create output handles
         handles_dict = {tag:getOutputHandle(seq_file, 
@@ -250,7 +252,8 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     printLog(log)
     
     # Read input files and open output files
-    in_type, seq_dict = readSeqFile(seq_file, index=True)
+    in_type = getFileType(seq_file)
+    seq_dict = readSeqFile(seq_file, index=True)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     
     # Generate subset of records
@@ -322,8 +325,10 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     printLog(log)
     
     # Read input files
-    in_type_1, seq_dict_1 = readSeqFile(seq_file_1, index=True)
-    in_type_2, seq_dict_2 = readSeqFile(seq_file_2, index=True)
+    in_type_1 = getFileType(seq_file_1)
+    seq_dict_1 = readSeqFile(seq_file_1, index=True)
+    in_type_2 = getFileType(seq_file_2)
+    seq_dict_2 = readSeqFile(seq_file_2, index=True)
 
     # Define output type
     if out_args['out_type'] is None:
@@ -424,7 +429,8 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     printLog(log)
     
     # Open file handles
-    in_type, seq_dict = readSeqFile(seq_file, index=True)
+    in_type = getFileType(seq_file)
+    seq_dict = readSeqFile(seq_file, index=True)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     
     # Get annotations and sort seq_dict by annotation values
@@ -537,12 +543,12 @@ def getArgParser():
     parser_convert.set_defaults(func=convertSeqFile)
 
     # Subparser to downsize files to a maximum count
-    parser_split = subparsers.add_parser('count', parents=[getCommonParser(annotation=False, log=False)],
-                                         formatter_class=ArgumentDefaultsHelpFormatter,
-                                         help='Splits sequences files by number of records')
-    parser_split.add_argument('-n', action='store', dest='max_count', type=int, required=True,
-                              help='Maximum number of sequences in each new file')
-    parser_split.set_defaults(func=downsizeSeqFile)
+    parser_downsize = subparsers.add_parser('count', parents=[getCommonParser(annotation=False, log=False)],
+                                            formatter_class=ArgumentDefaultsHelpFormatter,
+                                            help='Splits sequences files by number of records')
+    parser_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
+                                 help='Maximum number of sequences in each new file')
+    parser_downsize.set_defaults(func=downsizeSeqFile)
     
     # Subparser to partition files by annotation
     parser_group = subparsers.add_parser('group', parents=[getCommonParser(log=False)],

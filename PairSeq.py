@@ -6,8 +6,8 @@ Sorts and matches sequence records with matching coordinates across files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_coord_choices, default_coord_type, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
 from IgCore import getCommonParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress, readSeqFile
+from IgCore import getOutputHandle, printLog, printProgress, readSeqFile, getFileType
 from IgCore import indexSeqPairs, getUnpairedIndex
 
 
@@ -49,8 +49,10 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     printLog(log)
     
     # Read input files and open output files
-    in_type_1, seq_dict_1 = readSeqFile(seq_file_1, index=True)
-    in_type_2, seq_dict_2 = readSeqFile(seq_file_2, index=True)
+    in_type_1 = getFileType(seq_file_1)
+    seq_dict_1 = readSeqFile(seq_file_1, index=True)
+    in_type_2 = getFileType(seq_file_2)
+    seq_dict_2 = readSeqFile(seq_file_2, index=True)
 
     # Define output type
     if out_args['out_type'] is None:

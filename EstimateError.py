@@ -6,8 +6,8 @@ Calculates annotation set error rates
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -24,8 +24,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_missing_chars, default_barcode_field, default_out_args
 from IgCore import default_min_freq, default_min_qual
 from IgCore import getCommonParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress, readSeqFile
-from IgCore import feedSetQueue, getScoreDict, indexSeqSets, calculateDiversity
+from IgCore import getOutputHandle, printLog, printProgress, getFileType
+from IgCore import feedSetQueue, getScoreDict, calculateDiversity, countSeqSets
 from IgCore import frequencyConsensus, qualityConsensus
 
 # Defaults
@@ -59,7 +59,7 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     qual_df = pd.DataFrame(0, index=range(94), 
                            columns=['mismatch', 'q_sum', 'total'], dtype=float)    
 
-    # Interate over seq_list and count mismatches
+    # Iterate over seq_list and count mismatches
     for seq in seq_list:
         qual = seq.letter_annotations['phred_quality']
         for i, b in enumerate(seq):
@@ -84,9 +84,10 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
                           columns=['mismatch', 'q_sum', 'total'], dtype=float)
 
     return {'pos':pos_df, 'nuc':nuc_df, 'qual':qual_df, 'set':set_df}
- 
+
     
-def processQueue(data_queue, result_queue, cons_func, cons_args={}, max_diversity=None):
+def processQueue(data_queue, result_queue, cons_func, cons_args={}, 
+                 min_count=default_min_count, max_diversity=None):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -95,6 +96,7 @@ def processQueue(data_queue, result_queue, cons_func, cons_args={}, max_diversit
     result_queue = a multiprocessing.Queue to hold processed results
     cons_func = the function to use for consensus generation 
     cons_args = a dictionary of optional arguments for the consensus function
+    min_count = threshold number of sequences to retain a set
     max_diversity = the minimum diversity score to retain a set;
                     if None do not calculate diversity
                         
@@ -102,102 +104,148 @@ def processQueue(data_queue, result_queue, cons_func, cons_args={}, max_diversit
     None
     """
     # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        seq_count = len(args['seq_list'])
+    for args in iter(data_queue.get, None):        
+        seq_list = args['seq_list']
+        seq_count = len(seq_list)
+        # Define result dictionary for iteration
+        results = {'id':args['id'],
+                   'seq_count':seq_count,
+                   'diversity':None,
+                   'pos':None,
+                   'nuc':None,
+                   'qual':None,
+                   'set':None,
+                   'pass':False,
+                   'log':OrderedDict()}
+        # Update log
+        results['log']['SET'] = args['id']
+        results['log']['SEQCOUNT'] = seq_count
+        for i, s in enumerate(seq_list):
+            results['log']['SEQ%i' % (i + 1)] = str(s.seq)
+        
+        # Check count threshold and continue if failed
+        if seq_count < min_count:
+            result_queue.put(results)
+            continue
+            
         # Calculate average pairwise error rate
         if max_diversity is not None:
             diversity = calculateDiversity(args['seq_list'])
+            results['diversity'] = diversity
+            results['log']['DIVERSITY'] = diversity
+            # Check diversity threshold and continue if failed
+            if diversity > max_diversity:
+                result_queue.put(results)
+                continue
             
+        # Define reference sequence by consensus
+        ref_seq = cons_func(seq_list, **cons_args)
+        
         # Count mismatches against consensus
-        if max_diversity is None or diversity <= max_diversity:
-            # Define reference sequence by consensus
-            ref_seq = cons_func(args['seq_list'], **cons_args)
+        mismatch = countMismatches(seq_list, ref_seq)
+        
+        # Calculate average reported and observed error
+        reported_q = mismatch['set']['q_sum'].sum() / mismatch['set']['total'].sum()
+        error_rate = mismatch['set']['mismatch'].sum() / mismatch['set']['total'].sum()
+
+        # Update log
+        results['log']['REFERENCE'] = str(ref_seq.seq)
+        results['log']['MISMATCH'] = ''.join(['*' if x > 0 else ' ' for x in mismatch['pos']['mismatch']])
+        results['log']['ERROR'] = '%.6f' % error_rate
+        results['log']['REPORTED_Q'] = '%.2f' % reported_q
+        results['log']['EMPIRACLE_Q'] = '%.2f' % (-10 * np.log10(error_rate))
             
-            # Update mismatch counts
-            mismatch = countMismatches(args['seq_list'], ref_seq)
-            
-            # Generate log
-            reported_q = mismatch['set']['q_sum'].sum() / mismatch['set']['total'].sum()
-            error_rate = mismatch['set']['mismatch'].sum() / mismatch['set']['total'].sum()
-            log = OrderedDict()
-            log['SET'] = args['id']
-            log['COUNT'] = seq_count
-            log['REPORTED_Q'] = '%.2f' % reported_q
-            if max_diversity is not None:
-                log['DIVERSITY'] = diversity
-            for i, s in enumerate(args['seq_list']):
-                log['SEQ%i' % (i + 1)] = str(s.seq)
-            log['REFERENCE'] = str(ref_seq.seq)
-            log['MISMATCH'] = ''.join(['*' if x > 0 else ' ' for x in mismatch['pos']['mismatch']])
-            log['ERROR'] = '%.6f' % error_rate
-            log['EMPIRACLE_Q'] = '%.2f' % (-10 * np.log10(error_rate))
-            
-            # Feed results to result queue
-            result_queue.put({'id':args['id'],
-                              'count': seq_count,
-                              'pos':mismatch['pos'], 
-                              'nuc':mismatch['nuc'],
-                              'qual':mismatch['qual'], 
-                              'set':mismatch['set'],
-                              'log':log})
+        # Update results and feed result queue
+        results['pass'] = True
+        results.update(mismatch)
+        result_queue.put(results)
+
 
     return None
 
 
-def collectQueue(result_queue, result_count, collect_dict, seq_file, out_args):
+def collectQueue(result_queue, collect_dict, seq_file, field, out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments: 
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
     collect_dict = a multiprocessing.Manager.dict to store return values
     seq_file = the sample sequence file name
+    field = the field defining set membership
     out_args = common output argument dictionary from parseCommonArgs
     
     Returns:
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
+    # Count sets
+    result_count = countSeqSets(seq_file, field, out_args['delimiter'])
+    
     # Define empty DataFrames to store assembled results
     pos_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
     qual_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
     nuc_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
     set_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
     
-    if out_args['log_file'] is not None:
+    # Open log file
+    if out_args['log_file'] is None:
+        log_handle = None
+    else:
         log_handle = open(out_args['log_file'], 'w')
-        
+
     # Iterator over results queue until sentinel object reached
     start_time = time()
-    set_count = seq_count = 0
+    set_count = seq_count = pass_count = fail_count = 0
     for result in iter(result_queue.get, None):
         # Print progress for previous iteration
         printProgress(set_count, result_count, 0.05, start_time)
         
         # Update counts for iteration
         set_count += 1
-        seq_count += result['count']
+        seq_count += result['seq_count']
         
         # Sum results
-        pos_df = pos_df.add(result['pos'], fill_value=0)
-        qual_df = qual_df.add(result['qual'], fill_value=0)
-        nuc_df = nuc_df.add(result['nuc'], fill_value=0)
-        set_df = set_df.add(result['set'], fill_value=0)
-        
+        if result['pass']:
+            pass_count += 1
+            pos_df = pos_df.add(result['pos'], fill_value=0)
+            qual_df = qual_df.add(result['qual'], fill_value=0)
+            nuc_df = nuc_df.add(result['nuc'], fill_value=0)
+            set_df = set_df.add(result['set'], fill_value=0)
+        else:
+            fail_count += 1
+            
         # Write log
         printLog(result['log'], handle=log_handle)
     
     # Print final progress
     printProgress(set_count, result_count, 0.05, start_time)
-        
+    
+    # Generate log
+    log = OrderedDict()
+    log['OUTPUT'] = None
+    log['SETS'] = set_count
+    log['SEQUENCES'] = seq_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    log['POSITION_ERROR'] = None 
+    log['NUCLEOTIDE_ERROR'] = None
+    log['QUALITY_ERROR'] = None
+    log['SET_ERROR'] = None
+ 
+    # Return if no mismatch data
+    if pass_count == 0:
+        collect_dict['out_files'] = None
+        collect_dict['log'] = log
+        return None
+
     # Calculate error rates
     pos_df['error'] = pos_df['mismatch'] / pos_df['total'] 
     nuc_df['error'] = nuc_df['mismatch'] / nuc_df['total']
     qual_df['error'] = qual_df['mismatch'] / qual_df['total']
     set_df['error'] = set_df['mismatch'] / set_df['total']
     
-    # Convert error to empiracle quality score
+    # Convert error to empirical quality score
     pos_df['emp_q'] = -10 * np.log10(pos_df['error'])
     nuc_df['emp_q'] = -10 * np.log10(nuc_df['error'])
     qual_df['emp_q'] = -10 * np.log10(qual_df['error'])
@@ -221,18 +269,15 @@ def collectQueue(result_queue, result_count, collect_dict, seq_file, out_args):
     # Write assembled error counts to output files
     out_files = writeResults(assembled, seq_file, out_args)
     
-    # Update collect return values
-    collect_dict['out_files'] = out_files
-    
-    # Print total error rates
-    log = OrderedDict()
+    # Update log
     log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
-    log['VALID_SETS'] = set_count
-    log['VALID_SEQUENCES'] = seq_count
     log['POSITION_ERROR'] = pos_error 
     log['NUCLEOTIDE_ERROR'] = nuc_error 
     log['QUALITY_ERROR'] = qual_error
     log['SET_ERROR'] = set_error
+    
+    # Update collector results
+    collect_dict['out_files'] = out_files
     collect_dict['log'] = log
 
     return None
@@ -324,14 +369,9 @@ def estimateError(seq_file, cons_func=frequencyConsensus, cons_args={},
     log['NPROC'] = nproc
     printLog(log)
     
-    # Read input files and open output files
-    in_type, seq_dict = readSeqFile(seq_file, index=True)
+    # Check input file type
+    in_type = getFileType(seq_file)
     if in_type != 'fastq':  sys.exit('ERROR:  Input file must be FASTQ')
-    
-    # Define sequences sets
-    set_dict = indexSeqSets(seq_dict, set_field, out_args['delimiter'])
-    # Filter out sets under minimum size
-    set_dict = {k: v for k, v in set_dict.iteritems() if len(v) >= min_count}
     
     # Define shared data objects 
     manager = mp.Manager()
@@ -340,20 +380,21 @@ def estimateError(seq_file, cons_func=frequencyConsensus, cons_args={},
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_dict, set_dict))
+    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_file, set_field, 
+                                                   out_args['delimiter']))
     feeder.start()
     
     # Initiate processQueue processes
     workers = []
     for __ in range(nproc):
         w = mp.Process(target=processQueue, args=(data_queue, result_queue, cons_func, cons_args, 
-                                                  max_diversity))
+                                                  min_count, max_diversity))
         w.start()
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectQueue, args=(result_queue, len(set_dict), collect_dict, 
-                                                      seq_file, out_args))
+    collector = mp.Process(target=collectQueue, args=(result_queue, collect_dict, seq_file, 
+                                                      set_field, out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue

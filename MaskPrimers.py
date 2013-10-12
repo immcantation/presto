@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.10'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -23,7 +23,7 @@ from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
 from IgCore import getCommonParser, parseCommonArgs, printLog
 from IgCore import getScoreDict, reverseComplement, weightSeq
-from IgCore import compilePrimers, countSeqFile, readPrimerFile, readSeqFile
+from IgCore import compilePrimers, readPrimerFile
 from IgCore import collectRecQueue, feedRecQueue
 
 # Defaults
@@ -381,10 +381,6 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']
     log['NPROC'] = nproc
     printLog(log)
-            
-    # Define sequence file iterator
-    in_type, seq_iter = readSeqFile(seq_file)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Create dictionary of primer sequences to pass to maskPrimers
     primers = readPrimerFile(primer_file)
@@ -397,9 +393,6 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
         align_args['max_error'] = max_error
         align_args['primers_regex'] = compilePrimers(primers)
 
-    # Count records
-    result_count = countSeqFile(seq_file)
-    
     # Define shared data objects
     manager = mp.Manager()
     collect_dict = manager.dict()
@@ -407,7 +400,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedRecQueue, args=(data_queue, nproc, seq_iter))
+    feeder = mp.Process(target=feedRecQueue, args=(data_queue, nproc, seq_file))
     feeder.start()
 
     # Initiate processQueue processes
@@ -420,8 +413,8 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectRecQueue, args=(result_queue, result_count, collect_dict, 
-                                                         'primers', seq_file, out_args))
+    collector = mp.Process(target=collectRecQueue, args=(result_queue, collect_dict, 
+                                                         seq_file, 'primers', out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue

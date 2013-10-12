@@ -6,8 +6,8 @@ Filters sequences or masks characters in FASTA/FASTQ files by missing nucleotide
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -22,8 +22,7 @@ from Bio.SeqRecord import SeqRecord
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_min_qual, default_delimiter, default_out_args, default_missing_chars
-from IgCore import getCommonParser, parseCommonArgs, printLog
-from IgCore import countSeqFile, readSeqFile
+from IgCore import getCommonParser, getFileType, parseCommonArgs, printLog
 from IgCore import collectRecQueue, feedRecQueue
 
 # Defaults
@@ -315,14 +314,10 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     log['NPROC'] = nproc
     printLog(log)
     
-    # Open input file
-    in_type, seq_iter = readSeqFile(seq_file)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
+    # Check input type
+    in_type = getFileType(seq_file)
     if in_type != 'fastq' and filter_func in (filterQuality, maskQuality, trimQuality):
         sys.exit('ERROR:  Input file must be FASTQ for %s mode' % cmd_dict[filter_func])
-
-    # Count records
-    result_count = countSeqFile(seq_file)
     
     # Define shared data objects 
     manager = mp.Manager()
@@ -331,7 +326,7 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedRecQueue, args=(data_queue, nproc, seq_iter))
+    feeder = mp.Process(target=feedRecQueue, args=(data_queue, nproc, seq_file))
     feeder.start()
 
     # Initiate worker processes
@@ -343,9 +338,9 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectRecQueue, args=(result_queue, result_count, collect_dict, 
+    collector = mp.Process(target=collectRecQueue, args=(result_queue, collect_dict, seq_file, 
                                                          cmd_dict.get(filter_func, 'filter'), 
-                                                         seq_file, out_args))
+                                                         out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue

@@ -6,8 +6,8 @@ Multiple aligns sets of input sequences
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.10.2'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import csv, os, sys
@@ -29,8 +29,8 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import default_barcode_field, default_primer_field
 from IgCore import parseAnnotation, getCommonParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, readSeqFile
-from IgCore import calculateDiversity, readPrimerFile, indexSeqSets
+from IgCore import getOutputHandle, printLog
+from IgCore import calculateDiversity, readPrimerFile
 from IgCore import collectSetQueue, feedSetQueue
 
 # Defaults
@@ -338,14 +338,7 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     log['CALC_DIV'] = calc_div
     log['NPROC'] = nproc
     printLog(log)
-    
-    # Read input file
-    in_type, seq_dict = readSeqFile(seq_file, index=True)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
-     
-    # Find sequences sets
-    set_dict = indexSeqSets(seq_dict, barcode_field, out_args['delimiter'])
-    
+ 
     # Define shared data objects 
     manager = mp.Manager()
     collect_dict = manager.dict()
@@ -353,7 +346,8 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_dict, set_dict))
+    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_file, barcode_field, 
+                                                   out_args['delimiter']))
     feeder.start()
 
     # Initiate processQueue processes
@@ -365,8 +359,8 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectSetQueue, args=(result_queue, len(set_dict), collect_dict, 
-                                                         'align', seq_file, out_args))
+    collector = mp.Process(target=collectSetQueue, args=(result_queue, collect_dict, seq_file, 
+                                                         barcode_field, 'align', out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue

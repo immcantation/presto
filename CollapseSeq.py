@@ -6,8 +6,8 @@ Removes duplicate sequences from FASTA/FASTQ files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.10.10'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, re, sys
@@ -24,7 +24,7 @@ from IgCore import collapseAnnotation, flattenAnnotation
 from IgCore import mergeAnnotation, parseAnnotation
 from IgCore import getCommonParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import readSeqFile, testSeqEqual
+from IgCore import getFileType, readSeqFile, testSeqEqual
 
 # Default parameters
 default_max_missing = 0
@@ -202,7 +202,8 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     printLog(log)
     
     # Read input file
-    in_type, seq_dict = readSeqFile(seq_file, index=True)
+    in_type = getFileType(seq_file)
+    seq_dict = readSeqFile(seq_file, index=True)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Count total sequences

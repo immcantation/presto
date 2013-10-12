@@ -1,5 +1,12 @@
-October 10, 2013
+October 12, 2013
 Version 0.4.1
+
+Changes to the internals of multiple tools to provide support for 
+  multiprocessing in Windows environments.
+
+EstimateError:
++ Fixed bug where tool would improperly exit if no sets passed threshold
+  criteria.
 
 MaskPrimers:
 + Added 'trim' mode which will cut the region before primer alignment, but 

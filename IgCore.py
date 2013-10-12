@@ -6,8 +6,8 @@ Core functions shared by pRESTO modules
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.24'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import math, os, re, sys
@@ -327,6 +327,30 @@ def readPrimerFile(primer_file):
     return primers
 
 
+def getFileType(seq_file):
+    """
+    Determines the type of a sequence file by file extension
+
+    Arguments: 
+    seq_file = a sequence file
+    
+    Returns: 
+    a string defining the sequence type for SeqIO operations
+    """
+    # Read and check file
+    try:
+        seq_type = os.path.splitext(seq_file)[1].lower().lstrip('.')
+    except IOError:
+        sys.exit('ERROR:  File %s cannot be read' % seq_file)
+    except:
+        sys.exit('ERROR:  File %s is invalid' % seq_file)
+    else:
+        if seq_type not in ['fasta', 'fastq', 'embl', 'gb', 'tab']:
+            sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
+    
+    return seq_type
+
+
 def readSeqFile(seq_file, index=False):
     """
     Reads FASTA/FASTQ files
@@ -340,7 +364,7 @@ def readSeqFile(seq_file, index=False):
     """
     # Read and check file
     try:
-        seq_type = os.path.splitext(seq_file)[1].lower().lstrip('.')
+        seq_type = getFileType(seq_file)
         if index:  
             seq_records = SeqIO.index(seq_file, seq_type, IUPAC.ambiguous_dna)
         else:  
@@ -350,10 +374,10 @@ def readSeqFile(seq_file, index=False):
     except:
         sys.exit('ERROR:  File %s is invalid' % seq_file)
     
-    return seq_type, seq_records
+    return seq_records
 
 
-def countSeqFile(seq_file):
+def countSeqRecords(seq_file):
     """
     Counts the records in FASTA/FASTQ files
 
@@ -365,8 +389,35 @@ def countSeqFile(seq_file):
     """
     # Count records and check file
     try:
-        seq_type = os.path.splitext(seq_file)[1].lower().lstrip('.')
-        result_count = len(SeqIO.index(seq_file, seq_type))
+        result_count = len(readSeqFile(seq_file, index=True))
+    except IOError:
+        sys.exit('ERROR:  File %s cannot be read' % seq_file)
+    except:
+        sys.exit('ERROR:  File %s is invalid' % seq_file)
+    else:
+        if result_count == 0:  sys.exit('ERROR:  File %s is empty' % seq_file)
+        
+    return result_count
+
+
+def countSeqSets(seq_file, field=default_barcode_field, delimiter=default_delimiter):
+    """
+    Identifies sets of sequences with the same ID field
+
+    Arguments: 
+    seq_file = a FASTA or FASTQ file containing sample sequences
+    field = the annotation field containing set IDs
+    delimiter = a tuple of delimiters for (fields, values, value lists) 
+    
+    Returns: 
+    the count of unit set IDs in the sequence file
+    """
+    # Count records and check file
+    try:
+        id_set = set()
+        for seq in readSeqFile(seq_file):
+            id_set.add(parseAnnotation(seq.description, delimiter=delimiter)[field])
+        result_count = len(id_set)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
     except:
@@ -869,19 +920,20 @@ def getSeqCoord(seq_dict, coord_type=default_coord_type, delimiter=default_delim
     return ids
 
 
-def feedRecQueue(data_queue, nproc, seq_iter):
+def feedRecQueue(data_queue, nproc, seq_file):
     """
-    Feeds the data queue with individual sequences for processQueue processes
+    Manages input file IO and feeds the data queue with individual sequences
 
     Arguments: 
     data_queue = an multiprocessing.Queue to hold data for processing
     nproc = the number of processQueue processes
-    seq_iter = an iterator of SeqRecords returned by readSeqFile
+    seq_file = the sequence file to read input from
     
     Returns: 
     None
     """
-    # Iterate over seq_ter and define processQueue arguments 
+    # Iterate over sequence records and feed data_queue
+    seq_iter = readSeqFile(seq_file)
     for seq in seq_iter:
         # Feed queue
         data_queue.put({'id':seq.id, 'seq':seq})
@@ -893,19 +945,24 @@ def feedRecQueue(data_queue, nproc, seq_iter):
     return None
 
 
-def feedSetQueue(data_queue, nproc, seq_dict, index_dict):
+def feedSetQueue(data_queue, nproc, seq_file, field, delimiter=default_delimiter):
     """
-    Feeds the data queue with sequence sets for processQueue processes
+    Manages input file IO and feeds the data queue with sequence sets
 
     Arguments: 
     data_queue = a multiprocessing.Queue to hold data for processing
     nproc = the number of processQueue processes
-    seq_dict = a dictionary of SeqRecords returned by readSeqFile
-    set_dict = a dictionary returned by indexSeqSets defining set membership
+    seq_file = the sequence file to read input from
+    field = the annotation field defining set membership
+    delimiter = a tuple of delimiters for (fields, values, value lists)
     
     Returns: 
     None
     """
+    # Read input file and find sequence sets
+    seq_dict = readSeqFile(seq_file, index=True)
+    index_dict = indexSeqSets(seq_dict, field, delimiter=delimiter)
+    
     # Iterate over set_dict and define processQueue arguments 
     for set_id, set_members in index_dict.iteritems():
         # Define sequence set
@@ -920,56 +977,32 @@ def feedSetQueue(data_queue, nproc, seq_dict, index_dict):
     return None
 
 
-def feedPairQueue(data_queue, nproc, seq_dict_1, seq_dict_2, index_dict):
-    """
-    Feeds the data queue with sequence pairs for processQueue processes
-
-    Arguments: 
-    data_queue = an multiprocessing.Queue to hold data for processing
-    nproc = the number of processQueue processes
-    seq_dict_1 = a dictionary of SeqRecords returned by readSeqFile
-    seq_dict_2 = a dictionary of SeqRecords returned by readSeqFile
-    index_dict = a dictionary returned by indexSeqPairs
-         
-    Returns: 
-    None
-    """
-    # Iterate over id_dict added head and tail sequences pairs to data_queue
-    for pair_id, (key_1, key_2) in index_dict.iteritems():
-        # Feed queue
-        data_queue.put({'id':pair_id, 
-                        'seq_1':seq_dict_1[key_1], 
-                        'seq_2':seq_dict_2[key_2]})
-        
-    # Add sentinel object for each processQueue process
-    for __ in range(nproc):
-        data_queue.put(None)
-
-    return None
-
-
-def collectRecQueue(result_queue, result_count, collect_dict, task_label, seq_file, out_args):
+def collectRecQueue(result_queue, collect_dict, seq_file, task_label, out_args):
     """
     Assembles results from a queue of individual sequence results and manages log/file I/O
 
     Arguments: 
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
     collect_dict = a multiprocessing.Manager.dict to store return values
-    task_label = the task label used to tag the output files
     seq_file = the input sequence file name
+    task_label = the task label used to tag the output files
     out_args = common output argument dictionary from parseCommonArgs
     
     Returns: 
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
+    # Count records and define output format 
+    out_type = getFileType(seq_file) if out_args['out_type'] is None \
+               else out_args['out_type']
+    result_count = countSeqRecords(seq_file)
+    
     # Defined valid alignment output handle
     pass_handle = getOutputHandle(seq_file, 
                                   '%s-pass' % task_label, 
                                   out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], 
-                                  out_type=out_args['out_type'])
+                                  out_type=out_type)
     # Defined failed alignment output handle
     if out_args['clean']:   
         fail_handle = None
@@ -978,7 +1011,7 @@ def collectRecQueue(result_queue, result_count, collect_dict, task_label, seq_fi
                                       '%s-fail' % task_label, 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
-                                      out_type=out_args['out_type'])
+                                      out_type=out_type)
     # Define log handle
     if out_args['log_file'] is None:  
         log_handle = None
@@ -1001,11 +1034,11 @@ def collectRecQueue(result_queue, result_count, collect_dict, task_label, seq_fi
         # Write sequences
         if result['out_seq'] is not None and result['pass']:
             pass_count += 1
-            SeqIO.write(result['out_seq'], pass_handle, out_args['out_type'])
+            SeqIO.write(result['out_seq'], pass_handle, out_type)
         else:
             fail_count += 1
             if fail_handle is not None:
-                SeqIO.write(result['in_seq'], fail_handle, out_args['out_type'])
+                SeqIO.write(result['in_seq'], fail_handle, out_type)
  
     # Print total counts
     printProgress(seq_count, result_count, 0.05, start_time) 
@@ -1027,28 +1060,33 @@ def collectRecQueue(result_queue, result_count, collect_dict, task_label, seq_fi
     return None
 
 
-def collectSetQueue(result_queue, result_count, collect_dict, task_label, seq_file, out_args):
+def collectSetQueue(result_queue, collect_dict, seq_file, field, task_label, out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments: 
     result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
     collect_dict = a multiprocessing.Manager.dict to store return values
-    task_label = the task label used to tag the output files
     seq_file = the sample sequence file name
+    field = the field defining set membership
+    task_label = the task label used to tag the output files
     out_args = common output argument dictionary from parseCommonArgs
     
     Returns: 
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
+    # Count records and define output format 
+    out_type = getFileType(seq_file) if out_args['out_type'] is None \
+               else out_args['out_type']
+    result_count = countSeqSets(seq_file, field, out_args['delimiter'])
+    
     # Defined valid alignment output handle
     pass_handle = getOutputHandle(seq_file, 
                                   '%s-pass' % task_label, 
                                   out_dir=out_args['out_dir'], 
                                   out_name=out_args['out_name'], 
-                                  out_type=out_args['out_type'])
+                                  out_type=out_type)
     # Defined failed alignment output handle
     if out_args['clean']:  
         fail_handle = None
@@ -1057,7 +1095,7 @@ def collectSetQueue(result_queue, result_count, collect_dict, task_label, seq_fi
                                       '%s-fail'  % task_label, 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
-                                      out_type=out_args['out_type'])
+                                      out_type=out_type)
     # Define log handle
     if out_args['log_file'] is None:  
         log_handle = None
@@ -1082,11 +1120,11 @@ def collectSetQueue(result_queue, result_count, collect_dict, task_label, seq_fi
         # Write alignments
         if result['out_list'] is not None and result['pass']:
             pass_count += 1
-            SeqIO.write(result['out_list'], pass_handle, out_args['out_type'])
+            SeqIO.write(result['out_list'], pass_handle, out_type)
         else:
             fail_count += 1
             if fail_handle is not None:
-                SeqIO.write(result['in_list'], fail_handle, out_args['out_type'])
+                SeqIO.write(result['in_list'], fail_handle, out_type)
  
     # Print total counts
     printProgress(set_count, result_count, 0.05, start_time)
@@ -1106,103 +1144,6 @@ def collectSetQueue(result_queue, result_count, collect_dict, task_label, seq_fi
     pass_handle.close()
     if fail_handle is not None:  fail_handle.close()
     if log_handle is not None:  log_handle.close()
-    
-    return None
-
-
-def collectPairQueue(result_queue, result_count, collect_dict, task_label, 
-                     seq_file_1, seq_file_2, out_args):
-    """
-    Pulls from results queue, assembles results and manages log and file IO
-
-    Arguments: 
-    result_queue = a multiprocessing.Queue holding processQueue results
-    result_count = the total number of results expected
-    collect_dict = a multiprocessing.Manager.dict to store return values
-    task_label = the task label used to tag the output files
-    seq_file_1 = the first sequence file name
-    seq_file_2 = the second sequence file name
-    out_args = common output argument dictionary from parseCommonArgs
-    
-    Returns: 
-    None
-    (adds 'log' and 'out_files' to collect_dict)
-    """
-    # Defined valid assembly output handle
-    pass_handle = getOutputHandle(seq_file_1, 
-                                  '%s-pass' % task_label, 
-                                  out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], 
-                                  out_type=out_args['out_type'])
-    # Defined failed assembly output handles
-    if out_args['clean']:
-        fail_handle_1 = None
-        fail_handle_2 = None
-    else:
-        # Define output name
-        if out_args['out_name'] is None:
-            out_name_1 = out_name_2 = None
-        else: 
-            out_name_1 = '%s-1' % out_args['out_name']
-            out_name_2 = '%s-2' % out_args['out_name']
-        fail_handle_1 = getOutputHandle(seq_file_1, 
-                                        '%s-fail' % task_label, 
-                                        out_dir=out_args['out_dir'], 
-                                        out_name=out_name_1, 
-                                        out_type=out_args['out_type'])
-        fail_handle_2 = getOutputHandle(seq_file_2, 
-                                        '%s-fail' % task_label, 
-                                        out_dir=out_args['out_dir'], 
-                                        out_name=out_name_2, 
-                                        out_type=out_args['out_type'])
-
-    # Define log handle
-    if out_args['log_file'] is None:
-        log_handle = None
-    else:
-        log_handle = open(out_args['log_file'], 'w')
-        
-    # Iterator over results queue until sentinel object reached
-    start_time = time()
-    pair_count = pass_count = fail_count = 0
-    for result in iter(result_queue.get, None): 
-        # Print progress for previous iteration
-        printProgress(pair_count, result_count, 0.05, start_time)
-
-        # Update counts for iteration
-        pair_count += 1
-
-        # Write log
-        printLog(result['log'], handle=log_handle)
-
-        # Write assembled sequences
-        if result['out_seq'] is not None and result['pass']:
-            pass_count += 1
-            SeqIO.write(result['out_seq'], pass_handle, out_args['out_type'])
-        else:
-            fail_count += 1
-            if fail_handle_1 is not None and fail_handle_2 is not None:
-                SeqIO.write(result['in_seq_1'], fail_handle_1, out_args['out_type'])
-                SeqIO.write(result['in_seq_2'], fail_handle_2, out_args['out_type'])
- 
-    # Print total counts
-    printProgress(pair_count, result_count, 0.05, start_time)
-
-    # Update return values
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['PAIRS'] = pair_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
-    collect_dict['log'] = log
-    collect_dict['out_files'] = [pass_handle.name]
-
-    # Close file handles
-    pass_handle.close()
-    if fail_handle_1 is not None:  fail_handle_1.close()
-    if fail_handle_2 is not None:  fail_handle_2.close()
-    if log_handle is not None:  log_handle.close()
-
     
     return None
 

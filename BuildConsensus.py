@@ -6,8 +6,8 @@ Builds a consensus sequence for each set of input sequences
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -19,10 +19,9 @@ from collections import OrderedDict
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_barcode_field, default_delimiter, default_min_freq, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation
-from IgCore import getCommonParser, parseCommonArgs, printLog, readSeqFile
-from IgCore import indexSeqSets, calculateDiversity
+from IgCore import getCommonParser, parseCommonArgs, printLog, getFileType
 from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus, subsetSeqSet
-from IgCore import collectSetQueue, feedSetQueue
+from IgCore import feedSetQueue, collectSetQueue, calculateDiversity
 
 # Defaults
 default_min_count = 1
@@ -189,20 +188,16 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['NPROC'] = nproc
     printLog(log)
     
-    # Read input files and open output files
-    in_type, seq_dict = readSeqFile(seq_file, index=True)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
-        
-    # Set consensus builing function
+    # Set consensus building function
+    in_type = getFileType(seq_file)
     if in_type == 'fastq':
         cons_func = qualityConsensus
         cons_args = {'min_qual':min_qual, 'dependent':dependent}
     elif in_type == 'fasta':  
         cons_func = frequencyConsensus
         cons_args = {'min_freq':min_freq}
-    
-    # Find sequences sets
-    set_dict = indexSeqSets(seq_dict, barcode_field, out_args['delimiter'])
+    else:
+        sys.exit('ERROR:  Input file must be FASTA or FASTQ')
     
     # Define shared data objects 
     manager = mp.Manager()
@@ -211,7 +206,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_dict, set_dict))
+    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_file, barcode_field, 
+                                                   out_args['delimiter']))
     feeder.start()
     
     # Initiate processQueue processes
@@ -224,8 +220,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectSetQueue, args=(result_queue, len(set_dict), collect_dict, 
-                                                         'consensus', seq_file, out_args))
+    collector = mp.Process(target=collectSetQueue, args=(result_queue, collect_dict, seq_file, 
+                                                         barcode_field, 'consensus', out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue

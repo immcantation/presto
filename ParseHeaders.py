@@ -6,8 +6,8 @@ Parses pRESTO annotations in FASTA/FASTQ sequence headers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import csv, os, re, sys
@@ -24,7 +24,7 @@ from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
 from IgCore import parseAnnotation, renameAnnotation
 from IgCore import getCommonParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile
+from IgCore import countSeqRecords, readSeqFile, getFileType
 
 # Defaults
 default_separator = ','
@@ -157,13 +157,14 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
     printLog(log)
     
     # Open file handles
-    in_type, seq_iter = readSeqFile(seq_file)
+    in_type = getFileType(seq_file)
+    seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     out_handle = getOutputHandle(seq_file, 'reheader', out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
 
     # Count records
-    result_count = countSeqFile(seq_file)
+    result_count = countSeqRecords(seq_file)
     
     # Iterate over sequences
     start_time = time()
@@ -217,11 +218,11 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     printLog(log)
     
     # Open file handles
-    __, seq_iter = readSeqFile(seq_file)
+    seq_iter = readSeqFile(seq_file)
     out_handle = getOutputHandle(seq_file, out_label='headers', out_dir=out_args['out_dir'], 
                                  out_name=out_args['out_name'], out_type='tab',)
     # Count records
-    result_count = countSeqFile(seq_file)
+    result_count = countSeqRecords(seq_file)
     
     # Open csv writer and write header
     out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='', 
@@ -272,11 +273,12 @@ def convertHeaders(seq_file, out_args=default_out_args):
     printLog(log)
     
     # Open input file
-    in_type, seq_iter = readSeqFile(seq_file)
+    in_type = getFileType(seq_file)
+    seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     
     # Count records
-    result_count = countSeqFile(seq_file)
+    result_count = countSeqRecords(seq_file)
 
     # Define replacement regular expressions
     d = re.escape(out_args['delimiter'][0])

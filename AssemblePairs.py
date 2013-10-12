@@ -6,8 +6,8 @@ Assembles paired-end reads into a single sequence
 __author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.0'
-__date__      = '2013.9.30'
+__version__   = '0.4.1'
+__date__      = '2013.10.12'
 
 # Imports
 import os, sys
@@ -17,6 +17,7 @@ import scipy.stats as stats
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 from itertools import izip
+from time import time
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
@@ -28,9 +29,9 @@ from IgCore import default_missing_chars, default_coord_choices, default_coord_t
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
 from IgCore import getCommonParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, readSeqFile, getUnpairedIndex
+from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict, reverseComplement, scoreSeqPair
-from IgCore import collectPairQueue, feedPairQueue, indexSeqPairs
+from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
 
 # Defaults
 default_alpha = 0.05
@@ -221,6 +222,38 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     return best_dict
 
 
+def feedQueue(data_queue, nproc, seq_file_1, seq_file_2, index_dict):
+    """
+    Feeds the data queue with sequence pairs for processQueue processes
+
+    Arguments: 
+    data_queue = an multiprocessing.Queue to hold data for processing
+    nproc = the number of processQueue processes
+    seq_file_1 = the name of sequence file 1
+    seq_file_2 = the name of sequence file 2
+    index_dict = a dictionary returned by indexSeqPairs
+         
+    Returns: 
+    None
+    """
+    # Open input files
+    seq_dict_1 = readSeqFile(seq_file_1, index=True)
+    seq_dict_2 = readSeqFile(seq_file_2, index=True)
+    
+    # Iterate over index_dict added sequences pairs to data_queue
+    for pair_id, (key_1, key_2) in index_dict.iteritems():
+        # Feed queue
+        data_queue.put({'id':pair_id, 
+                        'seq_1':seq_dict_1[key_1], 
+                        'seq_2':seq_dict_2[key_2]})
+        
+    # Add sentinel object for each processQueue process
+    for __ in range(nproc):
+        data_queue.put(None)
+
+    return None
+
+
 def processQueue(data_queue, result_queue, assemble_func, assemble_args={}, rc=None, 
                  head_fields=None, tail_fields=None, delimiter=default_delimiter):
     """
@@ -304,6 +337,104 @@ def processQueue(data_queue, result_queue, assemble_func, assemble_args={}, rc=N
     return None
 
 
+def collectQueue(result_queue, collect_dict, seq_file_1, seq_file_2, out_args):
+    """
+    Pulls from results queue, assembles results and manages log and file IO
+
+    Arguments: 
+    result_queue = a multiprocessing.Queue holding processQueue results
+    collect_dict = a multiprocessing.Manager.dict to store return values
+    seq_file_1 = the first sequence file name
+    seq_file_2 = the second sequence file name
+    out_args = common output argument dictionary from parseCommonArgs
+    
+    Returns: 
+    None
+    (adds 'log' and 'out_files' to collect_dict)
+    """
+    # Count records and define output format 
+    out_type = getFileType(seq_file_1) if out_args['out_type'] is None \
+               else out_args['out_type']
+    result_count = collect_dict['result_count']
+    
+    # Defined valid assembly output handle
+    pass_handle = getOutputHandle(seq_file_1, 
+                                  'assemble-pass', 
+                                  out_dir=out_args['out_dir'], 
+                                  out_name=out_args['out_name'], 
+                                  out_type=out_type)
+    # Defined failed assembly output handles
+    if out_args['clean']:
+        fail_handle_1 = None
+        fail_handle_2 = None
+    else:
+        # Define output name
+        if out_args['out_name'] is None:
+            out_name_1 = out_name_2 = None
+        else: 
+            out_name_1 = '%s-1' % out_args['out_name']
+            out_name_2 = '%s-2' % out_args['out_name']
+        fail_handle_1 = getOutputHandle(seq_file_1, 
+                                        'assemble-fail', 
+                                        out_dir=out_args['out_dir'], 
+                                        out_name=out_name_1, 
+                                        out_type=out_type)
+        fail_handle_2 = getOutputHandle(seq_file_2, 
+                                        'assemble-fail', 
+                                        out_dir=out_args['out_dir'], 
+                                        out_name=out_name_2, 
+                                        out_type=out_type)
+
+    # Define log handle
+    if out_args['log_file'] is None:
+        log_handle = None
+    else:
+        log_handle = open(out_args['log_file'], 'w')
+        
+    # Iterator over results queue until sentinel object reached
+    start_time = time()
+    pair_count = pass_count = fail_count = 0
+    for result in iter(result_queue.get, None): 
+        # Print progress for previous iteration
+        printProgress(pair_count, result_count, 0.05, start_time)
+
+        # Update counts for iteration
+        pair_count += 1
+
+        # Write log
+        printLog(result['log'], handle=log_handle)
+
+        # Write assembled sequences
+        if result['out_seq'] is not None and result['pass']:
+            pass_count += 1
+            SeqIO.write(result['out_seq'], pass_handle, out_type)
+        else:
+            fail_count += 1
+            if fail_handle_1 is not None and fail_handle_2 is not None:
+                SeqIO.write(result['in_seq_1'], fail_handle_1, out_type)
+                SeqIO.write(result['in_seq_2'], fail_handle_2, out_type)
+ 
+    # Print total counts
+    printProgress(pair_count, result_count, 0.05, start_time)
+
+    # Update return values
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['PAIRS'] = pair_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    collect_dict['log'] = log
+    collect_dict['out_files'] = [pass_handle.name]
+
+    # Close file handles
+    pass_handle.close()
+    if fail_handle_1 is not None:  fail_handle_1.close()
+    if fail_handle_2 is not None:  fail_handle_2.close()
+    if log_handle is not None:  log_handle.close()
+
+    return None
+
+
 def assemblePairs(head_file, tail_file, assemble_func, assemble_args={}, 
                   coord_type=default_coord_type, rc=None, 
                   head_fields=None, tail_fields=None,  
@@ -355,8 +486,12 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     printLog(log)
 
     # Read input files
-    head_type, head_dict = readSeqFile(head_file, index=True)
-    tail_type, tail_dict = readSeqFile(tail_file, index=True)
+    head_type = getFileType(head_file)
+    head_dict = readSeqFile(head_file, index=True)
+    head_count = len(head_dict) 
+    tail_type = getFileType(tail_file)
+    tail_dict = readSeqFile(tail_file, index=True)
+    tail_count = len(tail_dict)
 
     # Find paired sequences
     index_dict = indexSeqPairs(head_dict, tail_dict, coord_type, out_args['delimiter'])
@@ -388,9 +523,6 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                              out_name=tail_name, out_type=tail_type) as tail_handle:
             for k in tail_unpaired:
                 SeqIO.write(tail_dict[k], tail_handle, tail_type)
-
-    # Update out_args
-    if out_args['out_type'] is None:  out_args['out_type'] = head_type
     
     # Define shared data objects 
     manager = mp.Manager()
@@ -399,8 +531,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     result_queue = mp.Queue(queue_size)
     
     # Initiate feeder process
-    feeder = mp.Process(target=feedPairQueue, args=(data_queue, nproc, head_dict, tail_dict, 
-                                                    index_dict))
+    feeder = mp.Process(target=feedQueue, args=(data_queue, nproc, head_file, tail_file, 
+                                                index_dict))
     feeder.start()
 
     # Initiate processQueue processes
@@ -413,8 +545,9 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
         workers.append(w)
 
     # Initiate collector process
-    collector = mp.Process(target=collectPairQueue, args=(result_queue, pair_count, collect_dict, 
-                                                          'assemble', head_file, tail_file, out_args))
+    collect_dict['result_count'] = pair_count
+    collector = mp.Process(target=collectQueue, args=(result_queue, collect_dict,
+                                                      head_file, tail_file, out_args))
     collector.start()
 
     # Wait for feeder and worker processes to finish, add sentinel to result_queue
@@ -429,12 +562,11 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     manager.shutdown()
     
     # Print log
-    head_count = len(head_dict) 
-    tail_count = len(tail_dict)
     log_end = OrderedDict()
     log_end['OUTPUT'] = log.pop('OUTPUT')
     log_end['SEQUENCES'] = '%i,%i' % (head_count, tail_count)
-    log_end['UNPAIRED'] = '%i,%i' % (head_count - pair_count, tail_count - pair_count)
+    log_end['UNPAIRED'] = '%i,%i' % (head_count - pair_count, 
+                                     tail_count - pair_count)
     for k, v in log.iteritems():
         log_end[k] = v
     log_end['END'] = 'AssemblePairs'
