@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.10.23'
 
 # Imports
 import os, sys
@@ -21,7 +21,7 @@ from Bio.SeqRecord import SeqRecord
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_min_qual, default_delimiter, default_out_args, default_missing_chars
+from IgCore import default_min_qual, default_out_args, default_missing_chars
 from IgCore import getCommonParser, getFileType, parseCommonArgs, printLog
 from IgCore import collectRecQueue, feedRecQueue
 
@@ -33,7 +33,7 @@ default_window = 10
 
 
 def filterLength(seq, min_length=default_min_length, inner=True, 
-                  missing_chars=''.join(default_missing_chars)):
+                 missing_chars=''.join(default_missing_chars)):
     """
     Filters sequences by length
     
@@ -209,7 +209,6 @@ def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=F
     return result
 
 
-
 def maskQuality(seq, min_qual=default_min_qual):
     """
     Masks characters by in sequence by quality score
@@ -241,8 +240,7 @@ def maskQuality(seq, min_qual=default_min_qual):
     return result
 
 
-def processQueue(data_queue, result_queue, filter_func, filter_args={}, 
-                 delimiter=default_delimiter):
+def processQueue(data_queue, result_queue, filter_func, filter_args={}):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -251,7 +249,6 @@ def processQueue(data_queue, result_queue, filter_func, filter_args={},
     result_queue = a multiprocessing.Queue to hold processed results
     filter_func = the function to use for filtering sequences
     filter_args = a dictionary of arguments to pass to filter_func
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
 
     Returns: 
     None
@@ -332,8 +329,8 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     # Initiate worker processes
     workers = []
     for __ in range(nproc):
-        w = mp.Process(target=processQueue, args=(data_queue, result_queue, filter_func, 
-                                                  filter_args, out_args['delimiter']))
+        w = mp.Process(target=processQueue, args=(data_queue, result_queue, 
+                                                  filter_func, filter_args))
         w.start()
         workers.append(w)
 

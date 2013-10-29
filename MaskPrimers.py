@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.10.29'
 
 # Imports
 import os, sys
@@ -260,7 +260,7 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
         out_ann['BARCODE'] = seq_code
     
     out_ann = mergeAnnotation(seq_ann, out_ann, delimiter=delimiter)
-    out_seq.id = flattenAnnotation(out_ann, delimiter)
+    out_seq.id = flattenAnnotation(out_ann, delimiter=delimiter)
     out_seq.description = ''
 
     #return out_seq if len(out_seq) > 0 else None
@@ -375,7 +375,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     log['MODE'] = mode
     log['BARCODE'] = barcode
     log['MAX_ERROR'] = max_error
-    if 'start' in align_args: log['START'] = align_args['start']
+    if 'start' in align_args: log['START_POS'] = align_args['start']
     if 'max_len' in align_args: log['MAX_LEN'] = align_args['max_len']
     if 'reverse' in align_args: log['REVERSE'] = align_args['reverse']
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']

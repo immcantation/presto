@@ -27,6 +27,7 @@ from IgCore import feedSetQueue, collectSetQueue, calculateDiversity
 default_min_count = 1
 default_min_qual = 0
 
+
 def processQueue(data_queue, result_queue, cons_func, cons_args={}, 
                  min_count=default_min_count, primer_field=None, primer_freq=None, 
                  max_diversity=None, delimiter=default_delimiter):

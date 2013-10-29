@@ -327,28 +327,28 @@ def readPrimerFile(primer_file):
     return primers
 
 
-def getFileType(seq_file):
+def getFileType(filename):
     """
-    Determines the type of a sequence file by file extension
+    Determines the type of a file by file extension
 
     Arguments: 
-    seq_file = a sequence file
+    filename = a filename
     
     Returns: 
     a string defining the sequence type for SeqIO operations
     """
     # Read and check file
     try:
-        seq_type = os.path.splitext(seq_file)[1].lower().lstrip('.')
+        file_type = os.path.splitext(filename)[1].lower().lstrip('.')
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % seq_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % seq_file)
+        sys.exit('ERROR:  File %s cannot be read' % filename)
+    except Exception as e:
+        sys.exit('ERROR:  File %s is invalid with exception %s' % (filename, e))
     else:
-        if seq_type not in ['fasta', 'fastq', 'embl', 'gb', 'tab']:
-            sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
+        if file_type not in ['fasta', 'fastq', 'embl', 'gb', 'tab']:
+            sys.exit('ERROR:  File %s has an unrecognized type' % filename)
     
-    return seq_type
+    return file_type
 
 
 def readSeqFile(seq_file, index=False):
@@ -371,8 +371,8 @@ def readSeqFile(seq_file, index=False):
             seq_records = SeqIO.parse(seq_file, seq_type, IUPAC.ambiguous_dna)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % seq_file)
+    except Exception as e:
+        sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
     
     return seq_records
 
@@ -392,8 +392,8 @@ def countSeqRecords(seq_file):
         result_count = len(readSeqFile(seq_file, index=True))
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % seq_file)
+    except Exception as e:
+        sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
     else:
         if result_count == 0:  sys.exit('ERROR:  File %s is empty' % seq_file)
         
@@ -420,8 +420,8 @@ def countSeqSets(seq_file, field=default_barcode_field, delimiter=default_delimi
         result_count = len(id_set)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % seq_file)
+    except Exception as e:
+        sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
     else:
         if result_count == 0:  sys.exit('ERROR:  File %s is empty' % seq_file)
         
@@ -1346,7 +1346,7 @@ def parseCommonArgs(args, file_args=None):
             sys.exit('ERROR:  sequence file %s does not exist' % f)
         if os.path.splitext(f)[-1].lower() not in seq_types:
             sys.exit('ERROR:  sequence file %s is not a supported type. Must be one: %s' \
-                     % (','.join(seq_types), f))
+                     % (f, ','.join(seq_types)))
 
     # Verify primer files
     if 'primer_file' in args_dict:
@@ -1357,7 +1357,7 @@ def parseCommonArgs(args, file_args=None):
                 sys.exit('ERROR:  primer file %s does not exist' % f)
             if os.path.splitext(f)[-1].lower() not in primer_types:
                 sys.exit('ERROR:  primer file %s is not a supported type. Must be one: %s' \
-                         % (','.join(primer_types), f))
+                         % (f, ','.join(primer_types)))
             
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir'] is not None:
