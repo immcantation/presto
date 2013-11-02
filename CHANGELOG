@@ -1,8 +1,11 @@
-October 12, 2013
+November 2, 2013
 Version 0.4.1
 
 Changes to the internals of multiple tools to provide support for 
   multiprocessing in Windows environments.
+
+IgCore:
++ Added reporting of unknown exceptions when reading sequence files
 
 EstimateError:
 + Fixed bug where tool would improperly exit if no sets passed threshold
@@ -10,7 +13,14 @@ EstimateError:
 
 MaskPrimers:
 + Added 'trim' mode which will cut the region before primer alignment, but 
-  leave primer region unmodified. 
+  leave primer region unmodified.
++ Fix a bug in the output logging
+
+ParseHeaders:
++ Added count of sequences without any valid fields (FAIL) to console output
+
+ParseLog:
++ Added count of records without any valid fields (FAIL) to console output
 
 
 -------------------------------------------------------------------------------

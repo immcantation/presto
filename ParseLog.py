@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.11.2'
 
 # Imports
 import csv, os, sys
@@ -60,9 +60,12 @@ def tableLog(record_file, fields, out_args=default_out_args):
     
     # Open file handles
     log_handle = open(record_file, 'rU')
-    out_handle = getOutputHandle(record_file, 'table', out_dir=out_args['out_dir'], 
-                                 out_name=out_args['out_name'], out_type='tab')
-    
+    out_handle = getOutputHandle(record_file, 
+                                 'table', 
+                                 out_dir=out_args['out_dir'], 
+                                 out_name=out_args['out_name'], 
+                                 out_type='tab')
+        
     # Open csv writer and write header
     out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='', 
                                 delimiter='\t', fieldnames=fields)
@@ -71,18 +74,25 @@ def tableLog(record_file, fields, out_args=default_out_args):
     # Iterate over log records
     start_time = time()
     record = ''
-    rec_count = 0
+    rec_count = pass_count = fail_count = 0
     for line in log_handle:
         if line.strip() == '' and record:
-            # At end of record write to csv and reset record
+            # Print progress for previous iteration
+            printProgress(rec_count, None, 1e5, start_time)
+            
+            # Parse record block
+            rec_count += 1
             record_dict = parseLogRecord(record)
-            record = ''
-            if record_dict and any([f in fields for f in record_dict]):
-                # Print progress for previous iteration
-                printProgress(rec_count, None, 1e5, start_time)
-                # Update count and write record
-                rec_count += 1
+
+            # Write records
+            if any([f in fields for f in record_dict]):
+                pass_count += 1
                 out_writer.writerow(record_dict)
+            elif record_dict:
+                fail_count += 1
+                
+            # Empty record string
+            record = ''
         else:
             # Append to record
             record += line
@@ -90,15 +100,19 @@ def tableLog(record_file, fields, out_args=default_out_args):
         # Write final record
         if record: 
             record_dict = parseLogRecord(record)
-            if record_dict:
-                out_writer.writerow(record_dict)                
-                rec_count += 1
+            if any([f in fields for f in record_dict]):
+                pass_count += 1
+                out_writer.writerow(record_dict)
+            elif record_dict:
+                fail_count += 1
     
     # Print counts
     printProgress(rec_count, None, 1e5, start_time, end=True)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['RECORDS'] = rec_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
     log['END'] = 'ParseLog'
     printLog(log)
 
@@ -144,8 +158,6 @@ if __name__ == '__main__':
     if args_dict['fields']:  args_dict['fields'] = map(str.upper, args_dict['fields']) 
     
     # Call parseLog for each log file
-    for k in args_dict:
-        print k, args_dict[k]
     del args_dict['record_file']
     for f in args.__dict__['record_file']:
         args_dict['record_file'] = f

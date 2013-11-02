@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.11.2'
 
 # Imports
 import csv, os, re, sys
@@ -231,21 +231,29 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     
     # Iterate over sequences
     start_time = time()
-    seq_count = 0
+    seq_count = pass_count = fail_count = 0
     for seq in seq_iter:
         # Print progress for previous iteration
         printProgress(seq_count, result_count, 0.05, start_time)
-        # Update counts
+        
+        # Get annotations
         seq_count += 1
-        # Write annotation to table
         ann = parseAnnotation(seq.description, fields, delimiter=out_args['delimiter'])
-        out_writer.writerow(ann)
+
+        # Write records
+        if ann:
+            pass_count += 1
+            out_writer.writerow(ann)
+        else:
+            fail_count += 1
         
     # Print counts
     printProgress(seq_count, result_count, 0.05, start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['SEQUENCES'] = seq_count
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
     log['END'] = 'tableHeaders'
     printLog(log)
 
