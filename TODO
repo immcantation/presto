@@ -18,3 +18,5 @@ Low Priority
 + Maybe convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
 + Maybe add parameter to sample and samplepair subcommands of SplitSeq
   allowing sampling with replacement
++ Maybe convert args and results dictionaries passed through 
+  multiprocessing Queue to classes
