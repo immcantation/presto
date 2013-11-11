@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.2'
+__date__      = '2013.11.10'
 
 # Imports
 import csv, os, re, sys
@@ -22,9 +22,9 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_action_choices, default_delimiter, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
 from IgCore import parseAnnotation, renameAnnotation
-from IgCore import getCommonParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqRecords, readSeqFile, getFileType
+from IgCore import countSeqFile, readSeqFile, getFileType
 
 # Defaults
 default_separator = ','
@@ -164,7 +164,7 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
                                  out_name=out_args['out_name'], out_type=out_args['out_type'])
 
     # Count records
-    result_count = countSeqRecords(seq_file)
+    result_count = countSeqFile(seq_file)
     
     # Iterate over sequences
     start_time = time()
@@ -220,9 +220,9 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     # Open file handles
     seq_iter = readSeqFile(seq_file)
     out_handle = getOutputHandle(seq_file, out_label='headers', out_dir=out_args['out_dir'], 
-                                 out_name=out_args['out_name'], out_type='tab',)
+                                 out_name=out_args['out_name'], out_type='tab')
     # Count records
-    result_count = countSeqRecords(seq_file)
+    result_count = countSeqFile(seq_file)
     
     # Open csv writer and write header
     out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='', 
@@ -254,7 +254,7 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     log['SEQUENCES'] = seq_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
-    log['END'] = 'tableHeaders'
+    log['END'] = 'ParseHeaders'
     printLog(log)
 
     # Close file handles
@@ -286,7 +286,7 @@ def convertHeaders(seq_file, out_args=default_out_args):
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     
     # Count records
-    result_count = countSeqRecords(seq_file)
+    result_count = countSeqFile(seq_file)
 
     # Define replacement regular expressions
     d = re.escape(out_args['delimiter'][0])
@@ -354,7 +354,7 @@ def convertHeaders(seq_file, out_args=default_out_args):
     log['SEQUENCES'] = seq_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
-    log['END'] = 'convertHeaders'
+    log['END'] = 'ParseHeaders'
     printLog(log)
 
     # Close file handles
@@ -380,7 +380,7 @@ def getArgParser():
     subparsers = parser.add_subparsers(dest='command')
     
     # Subparser to add header fields
-    parser_add = subparsers.add_parser('add', parents=[getCommonParser(log=False)],
+    parser_add = subparsers.add_parser('add', parents=[getCommonArgParser(log=False)],
                                        formatter_class=ArgumentDefaultsHelpFormatter,
                                        help='Adds field/value pairs to header annotations')    
     parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -391,7 +391,7 @@ def getArgParser():
     parser_add.set_defaults(modify_func=addHeader)
 
     # Subparser to collapse header fields
-    parser_collapse = subparsers.add_parser('collapse', parents=[getCommonParser(log=False)],
+    parser_collapse = subparsers.add_parser('collapse', parents=[getCommonArgParser(log=False)],
                                             formatter_class=ArgumentDefaultsHelpFormatter,
                                             help='Collapses header annotations with multiple entries')    
     parser_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -403,7 +403,7 @@ def getArgParser():
     parser_collapse.set_defaults(modify_func=collapseHeader)
 
     # Subparser to delete header fields
-    parser_delete = subparsers.add_parser('delete', parents=[getCommonParser(log=False)],
+    parser_delete = subparsers.add_parser('delete', parents=[getCommonArgParser(log=False)],
                                           formatter_class=ArgumentDefaultsHelpFormatter,
                                           help='Deletes fields from header annotations')    
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -412,7 +412,7 @@ def getArgParser():
     parser_delete.set_defaults(modify_func=deleteHeader)
 
     # Subparser to expand header fields
-    parser_expand = subparsers.add_parser('expand', parents=[getCommonParser(log=False)],
+    parser_expand = subparsers.add_parser('expand', parents=[getCommonArgParser(log=False)],
                                           formatter_class=ArgumentDefaultsHelpFormatter,
                                           help='Expands annotation fields with multiple values')    
     parser_expand.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -424,7 +424,7 @@ def getArgParser():
     parser_expand.set_defaults(modify_func=expandHeader)
 
     # Subparser to rename header fields
-    parser_rename = subparsers.add_parser('rename', parents=[getCommonParser(log=False)],
+    parser_rename = subparsers.add_parser('rename', parents=[getCommonArgParser(log=False)],
                                           formatter_class=ArgumentDefaultsHelpFormatter,
                                           help='Renames headers annotation fields')    
     parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -435,7 +435,7 @@ def getArgParser():
     parser_rename.set_defaults(modify_func=renameHeader)
             
     # Subparser to create a header table
-    parser_table = subparsers.add_parser('table', parents=[getCommonParser(seq_out=False, log=False)],
+    parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_out=False, log=False)],
                                          formatter_class=ArgumentDefaultsHelpFormatter,
                                          help='Writes sequence headers to a table')
     parser_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -443,7 +443,7 @@ def getArgParser():
     parser_table.set_defaults(func=tableHeaders)
     
     # Subparser to convert header to pRESTO format
-    parser_convert = subparsers.add_parser('convert', parents=[getCommonParser(log=False)],
+    parser_convert = subparsers.add_parser('convert', parents=[getCommonArgParser(log=False)],
                                        formatter_class=ArgumentDefaultsHelpFormatter,
                                        help='Converts sequence descriptions to pRESTO format')   
     parser_convert.set_defaults(func=convertHeaders)

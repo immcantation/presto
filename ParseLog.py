@@ -18,7 +18,7 @@ from time import time
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args
-from IgCore import getCommonParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 
 
@@ -135,7 +135,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser(seq_in=False, seq_out=False, log=False)], 
+                            parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
     parser.add_argument('-l', nargs='+', action='store', dest='record_file', required=True,

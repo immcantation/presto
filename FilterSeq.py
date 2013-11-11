@@ -22,7 +22,7 @@ from Bio.SeqRecord import SeqRecord
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_min_qual, default_out_args, default_missing_chars
-from IgCore import getCommonParser, getFileType, parseCommonArgs, printLog
+from IgCore import getCommonArgParser, getFileType, parseCommonArgs, printLog
 from IgCore import collectRecQueue, feedRecQueue
 
 # Defaults
@@ -374,7 +374,7 @@ def getArgParser():
     subparsers = parser.add_subparsers()
     
     # Parent parser
-    parser_parent = getCommonParser(annotation=False, log=True, multiproc=True)
+    parser_parent = getCommonArgParser(annotation=False, log=True, multiproc=True)
     
     # Length filter mode argument parser
     parser_length = subparsers.add_parser('length', parents=[parser_parent],

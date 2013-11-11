@@ -28,7 +28,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_missing_chars, default_coord_choices, default_coord_type
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
-from IgCore import getCommonParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict, reverseComplement, scoreSeqPair
 from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
@@ -591,7 +591,7 @@ def getArgParser():
     subparsers = parser.add_subparsers(dest='command', help='Assembly mode')
     
     # Parent parser    
-    parser_parent = getCommonParser(paired=True, multiproc=True)
+    parser_parent = getCommonArgParser(paired=True, multiproc=True)
     parser_parent.add_argument('--coord', action='store', dest='coord_type', 
                                choices=default_coord_choices, default=default_coord_type,
                                help='The format of the sequence identifier which defines shared coordinate \

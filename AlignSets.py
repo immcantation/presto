@@ -28,7 +28,7 @@ from Bio.SeqRecord import SeqRecord
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import default_barcode_field, default_primer_field
-from IgCore import parseAnnotation, getCommonParser, parseCommonArgs
+from IgCore import parseAnnotation, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog
 from IgCore import calculateDiversity, readPrimerFile
 from IgCore import collectSetQueue, feedSetQueue
@@ -397,7 +397,7 @@ def getArgParser():
     subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Alignment mode', metavar='')
     
     # Parent parser    
-    parser_parent = getCommonParser(multiproc=True)
+    parser_parent = getCommonArgParser(multiproc=True)
     parser_parent.add_argument('--bf', action='store', dest='barcode_field', type=str,
                                default=default_barcode_field, 
                                help='The annotation field containing barcode labels for sequence grouping')
@@ -428,7 +428,7 @@ def getArgParser():
     parser_offset.set_defaults(align_func=offsetSeqSet)
 
     # Offset table generation argument parser
-    parser_table = subparsers.add_parser('table', parents=[getCommonParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
+    parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
                                          formatter_class=ArgumentDefaultsHelpFormatter,
                                          help='Create a 5\' offset table by primer multiple alignment')
     parser_table.add_argument('-p', nargs='+', action='store', dest='primer_file', required=True, 

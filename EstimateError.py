@@ -23,7 +23,7 @@ from time import time
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_missing_chars, default_barcode_field, default_out_args
 from IgCore import default_min_freq, default_min_qual
-from IgCore import getCommonParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress, getFileType
 from IgCore import feedSetQueue, getScoreDict, calculateDiversity, countSeqSets
 from IgCore import frequencyConsensus, qualityConsensus
@@ -427,7 +427,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser(seq_out=False, multiproc=True)], 
+                            parents=[getCommonArgParser(seq_out=False, multiproc=True)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
     parser.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field, 

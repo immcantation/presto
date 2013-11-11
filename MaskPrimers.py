@@ -21,7 +21,7 @@ from Bio import pairwise2
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
-from IgCore import getCommonParser, parseCommonArgs, printLog
+from IgCore import getCommonArgParser, parseCommonArgs, printLog
 from IgCore import getScoreDict, reverseComplement, weightSeq
 from IgCore import compilePrimers, readPrimerFile
 from IgCore import collectRecQueue, feedRecQueue
@@ -83,7 +83,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     for rec in seq_list:
         scan_rec = rec[:max_len] if not reverse else rec[-max_len:]
         for adpt_id, adpt_regex in primers_regex.iteritems():
-            adpt_match = adpt_regex.search(str(scan_rec.seq))
+            adpt_match = adpt_regex.search(str(scan_rec.seq.upper()))
             # Parse matches
             if adpt_match:
                 align_dict['seq'] = rec
@@ -108,8 +108,8 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         scan_rec = rec[:max_len] if not reverse else rec[-max_len:]
         this_align = {}
         for adpt_id, adpt_seq in primers.iteritems():
-            pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq, score_dict, 
-                                                -1, -1, one_alignment_only=True)
+            pw2_align = pairwise2.align.localds(scan_rec.seq.upper(), adpt_seq.upper(), 
+                                                score_dict, -1, -1, one_alignment_only=True)
             if pw2_align:  this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
         
@@ -289,6 +289,7 @@ def processQueue(data_queue, result_queue, primers, mode, align_func, align_args
     # Iterator over data queue until sentinel object reached
     for args in iter(data_queue.get, None):
         in_seq = args['seq']
+        id_ann = parseAnnotation(args['id'], delimiter=delimiter)['ID']
         
         # Define result dictionary for iteration
         results = {'id':args['id'],
@@ -296,7 +297,7 @@ def processQueue(data_queue, result_queue, primers, mode, align_func, align_args
                    'out_seq':None,
                    'error': None,
                    'pass':False,
-                   'log':OrderedDict([('ID', args['id'])])}
+                   'log':OrderedDict([('ID', id_ann)])}
  
         # Align primers
         align = align_func(in_seq, primers, **align_args)
@@ -451,7 +452,7 @@ def getArgParser():
     subparsers = parser.add_subparsers()
     
     # Parent parser
-    parser_parent = getCommonParser(multiproc=True)
+    parser_parent = getCommonArgParser(multiproc=True)
     parser_parent.add_argument('-p', action='store', dest='primer_file', required=True, 
                                help='A FASTA or REGEX file containing primer sequences')
     parser_parent.add_argument('--mode', action='store', dest='mode', 

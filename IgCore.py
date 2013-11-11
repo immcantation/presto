@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.11.10'
 
 # Imports
 import math, os, re, sys
@@ -23,6 +23,7 @@ from Bio.Alphabet import IUPAC
 
 # Defaults
 default_delimiter = ('|', '=', ',')
+default_separator = default_delimiter[2]
 default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
 default_action_choices = ['min', 'max', 'sum', 'first', 'last', 'set']
 default_coord_type = 'presto'
@@ -33,6 +34,7 @@ default_min_freq = 0.7
 default_min_qual = 20
 default_out_args = {'log_file':None, 
                     'delimiter':default_delimiter,
+                    'separator':default_separator,
                     'out_dir':None,
                     'out_name':None,
                     'out_type':None,
@@ -68,7 +70,7 @@ def parseAnnotation(record, fields=None, delimiter=default_delimiter):
 
 def flattenAnnotation(ann_dict, delimiter=default_delimiter):
     """
-    Convered annotations from a dictionary to a FASTA/FASTQ sequence description
+    Converts annotations from a dictionary to a FASTA/FASTQ sequence description
 
     Arguments: 
     ann_dict = a dictionary of field/value pairs
@@ -377,7 +379,7 @@ def readSeqFile(seq_file, index=False):
     return seq_records
 
 
-def countSeqRecords(seq_file):
+def countSeqFile(seq_file):
     """
     Counts the records in FASTA/FASTQ files
 
@@ -440,7 +442,7 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
                if None use input file extension
     out_dir = the output directory;
               if None use directory of input file
-    out_name = the short file anme to use for the output file; 
+    out_name = the short filename to use for the output file; 
                if None use input file short name
     
     Returns:
@@ -467,7 +469,11 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
     else:
         out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
     
-    return open(out_file, 'w')
+    # Open and return handle
+    try:
+        return open(out_file, 'wb')
+    except:
+        sys.exit('ERROR:  File %s cannot be opened' % out_file)
 
 
 def translateIUPAC(key):
@@ -609,7 +615,7 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     True if the sequences are equal
     """
     equal = True
-    for a, b in izip(seq1, seq2):
+    for a, b in izip(seq1.upper(), seq2.upper()):
         if a != b and a not in ignore_chars and b not in ignore_chars:
             equal = False
             break
@@ -627,7 +633,7 @@ def weightSeq(seq):
     Returns:
     The sum of the character scores for the sequence
     """
-    nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq])
+    nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
     gap_score = 0
       
     return max(nuc_score + gap_score, 1)
@@ -653,7 +659,7 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
     # Determine score
     if max_error is None:
         # Return accurate values when max_error is undefined
-        chars = izip(seq1, seq2)
+        chars = izip(seq1.upper(), seq2.upper())
         score = sum([score_dict[(a, b)] for a, b in chars])
         weight = min(weightSeq(seq1), weightSeq(seq2))
         error = 1.0 - float(score) / weight
@@ -995,7 +1001,7 @@ def collectRecQueue(result_queue, collect_dict, seq_file, task_label, out_args):
     # Count records and define output format 
     out_type = getFileType(seq_file) if out_args['out_type'] is None \
                else out_args['out_type']
-    result_count = countSeqRecords(seq_file)
+    result_count = countSeqFile(seq_file)
     
     # Defined valid alignment output handle
     pass_handle = getOutputHandle(seq_file, 
@@ -1250,8 +1256,8 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
     return None
         
         
-def getCommonParser(seq_in=True, seq_out=True, paired=False, 
-                    annotation=True, log=True, multiproc=False):
+def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, 
+                       annotation=True, log=True, multiproc=False):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
@@ -1259,6 +1265,7 @@ def getCommonParser(seq_in=True, seq_out=True, paired=False,
     seq_in = if True include sequence input arguments
     seq_out = if True include sequence output arguments
     paired = if True defined paired-end sequence input and output arguments
+    db_in = if True include tab delimited database input arguments
     annotation = if True include annotation arguments
     log = if True include log arguments
     multiproc = if True include multiprocessing arguments
@@ -1268,6 +1275,11 @@ def getCommonParser(seq_in=True, seq_out=True, paired=False,
     """
     parser = ArgumentParser(add_help=False, formatter_class=ArgumentDefaultsHelpFormatter)
 
+    # Database arguments
+    if db_in:
+        parser.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
+                        help='Tab delimited database files')
+            
     # Sequence arguments
     if seq_in and not paired:
         parser.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
@@ -1307,14 +1319,12 @@ def getCommonParser(seq_in=True, seq_out=True, paired=False,
     parser.add_argument('--outname', action='store', dest='out_name', default=None,
                         help='Changes the prefix of the successfully processed output file to the string specified')
     
-    
-    
     return parser
 
 
 def parseCommonArgs(args, file_args=None):
     """
-    Checks common arguments from getCommonParser and transforms output options to a dictionary
+    Checks common arguments from getCommonArgParser and transforms output options to a dictionary
 
     Arguments: 
     args = argument Namespace defined by ArgumentParser.parse_args
@@ -1325,10 +1335,22 @@ def parseCommonArgs(args, file_args=None):
     Returns:
     a dictionary copy of args with output arguments embedded in the dictionary out_args
     """ 
+    db_types = ['.tab']
     seq_types = ['.fasta', '.fastq']
     primer_types = ['.fasta', '.regex']
     args_dict = args.__dict__.copy()
     
+    # Verify database files
+    db_files = []
+    if 'db_files' in args_dict:
+        db_files.extend(args_dict['db_files'])
+    for f in db_files:
+        if not os.path.isfile(f):
+            sys.exit('ERROR:  database file %s does not exist' % f)
+        if os.path.splitext(f)[-1].lower() not in db_types:
+            sys.exit('ERROR:  database file %s is not a supported type. Must be one: %s' \
+                     % (','.join(db_types), f))
+                
     # Verify sequence files
     seq_files = []
     if 'seq_files' in args_dict:
@@ -1346,7 +1368,7 @@ def parseCommonArgs(args, file_args=None):
             sys.exit('ERROR:  sequence file %s does not exist' % f)
         if os.path.splitext(f)[-1].lower() not in seq_types:
             sys.exit('ERROR:  sequence file %s is not a supported type. Must be one: %s' \
-                     % (f, ','.join(seq_types)))
+                     % (','.join(seq_types), f))
 
     # Verify primer files
     if 'primer_file' in args_dict:
@@ -1357,7 +1379,7 @@ def parseCommonArgs(args, file_args=None):
                 sys.exit('ERROR:  primer file %s does not exist' % f)
             if os.path.splitext(f)[-1].lower() not in primer_types:
                 sys.exit('ERROR:  primer file %s is not a supported type. Must be one: %s' \
-                         % (f, ','.join(primer_types)))
+                         % (','.join(primer_types), f))
             
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir'] is not None:

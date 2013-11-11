@@ -1,4 +1,4 @@
-November 2, 2013
+November 10, 2013
 Version 0.4.1
 
 Changes to the internals of multiple tools to provide support for 
@@ -6,6 +6,7 @@ Changes to the internals of multiple tools to provide support for
 
 IgCore:
 + Added reporting of unknown exceptions when reading sequence files
++ Fixed scoring of lowercase sequences
 
 EstimateError:
 + Fixed bug where tool would improperly exit if no sets passed threshold
@@ -14,7 +15,8 @@ EstimateError:
 MaskPrimers:
 + Added 'trim' mode which will cut the region before primer alignment, but 
   leave primer region unmodified.
-+ Fix a bug in the output logging
++ Fixed a bug in the output logging
++ Fixed a bug with lowercase sequence data
 
 ParseHeaders:
 + Added count of sequences without any valid fields (FAIL) to console output

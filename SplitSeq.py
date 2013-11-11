@@ -21,9 +21,9 @@ from Bio import SeqIO
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_coord_choices, default_coord_type, default_out_args
 from IgCore import getAnnotationValues, parseAnnotation, indexSeqPairs, subsetSeqIndex
-from IgCore import getCommonParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqRecords, readSeqFile, getFileType
+from IgCore import countSeqFile, readSeqFile, getFileType
 
 
 def convertSeqFile(seq_file, out_format, out_args=default_out_args):
@@ -94,7 +94,7 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     # Determine total numbers of records
-    rec_count = countSeqRecords(seq_file)
+    rec_count = countSeqFile(seq_file)
     
     # Loop through iterator writing each record and opening new output handle as needed
     start_time = time()
@@ -166,7 +166,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Determine total numbers of records
-    rec_count = countSeqRecords(seq_file)
+    rec_count = countSeqFile(seq_file)
 
     # Process sequences
     start_time = time()
@@ -534,7 +534,7 @@ def getArgParser():
     
     # Subparser for file conversion
     parser_convert = subparsers.add_parser('convert', 
-                                           parents=[getCommonParser(seq_out=False, annotation=False, log=False)],
+                                           parents=[getCommonArgParser(seq_out=False, annotation=False, log=False)],
                                            formatter_class=ArgumentDefaultsHelpFormatter,
                                            help='Converts sequence files')
     parser_convert.add_argument('--format', nargs='+', action='store', dest='out_format', 
@@ -543,7 +543,7 @@ def getArgParser():
     parser_convert.set_defaults(func=convertSeqFile)
 
     # Subparser to downsize files to a maximum count
-    parser_downsize = subparsers.add_parser('count', parents=[getCommonParser(annotation=False, log=False)],
+    parser_downsize = subparsers.add_parser('count', parents=[getCommonArgParser(annotation=False, log=False)],
                                             formatter_class=ArgumentDefaultsHelpFormatter,
                                             help='Splits sequences files by number of records')
     parser_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
@@ -551,7 +551,7 @@ def getArgParser():
     parser_downsize.set_defaults(func=downsizeSeqFile)
     
     # Subparser to partition files by annotation
-    parser_group = subparsers.add_parser('group', parents=[getCommonParser(log=False)],
+    parser_group = subparsers.add_parser('group', parents=[getCommonArgParser(log=False)],
                                          formatter_class=ArgumentDefaultsHelpFormatter,
                                          help='Splits sequences files by annotation')
     parser_group.add_argument('-f', action='store', dest='field', type=str, required=True,
@@ -562,7 +562,7 @@ def getArgParser():
     parser_group.set_defaults(func=groupSeqFile)
 
     # Subparser to randomly sample from unpaired files
-    parser_sample = subparsers.add_parser('sample', parents=[getCommonParser(log=False)],
+    parser_sample = subparsers.add_parser('sample', parents=[getCommonArgParser(log=False)],
                                           formatter_class=ArgumentDefaultsHelpFormatter,
                                           help='Randomly samples from unpaired sequences files')
     parser_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True, 
@@ -575,7 +575,7 @@ def getArgParser():
     parser_sample.set_defaults(func=sampleSeqFile)
     
     # Subparser to randomly sample from paired files
-    parser_samplepair = subparsers.add_parser('samplepair', parents=[getCommonParser(paired=True, log=False)],
+    parser_samplepair = subparsers.add_parser('samplepair', parents=[getCommonArgParser(paired=True, log=False)],
                                           formatter_class=ArgumentDefaultsHelpFormatter,
                                           help='Randomly samples from paired-end sequences files')
     parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, 
@@ -593,7 +593,7 @@ def getArgParser():
     parser_samplepair.set_defaults(func=samplePairSeqFile)
     
     # Subparser to sort files
-    parser_sort = subparsers.add_parser('sort', parents=[getCommonParser(log=False)],
+    parser_sort = subparsers.add_parser('sort', parents=[getCommonArgParser(log=False)],
                                         formatter_class=ArgumentDefaultsHelpFormatter,
                                         help='Sorts sequences files by annotation')
     parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,

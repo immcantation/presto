@@ -19,7 +19,7 @@ from collections import OrderedDict
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_barcode_field, default_delimiter, default_min_freq, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation
-from IgCore import getCommonParser, parseCommonArgs, printLog, getFileType
+from IgCore import getCommonArgParser, parseCommonArgs, printLog, getFileType
 from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus, subsetSeqSet
 from IgCore import feedSetQueue, collectSetQueue, calculateDiversity
 
@@ -255,7 +255,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser(multiproc=True)], 
+                            parents=[getCommonArgParser(multiproc=True)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
     parser.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,

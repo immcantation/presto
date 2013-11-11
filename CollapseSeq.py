@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_action_choices, default_delimiter, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation 
 from IgCore import mergeAnnotation, parseAnnotation
-from IgCore import getCommonParser, parseCommonArgs
+from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import getFileType, readSeqFile, testSeqEqual
 
@@ -305,7 +305,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            parents=[getCommonParser()], 
+                            parents=[getCommonArgParser()], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-n', action='store', dest='max_missing', type=int, default=default_max_missing, 
