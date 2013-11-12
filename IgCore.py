@@ -145,30 +145,30 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
 
     Arguments: 
     ann_dict = a dictionary of field/value pairs
-    action = the collapse action to take;
+    action = the _collapse action to take;
              one of {min, max, sum, first, last, set}
-    fields = a subset of ann_dict to collapse;
-             if None collapse all but the ID field
+    fields = a subset of ann_dict to _collapse;
+             if None _collapse all but the ID field
     delimiter = a tuple of delimiters for (fields, values, value lists) 
     
     Returns: 
     a modified field dictionary of {field:value}
     """
-    # Define collapse action            
+    # Define _collapse action            
     if action == 'set':
-        def collapse(value):  return list(set(value))
+        def _collapse(value):  return list(set(value))
     elif action == 'first':
-        def collapse(value):  return value[0]
+        def _collapse(value):  return value[0]
     elif action == 'last':
-        def collapse(value):  return value[-1]
+        def _collapse(value):  return value[-1]
     elif action == 'min':
-        def collapse(value):  return '%.2g' % min([float(x or 0) for x in value])
+        def _collapse(value):  return '%.2g' % min([float(x or 0) for x in value])
     elif action == 'max':
-        def collapse(value):  return '%.2g' % max([float(x or 0) for x in value])
+        def _collapse(value):  return '%.2g' % max([float(x or 0) for x in value])
     elif action == 'sum':
-        def collapse(value):  return '%.2g' % sum([float(x or 0) for x in value])
+        def _collapse(value):  return '%.2g' % sum([float(x or 0) for x in value])
     else:
-        def collapse(value):  return value
+        def _collapse(value):  return value
 
     # Collapse fields        
     for k, v in ann_dict.iteritems():
@@ -180,8 +180,8 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
                 v = v.split(delimiter[2])
             elif not isinstance(v, list):
                 v = [v]
-            # Perform collapse and reassign field
-            ann_dict[k] = collapse(v)       
+            # Perform _collapse and reassign field
+            ann_dict[k] = _collapse(v)       
 
     return ann_dict
 
