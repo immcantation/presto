@@ -78,7 +78,7 @@ CollapseSeq:
 EstimateError:
 + Now outputs error estimations for positions, quality scores, nucleotide 
   pairs, and annotation sets.  
-+ Machine reported quality scores and empiracle quality scores have been added
++ Machine reported quality scores and empirical quality scores have been added
   to all output tables.
 
 FilterSeq:

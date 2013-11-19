@@ -153,7 +153,7 @@ def processQueue(data_queue, result_queue, cons_func, cons_args={},
         results['log']['MISMATCH'] = ''.join(['*' if x > 0 else ' ' for x in mismatch['pos']['mismatch']])
         results['log']['ERROR'] = '%.6f' % error_rate
         results['log']['REPORTED_Q'] = '%.2f' % reported_q
-        results['log']['EMPIRACLE_Q'] = '%.2f' % (-10 * np.log10(error_rate))
+        results['log']['EMPIRICAL_Q'] = '%.2f' % (-10 * np.log10(error_rate))
             
         # Update results and feed result queue
         results['pass'] = True
@@ -314,16 +314,16 @@ def writeResults(results, seq_file, out_args):
             getOutputHandle(seq_file, 'error-set', **file_args) as set_handle:
         pos_df.to_csv(pos_handle, sep='\t', na_rep='NA', index_label='POSITION', 
                       cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
-                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRACLE_Q'], float_format='%.6f')
+                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
         nuc_df.to_csv(nuc_handle, sep='\t', na_rep='NA', index_label=['OBSERVED', 'REFERENCE'], 
                       cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
-                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRACLE_Q'], float_format='%.6f')
+                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
         qual_df.to_csv(qual_handle, sep='\t', na_rep='NA', index_label='Q',
                        cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'], 
-                       header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRACLE_Q'], float_format='%.6f')
+                       header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
         set_df.to_csv(set_handle, sep='\t', na_rep='NA', index_label='SET_COUNT', 
                       cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
-                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRACLE_Q'], float_format='%.6f')
+                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
 
     return (pos_handle.name, qual_handle.name, nuc_handle.name, set_handle.name)
 
