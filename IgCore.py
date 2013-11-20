@@ -162,11 +162,11 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
     elif action == 'last':
         def _collapse(value):  return value[-1]
     elif action == 'min':
-        def _collapse(value):  return '%.2g' % min([float(x or 0) for x in value])
+        def _collapse(value):  return '%.12g' % min([float(x or 0) for x in value])
     elif action == 'max':
-        def _collapse(value):  return '%.2g' % max([float(x or 0) for x in value])
+        def _collapse(value):  return '%.12g' % max([float(x or 0) for x in value])
     elif action == 'sum':
-        def _collapse(value):  return '%.2g' % sum([float(x or 0) for x in value])
+        def _collapse(value):  return '%.12g' % sum([float(x or 0) for x in value])
     else:
         def _collapse(value):  return value
 

@@ -24,6 +24,8 @@ ParseHeaders:
 ParseLog:
 + Added count of records without any valid fields (FAIL) to console output
 
+SplitSeq:
++ Fixed bug in console output of samplepair subcommand
 
 -------------------------------------------------------------------------------
 September 30, 2013

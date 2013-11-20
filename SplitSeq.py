@@ -7,12 +7,13 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.11.20'
 
 # Imports
 import os, sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
+from itertools import chain
 from random import sample
 from time import time
 from Bio import SeqIO
@@ -286,11 +287,11 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
         log = OrderedDict()
         log['MAX_COUNT'] = c
         log['SAMPLED'] = sample_count
+        log['OUTPUT'] = os.path.basename(out_files[i])
         printLog(log)
     
     # Print log
     log = OrderedDict()
-    log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
     log['END'] = 'SplitSeq'
     printLog(log)
         
@@ -377,17 +378,18 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
                                        out_dir=out_args['out_dir'], 
                                        out_name=out_name_2, 
                                        out_type=out_type_2)
+        out_files.append((out_handle_1.name, out_handle_2.name))
 
         for k in sample_keys:
             key_1, key_2 = index_dict[k]
             SeqIO.write(seq_dict_1[key_1], out_handle_1, out_type_1)
             SeqIO.write(seq_dict_2[key_2], out_handle_2, out_type_2)
-            out_files.append((out_handle_1.name, out_handle_2.name))
         
         # Print log for iteration
         log = OrderedDict()
         log['MAX_COUNT'] = c
         log['SAMPLED'] = sample_count
+        log['OUTPUT'] = ','.join(os.path.basename(f) for f in out_files[i])
         printLog(log)
         
         # Close file handles
@@ -396,7 +398,6 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         
     # Print log
     log = OrderedDict()
-    log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
     log['END'] = 'SplitSeq'
     printLog(log)
     
