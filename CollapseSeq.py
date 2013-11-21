@@ -365,10 +365,10 @@ if __name__ == '__main__':
     del args_dict['seq_files']
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
-        #collapseSeq(**args_dict)
+        collapseSeq(**args_dict)
         
         # Profiling
-        import cProfile, pstats
-        cProfile.run('collapseSeq(**args_dict)', 'profile.prof')
-        p = pstats.Stats('profile.prof')
-        p.strip_dirs().sort_stats('time').print_stats()  
+        #import cProfile, pstats
+        #cProfile.run('collapseSeq(**args_dict)', 'profile.prof')
+        #p = pstats.Stats('profile.prof')
+        #p.strip_dirs().sort_stats('time').print_stats()  
