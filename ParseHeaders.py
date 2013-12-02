@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.10'
+__date__      = '2013.12.1'
 
 # Imports
 import csv, os, re, sys
@@ -19,15 +19,13 @@ from Bio import SeqIO
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_action_choices, default_delimiter, default_out_args
+from IgCore import default_action_choices
+from IgCore import default_delimiter, default_separator, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
 from IgCore import parseAnnotation, renameAnnotation
 from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import countSeqFile, readSeqFile, getFileType
-
-# Defaults
-default_separator = ','
 
 
 def addHeader(header, fields, values, delimiter=default_delimiter):

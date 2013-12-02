@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.10'
+__date__      = '2013.12.1'
 
 # Imports
 import math, os, re, sys
@@ -1397,7 +1397,8 @@ def parseCommonArgs(args, file_args=None):
                     sys.exit('ERROR:  file %s does not exist' % f)
     
     # Redefine common output options as out_args dictionary
-    out_args = ['log_file', 'delimiter', 'out_dir', 'out_name', 'out_type', 'clean']
+    out_args = ['log_file', 'delimiter', 'separator', 
+                'out_dir', 'out_name', 'out_type', 'clean']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
     

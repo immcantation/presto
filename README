@@ -1,6 +1,6 @@
 VERSION
 -------------------------------------------------------------------------------
-November 21, 2013
+December 1, 2013
 Version 0.4.1
 
 
@@ -12,13 +12,3 @@ SciPy 0.12         http://scipy.org
 pandas 0.12        http://pandas.pydata.org
 Biopython 1.59     http://biopython.org
 MUSCLE v3.8.31     http://www.drive5.com/muscle
-
-
-INSTALL
--------------------------------------------------------------------------------
-Install Python and the above requirements.  The simplest way to install all
-Python dependencies is to install the full SciPy stack using the instructions
-at http://scipy.org/install.html, then install Biopython according to the 
-instructions at http://biopython.org/DIST/docs/install/Installation.html.
-
-Unzip the pRESTO bundle into a directory of your choice.
