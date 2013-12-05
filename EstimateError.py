@@ -223,7 +223,8 @@ def collectQueue(result_queue, collect_dict, seq_file, field, out_args):
     
     # Generate log
     log = OrderedDict()
-    log['OUTPUT'] = None
+    for i in xrange(4): 
+        log['OUTPUT%i' % (i + 1)] = None
     log['SETS'] = set_count
     log['SEQUENCES'] = seq_count
     log['PASS'] = pass_count
@@ -270,7 +271,8 @@ def collectQueue(result_queue, collect_dict, seq_file, field, out_args):
     out_files = writeResults(assembled, seq_file, out_args)
     
     # Update log
-    log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
+    for i, f in enumerate(out_files): 
+        log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
     log['POSITION_ERROR'] = pos_error 
     log['NUCLEOTIDE_ERROR'] = nuc_error 
     log['QUALITY_ERROR'] = qual_error

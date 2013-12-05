@@ -26,6 +26,8 @@ ParseLog:
 
 SplitSeq:
 + Fixed bug in console output of samplepair subcommand
++ Added increase of the open file limit to the group subcommand to allow for a 
+  large number of groups
 
 -------------------------------------------------------------------------------
 September 30, 2013

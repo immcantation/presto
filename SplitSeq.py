@@ -7,13 +7,12 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.20'
+__date__      = '2013.12.5'
 
 # Imports
-import os, sys
+import os, resource, sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
-from itertools import chain
 from random import sample
 from time import time
 from Bio import SeqIO
@@ -60,11 +59,11 @@ def convertSeqFile(seq_file, out_format, out_args=default_out_args):
             log = OrderedDict()
             log['FORMAT'] = out_type
             log['SEQUENCES'] = count
+            log['OUTPUT'] = os.path.basename(out_handle.name)
             printLog(log)
     
     # Print log
     log = OrderedDict()
-    log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
     log['END'] = 'SplitSeq'
     printLog(log)
             
@@ -127,7 +126,8 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     # Print log
     printProgress(seq_count, rec_count, 0.05, start_time)
     log = OrderedDict()
-    log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
+    for i, f in enumerate(out_files): 
+        log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
     log['SEQUENCES'] = rec_count
     log['PARTS'] = len(out_files)
     log['END'] = 'SplitSeq'
@@ -153,6 +153,16 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     Returns: 
     a tuple of output file names
     """
+    # Try to increase the open file limit if needed
+    def _setNumFile(n):
+        try:
+            print 'CURRENT:', resource.getrlimit(resource.RLIMIT_NOFILE)
+            lim = max(resource.getrlimit(resource.RLIMIT_NOFILE)[0], n + 256)
+            resource.setrlimit(resource.RLIMIT_NOFILE, (lim, lim))
+            print 'NEW:', resource.getrlimit(resource.RLIMIT_NOFILE)
+        except:
+            pass
+        
     log = OrderedDict()
     log['START'] = 'SplitSeq'
     log['COMMAND'] = 'group'
@@ -177,6 +187,11 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
         # Create set of unique field tags
         temp_iter = readSeqFile(seq_file)
         tag_list = getAnnotationValues(temp_iter, field, unique=True, delimiter=out_args['delimiter'])
+        
+        # Increase open file handle limit if needed
+        file_limit = max(resource.getrlimit(resource.RLIMIT_NOFILE)[0], len(tag_list) + 256)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (file_limit, file_limit))
+            
         # Create output handles
         handles_dict = {tag:getOutputHandle(seq_file, 
                                             tag, 
@@ -184,6 +199,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                                             out_name=out_args['out_name'], 
                                             out_type=out_args['out_type'])
                         for tag in tag_list}
+        
         # Iterate over sequences
         for seq in seq_iter:
             printProgress(seq_count, rec_count, 0.05, start_time)
@@ -205,6 +221,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                                                   out_dir=out_args['out_dir'], 
                                                   out_name=out_args['out_name'], 
                                                   out_type=out_args['out_type'])}
+        
         # Iterate over sequences
         for seq in seq_iter:
             printProgress(seq_count, rec_count, 0.05, start_time)
@@ -217,7 +234,8 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     # Print log
     printProgress(seq_count, rec_count, 0.05, start_time)
     log = OrderedDict()
-    log['OUTPUT'] = ','.join([os.path.basename(handles_dict[k].name) for k in handles_dict])
+    for i, k in enumerate(handles_dict): 
+        log['OUTPUT%i' % (i + 1)] = os.path.basename(handles_dict[k].name)
     log['SEQUENCES'] = rec_count
     log['PARTS'] = len(handles_dict)
     log['END'] = 'SplitSeq'
@@ -389,7 +407,8 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         log = OrderedDict()
         log['MAX_COUNT'] = c
         log['SAMPLED'] = sample_count
-        log['OUTPUT'] = ','.join(os.path.basename(f) for f in out_files[i])
+        log['OUTPUT1'] = os.path.basename(out_files[i][0])
+        log['OUTPUT2'] = os.path.basename(out_files[i][1])
         printLog(log)
         
         # Close file handles
@@ -506,7 +525,8 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     # Print log
     printProgress(seq_count, rec_count, 0.05, start_time)
     log = OrderedDict()
-    log['OUTPUT'] = ','.join([os.path.basename(f) for f in out_files])
+    for i, f in enumerate(out_files): 
+        log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
     log['SEQUENCES'] = seq_count
     log['PARTS'] = len(out_files)
     log['END'] = 'SplitSeq'

@@ -124,8 +124,8 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     printProgress(pair_count, result_count, 0.05, start_time)
     count_1, count_2 = len(seq_dict_1), len(seq_dict_2)
     log = OrderedDict()
-    log['OUTPUT'] = '%s,%s' % (os.path.basename(pass_handle_1.name), 
-                               os.path.basename(pass_handle_2.name))
+    log['OUTPUT1'] = os.path.basename(pass_handle_1.name) 
+    log['OUTPUT2'] = os.path.basename(pass_handle_2.name) 
     log['SEQUENCES'] = '%i,%i' % (count_1, count_2)
     log['FAIL'] = '%i,%i' % (count_1 - pair_count, count_2 - pair_count)
     log['PASS'] = pair_count

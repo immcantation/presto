@@ -473,6 +473,7 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
     try:
         return open(out_file, 'wb')
     except:
+        #raise
         sys.exit('ERROR:  File %s cannot be opened' % out_file)
 
 
