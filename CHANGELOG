@@ -8,15 +8,22 @@ IgCore:
 + Added reporting of unknown exceptions when reading sequence files
 + Fixed scoring of lowercase sequences
 
+AlignSets:
++ Fixed a typo in the log output
+
+BuildConsensus:
++ Fixed a typo in the log output
+
 EstimateError:
 + Fixed bug where tool would improperly exit if no sets passed threshold
   criteria.
++ Fixed typo in console output
 
 MaskPrimers:
 + Added 'trim' mode which will cut the region before primer alignment, but 
   leave primer region unmodified.
-+ Fixed a bug in the output logging
 + Fixed a bug with lowercase sequence data
++ Fixed bug in the console and log output
 
 ParseHeaders:
 + Added count of sequences without any valid fields (FAIL) to console output
@@ -25,7 +32,7 @@ ParseLog:
 + Added count of records without any valid fields (FAIL) to console output
 
 SplitSeq:
-+ Fixed bug in console output of samplepair subcommand
++ Fixed typo in console output of samplepair subcommand
 + Added increase of the open file limit to the group subcommand to allow for a 
   large number of groups
 

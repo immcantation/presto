@@ -105,7 +105,7 @@ def processQueue(data_queue, result_queue, cons_func, cons_args={},
         if max_diversity is not None:
             diversity = calculateDiversity(seq_list)
             results['diversity'] = diversity
-            results['log']['DIVERSTY'] = diversity
+            results['log']['DIVERSITY'] = diversity
             if diversity > max_diversity:
                 # If diversity exceeds threshold, feed result queue and continue
                 for i, s in enumerate(seq_list):

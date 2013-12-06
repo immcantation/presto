@@ -268,7 +268,7 @@ def processQueue(data_queue, result_queue, align_func, align_args={},
             if calc_div:
                 diversity = calculateDiversity(align_list)
                 results['diversity'] = diversity
-                results['log']['DIVERSTY'] = diversity
+                results['log']['DIVERSITY'] = diversity
             
             # Restore quality scores
             has_quality = hasattr(seq_list[0], 'letter_annotations') and \
