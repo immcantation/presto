@@ -7,11 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.29'
+__date__      = '2013.12.27'
 
 # Imports
 import os, sys
-import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 from itertools import izip
@@ -24,7 +23,8 @@ from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
 from IgCore import getCommonArgParser, parseCommonArgs, printLog
 from IgCore import getScoreDict, reverseComplement, weightSeq
 from IgCore import compilePrimers, readPrimerFile
-from IgCore import collectRecQueue, feedRecQueue
+from IgCore import collectSeqQueue, feedSeqQueue
+from IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_max_error = 0.2
@@ -267,73 +267,77 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
     return out_seq
 
 
-def processQueue(data_queue, result_queue, primers, mode, align_func, align_args={}, 
-                 max_error=default_max_error, barcode=False, delimiter=default_delimiter):
+def processMPQueue(alive, data_queue, result_queue, align_func, align_args={}, 
+                     mask_args={}, max_error=default_max_error):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
-    primers = dictionary of primer sequences
-    mode = defines the action taken; one of ['cut','mask','tag','trim']
     align_func = the function to call for alignment
     align_args = a dictionary of arguments to pass to align_func
+    mask_args = a dictionary of arguments to pass to getMaskedSeq
     max_error = maximum acceptable error rate for a valid alignment
-    barcode = if True add sequence preceding primer to description
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
-
+    
     Returns: 
     None
     """
-    # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        in_seq = args['seq']
-        id_ann = parseAnnotation(args['id'], delimiter=delimiter)['ID']
-        
-        # Define result dictionary for iteration
-        results = {'id':args['id'],
-                   'in_seq':in_seq,
-                   'out_seq':None,
-                   'error': None,
-                   'pass':False,
-                   'log':OrderedDict([('ID', id_ann)])}
- 
-        # Align primers
-        align = align_func(in_seq, primers, **align_args)
-        
-        # Process alignment results
-        if align['align'] is None:
-            # Update log if no alignment
-            results['log']['INSEQ'] = in_seq.seq
-            results['log']['ALIGN'] = None
-        else:
-            # Create output sequence
-            out_seq = getMaskedSeq(align, mode, barcode, delimiter)        
-            results['out_seq'] = out_seq
-            results['error'] = align['error']
-            results['pass'] = (align['error'] <= max_error) if len(out_seq) > 0 else False
+    try:
+        # Iterator over data queue until sentinel object reached
+        while alive.value:
+            # Get data from queue
+            if data_queue.empty():  continue
+            else:  data = data_queue.get()
+            # Exit upon reaching sentinel
+            if data is None:  break
             
-            # Update log with successful alignment results
-            results['log']['SEQORIENT'] = out_seq.annotations['seqorient']
-            results['log']['PRIMER'] = out_seq.annotations['primer']
-            results['log']['PRORIENT'] = out_seq.annotations['prorient']
-            results['log']['PRSTART'] = out_seq.annotations['prstart']
-            if 'barcode' in out_seq.annotations:  
-                results['log']['BARCODE'] = out_seq.annotations['barcode']
-            if not align['reverse']:
-                results['log']['INSEQ'] = '-' * align['offset'] + str(align['seq'].seq)
-                results['log']['ALIGN'] = align['align']
-                results['log']['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align['offset'])
+            # Define result object for iteration
+            in_seq = data.data
+            result = SeqResult(in_seq.id, in_seq)
+     
+            # Align primers
+            align = align_func(in_seq, **align_args)
+            
+            # Process alignment results
+            if align['align'] is None:
+                # Update log if no alignment
+                result.log['ALIGN'] = None
             else:
-                results['log']['INSEQ'] = str(align['seq'].seq) + '-' * align['offset']
-                results['log']['ALIGN'] = align['align'].rjust(len(in_seq) + align['offset'])
-                results['log']['OUTSEQ'] = str(out_seq.seq)
-            results['log']['ERROR'] = align['error']
-        
-        # Feed results to result queue
-        result_queue.put(results)
-
+                # Create output sequence
+                out_seq = getMaskedSeq(align, **mask_args)        
+                result.results = out_seq
+                result.valid = (align['error'] <= max_error) if len(out_seq) > 0 else False
+                
+                # Update log with successful alignment results
+                result.log['SEQORIENT'] = out_seq.annotations['seqorient']
+                result.log['PRIMER'] = out_seq.annotations['primer']
+                result.log['PRORIENT'] = out_seq.annotations['prorient']
+                result.log['PRSTART'] = out_seq.annotations['prstart']
+                if 'barcode' in out_seq.annotations:  
+                    result.log['BARCODE'] = out_seq.annotations['barcode']
+                if not align['reverse']:
+                    result.log['INSEQ'] = '-' * align['offset'] + str(align['seq'].seq)
+                    result.log['ALIGN'] = align['align']
+                    result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align['offset'])
+                else:
+                    result.log['INSEQ'] = str(align['seq'].seq) + '-' * align['offset']
+                    result.log['ALIGN'] = align['align'].rjust(len(in_seq) + align['offset'])
+                    result.log['OUTSEQ'] = str(out_seq.seq)
+                result.log['ERROR'] = align['error']
+            
+            # Feed results to result queue
+            result_queue.put(result)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
+    
     return None
 
 
@@ -360,10 +364,6 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     Returns:
     a list of successful output file names
     """
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
     # Define subcommand label dictionary
     cmd_dict = {alignPrimers:'align', scorePrimers:'score'}
     
@@ -389,51 +389,43 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
         primers = {k: reverseComplement(v) for k, v in primers.iteritems()}
     
     # Define alignment arguments and compile primers for align mode
+    align_args['primers'] = primers 
     align_args['score_dict'] = getScoreDict(n_score=0, gap_score=0)
     if align_func is alignPrimers:
         align_args['max_error'] = max_error
         align_args['primers_regex'] = compilePrimers(primers)
-
-    # Define shared data objects
-    manager = mp.Manager()
-    collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
     
-    # Initiate feeder process
-    feeder = mp.Process(target=feedRecQueue, args=(data_queue, nproc, seq_file))
-    feeder.start()
+    # Define sequence masking arguments
+    mask_args = {'mode': mode, 
+                 'barcode': barcode, 
+                 'delimiter': out_args['delimiter']}
 
-    # Initiate processQueue processes
-    workers = []
-    for __ in range(nproc):
-        w = mp.Process(target=processQueue, args=(data_queue, result_queue, primers, mode, 
-                                                  align_func, align_args, max_error, barcode, 
-                                                  out_args['delimiter']))
-        w.start()
-        workers.append(w)
-
-    # Initiate collector process
-    collector = mp.Process(target=collectRecQueue, args=(result_queue, collect_dict, 
-                                                         seq_file, 'primers', out_args))
-    collector.start()
-
-    # Wait for feeder and worker processes to finish, add sentinel to result_queue
-    feeder.join()
-    for w in workers:  w.join()
-    result_queue.put(None)
+    # Define feeder function and arguments
+    feed_func = feedSeqQueue
+    feed_args = {'seq_file': seq_file}
+    # Define worker function and arguments
+    work_func = processMPQueue
+    work_args = {'align_func': align_func, 
+                 'align_args': align_args,
+                 'mask_args': mask_args,
+                 'max_error': max_error}
     
-    # Wait for collector process to finish and shutdown manager
-    collector.join()
-    log = collect_dict['log']
-    out_files = collect_dict['out_files']
-    manager.shutdown()
+    # Define collector function and arguments
+    collect_func = collectSeqQueue
+    collect_args = {'seq_file': seq_file,
+                    'task_label': 'primers',
+                    'out_args': out_args}
     
+    # Call process manager
+    result = manageProcesses(feed_func, work_func, collect_func, 
+                             feed_args, work_args, collect_args, 
+                             nproc, queue_size)
+
     # Print log
-    log['END'] = 'MaskPrimers'
-    printLog(log)
+    result['log']['END'] = 'MaskPrimers'
+    printLog(result['log'])
         
-    return out_files
+    return result['out_files']
 
 
 def getArgParser():
@@ -457,7 +449,7 @@ def getArgParser():
                                help='A FASTA or REGEX file containing primer sequences')
     parser_parent.add_argument('--mode', action='store', dest='mode', 
                                choices=('cut', 'mask', 'tag', 'trim'), default='mask', 
-                               help='Specifies whether or mask primers, cut primers, \
+                               help='Specifies whether to mask primers with Ns, cut primers, \
                                      trim region preceding primer, or only tag sample sequences')
     parser_parent.add_argument('--maxerror', action='store', dest='max_error', type=float,
                                default=default_max_error, help='Maximum allowable error rate')

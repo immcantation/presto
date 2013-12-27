@@ -7,11 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.12.27'
 
 # Imports
 import os, sys
-import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 
@@ -20,21 +19,25 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_barcode_field, default_delimiter, default_min_freq, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation
 from IgCore import getCommonArgParser, parseCommonArgs, printLog, getFileType
-from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus, subsetSeqSet
-from IgCore import feedSetQueue, collectSetQueue, calculateDiversity
+from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus
+from IgCore import calculateDiversity, indexSeqSets, subsetSeqSet
+from IgCore import collectSeqQueue, feedSeqQueue
+from IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_min_count = 1
 default_min_qual = 0
 
 
-def processQueue(data_queue, result_queue, cons_func, cons_args={}, 
-                 min_count=default_min_count, primer_field=None, primer_freq=None, 
-                 max_diversity=None, delimiter=default_delimiter):
+def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
+                   min_count=default_min_count, primer_field=None, primer_freq=None, 
+                   max_diversity=None, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
-    Arguments: 
+    Arguments:
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     cons_func = the function to use for consensus generation 
@@ -51,91 +54,101 @@ def processQueue(data_queue, result_queue, cons_func, cons_args={},
     Returns: 
     None
     """
-    # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        # Define result dictionary for iteration
-        results = {'id':args['id'],
-                   'in_list':args['seq_list'],
-                   'out_list':None,
-                   'seq_count':len(args['seq_list']),
-                   'diversity':None,
-                   'pass':False, 
-                   'log':OrderedDict()}
-        # Update log
-        results['log']['BARCODE'] = results['id']
-        results['log']['SEQCOUNT'] = results['seq_count']
-
-        # Define primer annotations and consensus primer if applicable
-        if primer_field is None:
-            primer_ann = None
-            seq_list = args['seq_list']
-        else:
-            # Calculate consensus primer            
-            primer_ann = OrderedDict()
-            prcons = annotationConsensus(args['seq_list'], primer_field, delimiter)
-            results['log']['PRIMER'] = ','.join(prcons['set'])
-            results['log']['PRCOUNT'] = ','.join([str(c) for c in prcons['count']])
-            results['log']['PRCONS'] = prcons['cons']
-            results['log']['PRFREQ'] = prcons['freq']
-            if primer_freq is None:
-                # Retain full sequence set if not in priemr consensus mode
-                seq_list = args['seq_list']
-                primer_ann = mergeAnnotation(primer_ann, {'PRIMER':prcons['set']}, delimiter=delimiter)
-                primer_ann = mergeAnnotation(primer_ann, {'PRCOUNT':prcons['count']}, delimiter=delimiter)
-            elif prcons['freq'] >= primer_freq:
-                # Define consensus subset
-                seq_list = subsetSeqSet(args['seq_list'], primer_field, prcons['cons'], delimiter=delimiter)
-                primer_ann = mergeAnnotation(primer_ann, {'PRCONS':prcons['cons']}, delimiter=delimiter)
-                primer_ann = mergeAnnotation(primer_ann, {'PRFREQ':prcons['freq']}, delimiter=delimiter)
-            else:
-                # If set fails primer consensus, feed result queue and continue
-                result_queue.put(results)
-                continue
-
-        # Update log
-        cons_count = len(seq_list)
-        results['cons_count'] = cons_count
-        results['log']['CONSCOUNT'] = cons_count
-        if cons_count < min_count:
-            # If set fails count threshold, feed result queue and continue
-            result_queue.put(results)
-            continue
+    try:
+        # Iterator over data queue until sentinel object reached
+        while alive.value:
+            # Get data from queue
+            if data_queue.empty():  continue
+            else:  data = data_queue.get()
+            # Exit upon reaching sentinel
+            if data is None:  break
             
-        # Calculate average pairwise error rate
-        if max_diversity is not None:
-            diversity = calculateDiversity(seq_list)
-            results['diversity'] = diversity
-            results['log']['DIVERSITY'] = diversity
-            if diversity > max_diversity:
-                # If diversity exceeds threshold, feed result queue and continue
-                for i, s in enumerate(seq_list):
-                    results['log']['INSEQ%i' % (i + 1)] = str(s.seq)
-                result_queue.put(results)
+            # Define result dictionary for iteration
+            result = SeqResult(data.id, data.data)
+            result.log['BARCODE'] = data.id
+            result.log['SEQCOUNT'] = len(data)
+    
+            # Define primer annotations and consensus primer if applicable
+            if primer_field is None:
+                primer_ann = None
+                seq_list = data.data
+            else:
+                # Calculate consensus primer            
+                primer_ann = OrderedDict()
+                prcons = annotationConsensus(data.data, primer_field, delimiter=delimiter)
+                result.log['PRIMER'] = ','.join(prcons['set'])
+                result.log['PRCOUNT'] = ','.join([str(c) for c in prcons['count']])
+                result.log['PRCONS'] = prcons['cons']
+                result.log['PRFREQ'] = prcons['freq']
+                if primer_freq is None:
+                    # Retain full sequence set if not in primer consensus mode
+                    seq_list = data.data
+                    primer_ann = mergeAnnotation(primer_ann, {'PRIMER':prcons['set']}, 
+                                                 delimiter=delimiter)
+                    primer_ann = mergeAnnotation(primer_ann, {'PRCOUNT':prcons['count']}, 
+                                                 delimiter=delimiter)
+                elif prcons['freq'] >= primer_freq:
+                    # Define consensus subset
+                    seq_list = subsetSeqSet(data.data, primer_field, prcons['cons'], 
+                                            delimiter=delimiter)
+                    primer_ann = mergeAnnotation(primer_ann, {'PRCONS':prcons['cons']}, 
+                                                 delimiter=delimiter)
+                    primer_ann = mergeAnnotation(primer_ann, {'PRFREQ':prcons['freq']}, 
+                                                 delimiter=delimiter)
+                else:
+                    # If set fails primer consensus, feed result queue and continue
+                    result_queue.put(result)
+                    continue
+    
+            # Update log
+            cons_count = len(seq_list)
+            result.log['CONSCOUNT'] = cons_count
+            if cons_count < min_count:
+                # If set fails count threshold, feed result queue and continue
+                result_queue.put(result)
                 continue
-
-        # If primer and diversity filters pass, generate consensus sequence
-        consensus = cons_func(seq_list, **cons_args)
-
-        # Update log
-        for i, s in enumerate(seq_list):
-            results['log']['INSEQ%i' % (i + 1)] = str(s.seq)
-        results['log']['CONSENSUS'] = str(consensus.seq)
-        if 'phred_quality' in consensus.letter_annotations:
-            results['log']['QUALITY'] = ''.join([chr(c+33) for c in consensus.letter_annotations['phred_quality']])
-        
-        # Define annotation for consensus sequence
-        cons_ann = OrderedDict([('ID', args['id']),
-                                ('CONSCOUNT', cons_count)])
-        if primer_ann is not None:
-            cons_ann = mergeAnnotation(cons_ann, primer_ann, delimiter=delimiter)
-        consensus.id = consensus.name = flattenAnnotation(cons_ann, delimiter=delimiter)
-        consensus.description = ''
-        results['out_list'] = consensus
-        results['pass'] = True
-        
-        # Feed results to result queue
-        result_queue.put(results)
-
+                
+            # Calculate average pairwise error rate
+            if max_diversity is not None:
+                diversity = calculateDiversity(seq_list)
+                result.log['DIVERSITY'] = diversity
+                if diversity > max_diversity:
+                    # If diversity exceeds threshold, feed result queue and continue
+                    for i, s in enumerate(seq_list):
+                        result.log['INSEQ%i' % (i + 1)] = str(s.seq)
+                    result_queue.put(result)
+                    continue
+    
+            # If primer and diversity filters pass, generate consensus sequence
+            consensus = cons_func(seq_list, **cons_args)
+    
+            # Update log
+            for i, s in enumerate(seq_list):
+                result.log['INSEQ%i' % (i + 1)] = str(s.seq)
+            result.log['CONSENSUS'] = str(consensus.seq)
+            if 'phred_quality' in consensus.letter_annotations:
+                result.log['QUALITY'] = ''.join([chr(c+33) for c in consensus.letter_annotations['phred_quality']])
+            
+            # Define annotation for consensus sequence
+            cons_ann = OrderedDict([('ID', data.id),
+                                    ('CONSCOUNT', cons_count)])
+            if primer_ann is not None:
+                cons_ann = mergeAnnotation(cons_ann, primer_ann, delimiter=delimiter)
+            consensus.id = consensus.name = flattenAnnotation(cons_ann, delimiter=delimiter)
+            consensus.description = ''
+            result.results = consensus
+            result.valid = True
+            
+            # Feed results to result queue
+            result_queue.put(result)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
+    
     return None
 
 
@@ -170,10 +183,6 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     Returns: 
     a list of successful output file names
     """
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'BuildConsensus'
@@ -200,47 +209,38 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     else:
         sys.exit('ERROR:  Input file must be FASTA or FASTQ')
     
-    # Define shared data objects 
-    manager = mp.Manager()
-    collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
+    # Define feeder function and arguments
+    index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
+    feed_func = feedSeqQueue
+    feed_args = {'seq_file': seq_file,
+                 'index_func': indexSeqSets, 
+                 'index_args': index_args}
+    # Define worker function and arguments
+    work_func = processBCQueue
+    work_args = {'cons_func': cons_func, 
+                 'cons_args': cons_args,
+                 'min_count': min_count,
+                 'primer_field': primer_field,
+                 'primer_freq': primer_freq,
+                 'max_diversity': max_diversity,
+                 'delimiter': out_args['delimiter']}
+    # Define collector function and arguments
+    collect_func = collectSeqQueue
+    collect_args = {'seq_file': seq_file,
+                    'task_label': 'consensus',
+                    'out_args': out_args,
+                    'index_field': barcode_field}
     
-    # Initiate feeder process
-    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_file, barcode_field, 
-                                                   out_args['delimiter']))
-    feeder.start()
-    
-    # Initiate processQueue processes
-    workers = []
-    for __ in range(nproc):
-        w = mp.Process(target=processQueue, args=(data_queue, result_queue, cons_func, cons_args, 
-                                                  min_count, primer_field, primer_freq, 
-                                                  max_diversity, out_args['delimiter']))
-        w.start()
-        workers.append(w)
-
-    # Initiate collector process
-    collector = mp.Process(target=collectSetQueue, args=(result_queue, collect_dict, seq_file, 
-                                                         barcode_field, 'consensus', out_args))
-    collector.start()
-
-    # Wait for feeder and worker processes to finish, add sentinel to result_queue
-    feeder.join()
-    for w in workers:  w.join()
-    result_queue.put(None)
-
-    # Wait for collector process to finish and shutdown manager
-    collector.join()
-    log = collect_dict['log']
-    out_files = collect_dict['out_files']
-    manager.shutdown()
-    
-    # Print log
-    log['END'] = 'BuildConsensus'
-    printLog(log)
+    # Call process manager
+    result = manageProcesses(feed_func, work_func, collect_func, 
+                             feed_args, work_args, collect_args, 
+                             nproc, queue_size)
         
-    return out_files
+    # Print log
+    result['log']['END'] = 'BuildConsensus'
+    printLog(result['log'])
+        
+    return result['out_files']
         
         
 def getArgParser():

@@ -7,11 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.12.27'
 
 # Imports
 import csv, os, sys
-import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import deque, OrderedDict
 from cStringIO import StringIO
@@ -30,8 +29,9 @@ from IgCore import default_delimiter, default_out_args
 from IgCore import default_barcode_field, default_primer_field
 from IgCore import parseAnnotation, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog
-from IgCore import calculateDiversity, readPrimerFile
-from IgCore import collectSetQueue, feedSetQueue
+from IgCore import indexSeqSets, calculateDiversity, readPrimerFile
+from IgCore import collectSeqQueue, feedSeqQueue
+from IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_muscle_exec = r'/usr/local/bin/muscle3.8.31_i86linux64'
@@ -87,7 +87,6 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     offset_dict = a dictionary of {set ID: offset values}
     field = the field in sequence description containing set IDs
     mode = defines the action taken; one of 'pad','cut'
-
     delimiter = a tuple of delimiters for (annotations, field/values, value lists)
         
     Returns: 
@@ -228,75 +227,84 @@ def writeOffsetFile(primer_file, align_func=alignSeqSet, align_args={},
     return out_handle.name
 
 
-def processQueue(data_queue, result_queue, align_func, align_args={}, 
-                 calc_div=False, delimiter=default_delimiter):
+def processASQueue(alive, data_queue, result_queue, align_func, align_args={}, 
+                      calc_div=False, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     align_func = the function to use for consensus generation 
     align_args = a dictionary of optional arguments for the consensus function
     calc_div = if True perform diversity calculation
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists) 
+    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
 
     Returns: 
     None
     """
-    # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        seq_list = args['seq_list']
-        # Define result dictionary for iteration
-        results = {'id':args['id'],
-                   'in_list':seq_list,
-                   'out_list':None,
-                   'seq_count':len(seq_list),
-                   'diversity':None,
-                   'pass':False,
-                   'log':OrderedDict()}
-        # Update log
-        results['log']['BARCODE'] = results['id']
-        results['log']['SEQCOUNT'] = results['seq_count']
-
-        # Perform alignment
-        align_list = align_func(seq_list, **align_args)
-
-        # Process alignment
-        if align_list is not None:
-            # Calculate diversity
-            if calc_div:
-                diversity = calculateDiversity(align_list)
-                results['diversity'] = diversity
-                results['log']['DIVERSITY'] = diversity
+    try:
+        # Iterator over data queue until sentinel object reached
+        while alive.value:
+            # Get data from queue
+            if data_queue.empty():  continue
+            else:  data = data_queue.get()
+            # Exit upon reaching sentinel
+            if data is None:  break
             
-            # Restore quality scores
-            has_quality = hasattr(seq_list[0], 'letter_annotations') and \
-                          'phred_quality' in seq_list[0].letter_annotations
-            if has_quality:
-                qual_dict = {seq.id:seq.letter_annotations['phred_quality'] \
-                             for seq in seq_list}
-                for seq in align_list:
-                    qual = deque(qual_dict[seq.id])
-                    qual_new = [0 if c == '-' else qual.popleft() for c in seq.seq]
-                    seq.letter_annotations['phred_quality'] = qual_new
-
-            # Add alignment to log
-            if 'field' in align_args:
-                for i, seq in enumerate(align_list):
-                    primer = parseAnnotation(seq.description, delimiter=delimiter)[align_args['field']]
-                    results['log']['ALIGN%i:%s' % (i + 1, primer)] = seq.seq
-            else:
-                for i, seq in enumerate(align_list):  
-                    results['log']['ALIGN%i' % (i + 1)] = seq.seq
-            
-            # Add alignment to results
-            results['out_list'] = align_list
-            results['pass'] = True
-                    
-        # Feed results to result queue
-        result_queue.put(results)
-
+            # Define result object
+            result = SeqResult(data.id, data.data)
+            result.log['BARCODE'] = data.id
+            result.log['SEQCOUNT'] = len(data)
+    
+            # Perform alignment
+            seq_list = data.data
+            align_list = align_func(seq_list, **align_args)
+    
+            # Process alignment
+            if align_list is not None:
+                # Calculate diversity
+                if calc_div:
+                    diversity = calculateDiversity(align_list)
+                    result.log['DIVERSITY'] = diversity
+                
+                # Restore quality scores
+                has_quality = hasattr(seq_list[0], 'letter_annotations') and \
+                              'phred_quality' in seq_list[0].letter_annotations
+                if has_quality:
+                    qual_dict = {seq.id:seq.letter_annotations['phred_quality'] \
+                                 for seq in seq_list}
+                    for seq in align_list:
+                        qual = deque(qual_dict[seq.id])
+                        qual_new = [0 if c == '-' else qual.popleft() for c in seq.seq]
+                        seq.letter_annotations['phred_quality'] = qual_new
+    
+                # Add alignment to log
+                if 'field' in align_args:
+                    for i, seq in enumerate(align_list):
+                        ann = parseAnnotation(seq.description, delimiter=delimiter)
+                        primer = ann[align_args['field']]
+                        result.log['ALIGN%i:%s' % (i + 1, primer)] = seq.seq
+                else:
+                    for i, seq in enumerate(align_list):  
+                        result.log['ALIGN%i' % (i + 1)] = seq.seq
+                
+                # Add alignment to results
+                result.results = align_list
+                result.valid = True
+                        
+            # Feed results to result queue
+            result_queue.put(result)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
+    
     return None
 
 
@@ -320,10 +328,6 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     Returns: 
     a tuple of (valid_file, invalid_file) names
     """
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
     # Define subcommand label dictionary
     cmd_dict = {alignSeqSet:'align', offsetSeqSet:'offset'}
     
@@ -339,46 +343,35 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     log['NPROC'] = nproc
     printLog(log)
  
-    # Define shared data objects 
-    manager = mp.Manager()
-    collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
+    # Define feeder function and arguments
+    index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
+    feed_func = feedSeqQueue
+    feed_args = {'seq_file': seq_file,
+                 'index_func': indexSeqSets, 
+                 'index_args': index_args}
+    # Define worker function and arguments
+    work_func = processASQueue
+    work_args = {'align_func': align_func, 
+                 'align_args': align_args,
+                 'calc_div': calc_div,
+                 'delimiter': out_args['delimiter']}
+    # Define collector function and arguments
+    collect_func = collectSeqQueue
+    collect_args = {'seq_file': seq_file,
+                    'task_label': 'align',
+                    'out_args': out_args,
+                    'index_field': barcode_field}
     
-    # Initiate feeder process
-    feeder = mp.Process(target=feedSetQueue, args=(data_queue, nproc, seq_file, barcode_field, 
-                                                   out_args['delimiter']))
-    feeder.start()
-
-    # Initiate processQueue processes
-    workers = []
-    for __ in range(nproc):
-        w = mp.Process(target=processQueue, args=(data_queue, result_queue, align_func, align_args, 
-                                                  calc_div, out_args['delimiter']))
-        w.start()
-        workers.append(w)
-
-    # Initiate collector process
-    collector = mp.Process(target=collectSetQueue, args=(result_queue, collect_dict, seq_file, 
-                                                         barcode_field, 'align', out_args))
-    collector.start()
-
-    # Wait for feeder and worker processes to finish, add sentinel to result_queue
-    feeder.join()
-    for w in workers:  w.join()
-    result_queue.put(None)
-    
-    # Wait for collector process to finish and shutdown manager
-    collector.join()
-    log = collect_dict['log']
-    out_files = collect_dict['out_files']
-    manager.shutdown()
-    
-    # Print log
-    log['END'] = 'AlignSets'
-    printLog(log)
+    # Call process manager
+    result = manageProcesses(feed_func, work_func, collect_func, 
+                             feed_args, work_args, collect_args, 
+                             nproc, queue_size)
         
-    return out_files
+    # Print log
+    result['log']['END'] = 'AlignSets'
+    printLog(result['log'])
+        
+    return result['out_files']
 
 
 def getArgParser():

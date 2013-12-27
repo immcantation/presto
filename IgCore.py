@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.1'
+__date__      = '2013.12.27'
 
 # Imports
-import math, os, re, sys
+import ctypes, math, os, re, signal, sys
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from itertools import izip, izip_longest, product
@@ -39,6 +39,56 @@ default_out_args = {'log_file':None,
                     'out_name':None,
                     'out_type':None,
                     'clean':False}
+
+
+class SeqData:
+    """
+    A class defining sequence data objects for worker processes
+    """
+    # Instantiation
+    def __init__(self, key, records):
+        self.id = key
+        self.data = records
+        self.valid = (key is not None and records is not None)
+        
+    # Boolean evaluation
+    def __nonzero__(self): 
+        return self.valid
+    
+    # Length evaluation
+    def __len__(self):
+        if isinstance(self.data, SeqRecord) or isinstance(self.data, Seq):
+            return 1
+        elif self.data is None:
+            return 0
+        else:
+            return len(self.data)
+
+
+class SeqResult:
+    """
+    A class defining sequence result objects for collector processes
+    """
+    # Instantiation
+    def __init__(self, key, records):
+        self.id = key
+        self.data = records
+        self.results = None
+        self.valid = False
+        self.log = OrderedDict([('ID', key)])
+    
+    # Boolean evaluation
+    def __nonzero__(self): 
+        return self.valid
+
+    # Length evaluation
+    def __len__(self):
+        if isinstance(self.results, SeqRecord) or isinstance(self.results, Seq):
+            return 1
+        elif self.results is None:
+            return 0
+        else:
+            return len(self.results)
 
 
 def parseAnnotation(record, fields=None, delimiter=default_delimiter):
@@ -904,21 +954,21 @@ def getSeqCoord(seq_dict, coord_type=default_coord_type, delimiter=default_delim
     # 454:       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
     # pesto      @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
      
-    # Define getCoord function by coordinate format
+    # Define _getCoord function by coordinate format
     if coord_type in ('illumina', 'solexa'):
-        def getCoord(s):  return s.split()[0].split('#')[0]
+        def _getCoord(s):  return s.split()[0].split('#')[0]
     elif coord_type in ('sra', '454'):
-        def getCoord(s):  return s.split()[0]
+        def _getCoord(s):  return s.split()[0]
     elif coord_type == 'presto':
-        def getCoord(s):  return parseAnnotation(s, delimiter=delimiter)['ID']
+        def _getCoord(s):  return parseAnnotation(s, delimiter=delimiter)['ID']
     else:
-        def getCoord(s):  return s
+        def _getCoord(s):  return s
 
-    # Create a seq_dict ID translation using IDs truncated by getCoord()
+    # Create a seq_dict ID translation using IDs truncated by _getCoord()
     ids = {}
     for seq_id in seq_dict:
         try:
-            id_key = getCoord(seq_id)
+            id_key = _getCoord(seq_id)
             ids.update({id_key:seq_id})
         except:
             sys.exit('ERROR:  No ID for sequence %s using coordinate format %s' \
@@ -927,230 +977,330 @@ def getSeqCoord(seq_dict, coord_type=default_coord_type, delimiter=default_delim
     return ids
 
 
-def feedRecQueue(data_queue, nproc, seq_file):
+def manageProcesses(feed_func, work_func, collect_func, 
+                    feed_args={}, work_args={}, collect_args={}, 
+                    nproc=None, queue_size=None):
     """
-    Manages input file IO and feeds the data queue with individual sequences
+    Manages feeder, worker and collector processes
+    
+    Arguments:
+    feed_func = the data Queue feeder function
+    work_func = the worker function
+    collect_func = the result Queue collector function
+    feed_args = a dictionary of arguments to pass to feed_func
+    work_args = a dictionary of arguments to pass to work_func
+    collect_args = a dictionary of arguments to pass to collect_func
+    nproc = the number of processQueue processes;
+            if None defaults to the number of CPUs
+    queue_size = maximum size of the argument queue;
+                 if None defaults to 2*nproc    
+    
+    Returns:
+    a dictionary of collector results
+    """
+    # Define signal handler that raises KeyboardInterrupt
+    def _signalHandler(s, f):
+        raise SystemExit
+
+    # Define function to terminate child processes
+    def _terminate():
+        sys.stderr.write('Terminating child processes...')
+        # Terminate feeders
+        feeder.terminate()
+        feeder.join()
+        # Terminate workers
+        for w in workers:
+            w.terminate()
+            w.join()
+        # Terminate collector
+        collector.terminate()
+        collector.join
+        # Shutdown manager
+        manager.shutdown()
+        sys.stderr.write('  Done.\n')
+    
+    # Raise SystemExit upon termination signal
+    signal.signal(signal.SIGTERM, _signalHandler)
+        
+    # Define number of processes and queue size
+    if nproc is None:  nproc = mp.cpu_count()
+    if queue_size is None:  queue_size = nproc * 2
+    
+    # Define shared child process keep alive flag
+    alive = mp.Value(ctypes.c_bool, True)
+    
+    # Initiate manager and define shared data objects
+    manager = mp.Manager()
+    data_queue = manager.Queue(queue_size)
+    result_queue = manager.Queue(queue_size)
+    collect_dict = manager.dict()
+
+    try:  
+        # Initiate feeder process
+        feeder = mp.Process(target=feed_func, 
+                            args=(alive, data_queue), 
+                            kwargs=feed_args)
+        feeder.start()
+    
+        # Initiate worker processes
+        workers = []
+        for __ in range(nproc):
+            w = mp.Process(target=work_func, 
+                           args=(alive, data_queue, result_queue), 
+                           kwargs=work_args) 
+            w.start()
+            workers.append(w)
+    
+        # Initiate collector process
+        collector = mp.Process(target=collect_func, 
+                               args=(alive, result_queue, collect_dict), 
+                               kwargs=collect_args)
+        collector.start()
+    
+        # Wait for feeder to finish
+        feeder.join()
+        # Add sentinel object to data queue for each worker process
+        for __ in range(nproc):  data_queue.put(None)
+        
+        # Wait for worker processes to finish
+        for w in workers:  w.join()
+        # Add sentinel to result queue
+        result_queue.put(None)
+        
+        # Wait for collector process to finish
+        collector.join()
+
+        # Copy collector results and shutdown manager
+        result = dict(collect_dict)
+        manager.shutdown()
+    except (KeyboardInterrupt, SystemExit):
+        sys.stderr.write('Exit signal received\n')
+        _terminate()
+        sys.exit()
+    except Exception as e:
+        sys.stderr.write('Error:  %s\n' % e)
+        _terminate()
+        sys.exit()
+    except:
+        sys.stderr.write('Error:  Exiting with unknown exception\n')
+        _terminate()
+        sys.exit()
+    else:
+        if not alive.value:
+            sys.stderr.write('Error:  Exiting due to child process error\n')
+            _terminate()
+            sys.exit()
+    
+    return result
+
+
+def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
+    """
+    Feeds the data queue with SeqRecord objects
 
     Arguments: 
-    data_queue = an multiprocessing.Queue to hold data for processing
-    nproc = the number of processQueue processes
-    seq_file = the sequence file to read input from
-    
-    Returns: 
-    None
-    """
-    # Iterate over sequence records and feed data_queue
-    seq_iter = readSeqFile(seq_file)
-    for seq in seq_iter:
-        # Feed queue
-        data_queue.put({'id':seq.id, 'seq':seq})
-    
-    # Add sentinel object for each processQueue process
-    for __ in range(nproc):
-        data_queue.put(None)
-
-    return None
-
-
-def feedSetQueue(data_queue, nproc, seq_file, field, delimiter=default_delimiter):
-    """
-    Manages input file IO and feeds the data queue with sequence sets
-
-    Arguments: 
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     data_queue = a multiprocessing.Queue to hold data for processing
-    nproc = the number of processQueue processes
     seq_file = the sequence file to read input from
-    field = the annotation field defining set membership
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+    index_func = the function to use to define sequence sets
+                 if None do not index sets and feed individual records
+    index_args = a dictionary of arguments to pass to index_func
     
     Returns: 
     None
     """
-    # Read input file and find sequence sets
-    seq_dict = readSeqFile(seq_file, index=True)
-    index_dict = indexSeqSets(seq_dict, field, delimiter=delimiter)
-    
-    # Iterate over set_dict and define processQueue arguments 
-    for set_id, set_members in index_dict.iteritems():
-        # Define sequence set
-        seq_list = [seq_dict[k] for k in set_members]
-        # Feed queue
-        data_queue.put({'id':set_id, 'seq_list':seq_list})
-        
-    # Add sentinel object for each processQueue process
-    for __ in range(nproc):
-        data_queue.put(None)
-
-    return None
-
-
-def collectRecQueue(result_queue, collect_dict, seq_file, task_label, out_args):
-    """
-    Assembles results from a queue of individual sequence results and manages log/file I/O
-
-    Arguments: 
-    result_queue = a multiprocessing.Queue holding processQueue results
-    collect_dict = a multiprocessing.Manager.dict to store return values
-    seq_file = the input sequence file name
-    task_label = the task label used to tag the output files
-    out_args = common output argument dictionary from parseCommonArgs
-    
-    Returns: 
-    None
-    (adds 'log' and 'out_files' to collect_dict)
-    """
-    # Count records and define output format 
-    out_type = getFileType(seq_file) if out_args['out_type'] is None \
-               else out_args['out_type']
-    result_count = countSeqFile(seq_file)
-    
-    # Defined valid alignment output handle
-    pass_handle = getOutputHandle(seq_file, 
-                                  '%s-pass' % task_label, 
-                                  out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], 
-                                  out_type=out_type)
-    # Defined failed alignment output handle
-    if out_args['clean']:   
-        fail_handle = None
-    else:  
-        fail_handle = getOutputHandle(seq_file, 
-                                      '%s-fail' % task_label, 
-                                      out_dir=out_args['out_dir'], 
-                                      out_name=out_args['out_name'], 
-                                      out_type=out_type)
-    # Define log handle
-    if out_args['log_file'] is None:  
-        log_handle = None
-    else:  
-        log_handle = open(out_args['log_file'], 'w')
-        
-    # Iterator over results queue until sentinel object reached
-    start_time = time()
-    seq_count = pass_count = fail_count = 0
-    for result in iter(result_queue.get, None): 
-        # Print progress for previous iteration
-        printProgress(seq_count, result_count, 0.05, start_time) 
-        
-        # Update counts
-        seq_count += 1
-
-        # Write log
-        printLog(result['log'], handle=log_handle)
-
-        # Write sequences
-        if result['out_seq'] is not None and result['pass']:
-            pass_count += 1
-            SeqIO.write(result['out_seq'], pass_handle, out_type)
+    try:
+        # Read input file and index sequence sets if required
+        if index_func is None:
+            seq_iter = readSeqFile(seq_file)
+            data_iter = ((s.id, s) for s in seq_iter)
         else:
-            fail_count += 1
-            if fail_handle is not None:
-                SeqIO.write(result['in_seq'], fail_handle, out_type)
- 
-    # Print total counts
-    printProgress(seq_count, result_count, 0.05, start_time) 
+            #index_args={'field':'BARCODE', 'delimiter':default_delimiter}
+            seq_dict = readSeqFile(seq_file, index=True)
+            index_dict = index_func(seq_dict, **index_args)
+            data_iter = ((k, [seq_dict[i] for i in v]) \
+                         for k, v in index_dict.iteritems()) 
+    except:
+        alive.value = False
+        raise
+    
+    try:
+        # Iterate over data_iter and feed data queue 
+        while alive.value:
+            # Get data from queue
+            if data_queue.full():  continue
+            else:  data = next(data_iter, None)
+            # Exit upon reaching end of iterator
+            if data is None:  break
+            
+            # Feed queue
+            data_queue.put(SeqData(*data))
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
 
-    # Update return list
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['SEQUENCES'] = seq_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
-    collect_dict['log'] = log
-    collect_dict['out_files'] = [pass_handle.name]
-
-    # Close file handles
-    pass_handle.close()
-    if fail_handle is not None:  fail_handle.close()
-    if log_handle is not None:  log_handle.close()
-        
     return None
 
 
-def collectSetQueue(result_queue, collect_dict, seq_file, field, task_label, out_args):
+def processSeqQueue(alive, data_queue, result_queue, work_func, work_args={}):
+    """
+    Pulls from data queue, performs calculations, and feeds results queue
+
+    Arguments:
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
+    data_queue = a multiprocessing.Queue holding data to process
+    result_queue = a multiprocessing.Queue to hold processed results
+    work_func = the function to use for filtering sequences
+    work_args = a dictionary of arguments to pass to work_func
+
+    Returns: 
+    None
+    """
+    try:
+        # Iterator over data queue until sentinel object reached
+        while alive.value:
+            # Get data from queue
+            if data_queue.empty():  continue
+            else:  data = data_queue.get()
+            # Exit upon reaching sentinel
+            if data is None:  break
+
+            # Perform filtering
+            result = work_func(data.data, **work_args)
+ 
+            # Feed results to result queue
+            result.id = result.log['ID'] = data.id
+            result_queue.put(result)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
+    
+    return None
+
+
+def collectSeqQueue(alive, result_queue, collect_dict, seq_file, 
+                    task_label, out_args, index_field=None):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments: 
-    result_queue = a multiprocessing.Queue holding processQueue results
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
+    result_queue = a multiprocessing.Queue holding worker results
     collect_dict = a multiprocessing.Manager.dict to store return values
     seq_file = the sample sequence file name
-    field = the field defining set membership
     task_label = the task label used to tag the output files
     out_args = common output argument dictionary from parseCommonArgs
+    index_field = the field defining set membership for sequence sets
+                  if None data queue contained individual records
     
     Returns: 
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
-    # Count records and define output format 
-    out_type = getFileType(seq_file) if out_args['out_type'] is None \
-               else out_args['out_type']
-    result_count = countSeqSets(seq_file, field, out_args['delimiter'])
-    
-    # Defined valid alignment output handle
-    pass_handle = getOutputHandle(seq_file, 
-                                  '%s-pass' % task_label, 
-                                  out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], 
-                                  out_type=out_type)
-    # Defined failed alignment output handle
-    if out_args['clean']:  
-        fail_handle = None
-    else:  
-        fail_handle = getOutputHandle(seq_file, 
-                                      '%s-fail'  % task_label, 
+    try:
+        # Count records 
+        if index_field is None:
+            result_count = countSeqFile(seq_file)
+        else:
+            result_count = countSeqSets(seq_file, index_field, out_args['delimiter'])
+
+        # Define output format
+        out_type = getFileType(seq_file) if out_args['out_type'] is None \
+                   else out_args['out_type']
+            
+        # Defined valid alignment output handle
+        pass_handle = getOutputHandle(seq_file, 
+                                      '%s-pass' % task_label, 
                                       out_dir=out_args['out_dir'], 
                                       out_name=out_args['out_name'], 
                                       out_type=out_type)
-    # Define log handle
-    if out_args['log_file'] is None:  
-        log_handle = None
-    else:  
-        log_handle = open(out_args['log_file'], 'w')
+        # Defined failed alignment output handle
+        if out_args['clean']:  
+            fail_handle = None
+        else:  
+            fail_handle = getOutputHandle(seq_file, 
+                                          '%s-fail'  % task_label, 
+                                          out_dir=out_args['out_dir'], 
+                                          out_name=out_args['out_name'], 
+                                          out_type=out_type)
+        # Define log handle
+        if out_args['log_file'] is None:  
+            log_handle = None
+        else:  
+            log_handle = open(out_args['log_file'], 'w')
+    except:
+        alive.value = False
+        raise
     
-    # Iterator over results queue until sentinel object reached
-    start_time = time()
-    set_count = seq_count = single_count = pass_count = fail_count = 0
-    for result in iter(result_queue.get, None): 
-        # Print progress for previous iteration
-        printProgress(set_count, result_count, 0.05, start_time) 
-        
-        # Update counts for current iteration
-        set_count += 1
-        seq_count += result['seq_count']
-        if result['seq_count'] == 1:  single_count += 1
-        
-        # Write log
-        printLog(result['log'], handle=log_handle)
-
-        # Write alignments
-        if result['out_list'] is not None and result['pass']:
-            pass_count += 1
-            SeqIO.write(result['out_list'], pass_handle, out_type)
+    try:
+        # Iterator over results queue until sentinel object reached
+        start_time = time()
+        iter_count = seq_count = single_count = pass_count = fail_count = 0
+        while alive.value:
+            # Get result from queue
+            if result_queue.empty():  continue
+            else:  result = result_queue.get()
+            # Exit upon reaching sentinel
+            if result is None:  break
+            
+            # Print progress for previous iteration
+            printProgress(iter_count, result_count, 0.05, start_time) 
+            
+            # Update counts for current iteration
+            iter_count += 1
+            data_count = len(result.data)
+            seq_count += data_count
+            if data_count == 1:  single_count += 1
+            
+            # Write log
+            printLog(result.log, handle=log_handle)
+    
+            # Write alignments
+            if result:
+                pass_count += 1
+                SeqIO.write(result.results, pass_handle, out_type)
+            else:
+                fail_count += 1
+                if fail_handle is not None:
+                    SeqIO.write(result.data, fail_handle, out_type)
         else:
-            fail_count += 1
-            if fail_handle is not None:
-                SeqIO.write(result['in_list'], fail_handle, out_type)
- 
-    # Print total counts
-    printProgress(set_count, result_count, 0.05, start_time)
-
-    # Update return values    
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['SEQUENCES'] = seq_count
-    log['SINGLETONS'] = single_count
-    log['SETS'] = set_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
-    collect_dict['log'] = log
-    collect_dict['out_files'] = [pass_handle.name]
-
-    # Close file handles
-    pass_handle.close()
-    if fail_handle is not None:  fail_handle.close()
-    if log_handle is not None:  log_handle.close()
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+        
+        # Print total counts
+        printProgress(iter_count, result_count, 0.05, start_time)
+    
+        # Update return values    
+        log = OrderedDict()
+        log['OUTPUT'] = os.path.basename(pass_handle.name)
+        log['SEQUENCES'] = seq_count
+        if index_field is not None:
+            log['SINGLETONS'] = single_count
+            log['SETS'] = iter_count
+        log['PASS'] = pass_count
+        log['FAIL'] = fail_count
+        collect_dict['log'] = log
+        collect_dict['out_files'] = [pass_handle.name]
+    
+        # Close file handles
+        pass_handle.close()
+        if fail_handle is not None:  fail_handle.close()
+        if log_handle is not None:  log_handle.close()
+    except:
+        alive.value = False
+        raise
     
     return None
 

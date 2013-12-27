@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 """
-Filters sequences or masks characters in FASTA/FASTQ files by missing nucleotides and quality scores
+Filters sequences in FASTA/FASTQ files
 """
 
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.23'
+__date__      = '2013.12.27'
 
 # Imports
 import os, sys
-import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 from itertools import groupby
@@ -23,7 +22,8 @@ from Bio.SeqRecord import SeqRecord
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_min_qual, default_out_args, default_missing_chars
 from IgCore import getCommonArgParser, getFileType, parseCommonArgs, printLog
-from IgCore import collectRecQueue, feedRecQueue
+from IgCore import collectSeqQueue, feedSeqQueue, processSeqQueue
+from IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_max_missing = 10
@@ -44,7 +44,7 @@ def filterLength(seq, min_length=default_min_length, inner=True,
     missing_chars = a string of missing character values
     
     Returns:
-    a result dictionary containing {out_seq, pass, log}
+    a SeqResult object
     """
     # Remove outer missing characters if required
     if inner:  
@@ -53,12 +53,16 @@ def filterLength(seq, min_length=default_min_length, inner=True,
     else:
         n = len(seq)
     
-    # Build result dictionary
-    passed = (n >= min_length)
-    result ={'out_seq':(seq if passed else None),
-             'pass':passed,
-             'log':OrderedDict([('SEQ', seq.seq),
-                                ('LENGTH', n)])}
+    # Build result object
+    valid = (n >= min_length)
+    result = SeqResult(seq.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+        
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['LENGTH'] = n
     
     return result
 
@@ -75,7 +79,7 @@ def filterMissing(seq, max_missing=default_max_missing, inner=True,
     missing_chars = a string of missing character values
     
     Returns:
-    a result dictionary containing {out_seq, pass, log}
+    a SeqResult object
     """
     seq_str = str(seq.seq)
     # Remove outer missing character if required
@@ -83,12 +87,16 @@ def filterMissing(seq, max_missing=default_max_missing, inner=True,
     # Count missing characters
     n = len([c for c in seq_str if c in missing_chars])
     
-    # Build result dictionary
-    passed = (n <= max_missing)
-    result ={'out_seq':(seq if passed else None),
-             'pass':passed,
-             'log':OrderedDict([('SEQ', seq.seq),
-                                ('MISSING', n)])}
+    # Build result object
+    valid = (n <= max_missing)
+    result = SeqResult(seq.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+    
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['MISSING'] = n
     
     return result
 
@@ -107,7 +115,7 @@ def filterRepeats(seq, max_repeat=default_max_repeat, include_missing=False, inn
     missing_chars = a string of missing character values
     
     Returns:
-    a result dictionary containing {out_seq, pass, log}
+    a SeqResult object
     """
     seq_str = str(seq.seq)
     # Remove outer missing character if required
@@ -119,12 +127,16 @@ def filterRepeats(seq, max_repeat=default_max_repeat, include_missing=False, inn
     groups = ((c, len(list(g))) for c, g in groupby(seq_str))
     __, n = max(groups, key=lambda x: x[1])
     
-    # Build result dictionary
-    passed = (n <= max_repeat)
-    result ={'out_seq':(seq if passed else None),
-             'pass':passed,
-             'log':OrderedDict([('SEQ', seq.seq),
-                                ('REPEAT', n)])}
+    # Build result object
+    valid = (n <= max_repeat)
+    result = SeqResult(seq.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+    
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['REPEAT'] = n
     
     return result
 
@@ -141,7 +153,7 @@ def filterQuality(seq, min_qual=default_min_qual, inner=True,
     missing_chars = a string of missing character values
     
     Returns:
-    a result dictionary containing {out_seq, pass, log}
+    a SeqResult object
     """
     if inner:  
         seq_str = str(seq.seq)
@@ -153,12 +165,16 @@ def filterQuality(seq, min_qual=default_min_qual, inner=True,
     
     q = sum(quals) / len(quals)
 
-    # Build result dictionary
-    passed = (q >= min_qual)
-    result ={'out_seq':(seq if passed else None),
-             'pass':passed,
-             'log':OrderedDict([('SEQ', seq.seq),
-                                ('QUALITY', q)])}
+    # Build result object
+    valid = (q >= min_qual)
+    result = SeqResult(seq.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+    
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['QUALITY'] = q
     
     return result
 
@@ -175,7 +191,7 @@ def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=F
               if False cut the tail of the sequence
         
     Returns:
-    a result dictionary containing {out_seq, pass, log}
+    a SeqResult object
     """
     quals = seq.letter_annotations['phred_quality']
     # Reverse quality scores if required
@@ -198,13 +214,17 @@ def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=F
         trim_seq = seq[len(seq) - end:]
         out_str =  ' ' * (len(seq) - end) + str(trim_seq.seq)
         
-    # Build result dictionary
-    passed = (len(trim_seq) > 0)
-    result ={'out_seq':(trim_seq if passed else None),
-             'pass':passed,
-             'log':OrderedDict([('INSEQ', seq.seq),
-                                ('OUTSEQ', out_str),
-                                ('LENGTH', len(trim_seq))])}
+    # Build result object
+    valid = (len(trim_seq) > 0)
+    result = SeqResult(seq.id, seq)
+    if valid:
+        result.results = trim_seq
+        result.valid = True
+    
+    # Update result log
+    result.log['INSEQ'] = seq.seq
+    result.log['OUTSEQ'] = out_str
+    result.log['LENGTH'] = len(trim_seq)
     
     return result
 
@@ -218,7 +238,7 @@ def maskQuality(seq, min_qual=default_min_qual):
     min_qual = minimum quality for retained characters
         
     Returns:
-    a result dictionary containing {out_seq, pass, log}
+    a SeqResult object
     """
     seq_str = str(seq.seq)
     quals = seq.letter_annotations['phred_quality']
@@ -230,50 +250,17 @@ def maskQuality(seq, min_qual=default_min_qual):
                          name=seq.name, 
                          description=seq.description,
                          letter_annotations=seq.letter_annotations)
-
-    # Build result dictionary
-    result ={'out_seq':mask_seq,
-             'pass':True,
-             'log':OrderedDict([('INSEQ', seq.seq),
-                                ('OUTSEQ', mask_seq.seq)])}
+    
+    # Build result object
+    result = SeqResult(seq.id, seq)
+    result.results = mask_seq
+    result.valid = True
+    
+    # Update result log
+    result.log['INSEQ'] = seq.seq
+    result.log['OUTSEQ'] = mask_seq.seq
     
     return result
-
-
-def processQueue(data_queue, result_queue, filter_func, filter_args={}):
-    """
-    Pulls from data queue, performs calculations, and feeds results queue
-
-    Arguments: 
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    filter_func = the function to use for filtering sequences
-    filter_args = a dictionary of arguments to pass to filter_func
-
-    Returns: 
-    None
-    """
-    # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        in_seq = args['seq']        
-        # Define result dictionary for iteration
-        results = {'id':args['id'],
-                   'in_seq':in_seq,
-                   'out_seq':None,
-                   'pass':False,
-                   'log':OrderedDict([('ID', args['id'])])}
- 
-        # Perform filtering
-        filter_result = filter_func(in_seq, **filter_args)
-        results['out_seq'] = filter_result['out_seq']
-        results['pass'] = filter_result['pass']
-        for k, v in filter_result['log'].iteritems():  
-            results['log'].update({k:v})
-        
-        # Feed results to result queue
-        result_queue.put(results)
-
-    return None
 
 
 def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args, 
@@ -294,14 +281,11 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     Returns:
     a list of successful output file names
     """
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-
     # Define output file label dictionary
-    cmd_dict = {filterLength:'length', filterMissing:'missing', filterRepeats:'repeats', 
-                  filterQuality:'quality', maskQuality:'maskqual', trimQuality:'trimqual'}
-
+    cmd_dict = {filterLength:'length', filterMissing:'missing', 
+                filterRepeats:'repeats', filterQuality:'quality', 
+                maskQuality:'maskqual', trimQuality:'trimqual'}
+    
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'FilterSeq'
@@ -316,46 +300,29 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     if in_type != 'fastq' and filter_func in (filterQuality, maskQuality, trimQuality):
         sys.exit('ERROR:  Input file must be FASTQ for %s mode' % cmd_dict[filter_func])
     
-    # Define shared data objects 
-    manager = mp.Manager()
-    collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
+    # Define feeder function and arguments
+    feed_func = feedSeqQueue
+    feed_args = {'seq_file': seq_file}
+    # Define worker function and arguments
+    work_func = processSeqQueue
+    work_args = {'work_func': filter_func, 
+                 'work_args': filter_args}
+    # Define collector function and arguments
+    collect_func = collectSeqQueue
+    collect_args = {'seq_file': seq_file,
+                    'task_label': cmd_dict[filter_func],
+                    'out_args': out_args}
     
-    # Initiate feeder process
-    feeder = mp.Process(target=feedRecQueue, args=(data_queue, nproc, seq_file))
-    feeder.start()
-
-    # Initiate worker processes
-    workers = []
-    for __ in range(nproc):
-        w = mp.Process(target=processQueue, args=(data_queue, result_queue, 
-                                                  filter_func, filter_args))
-        w.start()
-        workers.append(w)
-
-    # Initiate collector process
-    collector = mp.Process(target=collectRecQueue, args=(result_queue, collect_dict, seq_file, 
-                                                         cmd_dict.get(filter_func, 'filter'), 
-                                                         out_args))
-    collector.start()
-
-    # Wait for feeder and worker processes to finish, add sentinel to result_queue
-    feeder.join()
-    for w in workers:  w.join()
-    result_queue.put(None)
-    
-    # Wait for collector process to finish and shutdown manager
-    collector.join()
-    log = collect_dict['log']
-    out_files = collect_dict['out_files']
-    manager.shutdown()
-    
-    # Print log
-    log['END'] = 'FilterSeq'
-    printLog(log)
+    # Call process manager
+    result = manageProcesses(feed_func, work_func, collect_func, 
+                             feed_args, work_args, collect_args, 
+                             nproc, queue_size)
         
-    return out_files
+    # Print log
+    result['log']['END'] = 'FilterSeq'
+    printLog(result['log'])
+        
+    return result['out_files']
 
 
 def getArgParser():
@@ -401,7 +368,7 @@ def getArgParser():
     # Continuous repeating character filter mode argument parser
     parser_repeats = subparsers.add_parser('repeats', parents=[parser_parent],
                                            formatter_class=ArgumentDefaultsHelpFormatter, 
-                                           help='Consencutive nucleotide repeating filtering mode')
+                                           help='Consecutive nucleotide repeating filtering mode')
     parser_repeats.add_argument('-n', action='store', dest='max_repeat', type=int, 
                                 default=default_max_repeat, 
                                 help='Threshold for fraction of repeating nucleotides')

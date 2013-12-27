@@ -1,8 +1,10 @@
-November 10, 2013
-Version 0.4.1
+December 27, 2013
+Version 0.4.1 (Incremental Bug Fix Release)
 
 Changes to the internals of multiple tools to provide support for 
   multiprocessing in Windows environments.
+Changes to the internals of multiple tools to provide clean exit of
+  child processes upon kill signal or exception in sibling process 
 
 IgCore:
 + Added reporting of unknown exceptions when reading sequence files
@@ -38,7 +40,7 @@ SplitSeq:
 
 -------------------------------------------------------------------------------
 September 30, 2013
-Version 0.4.0
+Version 0.4.0 (Initial Public Release)
 
 Minor name changes were made to multiple scripts, functions, parameters,
   and output files

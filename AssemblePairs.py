@@ -7,11 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2013.12.27'
 
 # Imports
 import os, sys
-import multiprocessing as mp
 import numpy as np
 import scipy.stats as stats
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -32,6 +31,7 @@ from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict, reverseComplement, scoreSeqPair
 from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
+from IgCore import manageProcesses, SeqData, SeqResult
 
 # Defaults
 default_alpha = 0.05
@@ -222,13 +222,14 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     return best_dict
 
 
-def feedQueue(data_queue, nproc, seq_file_1, seq_file_2, index_dict):
+def feedAPQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
     """
     Feeds the data queue with sequence pairs for processQueue processes
 
-    Arguments: 
+    Arguments:
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     data_queue = an multiprocessing.Queue to hold data for processing
-    nproc = the number of processQueue processes
     seq_file_1 = the name of sequence file 1
     seq_file_2 = the name of sequence file 2
     index_dict = a dictionary returned by indexSeqPairs
@@ -236,114 +237,147 @@ def feedQueue(data_queue, nproc, seq_file_1, seq_file_2, index_dict):
     Returns: 
     None
     """
-    # Open input files
-    seq_dict_1 = readSeqFile(seq_file_1, index=True)
-    seq_dict_2 = readSeqFile(seq_file_2, index=True)
+    try:
+        # Open input files
+        seq_dict_1 = readSeqFile(seq_file_1, index=True)
+        seq_dict_2 = readSeqFile(seq_file_2, index=True)
+        # Define data iterator
+        data_iter = ((k, [seq_dict_1[i], seq_dict_2[j]]) \
+                     for k, (i, j) in index_dict.iteritems())
+    except:
+        alive.value = False
+        raise
     
-    # Iterate over index_dict added sequences pairs to data_queue
-    for pair_id, (key_1, key_2) in index_dict.iteritems():
-        # Feed queue
-        data_queue.put({'id':pair_id, 
-                        'seq_1':seq_dict_1[key_1], 
-                        'seq_2':seq_dict_2[key_2]})
-        
-    # Add sentinel object for each processQueue process
-    for __ in range(nproc):
-        data_queue.put(None)
+    try:
+        # Iterate over data_iter and feed data queue 
+        while alive.value:
+            # Get data from queue
+            if data_queue.full():  continue
+            else:  data = next(data_iter, None)
+            # Exit upon reaching end of iterator
+            if data is None:  break
+            
+            # Feed queue
+            data_queue.put(SeqData(*data))
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
 
     return None
 
 
-def processQueue(data_queue, result_queue, assemble_func, assemble_args={}, rc=None, 
-                 head_fields=None, tail_fields=None, delimiter=default_delimiter):
+def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args={}, 
+                   rc=None, fields_1=None, fields_2=None, 
+                   delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
-    Arguments: 
+    Arguments:
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     assemble_func = the function to use to assemble paired ends
     assemble_args = a dictionary of arguments to pass to the assembly function
-    rc = Defines which sequences ('head','tail','both') to reverse complement before assembly;
-         if None do not reverse complement sequences
-    head_fields = list of annotations in head_file records to copy to assembled record;
-                  if None do not copy an annotation
-    tail_fields = list of annotations in tail_file records to copy to assembled record;
-                  if None do not copy an annotation
+    rc = Defines which sequences ('head','tail','both') to reverse complement 
+         before assembly; if None do not reverse complement sequences
+    fields_1 = list of annotations in head_file records to copy to assembled record;
+               if None do not copy an annotation
+    fields_2 = list of annotations in tail_file records to copy to assembled record;
+               if None do not copy an annotation
     delimiter = a tuple of delimiters for (fields, values, value lists) 
 
     Returns: 
     None
     """
-    # Iterator over data queue until sentinel object reached
-    for args in iter(data_queue.get, None):
-        # Reverse complement sequences if required
-        if rc == 'both' or rc == 'head':  head_seq = reverseComplement(args['seq_1'])
-        else:  head_seq = args['seq_1']
-        if rc == 'both' or rc == 'tail':  tail_seq = reverseComplement(args['seq_2'])
-        else:  tail_seq = args['seq_2']
-        
-        # Define result dictionary for iteration
-        results = {'id':args['id'],
-                   'in_seq_1':head_seq,
-                   'in_seq_2':tail_seq,
-                   'out_seq':None,
-                   'error':None,
-                   'pval':None,
-                   'pass':False,
-                   'log':OrderedDict([('ID', args['id'])])}
- 
-        # Assemble sequences
-        stitch = assemble_func(head_seq, tail_seq, **assemble_args)
-        
-        # Define stitched sequence annotation
-        stitch_ann = OrderedDict([('ID', args['id'])])                  
-        if head_fields is not None:
-            head_ann = parseAnnotation(head_seq.description, head_fields, delimiter=delimiter)
-            stitch_ann = mergeAnnotation(stitch_ann, head_ann, delimiter=delimiter)
-            results['log']['HEADFIELDS'] = '|'.join(['%s=%s' % (k, v) for k, v in head_ann.iteritems()])
-        if tail_fields is not None:
-            tail_ann = parseAnnotation(tail_seq.description, tail_fields, delimiter=delimiter)
-            stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
-            results['log']['TAILFIELDS'] = '|'.join(['%s=%s' % (k, v) for k, v in tail_ann.iteritems()])
-        
-        # Define stitching log
-        results['log']['HEADSEQ'] = head_seq.seq
-        if stitch['seq'] is not None:
-            out_seq = stitch['seq'] 
-            # Update stitch annotation
-            out_seq.id = flattenAnnotation(stitch_ann, delimiter=delimiter)
-            out_seq.name = out_seq.id
-            out_seq.description = '' 
-            # Add stitch to results
-            results['out_seq'] = out_seq
-            results['pass'] = True
-            # Update log
-            results['log']['TAILSEQ'] = ' ' * (len(head_seq) - stitch['len']) + tail_seq.seq
-            results['log']['ASSEMBLY'] = out_seq.seq
-            if 'phred_quality' in out_seq.letter_annotations:
-                results['log']['QUALITY'] = ''.join([chr(q+33) for q in out_seq.letter_annotations['phred_quality']])
-            results['log']['LENGTH'] = len(out_seq)
-            results['log']['OVERLAP'] = stitch['len']
-        else:
-            results['log']['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
-            results['log']['ASSEMBLY'] = None
-        results['log']['ERROR'] = stitch['error']
-        results['log']['PVAL'] = stitch['pval']
+    try:
+        # Iterator over data queue until sentinel object reached
+        while alive.value:
+            # Get data from queue
+            if data_queue.empty():  continue
+            else:  data = data_queue.get()
+            # Exit upon reaching sentinel
+            if data is None:  break
             
-        # Feed results to result queue
-        result_queue.put(results)
+            # Reverse complement sequences if required  
+            head_seq = data.data[0] if rc not in ('head', 'both') \
+                       else reverseComplement(data.data[0])
+            tail_seq = data.data[1] if rc not in ('tail', 'both') \
+                       else reverseComplement(data.data[1])
 
+            # Define result object for iteration
+            result = SeqResult(data.id, [head_seq, tail_seq])
+            
+            # Assemble sequences
+            stitch = assemble_func(head_seq, tail_seq, **assemble_args)
+            
+            # Define stitched sequence annotation
+            stitch_ann = OrderedDict([('ID', data.id)])                  
+            if fields_1 is not None:
+                head_ann = parseAnnotation(head_seq.description, fields_1, 
+                                           delimiter=delimiter)
+                stitch_ann = mergeAnnotation(stitch_ann, head_ann, delimiter=delimiter)
+                result.log['HEADFIELDS'] = '|'.join(['%s=%s' % (k, v) 
+                                                     for k, v in head_ann.iteritems()])
+            if fields_2 is not None:
+                tail_ann = parseAnnotation(tail_seq.description, fields_2, 
+                                           delimiter=delimiter)
+                stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
+                result.log['TAILFIELDS'] = '|'.join(['%s=%s' % (k, v) 
+                                                     for k, v in tail_ann.iteritems()])
+            
+            # Define stitching log
+            result.log['HEADSEQ'] = head_seq.seq
+            if stitch['seq'] is not None:
+                out_seq = stitch['seq'] 
+                # Update stitch annotation
+                out_seq.id = flattenAnnotation(stitch_ann, delimiter=delimiter)
+                out_seq.name = out_seq.id
+                out_seq.description = '' 
+                # Add stitch to results
+                result.results = out_seq
+                result.valid = True
+                # Update log
+                result.log['TAILSEQ'] = ' ' * (len(head_seq) - stitch['len']) + tail_seq.seq
+                result.log['ASSEMBLY'] = out_seq.seq
+                if 'phred_quality' in out_seq.letter_annotations:
+                    result.log['QUALITY'] = ''.join([chr(q+33) for q in out_seq.letter_annotations['phred_quality']])
+                result.log['LENGTH'] = len(out_seq)
+                result.log['OVERLAP'] = stitch['len']
+            else:
+                result.log['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
+                result.log['ASSEMBLY'] = None
+            result.log['ERROR'] = stitch['error']
+            result.log['PVAL'] = stitch['pval']
+                
+            # Feed results to result queue
+            result_queue.put(result)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+    except:
+        alive.value = False
+        raise
+    
     return None
 
 
-def collectQueue(result_queue, collect_dict, seq_file_1, seq_file_2, out_args):
+def collectAPQueue(alive, result_queue, collect_dict, result_count, seq_file_1, seq_file_2, 
+                   out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments: 
+    alive = a multiprocessing.Value boolean controlling whether processing 
+            continues; when False function returns
     result_queue = a multiprocessing.Queue holding processQueue results
     collect_dict = a multiprocessing.Manager.dict to store return values
+    result_count = the number of expected assembled sequences
     seq_file_1 = the first sequence file name
     seq_file_2 = the second sequence file name
     out_args = common output argument dictionary from parseCommonArgs
@@ -352,86 +386,103 @@ def collectQueue(result_queue, collect_dict, seq_file_1, seq_file_2, out_args):
     None
     (adds 'log' and 'out_files' to collect_dict)
     """
-    # Count records and define output format 
-    out_type = getFileType(seq_file_1) if out_args['out_type'] is None \
-               else out_args['out_type']
-    result_count = collect_dict['result_count']
-    
-    # Defined valid assembly output handle
-    pass_handle = getOutputHandle(seq_file_1, 
-                                  'assemble-pass', 
-                                  out_dir=out_args['out_dir'], 
-                                  out_name=out_args['out_name'], 
-                                  out_type=out_type)
-    # Defined failed assembly output handles
-    if out_args['clean']:
-        fail_handle_1 = None
-        fail_handle_2 = None
-    else:
-        # Define output name
-        if out_args['out_name'] is None:
-            out_name_1 = out_name_2 = None
-        else: 
-            out_name_1 = '%s-1' % out_args['out_name']
-            out_name_2 = '%s-2' % out_args['out_name']
-        fail_handle_1 = getOutputHandle(seq_file_1, 
-                                        'assemble-fail', 
-                                        out_dir=out_args['out_dir'], 
-                                        out_name=out_name_1, 
-                                        out_type=out_type)
-        fail_handle_2 = getOutputHandle(seq_file_2, 
-                                        'assemble-fail', 
-                                        out_dir=out_args['out_dir'], 
-                                        out_name=out_name_2, 
-                                        out_type=out_type)
-
-    # Define log handle
-    if out_args['log_file'] is None:
-        log_handle = None
-    else:
-        log_handle = open(out_args['log_file'], 'w')
+    try:
+        # Count records and define output format 
+        out_type = getFileType(seq_file_1) if out_args['out_type'] is None \
+                   else out_args['out_type']
         
-    # Iterator over results queue until sentinel object reached
-    start_time = time()
-    pair_count = pass_count = fail_count = 0
-    for result in iter(result_queue.get, None): 
-        # Print progress for previous iteration
-        printProgress(pair_count, result_count, 0.05, start_time)
-
-        # Update counts for iteration
-        pair_count += 1
-
-        # Write log
-        printLog(result['log'], handle=log_handle)
-
-        # Write assembled sequences
-        if result['out_seq'] is not None and result['pass']:
-            pass_count += 1
-            SeqIO.write(result['out_seq'], pass_handle, out_type)
+        # Defined valid assembly output handle
+        pass_handle = getOutputHandle(seq_file_1, 
+                                      'assemble-pass', 
+                                      out_dir=out_args['out_dir'], 
+                                      out_name=out_args['out_name'], 
+                                      out_type=out_type)
+        # Defined failed assembly output handles
+        if out_args['clean']:
+            fail_handle_1 = None
+            fail_handle_2 = None
         else:
-            fail_count += 1
-            if fail_handle_1 is not None and fail_handle_2 is not None:
-                SeqIO.write(result['in_seq_1'], fail_handle_1, out_type)
-                SeqIO.write(result['in_seq_2'], fail_handle_2, out_type)
- 
-    # Print total counts
-    printProgress(pair_count, result_count, 0.05, start_time)
+            # Define output name
+            if out_args['out_name'] is None:
+                out_name_1 = out_name_2 = None
+            else: 
+                out_name_1 = '%s-1' % out_args['out_name']
+                out_name_2 = '%s-2' % out_args['out_name']
+            fail_handle_1 = getOutputHandle(seq_file_1, 
+                                            'assemble-fail', 
+                                            out_dir=out_args['out_dir'], 
+                                            out_name=out_name_1, 
+                                            out_type=out_type)
+            fail_handle_2 = getOutputHandle(seq_file_2, 
+                                            'assemble-fail', 
+                                            out_dir=out_args['out_dir'], 
+                                            out_name=out_name_2, 
+                                            out_type=out_type)
 
-    # Update return values
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['PAIRS'] = pair_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
-    collect_dict['log'] = log
-    collect_dict['out_files'] = [pass_handle.name]
+        # Define log handle
+        if out_args['log_file'] is None:
+            log_handle = None
+        else:
+            log_handle = open(out_args['log_file'], 'w')
+    except:
+        alive.value = False
+        raise
+    
+    try:
+        # Iterator over results queue until sentinel object reached
+        start_time = time()
+        iter_count = pass_count = fail_count = 0
+        while alive.value:
+            # Get result from queue
+            if result_queue.empty():  continue
+            else:  result = result_queue.get()
+            # Exit upon reaching sentinel
+            if result is None:  break
 
-    # Close file handles
-    pass_handle.close()
-    if fail_handle_1 is not None:  fail_handle_1.close()
-    if fail_handle_2 is not None:  fail_handle_2.close()
-    if log_handle is not None:  log_handle.close()
-
+            # Print progress for previous iteration
+            printProgress(iter_count, result_count, 0.05, start_time)
+    
+            # Update counts for iteration
+            iter_count += 1
+    
+            # Write log
+            printLog(result.log, handle=log_handle)
+    
+            # Write assembled sequences
+            if result:
+                pass_count += 1
+                SeqIO.write(result.results, pass_handle, out_type)
+            else:
+                fail_count += 1
+                if fail_handle_1 is not None and fail_handle_2 is not None:
+                    SeqIO.write(result.data[0], fail_handle_1, out_type)
+                    SeqIO.write(result.data[1], fail_handle_2, out_type)
+        else:
+            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+                             % os.getpid())
+            return None
+        
+        # Print total counts
+        printProgress(iter_count, result_count, 0.05, start_time)
+    
+        # Update return values
+        log = OrderedDict()
+        log['OUTPUT'] = os.path.basename(pass_handle.name)
+        log['PAIRS'] = iter_count
+        log['PASS'] = pass_count
+        log['FAIL'] = fail_count
+        collect_dict['log'] = log
+        collect_dict['out_files'] = [pass_handle.name]
+    
+        # Close file handles
+        pass_handle.close()
+        if fail_handle_1 is not None:  fail_handle_1.close()
+        if fail_handle_2 is not None:  fail_handle_2.close()
+        if log_handle is not None:  log_handle.close()
+    except:
+        alive.value = False
+        raise
+    
     return None
 
 
@@ -463,10 +514,6 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     Returns: 
     a list of successful output file names
     """
-    # Define number of processes and queue size
-    if nproc is None:  nproc = mp.cpu_count()
-    if queue_size is None:  queue_size = nproc * 2
-    
     # Define subcommand label dictionary
     cmd_dict = {alignSeqPair:'align', joinSeqPair:'join'}
 
@@ -474,8 +521,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     log = OrderedDict()
     log['START'] = 'AssemblePairs'
     log['COMMAND'] = cmd_dict.get(assemble_func, assemble_func.__name__)
-    log['HEAD_FILE'] = os.path.basename(head_file) 
-    log['TAIL_FILE'] = os.path.basename(tail_file)
+    log['FILE1'] = os.path.basename(head_file) 
+    log['FILE2'] = os.path.basename(tail_file)
     log['COORD_TYPE'] = coord_type
     if 'alpha' in assemble_args:  log['ALPHA'] = assemble_args['alpha']
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
@@ -524,55 +571,43 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
             for k in tail_unpaired:
                 SeqIO.write(tail_dict[k], tail_handle, tail_type)
     
-    # Define shared data objects 
-    manager = mp.Manager()
-    collect_dict = manager.dict()
-    data_queue = mp.Queue(queue_size)
-    result_queue = mp.Queue(queue_size)
-    
-    # Initiate feeder process
-    feeder = mp.Process(target=feedQueue, args=(data_queue, nproc, head_file, tail_file, 
-                                                index_dict))
-    feeder.start()
-
-    # Initiate processQueue processes
-    workers = []
-    for __ in range(nproc):
-        w = mp.Process(target=processQueue, args=(data_queue, result_queue, assemble_func,
-                                                  assemble_args, rc, head_fields, tail_fields, 
-                                                  out_args['delimiter']))
-        w.start()
-        workers.append(w)
-
-    # Initiate collector process
-    collect_dict['result_count'] = pair_count
-    collector = mp.Process(target=collectQueue, args=(result_queue, collect_dict,
-                                                      head_file, tail_file, out_args))
-    collector.start()
-
-    # Wait for feeder and worker processes to finish, add sentinel to result_queue
-    feeder.join()
-    for w in workers:  w.join()
-    result_queue.put(None)
-    
-    # Wait for collector process to finish and shutdown manager
-    collector.join()
-    log = collect_dict['log']
-    out_files = collect_dict['out_files']
-    manager.shutdown()
-    
-    # Print log
-    log_end = OrderedDict()
-    log_end['OUTPUT'] = log.pop('OUTPUT')
-    log_end['SEQUENCES'] = '%i,%i' % (head_count, tail_count)
-    log_end['UNPAIRED'] = '%i,%i' % (head_count - pair_count, 
-                                     tail_count - pair_count)
-    for k, v in log.iteritems():
-        log_end[k] = v
-    log_end['END'] = 'AssemblePairs'
-    printLog(log_end)
+    # Define feeder function and arguments
+    feed_func = feedAPQueue
+    feed_args = {'seq_file_1': head_file,
+                 'seq_file_2': tail_file,
+                 'index_dict': index_dict}
+    # Define worker function and arguments
+    work_func = processAPQueue
+    work_args = {'assemble_func': assemble_func, 
+                 'assemble_args': assemble_args,
+                 'rc': rc,
+                 'fields_1': head_fields,
+                 'fields_2': tail_fields,
+                 'delimiter': out_args['delimiter']}
+    # Define collector function and arguments
+    collect_func = collectAPQueue
+    collect_args = {'result_count': pair_count,
+                    'seq_file_1': head_file,
+                    'seq_file_2': tail_file,
+                    'out_args': out_args}
+                   
+    # Call process manager
+    result = manageProcesses(feed_func, work_func, collect_func, 
+                             feed_args, work_args, collect_args, 
+                             nproc, queue_size)
         
-    return out_files
+    # Print log
+    log = OrderedDict()
+    log['OUTPUT'] = result['log'].pop('OUTPUT')
+    log['SEQUENCES1'] = head_count
+    log['SEQUENCES2'] = tail_count
+    log['UNPAIRED1'] = head_count - pair_count 
+    log['UNPAIRED2'] = tail_count - pair_count
+    for k, v in result['log'].iteritems():  log[k] = v
+    log['END'] = 'AssemblePairs'
+    printLog(log)
+    
+    return result['out_files']
         
         
 def getArgParser():
