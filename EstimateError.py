@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.27'
+__date__      = '2013.12.28'
 
 # Imports
 import os, sys
@@ -230,7 +230,7 @@ def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_fi
             
             # Update counts for iteration
             iter_count += 1
-            seq_count += len(result.data)
+            seq_count += result.data_count
             
             # Sum results
             if result:

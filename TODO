@@ -1,22 +1,18 @@
-November 2, 2013
+December 27, 2013
 Version 0.4.1
 
 High Priority
-+ Add clean termination of workers processes when exceptions occur
 + Improve CollapseSeq algorithm for max_missing > 0
 + Add multiprocessing to CollapseSeq if needed after algorithm improvement
 + Write two wrappers for server-side sequential processing of individual 
   sequence records and sets of records which bypassed intermediate files
-+ Test on Windows
-+ Test on Os X
 
 Low Priority
 + Add --start parameter to align subcommand of MaskPrimers
++ Add --replacement parameter to sample and samplepair subcommands of 
+  SplitSeq allowing sampling with replacement
 + Optimize everything
 + Maybe add fail files to ParseLog and table subcommand of ParseHeaders
 + Maybe add copy fields/actions to BuildConsensus and AssemblePairs
 + Maybe convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
-+ Maybe add parameter to sample and samplepair subcommands of SplitSeq
-  allowing sampling with replacement
-+ Maybe convert args and results dictionaries passed through 
-  multiprocessing Queue to classes
++ Maybe add subcommand to create summary table to ParseLog

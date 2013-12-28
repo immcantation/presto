@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.27'
+__date__      = '2013.12.28'
 
 # Imports
 import ctypes, math, os, re, signal, sys
@@ -51,11 +51,11 @@ class SeqData:
         self.data = records
         self.valid = (key is not None and records is not None)
         
-    # Boolean evaluation
+    # Set boolean evaluation to valid value
     def __nonzero__(self): 
         return self.valid
     
-    # Length evaluation
+    # Set length evaluation to number of data records
     def __len__(self):
         if isinstance(self.data, SeqRecord) or isinstance(self.data, Seq):
             return 1
@@ -77,11 +77,11 @@ class SeqResult:
         self.valid = False
         self.log = OrderedDict([('ID', key)])
     
-    # Boolean evaluation
+    # Set boolean evaluation to valid value
     def __nonzero__(self): 
         return self.valid
 
-    # Length evaluation
+    # Set length evaluation to number of results
     def __len__(self):
         if isinstance(self.results, SeqRecord) or isinstance(self.results, Seq):
             return 1
@@ -89,6 +89,16 @@ class SeqResult:
             return 0
         else:
             return len(self.results)
+    
+    # Set data_count to number of data records
+    @property
+    def data_count(self):
+        if isinstance(self.data, SeqRecord) or isinstance(self.data, Seq):
+            return 1
+        elif self.data is None:
+            return 0
+        else:
+            return len(self.data)
 
 
 def parseAnnotation(record, fields=None, delimiter=default_delimiter):
@@ -1259,9 +1269,8 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
             
             # Update counts for current iteration
             iter_count += 1
-            data_count = len(result.data)
-            seq_count += data_count
-            if data_count == 1:  single_count += 1
+            seq_count += result.data_count
+            if result.data_count == 1:  single_count += 1
             
             # Write log
             printLog(result.log, handle=log_handle)

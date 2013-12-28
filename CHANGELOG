@@ -1,5 +1,5 @@
-December 27, 2013
-Version 0.4.1 (Incremental Bug Fix Release)
+December 28, 2013
+Version 0.4.1
 
 Changes to the internals of multiple tools to provide support for 
   multiprocessing in Windows environments.
@@ -40,7 +40,7 @@ SplitSeq:
 
 -------------------------------------------------------------------------------
 September 30, 2013
-Version 0.4.0 (Initial Public Release)
+Version 0.4.0
 
 Minor name changes were made to multiple scripts, functions, parameters,
   and output files

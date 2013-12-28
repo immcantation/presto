@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.7'
+__date__      = '2013.12.28'
 
 # Imports
 import os, sys
@@ -126,8 +126,10 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     log = OrderedDict()
     log['OUTPUT1'] = os.path.basename(pass_handle_1.name) 
     log['OUTPUT2'] = os.path.basename(pass_handle_2.name) 
-    log['SEQUENCES'] = '%i,%i' % (count_1, count_2)
-    log['FAIL'] = '%i,%i' % (count_1 - pair_count, count_2 - pair_count)
+    log['SEQUENCES1'] = count_1
+    log['SEQUENCES2'] = count_2
+    log['FAIL1'] = count_1 - pair_count
+    log['FAIL2'] = count_2 - pair_count
     log['PASS'] = pair_count
     log['END'] = 'PairSeq'
     printLog(log)
