@@ -474,11 +474,6 @@ if __name__ == '__main__':
             args_dict['seq_file'] = f
             alignSets(**args_dict)
 
-            # Profiling
-            #import cProfile, pstats
-            #cProfile.run('alignSets(**args_dict)', 'profile.prof')
-            #p = pstats.Stats('profile.prof')
-            #p.strip_dirs().sort_stats('time').print_stats()  
     elif args.command == 'table': 
         del args_dict['primer_file']
         for f in args.__dict__['primer_file']:

@@ -662,9 +662,3 @@ if __name__ == '__main__':
             args_dict['seq_file_1'] = file_1
             args_dict['seq_file_2'] = file_2
             args.func(**args_dict)
-        
-        # Profiling
-        #import cProfile, pstats
-        #cProfile.run('args.func(**args_dict)', 'profile.prof')
-        #p = pstats.Stats('profile.prof')
-        #p.strip_dirs().sort_stats('time').print_stats() 

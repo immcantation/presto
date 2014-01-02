@@ -304,9 +304,3 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         buildConsensus(**args_dict)
-
-        # Profiling
-        #import cProfile, pstats
-        #cProfile.run('buildConsensus(**args_dict)', 'profile.prof')
-        #p = pstats.Stats('profile.prof')
-        #p.strip_dirs().sort_stats('time').print_stats()

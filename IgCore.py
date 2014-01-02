@@ -1157,7 +1157,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
     return None
 
 
-def processSeqQueue(alive, data_queue, result_queue, work_func, work_args={}):
+def processSeqQueue(alive, data_queue, result_queue, process_func, process_args={}):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -1166,12 +1166,16 @@ def processSeqQueue(alive, data_queue, result_queue, work_func, work_args={}):
             continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
-    work_func = the function to use for filtering sequences
-    work_args = a dictionary of arguments to pass to work_func
+    process_func = the function to use for filtering sequences
+    process_args = a dictionary of arguments to pass to process_func
 
     Returns: 
     None
     """
+    #import cProfile
+    #pr = cProfile.Profile()
+    #pr.enable()
+            
     try:
         # Iterator over data queue until sentinel object reached
         while alive.value:
@@ -1182,8 +1186,8 @@ def processSeqQueue(alive, data_queue, result_queue, work_func, work_args={}):
             if data is None:  break
 
             # Perform filtering
-            result = work_func(data.data, **work_args)
- 
+            result = process_func(data.data, **process_args)
+
             # Feed results to result queue
             result.id = result.log['ID'] = data.id
             result_queue.put(result)
@@ -1194,6 +1198,9 @@ def processSeqQueue(alive, data_queue, result_queue, work_func, work_args={}):
     except:
         alive.value = False
         raise
+
+    #pr.disable()
+    #pr.dump_stats('worker%i.prof' % os.getpid())
     
     return None
 
@@ -1256,7 +1263,7 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
     try:
         # Iterator over results queue until sentinel object reached
         start_time = time()
-        iter_count = seq_count = single_count = pass_count = fail_count = 0
+        set_count = seq_count = pass_count = fail_count = 0
         while alive.value:
             # Get result from queue
             if result_queue.empty():  continue
@@ -1265,12 +1272,11 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
             if result is None:  break
             
             # Print progress for previous iteration
-            printProgress(iter_count, result_count, 0.05, start_time) 
+            printProgress(set_count, result_count, 0.05, start_time) 
             
             # Update counts for current iteration
-            iter_count += 1
+            set_count += 1
             seq_count += result.data_count
-            if result.data_count == 1:  single_count += 1
             
             # Write log
             printLog(result.log, handle=log_handle)
@@ -1289,15 +1295,14 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
             return None
         
         # Print total counts
-        printProgress(iter_count, result_count, 0.05, start_time)
+        printProgress(set_count, result_count, 0.05, start_time)
     
         # Update return values    
         log = OrderedDict()
         log['OUTPUT'] = os.path.basename(pass_handle.name)
         log['SEQUENCES'] = seq_count
         if index_field is not None:
-            log['SINGLETONS'] = single_count
-            log['SETS'] = iter_count
+            log['SETS'] = set_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
         collect_dict['log'] = log

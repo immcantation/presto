@@ -26,6 +26,7 @@ MaskPrimers:
   leave primer region unmodified.
 + Fixed a bug with lowercase sequence data
 + Fixed bug in the console and log output
++ Added support for primer matching when setting '--maxerr 1.0'
 
 ParseHeaders:
 + Added count of sequences without any valid fields (FAIL) to console output

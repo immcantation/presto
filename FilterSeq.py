@@ -305,8 +305,8 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     feed_args = {'seq_file': seq_file}
     # Define worker function and arguments
     work_func = processSeqQueue
-    work_args = {'work_func': filter_func, 
-                 'work_args': filter_args}
+    work_args = {'process_func': filter_func, 
+                 'process_args': filter_args}
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,

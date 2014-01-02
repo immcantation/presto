@@ -700,9 +700,4 @@ if __name__ == '__main__':
         args_dict['head_file'] = head
         args_dict['tail_file'] = tail
         assemblePairs(**args_dict)
-        
-        # Profiling
-        #import cProfile, pstats
-        #cProfile.run('assemblePairs(**args_dict)', 'profile.prof')
-        #p = pstats.Stats('profile.prof')
-        #p.strip_dirs().sort_stats('time').print_stats()       
+            

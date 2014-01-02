@@ -217,7 +217,7 @@ def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_fi
     try:
         # Iterator over results queue until sentinel object reached
         start_time = time()
-        iter_count = seq_count = pass_count = fail_count = 0
+        set_count = seq_count = pass_count = fail_count = 0
         while alive.value:
             # Get result from queue
             if result_queue.empty():  continue
@@ -226,10 +226,10 @@ def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_fi
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(iter_count, result_count, 0.05, start_time)
+            printProgress(set_count, result_count, 0.05, start_time)
             
             # Update counts for iteration
-            iter_count += 1
+            set_count += 1
             seq_count += result.data_count
             
             # Sum results
@@ -250,13 +250,13 @@ def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_fi
             return None
         
         # Print final progress
-        printProgress(iter_count, result_count, 0.05, start_time)
+        printProgress(set_count, result_count, 0.05, start_time)
         
         # Generate log
         log = OrderedDict()
         for i in xrange(4): 
             log['OUTPUT%i' % (i + 1)] = None
-        log['SETS'] = iter_count
+        log['SETS'] = set_count
         log['SEQUENCES'] = seq_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
@@ -496,9 +496,3 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         estimateError(**args_dict)
-
-        # Profiling
-        #import cProfile, pstats
-        #cProfile.run('estimateError(**args_dict)', 'profile.prof')
-        #p = pstats.Stats('profile.prof')
-        #p.strip_dirs().sort_stats('time').print_stats()

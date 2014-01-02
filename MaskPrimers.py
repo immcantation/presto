@@ -56,15 +56,15 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     """
     # Defined undefined parameters
     if primers_regex is None:  primers_regex = compilePrimers(primers)
-    
+    seq_record = seq_record.upper()
+    rec_len = len(seq_record)
+    max_len = min(rec_len, max_len)
+
     # Create empty return dictionary
     align_dict = {'seq':seq_record, 'align':None, 'primer':None,
                   'start':None, 'end':None, 'error':1, 
                   'reverse':reverse}
 
-    # Define undefined arguments
-    rec_len = len(seq_record)
-    max_len = min(rec_len, max_len)
     
     # Define sequences to align and assign orientation tags
     if not skip_rc:
@@ -83,7 +83,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     for rec in seq_list:
         scan_rec = rec[:max_len] if not reverse else rec[-max_len:]
         for adpt_id, adpt_regex in primers_regex.iteritems():
-            adpt_match = adpt_regex.search(str(scan_rec.seq.upper()))
+            adpt_match = adpt_regex.search(str(scan_rec.seq))
             # Parse matches
             if adpt_match:
                 align_dict['seq'] = rec
@@ -103,12 +103,12 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
                 return align_dict
     
     # Perform local alignment
-    best_align, best_rec, best_adpt, best_err = None, None, None, 1
+    best_align, best_rec, best_adpt, best_err = None, None, None, None
     for rec in seq_list:
         scan_rec = rec[:max_len] if not reverse else rec[-max_len:]
         this_align = {}
         for adpt_id, adpt_seq in primers.iteritems():
-            pw2_align = pairwise2.align.localds(scan_rec.seq.upper(), adpt_seq.upper(), 
+            pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq, 
                                                 score_dict, -1, -1, one_alignment_only=True)
             if pw2_align:  this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
@@ -116,7 +116,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         # Determine alignment with lowest error rate
         for adpt, algn in this_align.iteritems():
             adpt_err = 1 - algn[2] / weightSeq(primers[adpt])
-            if adpt_err < best_err: 
+            if best_err is None or adpt_err < best_err: 
                 best_align = this_align
                 best_rec = rec
                 best_adpt = adpt
@@ -163,6 +163,7 @@ def scorePrimers(seq_record, primers, start=default_start, reverse=False,
                    error:error rate, reverse:True if alignment is tail-ended}
     """
     # Create empty return dictionary
+    seq_record = seq_record.upper()
     align_dict = {'seq':seq_record, 'align':None, 'primer':None,
                   'start':None, 'end':None, 'offset':0, 'error':1,
                   'reverse':reverse}
@@ -170,7 +171,7 @@ def scorePrimers(seq_record, primers, start=default_start, reverse=False,
     # Define orientation variables
     seq_record.annotations['seqorient'] = 'F'
     seq_record.annotations['prorient'] = 'F' if not reverse else 'RC'
-
+    
     this_align = {}
     rec_len = len(seq_record)
     if reverse:  end = rec_len - start
@@ -180,12 +181,12 @@ def scorePrimers(seq_record, primers, start=default_start, reverse=False,
         chars = izip(adpt_seq, seq_record[start:end])
         score = sum([score_dict[(c1, c2)] for c1, c2 in chars])
         this_align.update({adpt_id: (score, start, end)})
-        
+    
     # Determine alignment with lowest error rate
-    best_align, best_adpt, best_err = None, None, 1
+    best_align, best_adpt, best_err = None, None, None
     for adpt, algn in this_align.iteritems():
         adpt_err = 1.0 - float(algn[0]) / weightSeq(primers[adpt])
-        if adpt_err < best_err:
+        if best_err is None or adpt_err < best_err:
             best_align = algn
             best_adpt = adpt
             best_err = adpt_err
@@ -285,6 +286,10 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
     Returns: 
     None
     """
+    #import cProfile
+    #pr = cProfile.Profile()
+    #pr.enable()
+    
     try:
         # Iterator over data queue until sentinel object reached
         while alive.value:
@@ -337,6 +342,9 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
     except:
         alive.value = False
         raise
+    
+    #pr.disable()
+    #pr.dump_stats('worker%i.prof' % os.getpid())
     
     return None
 
@@ -510,9 +518,4 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         maskPrimers(**args_dict)
-
-        # Profiling
-        #import cProfile, pstats
-        #cProfile.run('maskPrimers(**args_dict)', 'profile.prof')
-        #p = pstats.Stats('profile.prof')
-        #p.strip_dirs().sort_stats('time').print_stats()      
+    
