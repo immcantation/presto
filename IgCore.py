@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.28'
+__date__      = '2014.1.4'
 
 # Imports
 import ctypes, math, os, re, signal, sys
@@ -1025,8 +1025,6 @@ def manageProcesses(feed_func, work_func, collect_func,
         # Terminate collector
         collector.terminate()
         collector.join
-        # Shutdown manager
-        manager.shutdown()
         sys.stderr.write('  Done.\n')
     
     # Raise SystemExit upon termination signal
@@ -1039,11 +1037,11 @@ def manageProcesses(feed_func, work_func, collect_func,
     # Define shared child process keep alive flag
     alive = mp.Value(ctypes.c_bool, True)
     
+    # Define shared data queues
+    data_queue = mp.Queue(queue_size)
+    result_queue = mp.Queue(queue_size)
+    collect_queue = mp.queues.SimpleQueue()
     # Initiate manager and define shared data objects
-    manager = mp.Manager()
-    data_queue = manager.Queue(queue_size)
-    result_queue = manager.Queue(queue_size)
-    collect_dict = manager.dict()
 
     try:  
         # Initiate feeder process
@@ -1063,26 +1061,24 @@ def manageProcesses(feed_func, work_func, collect_func,
     
         # Initiate collector process
         collector = mp.Process(target=collect_func, 
-                               args=(alive, result_queue, collect_dict), 
+                               args=(alive, result_queue, collect_queue), 
                                kwargs=collect_args)
         collector.start()
     
-        # Wait for feeder to finish
+        # Wait for feeder to finish and add sentinel objects to data_queue
         feeder.join()
-        # Add sentinel object to data queue for each worker process
         for __ in range(nproc):  data_queue.put(None)
         
-        # Wait for worker processes to finish
+        # Wait for worker processes to finish and add sentinel to result_queue
         for w in workers:  w.join()
-        # Add sentinel to result queue
         result_queue.put(None)
         
-        # Wait for collector process to finish
+        # Wait for collector process to finish and add sentinel to collect_queue
         collector.join()
+        collect_queue.put(None)
 
-        # Copy collector results and shutdown manager
-        result = dict(collect_dict)
-        manager.shutdown()
+        # Get collector return values
+        collected = collect_queue.get()
     except (KeyboardInterrupt, SystemExit):
         sys.stderr.write('Exit signal received\n')
         _terminate()
@@ -1101,7 +1097,7 @@ def manageProcesses(feed_func, work_func, collect_func,
             _terminate()
             sys.exit()
     
-    return result
+    return collected
 
 
 def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
@@ -1205,7 +1201,7 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
     return None
 
 
-def collectSeqQueue(alive, result_queue, collect_dict, seq_file, 
+def collectSeqQueue(alive, result_queue, collect_queue, seq_file, 
                     task_label, out_args, index_field=None):
     """
     Pulls from results queue, assembles results and manages log and file IO
@@ -1214,7 +1210,7 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
     alive = a multiprocessing.Value boolean controlling whether processing 
             continues; when False function returns
     result_queue = a multiprocessing.Queue holding worker results
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    collect_queue = a multiprocessing.Queue to store collector return values
     seq_file = the sample sequence file name
     task_label = the task label used to tag the output files
     out_args = common output argument dictionary from parseCommonArgs
@@ -1223,7 +1219,7 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
     
     Returns: 
     None
-    (adds 'log' and 'out_files' to collect_dict)
+    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
     """
     try:
         # Count records 
@@ -1305,9 +1301,9 @@ def collectSeqQueue(alive, result_queue, collect_dict, seq_file,
             log['SETS'] = set_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict['log'] = log
-        collect_dict['out_files'] = [pass_handle.name]
-    
+        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
+        collect_queue.put(collect_dict)
+        
         # Close file handles
         pass_handle.close()
         if fail_handle is not None:  fail_handle.close()

@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.27'
+__date__      = '2014.1.4'
 
 # Imports
 import os, sys
@@ -367,7 +367,7 @@ def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args
     return None
 
 
-def collectAPQueue(alive, result_queue, collect_dict, result_count, seq_file_1, seq_file_2, 
+def collectAPQueue(alive, result_queue, collect_queue, result_count, seq_file_1, seq_file_2, 
                    out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
@@ -375,8 +375,8 @@ def collectAPQueue(alive, result_queue, collect_dict, result_count, seq_file_1, 
     Arguments: 
     alive = a multiprocessing.Value boolean controlling whether processing 
             continues; when False function returns
-    result_queue = a multiprocessing.Queue holding processQueue results
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    result_queue = a multiprocessing.Queue holding worker results
+    collect_queue = a multiprocessing.Queue holding collector return values
     result_count = the number of expected assembled sequences
     seq_file_1 = the first sequence file name
     seq_file_2 = the second sequence file name
@@ -384,7 +384,7 @@ def collectAPQueue(alive, result_queue, collect_dict, result_count, seq_file_1, 
     
     Returns: 
     None
-    (adds 'log' and 'out_files' to collect_dict)
+    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
     """
     try:
         # Count records and define output format 
@@ -471,9 +471,9 @@ def collectAPQueue(alive, result_queue, collect_dict, result_count, seq_file_1, 
         log['PAIRS'] = iter_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        collect_dict['log'] = log
-        collect_dict['out_files'] = [pass_handle.name]
-    
+        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
+        collect_queue.put(collect_dict)
+        
         # Close file handles
         pass_handle.close()
         if fail_handle_1 is not None:  fail_handle_1.close()

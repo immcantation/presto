@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.28'
+__date__      = '2014.1.4'
 
 # Imports
 import os, sys
@@ -178,22 +178,22 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
     return None
 
 
-def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_field):
+def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_field):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments: 
     alive = a multiprocessing.Value boolean controlling whether processing 
             continues; when False function returns
-    result_queue = a multiprocessing.Queue holding processQueue results
-    collect_dict = a multiprocessing.Manager.dict to store return values
+    result_queue = a multiprocessing.Queue holding worker results
+    collect_queue = a multiprocessing.Queue to store collector return values
     seq_file = the sample sequence file name
     out_args = common output argument dictionary from parseCommonArgs
     set_field = the field defining set membership
 
     Returns:
     None
-    (adds 'log' and 'out_files' to collect_dict)
+    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
     """
     try:
         # Count sets
@@ -267,8 +267,8 @@ def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_fi
      
         # Return if no mismatch data
         if pass_count == 0:
-            collect_dict['out_files'] = None
-            collect_dict['log'] = log
+            collect_dict = {'log':log, 'out_files': None}
+            collect_queue.put(collect_dict)
             return None
     
         # Calculate error rates
@@ -310,8 +310,8 @@ def collectEEQueue(alive, result_queue, collect_dict, seq_file, out_args, set_fi
         log['SET_ERROR'] = set_error
         
         # Update collector results
-        collect_dict['out_files'] = out_files
-        collect_dict['log'] = log
+        collect_dict = {'log':log, 'out_files': out_files}
+        collect_queue.put(collect_dict)
     except:
         alive.value = False
         raise
