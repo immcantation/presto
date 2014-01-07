@@ -18,13 +18,14 @@ tools = OrderedDict([('AlignSets', ['muscle', 'offset', 'table']),
                      ('ParseLog', []),
                      ('SplitSeq', ['convert','count', 'group', 'sample', 'samplepair', 'sort'])])
 
-with open('arguments.html', 'w') as doc_handle, \
-     open('navigation.html', 'w') as nav_handle: 
+with open('output/arguments.html', 'w') as doc_handle, \
+     open('output/navigation.html', 'w') as nav_handle: 
     # Start navigation list
     nav_handle.write('<ul>\n')
     for k, v in tools.iteritems():
         nav_handle.write('<li><a href="documentation.php#%s">%s</a></li>\n' % (k, k))
-        doc_handle.write('<div id=%s></div><h2>%s</h2>\n' % (k, k))
+        #doc_handle.write('<div id=%s></div><h2>%s</h2>\n' % (k, k))
+        doc_handle.write('<a class="anchor" id=%s></a><h2>%s</h2>\n' % (k, k))
         cmd = '/'.join([presto_path, k + '.py'])
         main_msg = subprocess.check_output([cmd, '--help'])
         doc_handle.write('<pre>\n%s\n</pre>\n' % main_msg)
