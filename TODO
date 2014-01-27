@@ -15,4 +15,4 @@ Low Priority
 + Maybe add fail files to ParseLog and table subcommand of ParseHeaders
 + Maybe add copy fields/actions to BuildConsensus and AssemblePairs
 + Maybe convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
-+ Maybe add subcommand to create summary table to ParseLog
++ Maybe add subcommand that creates summary table to ParseLog

@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.6'
+__date__      = '2014.1.27'
 
 # Imports
 import os, resource, sys
@@ -658,7 +658,8 @@ if __name__ == '__main__':
     elif 'seq_files_1' in args_dict and 'seq_files_2' in args_dict:
         del args_dict['seq_files_1']
         del args_dict['seq_files_2']
-        for file_1, file_2 in zip(args.__dict__['seq_files_1'], args.__dict__['seq_files_2']):
+        for file_1, file_2 in zip(args.__dict__['seq_files_1'], 
+                                  args.__dict__['seq_files_2']):
             args_dict['seq_file_1'] = file_1
             args_dict['seq_file_2'] = file_2
             args.func(**args_dict)

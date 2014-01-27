@@ -1,10 +1,12 @@
-December 28, 2013
+January 27, 2014
 Version 0.4.1
 
 Changes to the internals of multiple tools to provide support for 
   multiprocessing in Windows environments.
 Changes to the internals of multiple tools to provide clean exit of
   child processes upon kill signal or exception in sibling process 
+Fixed unexpected behavior of --outname and --log arguments with 
+  multiple input files
 
 IgCore:
 + Added reporting of unknown exceptions when reading sequence files

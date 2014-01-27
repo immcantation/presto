@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.27'
+__date__      = '2014.1.27'
 
 # Imports
 import os, sys
@@ -264,7 +264,6 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
     out_seq.id = flattenAnnotation(out_ann, delimiter=delimiter)
     out_seq.description = ''
 
-    #return out_seq if len(out_seq) > 0 else None
     return out_seq
 
 
@@ -286,10 +285,6 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
     Returns: 
     None
     """
-    #import cProfile
-    #pr = cProfile.Profile()
-    #pr.enable()
-    
     try:
         # Iterator over data queue until sentinel object reached
         while alive.value:
@@ -342,9 +337,6 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
     except:
         alive.value = False
         raise
-    
-    #pr.disable()
-    #pr.dump_stats('worker%i.prof' % os.getpid())
     
     return None
 

@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.10.12'
+__date__      = '2014.1.27'
 
 # Imports
 import os, re, sys
@@ -310,7 +310,7 @@ def getArgParser():
 
     parser.add_argument('-n', action='store', dest='max_missing', type=int, default=default_max_missing, 
                         help='Maximum number of missing nucleotides to consider for collapsing \
-                              sequences; a sequence will be considered unique if it contains too \
+                              sequences; a sequence will be considered undetermined if it contains too \
                               many missing nucleotides')
     parser.add_argument('--uf', nargs='+', action='store', dest='uniq_fields', type=str, default=None, 
                         help='Specifies a set of annotation fields that must match for sequences \
@@ -321,17 +321,16 @@ def getArgParser():
     parser.add_argument('--act', nargs='+', action='store', dest='copy_actions', default=None,
                         choices=default_action_choices,
                         help='List of actions to take for each copy field')
+    parser.add_argument('--inner', action='store_true', dest='inner',
+                        help='If specified exclude consecutive missing characters at either end of \
+                              the sequence')
     arg_group = parser.add_mutually_exclusive_group()
     arg_group.add_argument('--maxf', action='store', dest='max_field', type=str, default=None,
                            help='Specify the field whose maximum value determines the retained sequence; \
                                  mutually exclusive with --minf')
     arg_group.add_argument('--minf', action='store', dest='min_field', type=str, default=None,
                            help='Specify the field whose minimum value determines the retained sequence; \
-                                 mutually exclusive with --minf')
-    parser.add_argument('--inner', action='store_true', dest='inner',
-                        help='If specified exclude consecutive missing characters at either end of \
-                              the sequence')
-    
+                                 mutually exclusive with --minf')    
     return parser
 
 

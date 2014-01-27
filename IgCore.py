@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2014.1.4'
+__date__      = '2014.1.27'
 
 # Imports
 import ctypes, math, os, re, signal, sys
@@ -1168,10 +1168,6 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
     Returns: 
     None
     """
-    #import cProfile
-    #pr = cProfile.Profile()
-    #pr.enable()
-            
     try:
         # Iterator over data queue until sentinel object reached
         while alive.value:
@@ -1194,9 +1190,6 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
     except:
         alive.value = False
         raise
-
-    #pr.disable()
-    #pr.dump_stats('worker%i.prof' % os.getpid())
     
     return None
 
@@ -1439,46 +1432,53 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False,
     # Database arguments
     if db_in:
         parser.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
-                        help='Tab delimited database files')
+                        help='A list of tab delimited database files.')
             
     # Sequence arguments
     if seq_in and not paired:
         parser.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
-                            help='List of FASTA/FASTQ files containing sequences')
+                            help='A list of FASTA/FASTQ files containing sequences to process.')
     elif seq_in and paired:
         parser.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
-                            help='Ordered list of FASTA/FASTQ files containing head/primary sequences')
+                            help='An ordered list of FASTA/FASTQ files containing head/primary \
+                                  sequences.')
         parser.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
-                            help='Ordered list of FASTA/FASTQ files containing tail/secondary sequences')
+                            help='An ordered list of FASTA/FASTQ files containing tail/secondary \
+                                  sequences.')
     if seq_out:
         parser.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
-                            help='Specify to force output as FASTA rather than FASTQ')
+                            help='Specify to force output as FASTA rather than FASTQ.')
         parser.add_argument('--clean', action='store_true', dest='clean', 
-                            help='If specified do not create files of sequences that fail processing')
+                            help='If specified do not create files containing sequences that \
+                                  fail processing.')
             
     # Annotation arguments
     if annotation:
         parser.add_argument('--delim', nargs=3, action='store', dest='delimiter', 
                             type=str, default=default_delimiter, 
-                            help='The three delimiters that separate annotation blocks, \
-                                  field names and values, and values within a list, respectively')
+                            help='A list of the three delimiters that separate annotation blocks, \
+                                  field names and values, and values within a field, respectively.')
 
     # Log arguments
     if log:
         parser.add_argument('--log', action='store', dest='log_file', default=None,
-                            help='Specify to write verbose logging to a file')    
+                            help='Specify to write verbose logging to a file. May not be \
+                                  specified with multiple input files.')
     
     # Multiprocessing arguments
     if multiproc:
         parser.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
-                            help='The number of computational simultaneous computational processes to execute')
+                            help='The number of simultaneous computational processes to execute \
+                                  (CPU cores to utilized).')
     
     # Universal arguments
     parser.add_argument('--outdir', action='store', dest='out_dir', default=None,
-                        help='Changes the output directory to the path specified \
-                              Uses input file directory if not specified')
+                        help='Specify to changes the output directory to the location specified. \
+                              The input file directory is used if this is not specified.')
     parser.add_argument('--outname', action='store', dest='out_name', default=None,
-                        help='Changes the prefix of the successfully processed output file to the string specified')
+                        help='Changes the prefix of the successfully processed output file \
+                              to the string specified. May not be specified with multiple \
+                              input files.')
     
     return parser
 
@@ -1541,7 +1541,19 @@ def parseCommonArgs(args, file_args=None):
             if os.path.splitext(f)[-1].lower() not in primer_types:
                 sys.exit('ERROR:  primer file %s is not a supported type. Must be one: %s' \
                          % (','.join(primer_types), f))
-            
+    
+    # Count known input files
+    if 'seq_files' in args_dict:       input_count = len(args_dict['seq_files'])
+    elif 'seq_files_1' in args_dict:   input_count = len(args_dict['seq_files_1'])
+    elif 'db_files' in args_dict:      input_count = len(args_dict['db_files'])
+    elif 'record_files' in args_dict:  input_count = len(args_dict['record_files'])
+    elif 'primer_files' in args_dict:  input_count = len(args_dict['primer_files'])
+    # Exit if output names or log files are specified with multiple input files    
+    if args_dict.get('out_name', None) is not None and input_count > 1:
+        sys.exit('ERROR:  The --outname argument may not be specified with multiple input files')
+    if args_dict.get('log_file', None) is not None and input_count > 1:
+        sys.exit('ERROR:  The --log argument may not be specified with multiple input files')
+    
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir'] is not None:
         if os.path.exists(args_dict['out_dir']) and not os.path.isdir(args_dict['out_dir']):

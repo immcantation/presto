@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2014.1.4'
+__date__      = '2014.1.27'
 
 # Imports
 import os, sys
@@ -152,8 +152,8 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
 
 
 def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error, 
-               min_len=default_min_len, max_len=default_max_len, 
-               p_matrix=None, score_dict=getScoreDict(n_score=0, gap_score=0)):
+                 min_len=default_min_len, max_len=default_max_len, 
+                 p_matrix=None, score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Stitches two sequences together by aligning the ends
 
@@ -171,7 +171,7 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     Returns: 
     dictionary of {stitched SeqRecord object, error rate, p-value, overlap length}
     """
-    # Define unpassed arguments
+    # Define undefined arguments
     if p_matrix is None:  p_matrix = getPMatrix(max_len + 1)
     
     # Define empty return dictionary
@@ -185,7 +185,6 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
                   hasattr(tail_seq, 'letter_annotations') and \
                   'phred_quality' in head_seq.letter_annotations and \
                   'phred_quality' in tail_seq.letter_annotations
-
 
     # Iterate and score overlap segments
     pos = None
@@ -696,8 +695,11 @@ if __name__ == '__main__':
     del args_dict['command']
     del args_dict['seq_files_1']
     del args_dict['seq_files_2']
-    for head, tail in zip(args.__dict__['seq_files_1'], args.__dict__['seq_files_2']):
+    for head, tail in zip(args.__dict__['seq_files_1'], 
+                          args.__dict__['seq_files_2']):
         args_dict['head_file'] = head
         args_dict['tail_file'] = tail
         assemblePairs(**args_dict)
+            
+            
             

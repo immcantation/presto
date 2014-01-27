@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.12.27'
+__date__      = '2014.1.27'
 
 # Imports
 import csv, os, sys
@@ -424,7 +424,7 @@ def getArgParser():
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
                                          formatter_class=ArgumentDefaultsHelpFormatter,
                                          help='Create a 5\' offset table by primer multiple alignment')
-    parser_table.add_argument('-p', nargs='+', action='store', dest='primer_file', required=True, 
+    parser_table.add_argument('-p', nargs='+', action='store', dest='primer_files', required=True, 
                                help='List of FASTA or REGEX files containing primer sequences')
     parser_table.add_argument('--reverse', action='store_true', dest='reverse',  
                                help='If specified create a 3\' offset table instead')
@@ -474,8 +474,8 @@ if __name__ == '__main__':
             args_dict['seq_file'] = f
             alignSets(**args_dict)
 
-    elif args.command == 'table': 
-        del args_dict['primer_file']
-        for f in args.__dict__['primer_file']:
+    elif args.command == 'table':
+        del args_dict['primer_files']
+        for f in args.__dict__['primer_files']:
             args_dict['primer_file'] = f
             writeOffsetFile(**args_dict)

@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.1'
-__date__      = '2013.11.2'
+__date__      = '2014.1.27'
 
 # Imports
 import csv, os, sys
@@ -138,7 +138,7 @@ def getArgParser():
                             parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False)], 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     
-    parser.add_argument('-l', nargs='+', action='store', dest='record_file', required=True,
+    parser.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
                         help='List of log files to parse')
     parser.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                         help='List of fields to collect')
@@ -153,12 +153,12 @@ if __name__ == '__main__':
     # Parse arguments
     parser = getArgParser()
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args, 'record_file')
+    args_dict = parseCommonArgs(args, 'record_files')
     # Convert case of fields
     if args_dict['fields']:  args_dict['fields'] = map(str.upper, args_dict['fields']) 
     
     # Call parseLog for each log file
-    del args_dict['record_file']
-    for f in args.__dict__['record_file']:
+    del args_dict['record_files']
+    for f in args.__dict__['record_files']:
         args_dict['record_file'] = f
         tableLog(**args_dict)
