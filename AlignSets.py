@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Multiple aligns sets of input sequences
+Multiple aligns input sequences by group
 """
 
 __author__    = 'Jason Anthony Vander Heiden'

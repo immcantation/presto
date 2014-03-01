@@ -34,7 +34,7 @@ from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
 from IgCore import manageProcesses, SeqData, SeqResult
 
 # Defaults
-default_alpha = 0.05
+default_alpha = 0.01
 default_max_error = 0.2
 default_min_len = 1
 default_max_len = 1000

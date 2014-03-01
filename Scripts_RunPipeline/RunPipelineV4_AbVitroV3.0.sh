@@ -22,7 +22,7 @@ BCQUAL=0
 R1_MAXERR=0.2
 R2_MAXERR=0.2
 AP_MAXERR=0.2
-ALPHA=0.1
+ALPHA=0.01
 FS_MISS=20
 CS_MISS=20
 MUSCLE_EXEC=$HOME/bin/muscle3.8.31_i86linux64
@@ -62,7 +62,7 @@ echo "   2: MaskPrimers score      $(date +'%H:%M %D')"
 $RUN MaskPrimers.py score -s R1_quality-pass.fastq -p $R1_PRIMER_FILE --mode cut --start 0 \
     --maxerror $R1_MAXERR --nproc $NPROC --log PrimerLogR1.log --clean >> $RUNLOG
 $RUN MaskPrimers.py score -s R2_quality-pass.fastq -p $R2_PRIMER_FILE --mode cut --barcode --start 17 \
-    --maxerror $R1_MAXERR --nproc $NPROC --log PrimerLogR2.log --clean >> $RUNLOG
+    --maxerror $R2_MAXERR --nproc $NPROC --log PrimerLogR2.log --clean >> $RUNLOG
 
 # Assign UIDs to read 1 sequences
 echo "   3: PairSeq                $(date +'%H:%M %D')"
@@ -106,7 +106,7 @@ $RUN AssemblePairs.py align -1 R2*consensus-pass.fastq -2 R1*consensus-pass.fast
 # Remove sequences with many Ns
 echo "   7: FilterSeq missing      $(date +'%H:%M %D')" 
 $RUN FilterSeq.py missing -s *assemble-pass.fastq -n $FS_MISS --inner \
-    --nproc $NPROC >> $RUNLOG
+    --nproc $NPROC --log MissingLog.log >> $RUNLOG
 
 # Rewrite header with minimum of CONSCOUNT
 echo "   8: ParseHeaders collapse  $(date +'%H:%M %D')"
