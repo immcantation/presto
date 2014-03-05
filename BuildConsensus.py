@@ -6,8 +6,8 @@ Builds a consensus sequence for each set of input sequences
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.5'
 
 # Imports
 import os, sys
@@ -16,7 +16,7 @@ from collections import OrderedDict
 
 # IgPipeline imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_barcode_field, default_delimiter, default_min_freq, default_out_args
+from IgCore import default_barcode_field, default_delimiter, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation
 from IgCore import getCommonArgParser, parseCommonArgs, printLog, getFileType
 from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus
@@ -27,6 +27,7 @@ from IgCore import manageProcesses, SeqResult
 # Defaults
 default_min_count = 1
 default_min_qual = 0
+default_min_freq = 0.3
 
 
 def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
@@ -154,9 +155,9 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
 
 def buildConsensus(seq_file, barcode_field=default_barcode_field, 
                    min_count=default_min_count, min_freq=default_min_freq,
-                   min_qual=default_min_qual, primer_field=None, primer_freq=None, 
-                   max_diversity=None, dependent=False, out_args=default_out_args,
-                   nproc=None, queue_size=None):
+                   min_qual=default_min_qual, max_miss=None, primer_field=None, 
+                   primer_freq=None, max_diversity=None, dependent=False, 
+                   out_args=default_out_args, nproc=None, queue_size=None):
     """
     Generates consensus sequences
 
@@ -165,8 +166,9 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     barcode_field = the annotation field containing set IDs
     min_count = threshold number of sequences to define a consensus 
     min_freq = the frequency cutoff to assign a base 
-                if quality scores are unavailable
     min_qual = the quality cutoff to assign a base
+    max_miss = the maximum frequency of (., -, N) characters allowed before 
+               deleting a position; if None do not delete positions 
     primer_field = the annotation field containing primer tags;
                    if None do not annotate with primer tags
     primer_freq = the maximum primer tag frequency that must be meet to build a consensus;
@@ -189,8 +191,9 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['FILE'] = os.path.basename(seq_file)
     log['BARCODE_FIELD'] = barcode_field
     log['MIN_COUNT'] = min_count
-    log['MIN_QUALITY'] = min_qual
     log['MIN_FREQUENCY'] = min_freq
+    log['MIN_QUALITY'] = min_qual
+    log['MAX_MISSING'] = max_miss
     log['PRIMER_FIELD'] = primer_field
     log['PRIMER_FREQUENCY'] = primer_freq
     log['MAX_DIVERSITY'] = max_diversity
@@ -202,10 +205,14 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     in_type = getFileType(seq_file)
     if in_type == 'fastq':
         cons_func = qualityConsensus
-        cons_args = {'min_qual':min_qual, 'dependent':dependent}
+        cons_args = {'min_qual': min_qual, 
+                     'min_freq': min_freq,
+                     'max_miss': max_miss,
+                     'dependent': dependent}
     elif in_type == 'fasta':  
         cons_func = frequencyConsensus
-        cons_args = {'min_freq':min_freq}
+        cons_args = {'min_freq': min_freq,
+                     'max_miss': max_miss}
     else:
         sys.exit('ERROR:  Input file must be FASTA or FASTQ')
     
@@ -264,10 +271,15 @@ def getArgParser():
                         default=default_barcode_field, 
                         help='Position of description barcode field to group sequences by')
     parser.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
-                        help='Consensus quality score cut-off under which an ambiguous character is assigned')
+                        help='Consensus quality score cut-off under which an ambiguous character is assigned; \
+                              does not apply when quality scores are unavailable')
     parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
-                        help='Fraction of character occurences under which an ambiguous character is assigned; \
-                              only applies when quality scores are not available')
+                        help='Fraction of character occurrences under which an ambiguous character is assigned.')
+    parser.add_argument('--maxmiss', action='store', dest='max_miss', type=float, default=None,
+                        help='If specified, this defines a cut-off for the frequency of allowed \
+                              missing values for each position. Positions exceeding the threshold \
+                              are deleted from the consensus. If not defined, positions are always \
+                              retained.')
     parser.add_argument('--pf', action='store', dest='primer_field', type=str, default=None, 
                         help='Specifies the field name of the primer annotations')
     parser.add_argument('--prcons', action='store', dest='primer_freq', type=float, default=None, 

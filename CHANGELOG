@@ -1,3 +1,22 @@
+March 5, 2014
+Version 0.4.2
+
+Increased verbosity of exception reporting
+
+IgCore:
++ Updates to consensus functions to support changes to BuildConsensus
+
+BuildConsensus:
++ Added support for '--freq (value)' parameter to quality consensus method 
++ Fixed a bug in the frequency consensus method where missing values were
+  contributing to the total character count at each position
++ Added the parameter '--maxmiss (value)' which provides a cut-off for removal 
+  of positions with too many N or gap characters. 
+
+SplitSeq:
++ Removed convert subcommand
+
+-------------------------------------------------------------------------------
 January 27, 2014
 Version 0.4.1
 

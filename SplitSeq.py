@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Converts, sorts, samples and splits FASTA/FASTQ sequence files
+Sorts, samples and splits FASTA/FASTQ sequence files
 """
 
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.5'
 
 # Imports
 import os, resource, sys
@@ -25,50 +25,6 @@ from IgCore import getAnnotationValues, parseAnnotation, indexSeqPairs, subsetSe
 from IgCore import getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import countSeqFile, readSeqFile, getFileType
-
-
-def convertSeqFile(seq_file, out_format, out_args=default_out_args):
-    """
-    Splits a FASTA/FASTQ file into segments with a limited number of records
-
-    Arguments: 
-    seq_file = filename of the FASTA file to split
-    out_format = a list of formats to convert seq_file to
-    out_args = common output argument dictionary from parseCommonArgs
-
-    Returns: 
-    a list of output file names
-    """
-    log = OrderedDict()
-    log['START'] = 'SplitSeq'
-    log['COMMAND'] = 'convert'
-    log['FILE'] = os.path.basename(seq_file)
-    printLog(log)
-    
-    # Convert records for each output file type
-    out_files = []
-    for out_type in out_format:
-        seq_iter = readSeqFile(seq_file)
-        with getOutputHandle(seq_file, None, out_dir=out_args['out_dir'], 
-                             out_name=out_args['out_name'], out_type=out_type) \
-                as out_handle:
-            # Write sequences
-            count = SeqIO.write(seq_iter, out_handle, out_type)
-            out_files.append(out_handle.name)
-            
-            # Print log for iteration
-            log = OrderedDict()
-            log['FORMAT'] = out_type
-            log['SEQUENCES'] = count
-            log['OUTPUT'] = os.path.basename(out_handle.name)
-            printLog(log)
-    
-    # Print log
-    log = OrderedDict()
-    log['END'] = 'SplitSeq'
-    printLog(log)
-            
-    return out_files
 
  
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
@@ -321,7 +277,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
 def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None, 
                       coord_type=default_coord_type, out_args=default_out_args):
     """
-    Samples from a sequence file
+    Samples from paired-end sequence files
 
     Arguments: 
     seq_file_1 = filename of the first paired-end sequence file
@@ -554,16 +510,6 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers(dest='command', help='Parsing mode')
-    
-    # Subparser for file conversion
-    parser_convert = subparsers.add_parser('convert', 
-                                           parents=[getCommonArgParser(seq_out=False, annotation=False, log=False)],
-                                           formatter_class=ArgumentDefaultsHelpFormatter,
-                                           help='Converts sequence files')
-    parser_convert.add_argument('--format', nargs='+', action='store', dest='out_format', 
-                                required=True, choices=['fasta', 'fastq', 'embl', 'gb'],
-                                help='Format(s) to convert sequence files to')
-    parser_convert.set_defaults(func=convertSeqFile)
 
     # Subparser to downsize files to a maximum count
     parser_downsize = subparsers.add_parser('count', parents=[getCommonArgParser(annotation=False, log=False)],

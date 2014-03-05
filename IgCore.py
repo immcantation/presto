@@ -6,15 +6,15 @@ Core functions shared by pRESTO modules
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.5'
 
 # Imports
 import ctypes, math, os, re, signal, sys
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from itertools import izip, izip_longest, product
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from time import time, strftime
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -30,7 +30,7 @@ default_coord_type = 'presto'
 default_barcode_field = 'BARCODE'
 default_primer_field = 'PRIMER'
 default_missing_chars = ['-', '.', 'N']
-default_min_freq = 0.7
+default_min_freq = 0.6
 default_min_qual = 20
 default_out_args = {'log_file':None, 
                     'delimiter':default_delimiter,
@@ -764,13 +764,18 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
     return sum(scores) / len(scores)
 
 
-def qualityConsensus(seq_list, min_qual=default_min_qual, dependent=False):
+def qualityConsensus(seq_list, min_qual=default_min_qual, 
+                     min_freq=default_min_freq, max_miss=None,
+                     dependent=False):
     """
     Builds a consensus sequence from a set of sequences
 
     Arguments: 
-    set_seq = a list of SeqRecord objects
+    seq_list = a list of SeqRecord objects
     min_qual = the quality cutoff to assign a base
+    min_freq = the frequency cutoff to assign a base
+    max_miss = the maximum frequency of (., -, N) characters allowed before 
+               deleting a position; if None do not delete positions 
     dependent = if False assume sequences are independent for quality calculation
     
     Returns: 
@@ -794,25 +799,43 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, dependent=False):
     consensus_seq = []
     consensus_qual = []
     for chars, quals in izip(seq_iter, ann_iter):
+        # Define set of non-missing characters
         char_set = set(chars).difference(ignore_set)
-        # Creater per character quality sets, sums and normalization terms
-        qual_total = sum(quals)
+        # Define non-missing character frequencies
+        char_count = float(len([c for c in chars if c in char_set]))
+        char_freq = {c: chars.count(c) / char_count for c in char_set}
+        
+        # Remove position if max_gap is defined and positions contains too many gaps
+        if max_miss is not None:
+            gap_count = sum([chars.count(c) for c in ignore_set])
+            gap_freq = float(gap_count) / len(chars)
+            if gap_freq > max_miss:  continue
+        
+        # Create per character quality sets and quality sums 
+        qual_total = float(sum(quals))
         qual_set, qual_sum = {}, {}
         for c in char_set:
             qual_set[c] = [q for i, q in enumerate(quals) if chars[i] == c]
             qual_sum[c] = sum(qual_set[c])
+        
         # Calculate per character consensus quality scores
         if dependent:
-            qual_cons = {c:int(float(max(qual_set[c])) * qual_sum[c] / qual_total) for c in qual_set}
+            qual_cons = {c:int(max(qual_set[c]) * qual_sum[c] / qual_total) for c in qual_set}
         else:
-            qual_cons = {c:int(float(qual_sum[c]) * qual_sum[c] / qual_total) for c in qual_set}
-        # Select character with highest quality over cutoff
+            qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
+            
         if qual_cons.values():
+            # Select character with highest consensus quality
             qual_cons_max = max(qual_cons.values())
-            cons = [(c, min(q, 93)) if q >= min_qual else ('N', min(q, 93)) \
-                    for c, q in qual_cons.iteritems() if q == qual_cons_max][0]
+            cons = [(c, min(q, 93)) for c, q in qual_cons.iteritems() \
+                    if q == qual_cons_max][0]
+            # Assign N if consensus quality or frequency threshold is failed
+            if cons[1] < min_qual or char_freq[cons[0]] < min_freq:  
+                cons = ('N', 0)
         else:
+            # Assign N if no non-N/gap characters
             cons = ('N', 0)
+        
         consensus_seq.append(cons[0])
         consensus_qual.append(cons[1])
     
@@ -826,13 +849,15 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, dependent=False):
     return record
 
 
-def frequencyConsensus(seq_list, min_freq=default_min_freq):
+def frequencyConsensus(seq_list, min_freq=default_min_freq, max_miss=None):
     """
     Builds a consensus sequence from a set of sequences
 
     Arguments: 
     set_seq = a list of SeqRecord objects
     min_freq = the frequency cutoff to assign a base
+    max_miss = the maximum frequency of (., -, N) characters allowed before 
+               deleting a position; if None do not delete positions 
     
     Returns: 
     a consensus SeqRecord object
@@ -840,22 +865,37 @@ def frequencyConsensus(seq_list, min_freq=default_min_freq):
     # Return a copy of the input SeqRecord upon singleton
     if len(seq_list) == 1:
         return seq_list[0].upper()
-
+    
+    # Define gap characters
+    ignore_set = set(['.', '-', 'N'])
+    
     # Build consensus
     seq_str = [str(s.seq) for s in seq_list]
     consensus_seq = []
     for chars in izip_longest(*seq_str, fillvalue='-'):
-        count = float(len(chars))
-        freq_dict = {c:chars.count(c) / count for c in set(chars)}
-        freq_max = max(freq_dict.values())
-        cons = [c if freq_dict[c] >= min_freq else 'N' \
-                for c in chars if freq_dict[c] == freq_max][0]
+        # Define set of non-missing characters
+        char_set = set(chars).difference(ignore_set)
+        
+        # Define non-missing character frequencies
+        char_count = float(len([c for c in chars if c in char_set]))
+        char_freq = {c: chars.count(c) / char_count for c in char_set}
+        freq_max = max(char_freq.values())
+        
+        # Delete position if number of gap characters exceeds max_gap threshold
+        if max_miss is not None:
+            gap_count = sum([chars.count(c) for c in ignore_set])
+            gap_freq = float(gap_count) / len(chars)
+            if gap_freq > max_miss:  continue
+
+        # Assign consensus as most frequent character
+        cons = [c if char_freq[c] >= min_freq else 'N' \
+                for c in chars if char_freq[c] == freq_max][0]
         consensus_seq.append(cons)
 
     # Define return SeqRecord
     record = SeqRecord(Seq(''.join(consensus_seq), IUPAC.ambiguous_dna), 
-                       id='consensus', 
-                       name='consensus', 
+                       id='consensus',
+                       name='consensus',
                        description='')
         
     return record
