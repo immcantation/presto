@@ -110,7 +110,7 @@ $RUN FilterSeq.py missing -s *assemble-pass.fastq -n $FS_MISS --inner \
 
 # Rewrite header with minimum of CONSCOUNT
 echo "   8: ParseHeaders collapse  $(date +'%H:%M %D')"
-$RUN ParseHeaders.py collapse -s *missing-pass.fastq -f CONSCOUNT --act min \
+$RUN ParseHeaders.py collapse -s *missing-pass.fastq -f CONSCOUNT --act min \
     --outname Assembled --fasta > /dev/null
 
 # Remove duplicate sequences
@@ -131,7 +131,7 @@ echo "  12: ParseLog               $(date +'%H:%M %D')"
 $RUN ParseLog.py -l QualityLogR[1-2].log -f ID QUALITY > /dev/null &
 $RUN ParseLog.py -l PrimerLogR[1-2].log -f ID BARCODE PRIMER ERROR > /dev/null &
 $RUN ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCOUNT PRFREQ DIVERSITY > /dev/null &
-$RUN ParseLog.py -l AssembleLog.log -f ID OVERLAP LENGTH PVAL ERROR > /dev/null &
+$RUN ParseLog.py -l AssembleLog.log -f ID OVERLAP LENGTH PVAL ERROR HEADFIELDS TAILFIELDS > /dev/null &
 $RUN ParseLog.py -l MissingLog.log -f ID MISSING > /dev/null &
 wait
 

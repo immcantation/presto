@@ -27,7 +27,7 @@ from IgCore import manageProcesses, SeqResult
 # Defaults
 default_min_count = 1
 default_min_qual = 0
-default_min_freq = 0.3
+default_min_freq = 0.2
 
 
 def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
