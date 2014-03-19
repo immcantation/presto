@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.2'
-__date__      = '2014.3.5'
+__date__      = '2014.3.19'
 
 # Imports
 import os, sys
@@ -16,7 +16,8 @@ from collections import OrderedDict
 
 # IgPipeline imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_barcode_field, default_delimiter, default_out_args
+from IgCore import default_delimiter, default_out_args
+from IgCore import default_barcode_field, default_min_freq
 from IgCore import flattenAnnotation, mergeAnnotation
 from IgCore import getCommonArgParser, parseCommonArgs, printLog, getFileType
 from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus
@@ -27,7 +28,6 @@ from IgCore import manageProcesses, SeqResult
 # Defaults
 default_min_count = 1
 default_min_qual = 0
-default_min_freq = 0.2
 
 
 def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
@@ -148,6 +148,7 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             return None
     except:
         alive.value = False
+        sys.stderr.write('Error processing sequence set with ID: %.\n' % data.id)
         raise
     
     return None

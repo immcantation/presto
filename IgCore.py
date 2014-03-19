@@ -7,14 +7,14 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.2'
-__date__      = '2014.3.5'
+__date__      = '2014.3.19'
 
 # Imports
 import ctypes, math, os, re, signal, sys
 import multiprocessing as mp
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from itertools import izip, izip_longest, product
-from collections import Counter, OrderedDict
+from collections import OrderedDict
 from time import time, strftime
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -799,18 +799,25 @@ def qualityConsensus(seq_list, min_qual=default_min_qual,
     consensus_seq = []
     consensus_qual = []
     for chars, quals in izip(seq_iter, ann_iter):
-        # Define set of non-missing characters
-        char_set = set(chars).difference(ignore_set)
-        # Define non-missing character frequencies
-        char_count = float(len([c for c in chars if c in char_set]))
-        char_freq = {c: chars.count(c) / char_count for c in char_set}
-        
         # Remove position if max_gap is defined and positions contains too many gaps
         if max_miss is not None:
             gap_count = sum([chars.count(c) for c in ignore_set])
             gap_freq = float(gap_count) / len(chars)
             if gap_freq > max_miss:  continue
+            
+        # Define set of non-missing characters
+        char_set = set(chars).difference(ignore_set)
         
+        # Assign N if no non-N/gap characters and proceed to next position
+        if not char_set:
+            consensus_seq.append('N')
+            consensus_qual.append(0)
+            continue
+        
+        # Define non-missing character frequencies
+        char_count = float(len([c for c in chars if c in char_set]))
+        char_freq = {c: chars.count(c) / char_count for c in char_set}
+
         # Create per character quality sets and quality sums 
         qual_total = float(sum(quals))
         qual_set, qual_sum = {}, {}
@@ -824,18 +831,14 @@ def qualityConsensus(seq_list, min_qual=default_min_qual,
         else:
             qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
             
-        if qual_cons.values():
-            # Select character with highest consensus quality
-            qual_cons_max = max(qual_cons.values())
-            cons = [(c, min(q, 93)) for c, q in qual_cons.iteritems() \
-                    if q == qual_cons_max][0]
-            # Assign N if consensus quality or frequency threshold is failed
-            if cons[1] < min_qual or char_freq[cons[0]] < min_freq:  
-                cons = ('N', 0)
-        else:
-            # Assign N if no non-N/gap characters
+        # Select character with highest consensus quality
+        cons = [(c, min(q, 93)) for c, q in qual_cons.iteritems() \
+                if q == max(qual_cons.values())][0]
+        # Assign N if consensus quality or frequency threshold is failed
+        if cons[1] < min_qual or char_freq[cons[0]] < min_freq:  
             cons = ('N', 0)
         
+        # Assign consensus base and quality
         consensus_seq.append(cons[0])
         consensus_qual.append(cons[1])
     
@@ -873,23 +876,28 @@ def frequencyConsensus(seq_list, min_freq=default_min_freq, max_miss=None):
     seq_str = [str(s.seq) for s in seq_list]
     consensus_seq = []
     for chars in izip_longest(*seq_str, fillvalue='-'):
-        # Define set of non-missing characters
-        char_set = set(chars).difference(ignore_set)
-        
-        # Define non-missing character frequencies
-        char_count = float(len([c for c in chars if c in char_set]))
-        char_freq = {c: chars.count(c) / char_count for c in char_set}
-        freq_max = max(char_freq.values())
-        
         # Delete position if number of gap characters exceeds max_gap threshold
         if max_miss is not None:
             gap_count = sum([chars.count(c) for c in ignore_set])
             gap_freq = float(gap_count) / len(chars)
             if gap_freq > max_miss:  continue
+            
+        # Define set of non-missing characters
+        char_set = set(chars).difference(ignore_set)
+        
+        # Assign N if no non-N/gap characters and proceed to next position
+        if not char_set:
+            consensus_seq.append('N')
+            continue
+        
+        # Define non-missing character frequencies
+        char_count = float(len([c for c in chars if c in char_set]))
+        char_freq = {c: chars.count(c) / char_count for c in char_set}
+        freq_max = max(char_freq.values())
 
         # Assign consensus as most frequent character
         cons = [c if char_freq[c] >= min_freq else 'N' \
-                for c in chars if char_freq[c] == freq_max][0]
+                for c in char_set if char_freq[c] == freq_max][0]
         consensus_seq.append(cons)
 
     # Define return SeqRecord
@@ -1229,6 +1237,7 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
             return None
     except:
         alive.value = False
+        sys.stderr.write('Error processing sequence with ID: %.\n' % data.id)
         raise
     
     return None

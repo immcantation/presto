@@ -2,7 +2,7 @@
 # Example script to run the pRESTO pipeline for 454 data
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari
-# Date:    2013.9.27
+# Date:    2014.3.18
 
 # Define run parameters
 ZIP_FILES=true
@@ -44,7 +44,7 @@ MaskPrimers.py align -s $NAME*quality-pass_primers-pass.fastq -p $V_PRIMER_FILE 
 # Remove C-region primers
 echo "   5: MaskPrimers align    $(date +'%H:%M %D')"
 MaskPrimers.py align -s $NAME*primers-pass_primers-pass.fastq -p $C_PRIMER_FILE \
-    --mode cut --maxlen 50 --reverse --skiprc --nproc $NPROC \
+    --mode cut --maxlen 50 --revpr --skiprc --nproc $NPROC \
     --outname "${NAME}-ENDMP" --log PrimerC.log --clean >> $RUNLOG
 
 # Split by primers and group by barcode

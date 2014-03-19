@@ -1,4 +1,4 @@
-March 5, 2014
+March 20, 2014
 Version 0.4.2
 
 Increased verbosity of exception reporting
@@ -6,12 +6,19 @@ Increased verbosity of exception reporting
 IgCore:
 + Updates to consensus functions to support changes to BuildConsensus
 
+AssemblePairs:
++ Set default alpha to 0.01
+
 BuildConsensus:
-+ Added support for '--freq (value)' parameter to quality consensus method 
++ Added support for '--freq (value)' parameter to quality consensus method
+  and set default value to 0.6
 + Fixed a bug in the frequency consensus method where missing values were
   contributing to the total character count at each position
 + Added the parameter '--maxmiss (value)' which provides a cut-off for removal 
   of positions with too many N or gap characters. 
+
+MaskPrimers:
++ Renamed the '--reverse' parameter to '--revpr'
 
 SplitSeq:
 + Removed convert subcommand
@@ -24,7 +31,7 @@ Changes to the internals of multiple tools to provide support for
   multiprocessing in Windows environments.
 Changes to the internals of multiple tools to provide clean exit of
   child processes upon kill signal or exception in sibling process 
-Fixed unexpected behavior of --outname and --log arguments with 
+Fixed unexpected behavior of '--outname' and '--log' arguments with 
   multiple input files
 
 IgCore:
@@ -150,7 +157,7 @@ estimateError:
 maskPrimers:
 + Bug fixes to alignment position calculation of 'align' subcommand when primer
   alignment begins before start of sequence
-+ Removed '--vann' parameter
++ Removed '--ann' parameter
 
 
 -------------------------------------------------------------------------------

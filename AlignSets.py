@@ -6,8 +6,8 @@ Multiple aligns input sequences by group
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.19'
 
 # Imports
 import csv, os, sys
@@ -388,7 +388,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Alignment mode', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Alignment method', metavar='')
     
     # Parent parser    
     parser_parent = getCommonArgParser(multiproc=True)

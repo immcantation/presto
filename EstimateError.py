@@ -6,8 +6,8 @@ Calculates annotation set error rates
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.19'
 
 # Imports
 import os, sys
@@ -173,6 +173,7 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             return None
     except:
         alive.value = False
+        sys.stderr.write('Error processing sequence set with ID: %.\n' % data.id)
         raise
 
     return None
@@ -486,7 +487,9 @@ if __name__ == '__main__':
         args_dict['cons_args'] = {'min_freq':args_dict['min_freq']}
     elif args_dict['mode'] == 'qual':
         args_dict['cons_func'] = qualityConsensus
-        args_dict['cons_args'] = {'min_qual':args_dict['min_qual'], 'dependent':False}
+        args_dict['cons_args'] = {'min_qual':args_dict['min_qual'], 
+                                  'min_freq':args_dict['min_freq'], 
+                                  'dependent':False}
     del args_dict['mode']
     if 'min_freq' in args_dict:  del args_dict['min_freq']
     if 'min_qual' in args_dict:  del args_dict['min_qual']

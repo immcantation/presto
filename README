@@ -1,12 +1,12 @@
 VERSION
 -------------------------------------------------------------------------------
-January 27, 2014
-Version 0.4.1
+March 20, 2014
+Version 0.4.2
 
 
 REQUIREMENTS
 -------------------------------------------------------------------------------
-Python 2.7.3       http://python.org
+Python 2.7.5       http://python.org
 NumPy 1.7          http://numpy.org
 SciPy 0.12         http://scipy.org
 pandas 0.12        http://pandas.pydata.org

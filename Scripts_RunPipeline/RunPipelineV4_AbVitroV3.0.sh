@@ -2,7 +2,7 @@
 # Super script to run the pRESTO pipeline on AbVitro library v3.0 data 
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2013.12.28
+# Date:    2014.3.19
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -49,6 +49,17 @@ fi
 		
 # Start
 echo "DIRECTORY:" $OUTDIR
+echo "VERSIONS:" >> $RUNLOG
+AlignSets.py -v >> $RUNLOG
+AssemblePairs.py -v >> $RUNLOG
+BuildConsensus.py -v >> $RUNLOG
+CollapseSeq.py -v >> $RUNLOG
+FilterSeq.py -v >> $RUNLOG
+MaskPrimers.py -v >> $RUNLOG
+PairSeq.py -v >> $RUNLOG
+ParseHeaders.py -v >> $RUNLOG
+ParseLog.py -v >> $RUNLOG
+SplitSeq.py -v >> $RUNLOG
 
 # Filter low quality reads
 echo "   1: FilterSeq quality      $(date +'%H:%M %D')"
@@ -110,7 +121,7 @@ $RUN FilterSeq.py missing -s *assemble-pass.fastq -n $FS_MISS --inner \
 
 # Rewrite header with minimum of CONSCOUNT
 echo "   8: ParseHeaders collapse  $(date +'%H:%M %D')"
-$RUN ParseHeaders.py collapse -s *missing-pass.fastq -f CONSCOUNT --act min \
+$RUN ParseHeaders.py collapse -s *missing-pass.fastq -f CONSCOUNT --act min \
     --outname Assembled --fasta > /dev/null
 
 # Remove duplicate sequences

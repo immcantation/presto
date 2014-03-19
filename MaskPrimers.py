@@ -6,8 +6,8 @@ Removes primers and annotates sequences with primer and barcode identifiers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.19'
 
 # Imports
 import os, sys
@@ -33,7 +33,7 @@ default_start = 0
 
 
 def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error, 
-                 max_len=default_max_len, reverse=False, skip_rc=False, 
+                 max_len=default_max_len, rev_primer=False, skip_rc=False, 
                  score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
@@ -44,7 +44,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     primers_regex = optional dictionary of {names: compiled primer regular expressions}
     max_error = maximum acceptable error rate before aligning reverse complement
     max_len = maximum length of sample sequence to align
-    reverse = if True align with the tail end of the sequence
+    rev_primer = if True align with the tail end of the sequence
     skip_rc = if True do not check reverse complement sequences
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
@@ -52,7 +52,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     dictionary of {seq:input SeqRecord object, align:primer alignment, 
                    primer:primer id, start:alignment start, 
                    end:alignment end, offset:input sequence alignment offset,
-                   error:error rate, reverse:True if alignment is tail-ended}
+                   error:error rate, rev_primer:True if alignment is tail-ended}
     """
     # Defined undefined parameters
     if primers_regex is None:  primers_regex = compilePrimers(primers)
@@ -63,7 +63,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     # Create empty return dictionary
     align_dict = {'seq':seq_record, 'align':None, 'primer':None,
                   'start':None, 'end':None, 'error':1, 
-                  'reverse':reverse}
+                  'rev_primer':rev_primer}
 
     
     # Define sequences to align and assign orientation tags
@@ -77,11 +77,11 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     
     # Assign primer orientation tags
     for rec in seq_list:
-        rec.annotations['prorient'] = 'F' if not reverse else 'RC' 
+        rec.annotations['prorient'] = 'F' if not rev_primer else 'RC' 
     
     # Attempt regular expression match first
     for rec in seq_list:
-        scan_rec = rec[:max_len] if not reverse else rec[-max_len:]
+        scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
         for adpt_id, adpt_regex in primers_regex.iteritems():
             adpt_match = adpt_regex.search(str(scan_rec.seq))
             # Parse matches
@@ -93,7 +93,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
                 align_dict['seq'].annotations['primer'] = adpt_id
                 align_dict['error'] = 0
                 align_dict['offset'] = 0
-                if not reverse:
+                if not rev_primer:
                     align_dict['start'] = adpt_match.start(0)
                     align_dict['end'] = adpt_match.end(0)
                 else:
@@ -105,7 +105,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     # Perform local alignment
     best_align, best_rec, best_adpt, best_err = None, None, None, None
     for rec in seq_list:
-        scan_rec = rec[:max_len] if not reverse else rec[-max_len:]
+        scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
         this_align = {}
         for adpt_id, adpt_seq in primers.iteritems():
             pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq, 
@@ -122,7 +122,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
                 best_adpt = adpt
                 best_err = adpt_err
         
-        # Skip reverse complement if forward sequence error within defined threshold
+        # Skip rev_primer complement if forward sequence error within defined threshold
         if best_err <= max_error:  break
 
     # Set return dictionary to lowest error rate alignment
@@ -133,7 +133,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         align_dict['primer'] = best_adpt
         align_dict['error'] = best_err
         align_dict['offset'] = align_offset
-        if not reverse:
+        if not rev_primer:
             align_dict['start'] = max([best_align[best_adpt][3] - align_offset, 0])
             align_dict['end'] = best_align[best_adpt][4] - align_offset
         else:
@@ -143,7 +143,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     return align_dict
 
 
-def scorePrimers(seq_record, primers, start=default_start, reverse=False, 
+def scorePrimers(seq_record, primers, start=default_start, rev_primer=False, 
                  score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Performs simple alignment of primers with a fixed starting position, 
@@ -153,30 +153,30 @@ def scorePrimers(seq_record, primers, start=default_start, reverse=False,
     seq_record = a SeqRecord object to align primers against
     primers = dictionary of {names: short IUPAC ambiguous sequence strings}
     start = position where primer alignment starts
-    reverse = if True align with the tail end of the sequence
+    rev_primer = if True align with the tail end of the sequence
     score_dict = optional dictionary of {(char1, char2): score} alignment scores
     
     Returns:
     dictionary of {seq:input SeqRecord object, align:primer alignment, 
                    primer:primer id, start:alignment start, 
                    end:alignment end, offset:input sequence alignment offset,
-                   error:error rate, reverse:True if alignment is tail-ended}
+                   error:error rate, rev_primer:True if alignment is tail-ended}
     """
     # Create empty return dictionary
     seq_record = seq_record.upper()
     align_dict = {'seq':seq_record, 'align':None, 'primer':None,
                   'start':None, 'end':None, 'offset':0, 'error':1,
-                  'reverse':reverse}
+                  'rev_primer':rev_primer}
 
     # Define orientation variables
     seq_record.annotations['seqorient'] = 'F'
-    seq_record.annotations['prorient'] = 'F' if not reverse else 'RC'
+    seq_record.annotations['prorient'] = 'F' if not rev_primer else 'RC'
     
     this_align = {}
     rec_len = len(seq_record)
-    if reverse:  end = rec_len - start
+    if rev_primer:  end = rec_len - start
     for adpt_id, adpt_seq in primers.iteritems():
-        if reverse:  start = end - len(adpt_seq)
+        if rev_primer:  start = end - len(adpt_seq)
         else:  end = start + len(adpt_seq)
         chars = izip(adpt_seq, seq_record[start:end])
         score = sum([score_dict[(c1, c2)] for c1, c2 in chars])
@@ -193,7 +193,7 @@ def scorePrimers(seq_record, primers, start=default_start, reverse=False,
 
     # Set return dictionary to lowest error rate alignment
     if best_align:
-        align_dict['align'] = '-' * best_align[1] + primers[best_adpt] if not reverse \
+        align_dict['align'] = '-' * best_align[1] + primers[best_adpt] if not rev_primer \
                               else primers[best_adpt] + '-' * (rec_len - best_align[2]) 
         align_dict['primer'] = best_adpt
         align_dict['start'] = best_align[1]
@@ -217,23 +217,23 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
     output SeqRecord object
     """
     seq = align['seq']
-    reverse = align['reverse']
+    rev_primer = align['rev_primer']
     
     # Build output sequence
     if mode == 'tag' or not align['align']:
         out_seq = seq
     elif mode == 'trim':
-        if not reverse:  
+        if not rev_primer:  
             out_seq = seq[align['start']:]
         else:  
             out_seq = seq[:align['end']]
     elif mode == 'cut':
-        if not reverse:  
+        if not rev_primer:  
             out_seq = seq[align['end']:]
         else: 
             out_seq = seq[:align['start']]
     elif mode == 'mask':
-        if not reverse:
+        if not rev_primer:
             out_seq = 'N' * (align['end'] - align['start']) + seq[align['end']:]
             if hasattr(seq, 'letter_annotations') and 'phred_quality' in seq.letter_annotations:
                 out_seq.letter_annotations['phred_quality'] = seq.letter_annotations['phred_quality'][align['start']:]
@@ -255,7 +255,7 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
     
     # Add ID sequence to description
     if barcode:
-        seq_code = seq[:align['start']].seq if not reverse \
+        seq_code = seq[:align['start']].seq if not rev_primer \
                    else seq[align['end']:].seq
         out_seq.annotations['barcode'] = seq_code
         out_ann['BARCODE'] = seq_code
@@ -318,7 +318,7 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
                 result.log['PRSTART'] = out_seq.annotations['prstart']
                 if 'barcode' in out_seq.annotations:  
                     result.log['BARCODE'] = out_seq.annotations['barcode']
-                if not align['reverse']:
+                if not align['rev_primer']:
                     result.log['INSEQ'] = '-' * align['offset'] + str(align['seq'].seq)
                     result.log['ALIGN'] = align['align']
                     result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align['offset'])
@@ -336,6 +336,7 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
             return None
     except:
         alive.value = False
+        sys.stderr.write('Error processing sequence with ID: %.\n' % data.id)
         raise
     
     return None
@@ -378,14 +379,14 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     log['MAX_ERROR'] = max_error
     if 'start' in align_args: log['START_POS'] = align_args['start']
     if 'max_len' in align_args: log['MAX_LEN'] = align_args['max_len']
-    if 'reverse' in align_args: log['REVERSE'] = align_args['reverse']
+    if 'rev_primer' in align_args: log['REV_PRIMER'] = align_args['rev_primer']
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']
     log['NPROC'] = nproc
     printLog(log)
 
     # Create dictionary of primer sequences to pass to maskPrimers
     primers = readPrimerFile(primer_file)
-    if 'reverse' in align_args and align_args['reverse']:
+    if 'rev_primer' in align_args and align_args['rev_primer']:
         primers = {k: reverseComplement(v) for k, v in primers.iteritems()}
     
     # Define alignment arguments and compile primers for align mode
@@ -441,7 +442,8 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(title='subcommands', help='Alignment method', metavar='')
+
     
     # Parent parser
     parser_parent = getCommonArgParser(multiproc=True)
@@ -453,8 +455,9 @@ def getArgParser():
                                      trim region preceding primer, or only tag sample sequences')
     parser_parent.add_argument('--maxerror', action='store', dest='max_error', type=float,
                                default=default_max_error, help='Maximum allowable error rate')
-    parser_parent.add_argument('--reverse', action='store_true', dest='reverse', 
-                              help='Specify to reverse complement primer sequences and scan/cut from the end')
+    parser_parent.add_argument('--revpr', action='store_true', dest='rev_primer', 
+                              help='Specify to match the tail-end of the sequence against the \
+                                    reverse complement of the primers')
     parser_parent.add_argument('--barcode', action='store_true', dest='barcode', 
                                help='Specify to encode sequences with barcode sequences preceding primer matches')
     
@@ -494,16 +497,16 @@ if __name__ == '__main__':
     # Define align_args dictionary to pass to maskPrimers
     if args_dict['align_func'] is alignPrimers:
         args_dict['align_args'] = {'max_len':args_dict['max_len'],
-                                   'reverse':args_dict['reverse'],
+                                   'rev_primer':args_dict['rev_primer'],
                                    'skip_rc':args_dict['skip_rc']}
         del args_dict['max_len']
-        del args_dict['reverse']
+        del args_dict['rev_primer']
         del args_dict['skip_rc']
     elif args_dict['align_func'] is scorePrimers:
         args_dict['align_args'] = {'start':args_dict['start'],
-                                   'reverse':args_dict['reverse']}
+                                   'rev_primer':args_dict['rev_primer']}
         del args_dict['start']
-        del args_dict['reverse']
+        del args_dict['rev_primer']
     
     # Call maskPrimers for each sample file
     del args_dict['seq_files']

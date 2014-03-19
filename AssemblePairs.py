@@ -6,8 +6,8 @@ Assembles paired-end reads into a single sequence
 __author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.1'
-__date__      = '2014.1.27'
+__version__   = '0.4.2'
+__date__      = '2014.3.19'
 
 # Imports
 import os, sys
@@ -361,6 +361,7 @@ def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args
             return None
     except:
         alive.value = False
+        sys.stderr.write('Error processing sequence pair with ID: %.\n' % data.id)
         raise
     
     return None
@@ -622,7 +623,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=ArgumentDefaultsHelpFormatter)
-    subparsers = parser.add_subparsers(dest='command', help='Assembly mode')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Assembly method', metavar='')
     
     # Parent parser    
     parser_parent = getCommonArgParser(paired=True, multiproc=True)
@@ -636,7 +637,6 @@ def getArgParser():
                                help='Specify annotation fields to copy from head records into assembled record')
     parser_parent.add_argument('--2f', nargs='+', action='store', dest='tail_fields', type=str, default=None, 
                                help='Specify annotation fields to copy from tail records into assembled record')
-
     
     # Paired end overlap alignment mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parser_parent],

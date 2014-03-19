@@ -2,7 +2,7 @@
 # Super script to run the pRESTO pipeline on 454 data using the Jiang et al, 2013 protocol 
 #
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2013.11.25
+# Date:    2014.3.19
 # 
 # Required Arguments:
 #   $1 = sequencing read file
@@ -37,6 +37,13 @@ RUN="nice -19 /usr/bin/time -o ${TIMELOG} -a -f %C\t%E\t%P\t%Mkb"
 mkdir -p $OUTDIR; cd $OUTDIR
 echo '' > $RUNLOG; echo '' > $TIMELOG
 echo "DIRECTORY:" $FILEDIR
+echo "VERSIONS:" >> $RUNLOG
+CollapseSeq.py -v >> $RUNLOG
+FilterSeq.py -v >> $RUNLOG
+MaskPrimers.py -v >> $RUNLOG
+ParseHeaders.py -v >> $RUNLOG
+ParseLog.py -v >> $RUNLOG
+SplitSeq.py -v >> $RUNLOG
 
 # Filter short and low quality reads
 if $LEN_STEP; then
@@ -64,7 +71,7 @@ $RUN MaskPrimers.py align -s STEP1*quality-pass_primers-pass.fastq -p $V_PRIMER_
 
 echo "   5: MaskPrimers align    $(date +'%H:%M %D')"
 $RUN MaskPrimers.py align -s STEP1*primers-pass_primers-pass.fastq -p $C_PRIMER_FILE \
-    --mode mask --maxerror $MAXPRERR --maxlen $MAXPRLEN --reverse --skiprc --nproc $NPROC \
+    --mode mask --maxerror $MAXPRERR --maxlen $MAXPRLEN --revpr --skiprc --nproc $NPROC \
     --outname STEP2 --log PrimerC.log --clean >> $RUNLOG
 
 # Split by primers and group by barcode
