@@ -16,7 +16,7 @@ tools = OrderedDict([('AlignSets', ['muscle', 'offset', 'table']),
                      ('PairSeq', []),
                      ('ParseHeaders', ['add', 'collapse','delete','expand', 'rename', 'table', 'convert']),
                      ('ParseLog', []),
-                     ('SplitSeq', ['convert','count', 'group', 'sample', 'samplepair', 'sort'])])
+                     ('SplitSeq', ['count', 'group', 'sample', 'samplepair', 'sort'])])
 
 with open('output/arguments.html', 'w') as doc_handle, \
      open('output/navigation.html', 'w') as nav_handle: 
