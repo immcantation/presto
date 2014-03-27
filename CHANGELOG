@@ -1,27 +1,37 @@
+March 27, 2014
+Version 0.4.3
+
+CollapseSeq:
++ Fixed bug that occurs with Python 2.7.5 on OS X.
+
+SplitSeq:
++ Fixed bug in samplepairs subcommand that occurs with Python 2.7.5 on OS X.
+
+-------------------------------------------------------------------------------
 March 20, 2014
 Version 0.4.2
 
-Increased verbosity of exception reporting
+Increased verbosity of exception reporting.
 
 IgCore:
-+ Updates to consensus functions to support changes to BuildConsensus
++ Updates to consensus functions to support changes to BuildConsensus.
 
 AssemblePairs:
-+ Set default alpha to 0.01
++ Set default alpha to 0.01.
 
 BuildConsensus:
 + Added support for '--freq (value)' parameter to quality consensus method
-  and set default value to 0.6
+  and set default value to 0.6.
 + Fixed a bug in the frequency consensus method where missing values were
-  contributing to the total character count at each position
+  contributing to the total character count at each position.
 + Added the parameter '--maxmiss (value)' which provides a cut-off for removal 
-  of positions with too many N or gap characters. 
+  of positions with too many N or gap characters .
 
 MaskPrimers:
-+ Renamed the '--reverse' parameter to '--revpr'
++ Renamed the '--reverse' parameter to '--revpr'.
 
 SplitSeq:
-+ Removed convert subcommand
++ Removed convert subcommand.
 
 -------------------------------------------------------------------------------
 January 27, 2014
@@ -30,49 +40,49 @@ Version 0.4.1
 Changes to the internals of multiple tools to provide support for 
   multiprocessing in Windows environments.
 Changes to the internals of multiple tools to provide clean exit of
-  child processes upon kill signal or exception in sibling process 
+  child processes upon kill signal or exception in sibling process. 
 Fixed unexpected behavior of '--outname' and '--log' arguments with 
-  multiple input files
+  multiple input files.
 
 IgCore:
 + Added reporting of unknown exceptions when reading sequence files
-+ Fixed scoring of lowercase sequences
++ Fixed scoring of lowercase sequences.
 
 AlignSets:
-+ Fixed a typo in the log output
++ Fixed a typo in the log output.
 
 BuildConsensus:
-+ Fixed a typo in the log output
++ Fixed a typo in the log output.
 
 EstimateError:
 + Fixed bug where tool would improperly exit if no sets passed threshold
   criteria.
-+ Fixed typo in console output
++ Fixed typo in console output.
 
 MaskPrimers:
 + Added 'trim' mode which will cut the region before primer alignment, but 
   leave primer region unmodified.
-+ Fixed a bug with lowercase sequence data
-+ Fixed bug in the console and log output
-+ Added support for primer matching when setting '--maxerr 1.0'
++ Fixed a bug with lowercase sequence data.
++ Fixed bug in the console and log output.
++ Added support for primer matching when setting '--maxerr 1.0'.
 
 ParseHeaders:
-+ Added count of sequences without any valid fields (FAIL) to console output
++ Added count of sequences without any valid fields (FAIL) to console output.
 
 ParseLog:
-+ Added count of records without any valid fields (FAIL) to console output
++ Added count of records without any valid fields (FAIL) to console output.
 
 SplitSeq:
-+ Fixed typo in console output of samplepair subcommand
++ Fixed typo in console output of samplepair subcommand.
 + Added increase of the open file limit to the group subcommand to allow for a 
-  large number of groups
+  large number of groups.
 
 -------------------------------------------------------------------------------
 September 30, 2013
 Version 0.4.0
 
 Minor name changes were made to multiple scripts, functions, parameters,
-  and output files
+  and output files.
 
 AlignSets, AssemblePairs, BuildConsensus, EstimateError, FilterSeq, and 
   MaskPrimers are now multithreaded.  The number of simultaneous processes
@@ -98,18 +108,18 @@ Added a universal '--clean' parameter which if specified forces the tool not to
   create an output file of sequences which failed processing.
   
 IgCore:
-+ Changes to parameters and internals of multiple functions
-+ Added functions to support multithreading for single-end reads, paired-end 
-  reads, and barcode sets
-+ Added safe annotation field renaming
-+ Added progress bar, logging and output file name conversion support
-+ Moved reusable AssemblePairs, BuildConsensus, PairSeq, and SplitSeq 
-  operations into IgCore
++ Changes to parameters and internals of multiple functions.
++ Added functions to support multithreading for single-end reads, paired-end .
+  reads, and barcode sets.
++ Added safe annotation field renaming.
++ Added progress bar, logging and output file name conversion support.
++ Moved reusable AssemblePairs, BuildConsensus, PairSeq, and SplitSeq.
+  operations into IgCore.
 
 AssemblePairs:
 + Coordinate information is now specified by a coordinate type, rather than a 
   delimiter, using the '--coord (header type)' parameter, where the header type
-  may be one of (illumina, solexa, sra, 454, presto)
+  may be one of (illumina, solexa, sra, 454, presto).
 
 CollapseSeq:
 + Sequences with a missing character count exceeding the user limit defined
@@ -124,7 +134,7 @@ EstimateError:
   to all output tables.
 
 FilterSeq:
-+ Added 'length' subcommand to filter sequences by minimum length 
++ Added 'length' subcommand to filter sequences by minimum length.
 
 PairSeq:
 + Coordinate information has been redefined as per AssemblePairs.
@@ -143,21 +153,21 @@ Version 0.3 (prerelease 6)
 Toolkit is now dependent upon pandas 0.12 for the estimateError tool.
 
 alignSets:
-+ Changed MUSCLE execution to faster settings ('-diags', '-maxiters 2')
++ Changed MUSCLE execution to faster settings ('-diags', '-maxiters 2').
 
 filterQuality:
 + Added 'repeat' subcommand to filter sequences with '-n (value)' repetitions 
-  of a single character and 
+  of a single character and. 
 + Changed '-n' parameter of 'ambig' subcommand from fractional value to a 
-  raw count
+  raw count.
 
 estimateError:
-+ New tool which estimates error of sequence sets by comparison to a consensus
++ New tool which estimates error of sequence sets by comparison to a consensus.
 
 maskPrimers:
 + Bug fixes to alignment position calculation of 'align' subcommand when primer
-  alignment begins before start of sequence
-+ Removed '--ann' parameter
+  alignment begins before start of sequence.
++ Removed '--ann' parameter.
 
 
 -------------------------------------------------------------------------------
@@ -165,40 +175,40 @@ August 7, 2013
 Version 0.3 (prerelease 5)
 
 License changed to Creative Commons Attribution-NonCommercial-ShareAlike 3.0 
-  Unported License
+  Unported License.
 
 IgPipeline Core:
-+ Bug fixes to diversity calculation
++ Bug fixes to diversity calculation.
 + Added support for files where all sequences do not share the same annotation 
-  fields
-+ Added support for alternate scoring of gap and N-valued nucleotides
+  fields.
++ Added support for alternate scoring of gap and N-valued nucleotides.
 
 alignSets:
 + Added '--mode' parameter with options of 'pad' and 'cut' to specify whether 
-  to extend or trim read groups to the same start position
+  to extend or trim read groups to the same start position.
 + Fixed intermittent 'muscle' subcommand stdout pipe deadlock when 
-  executing MUSCLE
+  executing MUSCLE.
 
 assemblePairs:
 + Added 'join' subcommand to support library preps where paired-end reads 
-  do not overlap
-+ Speed improvements to p-value calculations
+  do not overlap.
++ Speed improvements to p-value calculations.
 
 buildConsensus:
 + '--div' parameter converted to '--maxdiv (value)' to allow filtering of read 
-  groups by diversity
-+ Bug fixes to nucleotide frequency consensus method
-+ '-q' parameter renamed to '--qual'
+  groups by diversity.
++ Bug fixes to nucleotide frequency consensus method.
++ '-q' parameter renamed to '--qual'.
 
 collapseSequences:
 + Added support for files where all sequences do not share the same annotation 
-  fields
+  fields.
 
 splitSeqFile:
 + 'samplepair' subcommand added to allow random sampling from paired-end 
-  file sets
+  file sets.
 + The behavior of the '-c' parameter of the 'sample' and 'samplepair' 
-  subcommands changed to allow multiple samplings with the same command
+  subcommands changed to allow multiple samplings with the same command.
 
 
 -------------------------------------------------------------------------------

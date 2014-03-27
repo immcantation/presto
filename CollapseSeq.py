@@ -6,8 +6,8 @@ Removes duplicate sequences from FASTA/FASTQ files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.2'
-__date__      = '2014.1.27'
+__version__   = '0.4.3'
+__date__      = '2014.3.26'
 
 # Imports
 import os, re, sys
@@ -217,7 +217,9 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
 
     # Find sequences with duplicates
     uniq_dict = {}
-    search_keys = seq_dict.keys()
+    # Added list typing for compatibility issue with Python 2.7.5 on OS X
+    # TypeError: object of type 'dictionary-keyiterator' has no len()
+    search_keys = list(seq_dict.keys())
     dup_keys = []
     for n in range(0, max_missing + 1):
         # Find unique sequences

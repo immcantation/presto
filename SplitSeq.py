@@ -331,7 +331,9 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         key_list = [k for k, (a, b) in index_dict.iteritems() \
                        if a in key_list_1 and b in key_list_2]
     else:
-        key_list = index_dict.keys()
+        # Added list typing for compatibility issue with Python 2.7.5 on OS X
+        # TypeError: object of type 'dictionary-keyiterator' has no len()
+        key_list = list(index_dict.keys())
     # Determine total numbers of sampling pairs
     pair_count = len(key_list)
 
