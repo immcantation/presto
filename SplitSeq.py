@@ -6,11 +6,11 @@ Sorts, samples and splits FASTA/FASTQ sequence files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.3'
-__date__      = '2014.3.27'
+__version__   = '0.4.4'
+__date__      = '2014.5.12'
 
 # Imports
-import os, resource, sys
+import os, sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 from random import sample
@@ -135,20 +135,22 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
         temp_iter = readSeqFile(seq_file)
         tag_list = getAnnotationValues(temp_iter, field, unique=True, delimiter=out_args['delimiter'])
         
-        # Increase open file handle limit if needed
-        file_limit = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
-        file_count = len(tag_list) + 256
-        if file_limit < file_count and file_count <= 8192:
-            #print file_limit, file_count
-            resource.setrlimit(resource.RLIMIT_NOFILE, (file_count, file_count))
-        elif file_count > 8192:
-            e = '''
-                ERROR: OS file limit would need to be set to %i.
-                If you are sure you want to do this, then increase the 
-                file limit in the OS (via ulimit) and rerun this tool.
-                ''' % file_count
-            sys.stderr.write(dedent(e))
-            sys.exit()
+        if sys.platform != 'win32':
+            import resource
+            # Increase open file handle limit if needed
+            file_limit = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
+            file_count = len(tag_list) + 256
+            if file_limit < file_count and file_count <= 8192:
+                #print file_limit, file_count
+                resource.setrlimit(resource.RLIMIT_NOFILE, (file_count, file_count))
+            elif file_count > 8192:
+                e = '''
+                    ERROR: OS file limit would need to be set to %i.
+                    If you are sure you want to do this, then increase the 
+                    file limit in the OS (via ulimit) and rerun this tool.
+                    ''' % file_count
+                sys.stderr.write(dedent(e))
+                sys.exit()
             
         # Create output handles
         handles_dict = {tag:getOutputHandle(seq_file, 
