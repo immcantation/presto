@@ -19,6 +19,7 @@ MAXDIV=0.1
 PRCONS=0.6
 FSQUAL=20
 BCQUAL=0
+UIDLEN=15
 R1_MAXERR=0.2
 R2_MAXERR=0.2
 AP_MAXERR=0.2
@@ -29,9 +30,9 @@ MUSCLE_EXEC=$HOME/bin/muscle3.8.31_i86linux64
 NPROC=$4
 
 # Define input files
-R1_FILE=$1
-R2_FILE=$2
-OUTDIR=$3
+R1_FILE=$(readlink -f $1)
+R2_FILE=$(readlink -f $2)
+OUTDIR=$(readlink -f $3)
 R1_PRIMER_FILE='/scratch2/kleinstein/v2p4_methods/primers/JPrimers_v2.fasta'
 R2_PRIMER_FILE='/scratch2/kleinstein/v2p4_methods/primers/VPrimers_shifted_unique.fasta'
 R1_OFFSET_FILE='/scratch2/kleinstein/v2p4_methods/primers/JPrimers_v2_offsets-reverse.tab'
@@ -50,20 +51,21 @@ else
 fi
 		
 # Start
-echo "DIRECTORY:" $OUTDIR
-echo "VERSIONS:" >> $RUNLOG
-AlignSets.py -v >> $RUNLOG
-AssemblePairs.py -v >> $RUNLOG
-BuildConsensus.py -v >> $RUNLOG
-CollapseSeq.py -v >> $RUNLOG
-FilterSeq.py -v >> $RUNLOG
-MaskPrimers.py -v >> $RUNLOG
-PairSeq.py -v >> $RUNLOG
-ParseHeaders.py -v >> $RUNLOG
-ParseLog.py -v >> $RUNLOG
-SplitSeq.py -v >> $RUNLOG
+echo "DIRECTORY: ${OUTDIR}"
+echo "VERSIONS:"
+echo "  $(AlignSets.py -v 2>&1)"
+echo "  $(AssemblePairs.py -v 2>&1)"
+echo "  $(BuildConsensus.py -v 2>&1)"
+echo "  $(CollapseSeq.py -v 2>&1)"
+echo "  $(FilterSeq.py -v 2>&1)"
+echo "  $(MaskPrimers.py -v 2>&1)"
+echo "  $(PairSeq.py -v 2>&1)"
+echo "  $(ParseHeaders.py -v 2>&1)"
+echo "  $(ParseLog.py -v 2>&1)"
+echo "  $(SplitSeq.py -v 2>&1)"
 
 # Filter low quality reads
+echo -e "\nSTART"
 echo "   1: FilterSeq quality      $(date +'%H:%M %D')"
 $RUN FilterSeq.py quality -s $R1_FILE -q $FSQUAL --nproc $NPROC --outname R1 \
     --outdir . --log QualityLogR1.log --clean >> $RUNLOG
@@ -72,8 +74,8 @@ $RUN FilterSeq.py quality -s $R2_FILE -q $FSQUAL --nproc $NPROC --outname R2 \
 
 # Identify primers and UID 
 echo "   2: MaskPrimers score      $(date +'%H:%M %D')"
-$RUN MaskPrimers.py score -s R1_quality-pass.fastq -p $R1_PRIMER_FILE --mode cut --start 15 --barcode \
-    --maxerror $R1_MAXERR --nproc $NPROC --log PrimerLogR1.log --clean >> $RUNLOG
+$RUN MaskPrimers.py score -s R1_quality-pass.fastq -p $R1_PRIMER_FILE --mode cut --start $UIDLEN \
+	--barcode --maxerror $R1_MAXERR --nproc $NPROC --log PrimerLogR1.log --clean >> $RUNLOG
 $RUN MaskPrimers.py score -s R2_quality-pass.fastq -p $R2_PRIMER_FILE --mode cut --start 0 \
     --maxerror $R2_MAXERR --nproc $NPROC --log PrimerLogR2.log --clean >> $RUNLOG
 
@@ -108,7 +110,6 @@ else
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
     	-q $BCQUAL --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
 fi
-
 
 # Assemble paired ends
 echo "   6: AssemblePairs          $(date +'%H:%M %D')" 

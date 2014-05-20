@@ -11,27 +11,28 @@
 #   $4 = number of subprocesses for multiprocessing tools
 
 # Define run parameters
+NPROC=$4
 LOG_RUNTIMES=true
 ZIP_FILES=true
 ALIGN_STEP=false
 CALC_DIV=true
-MAXDIV=0.1
-PRCONS=0.6
-FSQUAL=20
-BCQUAL=0
-R1_MAXERR=0.2
-R2_MAXERR=0.2
-AP_MAXERR=0.2
-ALPHA=0.01
+FS_QUAL=20
 FS_MISS=20
+MP_UIDLEN=17
+MP_R1_MAXERR=0.2
+MP_R2_MAXERR=1.0
+BC_QUAL=0
+BC_MAXDIV=0.1
+BC_PRCONS=0.6
+AP_MAXERR=0.2
+AP_ALPHA=0.01
 CS_MISS=20
 MUSCLE_EXEC=$HOME/bin/muscle3.8.31_i86linux64
-NPROC=$4
 
 # Define input files
-R1_FILE=$1
-R2_FILE=$2
-OUTDIR=$3
+R1_FILE=$(readlink -f $1)
+R2_FILE=$(readlink -f $2)
+OUTDIR=$(readlink -f $3)
 R1_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg/primers/primers_V3_R1_09212013_human.fasta'
 R2_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg/primers/primers_V3_R2_09212013.fasta'
 
@@ -48,36 +49,38 @@ else
 fi
 		
 # Start
-echo "DIRECTORY:" $OUTDIR
-echo "VERSIONS:" >> $RUNLOG
-AlignSets.py -v >> $RUNLOG
-AssemblePairs.py -v >> $RUNLOG
-BuildConsensus.py -v >> $RUNLOG
-CollapseSeq.py -v >> $RUNLOG
-FilterSeq.py -v >> $RUNLOG
-MaskPrimers.py -v >> $RUNLOG
-PairSeq.py -v >> $RUNLOG
-ParseHeaders.py -v >> $RUNLOG
-ParseLog.py -v >> $RUNLOG
-SplitSeq.py -v >> $RUNLOG
+echo "DIRECTORY: ${OUTDIR}"
+echo "VERSIONS:"
+echo "  $(AlignSets.py -v 2>&1)"
+echo "  $(AssemblePairs.py -v 2>&1)"
+echo "  $(BuildConsensus.py -v 2>&1)"
+echo "  $(CollapseSeq.py -v 2>&1)"
+echo "  $(FilterSeq.py -v 2>&1)"
+echo "  $(MaskPrimers.py -v 2>&1)"
+echo "  $(PairSeq.py -v 2>&1)"
+echo "  $(ParseHeaders.py -v 2>&1)"
+echo "  $(ParseLog.py -v 2>&1)"
+echo "  $(SplitSeq.py -v 2>&1)"
 
 # Filter low quality reads
+echo -e "\nSTART"
 echo "   1: FilterSeq quality      $(date +'%H:%M %D')"
-$RUN FilterSeq.py quality -s $R1_FILE -q $FSQUAL --nproc $NPROC --outname R1 \
+$RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC --outname R1 \
     --outdir . --log QualityLogR1.log --clean >> $RUNLOG
-$RUN FilterSeq.py quality -s $R2_FILE -q $FSQUAL --nproc $NPROC --outname R2 \
+$RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC --outname R2 \
     --outdir . --log QualityLogR2.log --clean >> $RUNLOG
 
 # Identify primers and UID 
 echo "   2: MaskPrimers score      $(date +'%H:%M %D')"
 $RUN MaskPrimers.py score -s R1_quality-pass.fastq -p $R1_PRIMER_FILE --mode cut --start 0 \
-    --maxerror $R1_MAXERR --nproc $NPROC --log PrimerLogR1.log --clean >> $RUNLOG
-$RUN MaskPrimers.py score -s R2_quality-pass.fastq -p $R2_PRIMER_FILE --mode cut --barcode --start 17 \
-    --maxerror $R2_MAXERR --nproc $NPROC --log PrimerLogR2.log --clean >> $RUNLOG
+    --maxerror $MP_R1_MAXERR --nproc $NPROC --log PrimerLogR1.log --clean >> $RUNLOG
+$RUN MaskPrimers.py score -s R2_quality-pass.fastq -p $R2_PRIMER_FILE --mode cut --start $MP_UIDLEN \
+	--barcode --maxerror $MP_R2_MAXERR --nproc $NPROC --log PrimerLogR2.log --clean >> $RUNLOG
 
 # Assign UIDs to read 1 sequences
 echo "   3: PairSeq                $(date +'%H:%M %D')"
-$RUN PairSeq.py -1 R2*primers-pass.fastq -2 R1*primers-pass.fastq -f BARCODE --coord illumina --clean >> $RUNLOG
+$RUN PairSeq.py -1 R2*primers-pass.fastq -2 R1*primers-pass.fastq -f BARCODE --coord illumina \
+	--clean >> $RUNLOG
 
 if $ALIGN_STEP; then
 	# Multiple align UID read groups
@@ -97,9 +100,9 @@ fi
 echo "   5: BuildConsensus         $(date +'%H:%M %D')" 
 if $CALC_DIV; then
 	$RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $PRCONS \
-	    -q $BCQUAL --maxdiv $MAXDIV --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
+	    -q $BCQUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-	    -q $BCQUAL --maxdiv $MAXDIV --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
+	    -q $BCQUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
 else
 	$RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $PRCONS \
     	-q $BCQUAL --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
@@ -111,8 +114,8 @@ fi
 # Assemble paired ends
 echo "   6: AssemblePairs          $(date +'%H:%M %D')" 
 $RUN AssemblePairs.py align -1 R2*consensus-pass.fastq -2 R1*consensus-pass.fastq \
-    --1f CONSCOUNT --2f PRCONS CONSCOUNT --coord presto --rc tail --maxerror $AP_MAXERR --alpha $ALPHA \
-    --nproc $NPROC --log AssembleLog.log --clean >> $RUNLOG
+    --1f CONSCOUNT --2f PRCONS CONSCOUNT --coord presto --rc tail --maxerror $AP_MAXERR \ 
+    --alpha $AP_ALPHA --nproc $NPROC --log AssembleLog.log --clean >> $RUNLOG
     
 # Remove sequences with many Ns
 echo "   7: FilterSeq missing      $(date +'%H:%M %D')" 
