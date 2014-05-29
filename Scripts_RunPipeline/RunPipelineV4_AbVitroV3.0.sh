@@ -2,12 +2,12 @@
 # Super script to run the pRESTO pipeline on AbVitro library v3.0 data 
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.3.19
+# Date:    2014.5.29
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
 #   $2 = read 2 file (V-region start sequence)
-#   $3 = output directory (absolute path)
+#   $3 = output directory
 #   $4 = number of subprocesses for multiprocessing tools
 
 # Define run parameters
@@ -99,7 +99,7 @@ fi
 # Build UID consensus sequences
 echo "   5: BuildConsensus         $(date +'%H:%M %D')" 
 if $CALC_DIV; then
-	$RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $PRCONS \
+    $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $PRCONS \
 	    -q $BCQUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
 	    -q $BCQUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG

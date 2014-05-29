@@ -13,10 +13,10 @@ NPROC=20
 echo "" > $LOGFILE 
 for F in $FOLDERS
 do
-  echo "FOLDER: $F" | tee -a $LOGFILE 
-  echo `date` | tee -a $LOGFILE
-  R1=$DATADIR/data/$SAMPLE/$F/*L001_R1_001.fastq
-  R2=$DATADIR/data/$SAMPLE/$F/*L001_R2_001.fastq
-  OUT=$DATADIR/results/$SAMPLE/$F
-$DATADIR/scripts/RunPipelineV4_AbVitroV3.0.sh $R1 $R2 $OUT $NPROC | tee -a $LOGFILE
+    echo "FOLDER: $F" | tee -a $LOGFILE 
+    echo `date` | tee -a $LOGFILE
+    R1=$DATADIR/data/$SAMPLE/$F/*L001_R1_001.fastq
+    R2=$DATADIR/data/$SAMPLE/$F/*L001_R2_001.fastq
+    OUT=$DATADIR/results/$SAMPLE/$F
+    $DATADIR/scripts/RunPipelineV4_AbVitroV3.0.sh $R1 $R2 $OUT $NPROC | tee -a $LOGFILE
 done

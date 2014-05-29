@@ -7,7 +7,7 @@
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
 #   $2 = read 2 file (V-region start sequence)
-#   $3 = output directory (absolute path)
+#   $3 = output directory
 #   $4 = number of subprocesses for multiprocessing tools
 
 # Define run parameters
