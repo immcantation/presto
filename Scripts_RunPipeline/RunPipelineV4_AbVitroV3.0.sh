@@ -2,7 +2,7 @@
 # Super script to run the pRESTO pipeline on AbVitro library v3.0 data 
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.5.29
+# Date:    2014.6.2
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -32,7 +32,7 @@ MUSCLE_EXEC=$HOME/bin/muscle3.8.31_i86linux64
 # Define input files
 R1_FILE=$(readlink -f $1)
 R2_FILE=$(readlink -f $2)
-OUTDIR=$(readlink -f $3)
+OUTDIR=$3
 R1_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg/primers/primers_V3_R1_09212013_human.fasta'
 R2_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg/primers/primers_V3_R2_09212013.fasta'
 
@@ -99,22 +99,22 @@ fi
 # Build UID consensus sequences
 echo "   5: BuildConsensus         $(date +'%H:%M %D')" 
 if $CALC_DIV; then
-    $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $PRCONS \
-	    -q $BCQUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
+    $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
+	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-	    -q $BCQUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
+	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
 else
-	$RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $PRCONS \
-    	-q $BCQUAL --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
+	$RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
+    	-q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log --clean >> $RUNLOG
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-    	-q $BCQUAL --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
+    	-q $BC_QUAL --nproc $NPROC --log ConsensusLogR2.log --clean >> $RUNLOG
 fi
 
 
 # Assemble paired ends
 echo "   6: AssemblePairs          $(date +'%H:%M %D')" 
 $RUN AssemblePairs.py align -1 R2*consensus-pass.fastq -2 R1*consensus-pass.fastq \
-    --1f CONSCOUNT --2f PRCONS CONSCOUNT --coord presto --rc tail --maxerror $AP_MAXERR \ 
+    --1f CONSCOUNT --2f PRCONS CONSCOUNT --coord presto --rc tail --maxerror $AP_MAXERR \
     --alpha $AP_ALPHA --nproc $NPROC --log AssembleLog.log --clean >> $RUNLOG
     
 # Remove sequences with many Ns

@@ -2,7 +2,7 @@
 # Super script to run the pRESTO pipeline on AbVitro library v2.5 data 
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.5.1
+# Date:    2014.6.2
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -32,7 +32,7 @@ NPROC=$4
 # Define input files
 R1_FILE=$(readlink -f $1)
 R2_FILE=$(readlink -f $2)
-OUTDIR=$(readlink -f $3)
+OUTDIR=$3
 R1_PRIMER_FILE='/scratch2/kleinstein/v2p4_methods/primers/JPrimers_v2.fasta'
 R2_PRIMER_FILE='/scratch2/kleinstein/v2p4_methods/primers/VPrimers_shifted_unique.fasta'
 R1_OFFSET_FILE='/scratch2/kleinstein/v2p4_methods/primers/JPrimers_v2_offsets-reverse.tab'
