@@ -2,7 +2,7 @@
 # Super script to run the pRESTO pipeline on AbVitro library v3.0 data 
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.6.2
+# Date:    2014.6.4
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -33,8 +33,8 @@ MUSCLE_EXEC=$HOME/bin/muscle3.8.31_i86linux64
 R1_FILE=$(readlink -f $1)
 R2_FILE=$(readlink -f $2)
 OUTDIR=$3
-R1_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg/primers/primers_V3_R1_09212013_human.fasta'
-R2_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg/primers/primers_V3_R2_09212013.fasta'
+R1_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg_memory/primers/primers_V3_R1_09212013_human.fasta'
+R2_PRIMER_FILE='/scratch2/kleinstein/oconnor_mg_memory/primers/primers_V3_R2_09212013.fasta'
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR

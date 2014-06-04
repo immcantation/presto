@@ -2,12 +2,12 @@
 # Wrapper script to run the pRESTO pipeline script on multiple inputs
 # 
 # Author:  Jason Anthony Vander Heiden
-# Date:    2014.6.2
+# Date:    2014.6.4
 
-LOGFILE=run.out
 DATADIR=/scratch2/kleinstein/oconnor_im
 SCRIPT=/scratch2/kleinstein/oconnor_im/scripts/RunPipelineV4_AbVitroV3.0.sh
 RUNID=RQ2410
+LOGFILE=${RUNID}_RunLog.out
 FOLDERS=$(ls -d $DATADIR/data/$RUNID/Sample_*| xargs -n 1 basename)
 NPROC=20
 
