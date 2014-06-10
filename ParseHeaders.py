@@ -6,8 +6,8 @@ Parses pRESTO annotations in FASTA/FASTQ sequence headers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.3'
-__date__      = '2014.3.19'
+__version__   = '0.4.4'
+__date__      = '2014.6.10'
 
 # Imports
 import csv, os, re, sys

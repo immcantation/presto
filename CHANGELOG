@@ -1,3 +1,10 @@
+June 10, 2014
+Version 0.4.4
+
+SplitSeq:
++ Removed a *nix-specific dependency, allowing SplitSeq to work on Windows.
+
+-------------------------------------------------------------------------------
 April 7, 2014
 Version 0.4.3
 
