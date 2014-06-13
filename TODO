@@ -1,5 +1,5 @@
-April 7, 2014
-Version 0.4.3
+June 10, 2014
+Version 0.4.4
 
 High Priority
 + Improve CollapseSeq algorithm for max_missing > 0
@@ -17,6 +17,7 @@ Low Priority
 + Add --decreasing parameter to sort subcommand of SplitSeq
 + Add flag allowing nested overlap (negative position overlap) of shorter 
   sequence in AssemblePairs
++ Add flag for bidirectional annotation copying to PairSeq
   
 Potential Features
 + Maybe import ParseDB tool into pRESTO to convert csv/tab files to 
