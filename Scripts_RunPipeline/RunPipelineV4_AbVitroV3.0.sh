@@ -144,7 +144,7 @@ $RUN ParseHeaders.py table -s Assembled_collapse-unique_atleast-2.fasta -f ID PR
 echo "  12: ParseLog               $(date +'%H:%M %D')"
 $RUN ParseLog.py -l QualityLogR[1-2].log -f ID QUALITY > /dev/null &
 $RUN ParseLog.py -l PrimerLogR[1-2].log -f ID BARCODE PRIMER ERROR > /dev/null &
-$RUN ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCOUNT PRFREQ DIVERSITY > /dev/null &
+$RUN ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT PRFREQ DIVERSITY > /dev/null &
 $RUN ParseLog.py -l AssembleLog.log -f ID OVERLAP LENGTH PVAL ERROR HEADFIELDS TAILFIELDS > /dev/null &
 $RUN ParseLog.py -l MissingLog.log -f ID MISSING > /dev/null &
 wait

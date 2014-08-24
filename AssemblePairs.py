@@ -361,7 +361,7 @@ def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence pair with ID: %.\n' % data.id)
+        sys.stderr.write('Error processing sequence pair with ID: %s.\n' % data.id)
         raise
     
     return None
