@@ -616,7 +616,48 @@ def scoreIUPAC(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def getScoreDict(n_score=None, gap_score=None):
+def scoreIUPACaa(a, b, x_score=None, gap_score=None):
+    """
+    Returns the score for a pair of IUPAC Extended Protein characters
+
+    Arguments: 
+    a = first character
+    b = second character
+    x_score = score for all matches against an X character;
+              if None score according to IUPAC character identity
+    gap_score = score for all matches against a [-, .] character;
+                if None score according to IUPAC character identity
+
+    Returns:
+    score for the character pair
+    """
+    # Define ambiguous character translations    
+    IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
+                   '-.':'.'}
+    # Create list of tuples of synonymous character pairs
+    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
+
+    # Check gap condition
+    if gap_score is not None and (a in '-.' or b in '-.'):
+        return gap_score
+
+    # Check X-value condition
+    if x_score is not None and (a == 'X' or b == 'X'):
+        return x_score
+
+    # Determine and return score for IUPAC match conditions
+    # Symmetric and reflexive
+    if a == b:
+        return 1
+    elif (a, b) in IUPAC_matches:
+        return 1
+    elif (b, a) in IUPAC_matches:
+        return 1
+    else:
+        return 0
+
+
+def getScoreDict(n_score=None, gap_score=None, alphabet='dna'):
     """
     Generates a score dictionary
 
@@ -629,9 +670,14 @@ def getScoreDict(n_score=None, gap_score=None):
     Returns:
     a score dictionary of the form {(char1, char2) : score}
     """
-    IUPAC_chars = '-.ACGTRYSWKMBDHVN'
-    IUPAC_dict = {k:scoreIUPAC(*k, n_score=n_score, gap_score=gap_score) 
-                  for k in product(IUPAC_chars, repeat=2)}
+    if alphabet=='dna':
+        IUPAC_chars = '-.ACGTRYSWKMBDHVN'
+        IUPAC_dict = {k:scoreIUPAC(*k, n_score=n_score, gap_score=gap_score) 
+                      for k in product(IUPAC_chars, repeat=2)}
+    elif alphabet=='aa':
+        IUPAC_chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        IUPAC_dict = {k:scoreIUPACaa(*k, x_score=n_score, gap_score=gap_score) 
+                      for k in product(IUPAC_chars, repeat=2)}
 
     return IUPAC_dict
 
