@@ -1643,6 +1643,8 @@ def parseCommonArgs(args, file_args=None):
     elif 'db_files' in args_dict:      input_count = len(args_dict['db_files'])
     elif 'record_files' in args_dict:  input_count = len(args_dict['record_files'])
     elif 'primer_files' in args_dict:  input_count = len(args_dict['primer_files'])
+    elif 'imgt_output' in args_dict:   input_count = len(args_dict['imgt_output'])
+    
     # Exit if output names or log files are specified with multiple input files    
     if args_dict.get('out_name', None) is not None and input_count > 1:
         sys.exit('ERROR:  The --outname argument may not be specified with multiple input files')
