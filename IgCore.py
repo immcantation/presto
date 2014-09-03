@@ -383,7 +383,7 @@ def readPrimerFile(primer_file):
             primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateIUPAC, a[1].strip().upper()) 
                         for a in primer_list}
     else:
-        sys.exit('ERROR:  %s primer file is not a supported type' % ext_name.upper())
+        sys.exit('ERROR:  The primer file %s is not a supported type' % ext_name.upper())
         primers = None
     
     return primers
@@ -574,12 +574,12 @@ def translateIUPAC(key):
         return 'N'
 
 
-def scoreIUPAC(a, b, n_score=None, gap_score=None):
+def scoreDNA(a, b, n_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
 
     Arguments: 
-    a = first character
+    a = first characters
     b = second character
     n_score = score for all matches against an N character;
               if None score according to IUPAC character identity
@@ -616,7 +616,7 @@ def scoreIUPAC(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def scoreIUPACaa(a, b, x_score=None, gap_score=None):
+def scoreAA(a, b, x_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Extended Protein characters
 
@@ -666,18 +666,22 @@ def getScoreDict(n_score=None, gap_score=None, alphabet='dna'):
               if None score according to IUPAC character identity
     gap_score = score for all matches against a [-, .] character;
                 if None score according to IUPAC character identity
+    alphabet = the type of score dictionary to generate;
+               one of [dna, aa] for DNA and amino acid characters
                 
     Returns:
     a score dictionary of the form {(char1, char2) : score}
     """
     if alphabet=='dna':
         IUPAC_chars = '-.ACGTRYSWKMBDHVN'
-        IUPAC_dict = {k:scoreIUPAC(*k, n_score=n_score, gap_score=gap_score) 
+        IUPAC_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score) 
                       for k in product(IUPAC_chars, repeat=2)}
     elif alphabet=='aa':
         IUPAC_chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        IUPAC_dict = {k:scoreIUPACaa(*k, x_score=n_score, gap_score=gap_score) 
+        IUPAC_dict = {k:scoreAA(*k, x_score=n_score, gap_score=gap_score) 
                       for k in product(IUPAC_chars, repeat=2)}
+    else:
+        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type\n' % alphabet)
 
     return IUPAC_dict
 
@@ -703,7 +707,7 @@ def reverseComplement(seq):
     elif isinstance(seq, str):
         new_record = str(Seq(seq, IUPAC.ambiguous_dna).reverse_complement())
     else:
-        sys.exit('ERROR:  invalid record type passed to reverseComplement')
+        sys.exit('ERROR:  Invalid record type passed to reverseComplement')
         new_record = None
     
     return new_record
@@ -1178,16 +1182,16 @@ def manageProcesses(feed_func, work_func, collect_func,
         _terminate()
         sys.exit()
     except Exception as e:
-        sys.stderr.write('Error:  %s\n' % e)
+        sys.stderr.write('ERROR:  %s\n' % e)
         _terminate()
         sys.exit()
     except:
-        sys.stderr.write('Error:  Exiting with unknown exception\n')
+        sys.stderr.write('ERROR:  Exiting with unknown exception\n')
         _terminate()
         sys.exit()
     else:
         if not alive.value:
-            sys.stderr.write('Error:  Exiting due to child process error\n')
+            sys.stderr.write('ERROR:  Exiting due to child process error\n')
             _terminate()
             sys.exit()
     
@@ -1602,9 +1606,9 @@ def parseCommonArgs(args, file_args=None):
         db_files.extend(args_dict['db_files'])
     for f in db_files:
         if not os.path.isfile(f):
-            sys.exit('ERROR:  database file %s does not exist' % f)
+            sys.exit('ERROR:  Database file %s does not exist' % f)
         if os.path.splitext(f)[-1].lower() not in db_types:
-            sys.exit('ERROR:  database file %s is not a supported type. Must be one: %s' \
+            sys.exit('ERROR:  Database file %s is not a supported type. Must be one: %s' \
                      % (','.join(db_types), f))
                 
     # Verify sequence files
@@ -1621,9 +1625,9 @@ def parseCommonArgs(args, file_args=None):
         seq_files.extend(args_dict['seq_files_2'])
     for f in seq_files:
         if not os.path.isfile(f):
-            sys.exit('ERROR:  sequence file %s does not exist' % f)
+            sys.exit('ERROR:  Sequence file %s does not exist' % f)
         if os.path.splitext(f)[-1].lower() not in seq_types:
-            sys.exit('ERROR:  sequence file %s is not a supported type. Must be one: %s' \
+            sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
                      % (','.join(seq_types), f))
 
     # Verify primer files
@@ -1632,9 +1636,9 @@ def parseCommonArgs(args, file_args=None):
                        else [args_dict['primer_file']]
         for f in primer_files:
             if not os.path.isfile(f):
-                sys.exit('ERROR:  primer file %s does not exist' % f)
+                sys.exit('ERROR:  Primer file %s does not exist' % f)
             if os.path.splitext(f)[-1].lower() not in primer_types:
-                sys.exit('ERROR:  primer file %s is not a supported type. Must be one: %s' \
+                sys.exit('ERROR:  Primer file %s is not a supported type. Must be one: %s' \
                          % (','.join(primer_types), f))
     
     # Count known input files
@@ -1654,7 +1658,7 @@ def parseCommonArgs(args, file_args=None):
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir'] is not None:
         if os.path.exists(args_dict['out_dir']) and not os.path.isdir(args_dict['out_dir']):
-            sys.exit('ERROR:  directory %s exists and is not a directory' % args_dict['out_dir'])
+            sys.exit('ERROR:  Directory %s exists and is not a directory' % args_dict['out_dir'])
     
     # Verify optional files
     if file_args is not None:
@@ -1664,7 +1668,7 @@ def parseCommonArgs(args, file_args=None):
                     else [args_dict[arg]]
             for f in files:
                 if not os.path.isfile(f):
-                    sys.exit('ERROR:  file %s does not exist' % f)
+                    sys.exit('ERROR:  File %s does not exist' % f)
     
     # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'delimiter', 'separator', 
