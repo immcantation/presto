@@ -6,8 +6,8 @@ Parses records in the console log of pRESTO modules
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.9.4'
 
 # Imports
 import csv, os, sys
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     # Parse arguments
     parser = getArgParser()
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args, 'record_files')
+    args_dict = parseCommonArgs(args, in_arg='record_files')
     # Convert case of fields
     if args_dict['fields']:  args_dict['fields'] = map(str.upper, args_dict['fields']) 
     

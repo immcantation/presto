@@ -6,8 +6,8 @@ Core functions shared by pRESTO modules
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.9.4'
 
 # Imports
 import ctypes, math, os, re, signal, sys
@@ -1509,7 +1509,7 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
     return None
         
         
-def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, 
+def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_out=False,
                        annotation=True, log=True, multiproc=False):
     """
     Defines an ArgumentParser object with common pRESTO arguments
@@ -1519,6 +1519,7 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False,
     seq_out = if True include sequence output arguments
     paired = if True defined paired-end sequence input and output arguments
     db_in = if True include tab delimited database input arguments
+    db_out = if True include tab delimited database output arguments
     annotation = if True include annotation arguments
     log = if True include log arguments
     multiproc = if True include multiprocessing arguments
@@ -1532,6 +1533,11 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False,
     if db_in:
         parser.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
                         help='A list of tab delimited database files.')
+    
+    if db_out:
+        parser.add_argument('--clean', action='store_true', dest='clean', 
+                            help='If specified do not create files containing records that \
+                                  fail processing.')
             
     # Sequence arguments
     if seq_in and not paired:
@@ -1582,15 +1588,17 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False,
     return parser
 
 
-def parseCommonArgs(args, file_args=None):
+def parseCommonArgs(args, in_arg=None, in_types=None):
     """
     Checks common arguments from getCommonArgParser and transforms output options to a dictionary
 
     Arguments: 
     args = argument Namespace defined by ArgumentParser.parse_args
-    file_args = a list of non-common file arguments to verify; 
-                ['seq_files', '1', '2', 'primer_file', 'out_dir'] 
-                are checked by default
+    in_arg = a string defining a non-standard input file argument to verify; by default
+             ['db_files', 'seq_files', 'seq_files_1', 'seq_files_2', 'primer_file'] 
+             are supported in that order
+    in_types = a list of types (file extensions as strings) to allow for files in file_arg
+               if None do not check type
                     
     Returns:
     a dictionary copy of args with output arguments embedded in the dictionary out_args
@@ -1598,78 +1606,86 @@ def parseCommonArgs(args, file_args=None):
     db_types = ['.tab']
     seq_types = ['.fasta', '.fastq']
     primer_types = ['.fasta', '.regex']
+    if in_types is not None:  in_types = [f.lower for f in in_types]
     args_dict = args.__dict__.copy()
     
-    # Verify database files
-    db_files = []
-    if 'db_files' in args_dict:
-        db_files.extend(args_dict['db_files'])
-    for f in db_files:
-        if not os.path.isfile(f):
-            sys.exit('ERROR:  Database file %s does not exist' % f)
-        if os.path.splitext(f)[-1].lower() not in db_types:
-            sys.exit('ERROR:  Database file %s is not a supported type. Must be one: %s' \
-                     % (','.join(db_types), f))
-                
-    # Verify sequence files
-    seq_files = []
-    if 'seq_files' in args_dict:
-        seq_files.extend(args_dict['seq_files'])
-    elif 'seq_files_1' and 'seq_files_2' in args_dict:
-        if len(args_dict['seq_files_1']) != len(args_dict['seq_files_2']):
-            sys.exit('ERROR:  The -1 and -2 arguments must contain the same number of files')
-        for f1, f2 in zip(args_dict['seq_files_1'], args_dict['seq_files_2']):
-            if os.path.splitext(f1)[-1].lower() != os.path.splitext(f2)[-1].lower():
-                sys.exit('ERROR:  Each pair of files in the -1 and -2 arguments must be the same file type')
-        seq_files.extend(args_dict['seq_files_1'])
-        seq_files.extend(args_dict['seq_files_2'])
-    for f in seq_files:
-        if not os.path.isfile(f):
-            sys.exit('ERROR:  Sequence file %s does not exist' % f)
-        if os.path.splitext(f)[-1].lower() not in seq_types:
-            sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
-                     % (','.join(seq_types), f))
-
-    # Verify primer files
-    if 'primer_file' in args_dict:
-        primer_files = args_dict['primer_file'] if isinstance(args_dict['primer_file'], list) \
-                       else [args_dict['primer_file']]
-        for f in primer_files:
-            if not os.path.isfile(f):
-                sys.exit('ERROR:  Primer file %s does not exist' % f)
-            if os.path.splitext(f)[-1].lower() not in primer_types:
-                sys.exit('ERROR:  Primer file %s is not a supported type. Must be one: %s' \
-                         % (','.join(primer_types), f))
-    
-    # Count known input files
-    if 'seq_files' in args_dict:       input_count = len(args_dict['seq_files'])
-    elif 'seq_files_1' in args_dict:   input_count = len(args_dict['seq_files_1'])
-    elif 'db_files' in args_dict:      input_count = len(args_dict['db_files'])
-    elif 'record_files' in args_dict:  input_count = len(args_dict['record_files'])
-    elif 'primer_files' in args_dict:  input_count = len(args_dict['primer_files'])
-    elif 'imgt_output' in args_dict:   input_count = len(args_dict['imgt_output'])
+    # Count input files
+    if 'db_files' in args_dict:      
+        input_count = len(args_dict['db_files'])
+    elif 'seq_files' in args_dict:       
+        input_count = len(args_dict['seq_files'])
+    elif 'seq_files_1' in args_dict and 'seq_files_2' in args_dict:   
+        input_count = len(args_dict['seq_files_1'])
+    elif 'primer_file' in args_dict:   
+        input_count = 1
+    elif in_arg is not None and in_arg in args_dict: 
+        input_count = len(args_dict[in_arg])
+    else:
+        sys.exit('ERROR:  Cannot determine input file argument')
     
     # Exit if output names or log files are specified with multiple input files    
     if args_dict.get('out_name', None) is not None and input_count > 1:
         sys.exit('ERROR:  The --outname argument may not be specified with multiple input files')
     if args_dict.get('log_file', None) is not None and input_count > 1:
         sys.exit('ERROR:  The --log argument may not be specified with multiple input files')
+        
+    # Verify database files
+    if 'db_files' in args_dict:
+        for f in args_dict['db_files']:
+            if not os.path.isfile(f):
+                sys.exit('ERROR:  Database file %s does not exist' % f)
+            if os.path.splitext(f)[-1].lower() not in db_types:
+                sys.exit('ERROR:  Database file %s is not a supported type. Must be one: %s' \
+                         % (','.join(db_types), f))       
+    
+    # Verify single-end sequence files
+    if 'seq_files' in args_dict:
+        for f in args_dict['seq_files']:
+            if not os.path.isfile(f):
+                sys.exit('ERROR:  Sequence file %s does not exist' % f)
+            if os.path.splitext(f)[-1].lower() not in seq_types:
+                sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
+                         % (','.join(seq_types), f))
+    
+    # Verify paired-end sequence files
+    if 'seq_files_1' and 'seq_files_2' in args_dict:
+        if len(args_dict['seq_files_1']) != len(args_dict['seq_files_2']):
+            sys.exit('ERROR:  The -1 and -2 arguments must contain the same number of files')
+        for f1, f2 in zip(args_dict['seq_files_1'], args_dict['seq_files_2']):
+            if os.path.splitext(f1)[-1].lower() != os.path.splitext(f2)[-1].lower():
+                sys.exit('ERROR:  Each pair of files in the -1 and -2 arguments must be the same file type')
+        for f in (args_dict['seq_files_1'] + args_dict['seq_files_2']):
+            if not os.path.isfile(f):
+                sys.exit('ERROR:  Sequence file %s does not exist' % f)
+            if os.path.splitext(f)[-1].lower() not in seq_types:
+                sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
+                         % (','.join(seq_types), f))
+                    
+    # Verify primer file
+    if 'primer_file' in args_dict:
+        primer_file = args_dict['primer_file']
+        if not os.path.isfile(primer_file):
+            sys.exit('ERROR:  Primer file %s does not exist' % primer_file)
+        if os.path.splitext(primer_file)[-1].lower() not in primer_types:
+            sys.exit('ERROR:  Primer file %s is not a supported type. Must be one: %s' \
+                     % (','.join(primer_types), primer_file))
+    
+    # Verify non-standard input files
+    if in_arg is not None and in_arg in args_dict:
+        files = args_dict[in_arg] if isinstance(args_dict[in_arg], list) \
+                else [args_dict[in_arg]]
+        for f in files:
+            if not os.path.exists(f):
+                sys.exit('ERROR:  Input %s does not exist' % f)
+            if in_types is not None and os.path.splitext(f)[-1].lower() not in in_types:
+                sys.exit('ERROR:  Input %s is not a supported type. Must be one: %s' \
+                         % (','.join(in_types), f))
     
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir'] is not None:
         if os.path.exists(args_dict['out_dir']) and not os.path.isdir(args_dict['out_dir']):
-            sys.exit('ERROR:  Directory %s exists and is not a directory' % args_dict['out_dir'])
-    
-    # Verify optional files
-    if file_args is not None:
-        if not isinstance(file_args, list):  file_args = [file_args]
-        for arg in file_args:
-            files = args_dict[arg] if isinstance(args_dict[arg], list) \
-                    else [args_dict[arg]]
-            for f in files:
-                if not os.path.isfile(f):
-                    sys.exit('ERROR:  File %s does not exist' % f)
-    
+            sys.exit('ERROR:  Directory %s exists but it is not a directory' % args_dict['out_dir'])
+
     # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'delimiter', 'separator', 
                 'out_dir', 'out_name', 'out_type', 'clean']
