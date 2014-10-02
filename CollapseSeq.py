@@ -6,12 +6,12 @@ Removes duplicate sequences from FASTA/FASTQ files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.10.2'
 
 # Imports
 import os, re, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain, izip
 from time import time
@@ -22,7 +22,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_action_choices, default_delimiter, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation 
 from IgCore import mergeAnnotation, parseAnnotation
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import getFileType, readSeqFile, testSeqEqual
 
@@ -308,7 +308,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             parents=[getCommonArgParser()], 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
 
     parser.add_argument('-n', action='store', dest='max_missing', type=int, default=default_max_missing, 
                         help='Maximum number of missing nucleotides to consider for collapsing \

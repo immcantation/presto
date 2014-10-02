@@ -7,12 +7,12 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
 import ctypes, math, os, re, signal, sys
 import multiprocessing as mp
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter
 from itertools import izip, izip_longest, product
 from collections import OrderedDict
 from time import time, strftime
@@ -40,6 +40,13 @@ default_out_args = {'log_file':None,
                     'out_type':None,
                     'clean':False}
 
+
+class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
+    """
+    Custom argparse.HelpFormatter
+    """
+    pass
+    
 
 class SeqData:
     """
@@ -1527,7 +1534,7 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     Returns:
     an ArgumentParser object
     """
-    parser = ArgumentParser(add_help=False, formatter_class=ArgumentDefaultsHelpFormatter)
+    parser = ArgumentParser(add_help=False, formatter_class=CommonHelpFormatter)
 
     # Database arguments
     if db_in:

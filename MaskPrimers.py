@@ -6,12 +6,12 @@ Removes primers and annotates sequences with primer and barcode identifiers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.10.2'
 
 # Imports
 import os, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
 from Bio import pairwise2
@@ -20,9 +20,9 @@ from Bio import pairwise2
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
-from IgCore import getCommonArgParser, parseCommonArgs, printLog
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getScoreDict, reverseComplement, weightSeq
-from IgCore import compilePrimers, readPrimerFile
+from IgCore import compilePrimers, readPrimerFile, printLog
 from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
 
@@ -441,7 +441,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', help='Alignment method', metavar='')
 
     
@@ -463,7 +463,7 @@ def getArgParser():
     
     # Align mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parser_parent],
-                                         formatter_class=ArgumentDefaultsHelpFormatter,
+                                         formatter_class=CommonHelpFormatter,
                                          help='Find primer matches using pairwise local alignment')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len, help='Maximum sequence length to scan for primers')
@@ -475,7 +475,7 @@ def getArgParser():
 
     # Score mode argument parser
     parser_score = subparsers.add_parser('score', parents=[parser_parent], 
-                                         formatter_class=ArgumentDefaultsHelpFormatter,
+                                         formatter_class=CommonHelpFormatter,
                                          help='Find primer matches by scoring primers at a fixed position')
     parser_score.add_argument('--start', action='store', dest='start', type=int, default=default_start, 
                               help='The starting position of the primer')

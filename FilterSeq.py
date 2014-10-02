@@ -6,12 +6,12 @@ Filters sequences in FASTA/FASTQ files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.10.2'
 
 # Imports
 import os, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import groupby
 from Bio.Alphabet import IUPAC
@@ -21,7 +21,8 @@ from Bio.SeqRecord import SeqRecord
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_min_qual, default_out_args, default_missing_chars
-from IgCore import getCommonArgParser, getFileType, parseCommonArgs, printLog
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from IgCore import getFileType, printLog
 from IgCore import collectSeqQueue, feedSeqQueue, processSeqQueue
 from IgCore import manageProcesses, SeqResult
 
@@ -337,7 +338,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', help='Filtering operation', metavar='')
     
     # Parent parser
@@ -345,7 +346,7 @@ def getArgParser():
     
     # Length filter mode argument parser
     parser_length = subparsers.add_parser('length', parents=[parser_parent],
-                                          formatter_class=ArgumentDefaultsHelpFormatter, 
+                                          formatter_class=CommonHelpFormatter, 
                                           help='Sequence length filtering mode')
     parser_length.add_argument('-n', action='store', dest='min_length', type=int, 
                                default=default_min_length, 
@@ -356,7 +357,7 @@ def getArgParser():
     
     # Missing character filter mode argument parser
     parser_missing = subparsers.add_parser('missing', parents=[parser_parent],
-                                           formatter_class=ArgumentDefaultsHelpFormatter, 
+                                           formatter_class=CommonHelpFormatter, 
                                            help='Missing nucleotide filtering mode')
     parser_missing.add_argument('-n', action='store', dest='max_missing', type=int, 
                                 default=default_max_missing, 
@@ -367,7 +368,7 @@ def getArgParser():
     
     # Continuous repeating character filter mode argument parser
     parser_repeats = subparsers.add_parser('repeats', parents=[parser_parent],
-                                           formatter_class=ArgumentDefaultsHelpFormatter, 
+                                           formatter_class=CommonHelpFormatter, 
                                            help='Consecutive nucleotide repeating filtering mode')
     parser_repeats.add_argument('-n', action='store', dest='max_repeat', type=int, 
                                 default=default_max_repeat, 
@@ -380,7 +381,7 @@ def getArgParser():
     
     # Quality filter mode argument parser
     parser_quality = subparsers.add_parser('quality', parents=[parser_parent],
-                                          formatter_class=ArgumentDefaultsHelpFormatter, 
+                                          formatter_class=CommonHelpFormatter, 
                                           help='Quality filtering mode')
     parser_quality.add_argument('-q', action='store', dest='min_qual', type=float, 
                                 default=default_min_qual, help='Quality score threshold')
@@ -390,7 +391,7 @@ def getArgParser():
 
     # Mask mode argument parser
     parser_maskqual = subparsers.add_parser('maskqual', parents=[parser_parent], 
-                                        formatter_class=ArgumentDefaultsHelpFormatter,
+                                        formatter_class=CommonHelpFormatter,
                                         help='Character masking mode')
     parser_maskqual.add_argument('-q', action='store', dest='min_qual', type=float, 
                              default=default_min_qual, help='Quality score threshold')
@@ -398,7 +399,7 @@ def getArgParser():
 
     # Trim mode argument parser
     parser_trimqual = subparsers.add_parser('trimqual', parents=[parser_parent], 
-                                            formatter_class=ArgumentDefaultsHelpFormatter,
+                                            formatter_class=CommonHelpFormatter,
                                             help='Sequence trimming mode')
     parser_trimqual.add_argument('-q', action='store', dest='min_qual', type=float, 
                                  default=default_min_qual, help='Quality score threshold')

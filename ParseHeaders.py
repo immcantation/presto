@@ -6,12 +6,12 @@ Parses pRESTO annotations in FASTA/FASTQ sequence headers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.10.2'
 
 # Imports
 import csv, os, re, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
 from time import time
@@ -23,7 +23,7 @@ from IgCore import default_action_choices
 from IgCore import default_delimiter, default_separator, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
 from IgCore import parseAnnotation, renameAnnotation
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import countSeqFile, readSeqFile, getFileType
 
@@ -374,12 +374,12 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Annotation operation', metavar='')
 
     # Subparser to add header fields
     parser_add = subparsers.add_parser('add', parents=[getCommonArgParser(log=False)],
-                                       formatter_class=ArgumentDefaultsHelpFormatter,
+                                       formatter_class=CommonHelpFormatter,
                                        help='Adds field/value pairs to header annotations')    
     parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                             help='List of fields to add')
@@ -390,7 +390,7 @@ def getArgParser():
 
     # Subparser to collapse header fields
     parser_collapse = subparsers.add_parser('collapse', parents=[getCommonArgParser(log=False)],
-                                            formatter_class=ArgumentDefaultsHelpFormatter,
+                                            formatter_class=CommonHelpFormatter,
                                             help='Collapses header annotations with multiple entries')    
     parser_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                  help='List of fields to collapse')
@@ -402,7 +402,7 @@ def getArgParser():
 
     # Subparser to delete header fields
     parser_delete = subparsers.add_parser('delete', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Deletes fields from header annotations')    
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to delete')
@@ -411,7 +411,7 @@ def getArgParser():
 
     # Subparser to expand header fields
     parser_expand = subparsers.add_parser('expand', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Expands annotation fields with multiple values')    
     parser_expand.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to expand')
@@ -423,7 +423,7 @@ def getArgParser():
 
     # Subparser to rename header fields
     parser_rename = subparsers.add_parser('rename', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Renames headers annotation fields')    
     parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to rename')
@@ -434,7 +434,7 @@ def getArgParser():
             
     # Subparser to create a header table
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_out=False, log=False)],
-                                         formatter_class=ArgumentDefaultsHelpFormatter,
+                                         formatter_class=CommonHelpFormatter,
                                          help='Writes sequence headers to a table')
     parser_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                               help='List of fields to collect')
@@ -442,7 +442,7 @@ def getArgParser():
     
     # Subparser to convert header to pRESTO format
     parser_convert = subparsers.add_parser('convert', parents=[getCommonArgParser(log=False)],
-                                       formatter_class=ArgumentDefaultsHelpFormatter,
+                                       formatter_class=CommonHelpFormatter,
                                        help='Converts sequence descriptions to pRESTO format')   
     parser_convert.set_defaults(func=convertHeaders)
     

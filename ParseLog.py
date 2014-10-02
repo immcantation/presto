@@ -7,18 +7,18 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
 import csv, os, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_out_args
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 
 
@@ -136,7 +136,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False)], 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
                         help='List of log files to parse')

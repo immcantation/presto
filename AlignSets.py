@@ -7,11 +7,11 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.9.4'
+__date__      = '2014.10.2'
 
 # Imports
 import csv, os, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
 from itertools import izip
@@ -27,7 +27,8 @@ from Bio.SeqRecord import SeqRecord
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import default_barcode_field, default_primer_field
-from IgCore import parseAnnotation, getCommonArgParser, parseCommonArgs
+from IgCore import parseAnnotation
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog
 from IgCore import indexSeqSets, calculateDiversity, readPrimerFile
 from IgCore import collectSeqQueue, feedSeqQueue
@@ -387,7 +388,7 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Alignment method', metavar='')
     
     # Parent parser    
@@ -400,7 +401,7 @@ def getArgParser():
         
     # MUSCLE mode argument parser
     parser_muscle = subparsers.add_parser('muscle', parents=[parser_parent],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Align sequence sets using MUSCLE')
     parser_muscle.add_argument('--exec', action='store', dest='muscle_exec', default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
@@ -408,7 +409,7 @@ def getArgParser():
 
     # Primer offset mode argument parser
     parser_offset = subparsers.add_parser('offset', parents=[parser_parent],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Align sequence sets using predefined 5\' offset')
     parser_offset.add_argument('-d', action='store', dest='offset_table', default=None,
                                help='The tab delimited file of offset tags and values')
@@ -423,7 +424,7 @@ def getArgParser():
 
     # Offset table generation argument parser
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
-                                         formatter_class=ArgumentDefaultsHelpFormatter,
+                                         formatter_class=CommonHelpFormatter,
                                          help='Create a 5\' offset table by primer multiple alignment')
     parser_table.add_argument('-p', action='store', dest='primer_file', required=True, 
                                help='A FASTA or REGEX file containing primer sequences')

@@ -6,12 +6,12 @@ Sorts, samples and splits FASTA/FASTQ sequence files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.10.2'
 
 # Imports
 import os, sys
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from random import sample
 from textwrap import dedent
@@ -22,7 +22,7 @@ from Bio import SeqIO
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_coord_choices, default_coord_type, default_out_args
 from IgCore import getAnnotationValues, parseAnnotation, indexSeqPairs, subsetSeqIndex
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress
 from IgCore import countSeqFile, readSeqFile, getFileType
 
@@ -512,12 +512,12 @@ def getArgParser():
     """
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Sequence file operation', metavar='')
 
     # Subparser to downsize files to a maximum count
     parser_downsize = subparsers.add_parser('count', parents=[getCommonArgParser(annotation=False, log=False)],
-                                            formatter_class=ArgumentDefaultsHelpFormatter,
+                                            formatter_class=CommonHelpFormatter,
                                             help='Splits sequences files by number of records')
     parser_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
                                  help='Maximum number of sequences in each new file')
@@ -525,7 +525,7 @@ def getArgParser():
     
     # Subparser to partition files by annotation
     parser_group = subparsers.add_parser('group', parents=[getCommonArgParser(log=False)],
-                                         formatter_class=ArgumentDefaultsHelpFormatter,
+                                         formatter_class=CommonHelpFormatter,
                                          help='Splits sequences files by annotation')
     parser_group.add_argument('-f', action='store', dest='field', type=str, required=True,
                               help='Annotation field to split sequence files by')
@@ -536,7 +536,7 @@ def getArgParser():
 
     # Subparser to randomly sample from unpaired files
     parser_sample = subparsers.add_parser('sample', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Randomly samples from unpaired sequences files')
     parser_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True, 
                                help='Maximum number of sequences to sample from each file')
@@ -549,7 +549,7 @@ def getArgParser():
     
     # Subparser to randomly sample from paired files
     parser_samplepair = subparsers.add_parser('samplepair', parents=[getCommonArgParser(paired=True, log=False)],
-                                          formatter_class=ArgumentDefaultsHelpFormatter,
+                                          formatter_class=CommonHelpFormatter,
                                           help='Randomly samples from paired-end sequences files')
     parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, 
                                    required=True, 
@@ -567,7 +567,7 @@ def getArgParser():
     
     # Subparser to sort files
     parser_sort = subparsers.add_parser('sort', parents=[getCommonArgParser(log=False)],
-                                        formatter_class=ArgumentDefaultsHelpFormatter,
+                                        formatter_class=CommonHelpFormatter,
                                         help='Sorts sequences files by annotation')
     parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
                              help='The annotation field to sort sequences by')

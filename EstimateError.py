@@ -6,14 +6,14 @@ Calculates annotation set error rates
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.4'
-__date__      = '2014.6.10'
+__version__   = '0.4.5'
+__date__      = '2014.10.2'
 
 # Imports
 import os, sys
 import numpy as np
 import pandas as pd
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import permutations
 from time import time
@@ -22,7 +22,7 @@ from time import time
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_missing_chars, default_barcode_field, default_out_args
 from IgCore import default_min_freq, default_min_qual
-from IgCore import getCommonArgParser, parseCommonArgs
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress, getFileType
 from IgCore import getScoreDict, calculateDiversity, countSeqSets, indexSeqSets
 from IgCore import frequencyConsensus, qualityConsensus
@@ -449,7 +449,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             parents=[getCommonArgParser(seq_out=False, multiproc=True)], 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field, 
                         help='The name of the annotation field to group sequences by')
