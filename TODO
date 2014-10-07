@@ -1,7 +1,7 @@
-August 25, 2014
-Version 0.4.5
+August 25, 2014  
+Version 0.4.5  
 
-High Priority
+High Priority  
 + Improve CollapseSeq algorithm for max_missing > 0
 + Add multiprocessing to CollapseSeq if needed after algorithm improvement
 + Write two wrappers for server-side sequential processing of individual 
@@ -9,7 +9,7 @@ High Priority
 + Write custom argparse.HelpFormatter to correct ordering and grouping of
   positional, required and option arguments
 
-Low Priority
+Low Priority  
 + Optimize everything
 + Add --start parameter to align subcommand of MaskPrimers
 + Add --with-replacement parameter to sample and samplepair subcommands of 
@@ -20,7 +20,7 @@ Low Priority
 + Add flag for bidirectional annotation copying to PairSeq
 + Add --summary flag that generates count tables for plotting
   
-Potential Features
+Potential Features  
 + Maybe import ParseDB tool into pRESTO to convert csv/tab files to 
   FASTA/CLIP format
 + Maybe add fail files to ParseLog and table subcommand of ParseHeaders
