@@ -34,7 +34,7 @@ from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
 from IgCore import manageProcesses, SeqData, SeqResult
 
 # Defaults
-default_alpha = 0.01
+default_alpha = 1e-5
 default_max_error = 0.2
 default_min_len = 1
 default_max_len = 1000
@@ -151,32 +151,33 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     return {'seq':record, 'error':0, 'pval':0, 'len':-gap}
 
 
-def alignSeqPair(head_seq, tail_seq, max_error=default_max_error, min_len=default_min_len,
-                 max_len=default_max_len, skip_sub=False, full_scan=False, p_matrix=None,
+def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
+                 min_len=default_min_len, max_len=default_max_len, skip_reverse=False,
+                 quick_error=False, p_matrix=None,
                  score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Stitches two sequences together by aligning the ends
 
     Arguments:
     head_seq = the head SeqRecord
-    tail_seq = the tail SeqRecord
-    max_error = maximum error rate for a valid stitch
+    head_seq = the tail SeqRecord
+    alpha = the minimum p-value for a valid assembly
+    max_error = the maximum error rate for a valid assembly
     min_len = minimum length of overlap to test
     max_len = maximum length of overlap to test
-    skip_sub = if True do not allow one sequence to be a subsequence of the other
-               if False permit subsequence alignments
-    full_scan = if True allow alignment scan over max_error threshold
-                if False reduce computations by ending search after max_error reached
+    skip_reverse = if True do not allow the head sequence to overhang the end of the tail sequence
+    quick_error = if True truncate error calculation after reaching max_error
     p_matrix = optional successes by trials numpy.array of p-values 
     score_dict = optional dictionary of character scores in the 
                  form {(char1, char2): score}
                      
     Returns: 
-    dictionary of {stitched SeqRecord object, error rate, p-value, overlap length}
+    dictionary of {stitched SeqRecord object, error rate, p-value, (head overlap range),
+                   (tail overlap range)}
     """
     # Set alignment parameters
     if p_matrix is None:  p_matrix = getPMatrix(max_len + 1)
-    scan_error = None if full_scan else max_error
+    scan_error = max_error if quick_error else None
 
     # Define empty return dictionary
     best_dict = {'seq':None, 'error':1.0, 'pval':1.0, 'pos_1':None, 'pos_2':None}
@@ -185,78 +186,105 @@ def alignSeqPair(head_seq, tail_seq, max_error=default_max_error, min_len=defaul
     head_len = len(head_seq)
     tail_len = len(tail_seq)
 
-
     # Determine if quality scores are present
     has_quality = hasattr(head_seq, 'letter_annotations') and \
                   hasattr(tail_seq, 'letter_annotations') and \
                   'phred_quality' in head_seq.letter_annotations and \
                   'phred_quality' in tail_seq.letter_annotations
 
-    # Determine if sub-sequences are allowed and define index offsets for fully overlapping cases
-    if (skip_sub) or max_len < min(head_len, tail_len):
-        max_pos = min(head_len, tail_len, max_len)
-        overlap_pos = xrange(min_len, max_pos + 1)
-        head_offset = repeat(0, max_pos)
-        tail_offset = repeat(0, max_pos)
+    # Determine if sub-sequences are allowed and define scan indices
+    max_scan = max(head_len, tail_len)
+    min_scan = min(head_len, tail_len)
+    if (skip_reverse) or max_len < min(head_len, tail_len):
+        #max_pos = min(head_len, tail_len, max_len)
+        #scan_pos = xrange(min_len, max_pos + 1)
+        #head_offset = repeat(0, max_pos)
+        #tail_offset = repeat(0, max_pos)
+        head_scan = head_len
+        tail_scan = min_scan
     else:
-        overlap_pos = xrange(min_len, max(head_len, tail_len) + 1)
-        head_offset = chain(repeat(0, tail_len), xrange(1, max(0, head_len - tail_len) + 1))
-        tail_offset = chain(repeat(0, head_len), xrange(1, max(0, tail_len - head_len) + 1))
+        head_scan = min_len
+        tail_scan = min_len
 
-    #j = [(-x, head_len - y) for x, y in izip(overlap_pos,  head_offset)]
-    #k = [(y, x + y) for x, y in izip(overlap_pos,  tail_offset)]
+    #>>> NOT QUITE WORKING
+    # Define head sequence indices
+    head_start = chain(xrange(head_len - min_len, 0, -1),
+                       repeat(0, min_scan - head_scan + 1))
+    head_end = chain(repeat(head_len, min_scan - min_len),
+                     xrange(head_len, head_scan - 1, -1))
+
+    # Define tail sequence indices
+    tail_start = chain(repeat(0, max_scan - min_len),
+                       xrange(0, tail_len - tail_scan + 1, 1))
+    tail_end = chain(xrange(min_len, tail_len, 1),
+                     repeat(tail_len, max_scan - tail_scan + 1))
+
+    # # Define head sequence indices
+    # head_start = chain(xrange(head_len - min_len, 0, -1),
+    #                    repeat(0, max_scan - head_scan + 1))
+    # head_end = chain(repeat(head_len, max_scan - min_len),
+    #                  xrange(head_len, head_scan - 1, -1))
+    #
+    # # Define tail sequence indices
+    # tail_start = chain(repeat(0, min_scan - min_len),
+    #                    xrange(0, tail_len - tail_scan + 1, 1))
+    # tail_end = chain(xrange(min_len, tail_len, 1),
+    #                  repeat(tail_len, min_scan - tail_scan + 1))
+    # # tail_start = chain(repeat(0, min_scan - min_len),
+    #                    xrange(0, tail_len - min_len + 1, 1))
+    #
+    # tail_end = chain(xrange(min_len, tail_len, 1),
+    #                  repeat(tail_len, min_scan - min_len + 1))
+
+
+    #print "-> NEW"
+    #print (len(list(head_start)), len(list(head_end))), (len(list(tail_start)), len(list(tail_end)))
+    #for x1, x2, y1, y2 in izip(head_start, head_end, tail_start, tail_end): print (x1, x2), (y1, y2)
 
     # Iterate and score overlap segments
     head_str = str(head_seq.seq)
     tail_str = str(tail_seq.seq)
-    #print "NEW"
-    for n, i, j in izip(overlap_pos, head_offset, tail_offset):
-        head_start = head_len - (n - j)
-        head_end = head_len - i
-        tail_start = j
-        tail_end = n
-        #print (head_start, head_end), (tail_start, tail_end)
-        #print head_str[head_start:head_end]
-        #print tail_str[tail_start:tail_end]
-        score, weight, error = scoreSeqPair(head_str[head_start:head_end],
-                                            tail_str[tail_start:tail_end],
+    for a, b, x, y in izip(head_start, head_end, tail_start, tail_end):
+        score, weight, error = scoreSeqPair(head_str[a:b],
+                                            tail_str[x:y],
                                             scan_error,
-                                            n - i - j,
+                                            y - x,
                                             score_dict=score_dict)
         pval = p_matrix[score, weight]
         # Save stitch as optimal if p value and error improves
-        if pval < best_dict['pval'] and error < best_dict['error']:
-           best_dict['pos_1'] = (head_start, head_end)
-           best_dict['pos_2'] = (tail_start, tail_end)
+        if error <= best_dict['error'] and pval <= best_dict['pval']:
+           best_dict['pos_1'] = (a, b)
+           best_dict['pos_2'] = (x, y)
            best_dict['pval'] = pval
            best_dict['error'] = error
-        #if pval <= alpha and pval < best_dict['pval'] and error <= max_error:
-        #    best_pos = n
-        #    best_dict['pval'] = pval
-        #    best_dict['error'] = error
 
     # Build stitched sequences and assign best_dict values
-    if best_dict['pos_1'] is not None:
+    if best_dict['pos_1'] is not None and \
+       best_dict['pval'] <= alpha and \
+       best_dict['error'] <= max_error:
         # Correct quality scores and resolve conflicts
-        x1, x2 = best_dict['pos_1']
-        y1, y2 = best_dict['pos_2']
+        a, b = best_dict['pos_1']
+        x, y = best_dict['pos_2']
         if has_quality:
             # Build quality consensus
-            overlap_seq = overlapConsensus(head_seq[x1:x2],
-                                           tail_seq[y1:y2])
+            overlap_seq = overlapConsensus(head_seq[a:b],
+                                           tail_seq[x:y])
         else:
             # Assign head sequence to conflicts when no quality information is available
-            #print (x1, x2), (y1, y2)
-            overlap_seq = head_seq[x1:x2]
+            overlap_seq = head_seq[a:b]
 
-        if x2 < head_len:
-            #print "HEAD", (x1, x2, head_len)
-            best_dict['seq'] = head_seq[:x1] + overlap_seq + head_seq[x2:]
-        elif y1 > 0:
-            #print "TAIL", (y1, y2, tail_len)
-            best_dict['seq'] = tail_seq[:y1] + overlap_seq + tail_seq[y2:]
+        if b < head_len and x > 0:
+            # Head overlaps end of tail
+            best_dict['seq'] = tail_seq[:x] + overlap_seq + head_seq[b:]
+        elif a == 0 and b == head_len and x >= 0:
+            # Head is a subsequence of tail
+            best_dict['seq'] = tail_seq[:x] + overlap_seq + tail_seq[y:]
+        elif b <= head_len and x == 0 and y == tail_len:
+            # Tail is a subsequence of head
+            best_dict['seq'] = head_seq[:a] + overlap_seq + head_seq[b:]
         else:
-            best_dict['seq'] = head_seq[:x1] + overlap_seq + tail_seq[y2:]
+            # Tail overlaps end of head
+            best_dict['seq'] = head_seq[:a] + overlap_seq + tail_seq[y:]
 
         # Define best stitch ID
         best_dict['seq'].id = head_seq.id if head_seq.id == tail_seq.id \
@@ -317,8 +345,7 @@ def feedAPQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
     return None
 
 
-def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args={}, 
-                   alpha=default_alpha, max_error=default_max_error,
+def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args={},
                    rc=None, fields_1=None, fields_2=None,
                    delimiter=default_delimiter):
     """
@@ -331,8 +358,6 @@ def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args
     result_queue = a multiprocessing.Queue to hold processed results
     assemble_func = the function to use to assemble paired ends
     assemble_args = a dictionary of arguments to pass to the assembly function
-    alpha = maximum p-value for a valid stitch
-    max_error = maximum error rate for a valid stitch
     rc = Defines which sequences ('head','tail','both') to reverse complement
          before assembly; if None do not reverse complement sequences
     fields_1 = list of annotations in head_file records to copy to assembled record;
@@ -379,7 +404,19 @@ def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args
                 stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
                 result.log['TAILFIELDS'] = '|'.join(['%s=%s' % (k, v) 
                                                      for k, v in tail_ann.iteritems()])
-            
+
+            ab = stitch['pos_1']
+            xy = stitch['pos_2']
+            if ab is not None and xy is not None:
+                #print ab, xy
+                result.log['HEADSEQ'] = ' ' * xy[0] + head_seq.seq
+                result.log['TAILSEQ'] = ' ' * ab[0] + tail_seq.seq
+                overlap = ab[1] - ab[0]
+            else:
+                result.log['HEADSEQ'] = head_seq.seq
+                result.log['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
+                overlap = 0
+
             # Define stitching log
             if stitch['seq'] is not None:
                 out_seq = stitch['seq']
@@ -389,22 +426,17 @@ def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args
                 out_seq.description = '' 
                 # Add stitch to results
                 result.results = out_seq
-                result.valid = bool(stitch['pval'] <= alpha and stitch['error'] <= max_error)
-                # Update log
-                x1, x2 = stitch['pos_1']
-                y1, y2 = stitch['pos_2']
-                result.log['HEADSEQ'] = ' ' * y1 + head_seq.seq
-                result.log['TAILSEQ'] = ' ' * x1 + tail_seq.seq
+                result.valid = True
                 result.log['ASSEMBLY'] = out_seq.seq
                 if 'phred_quality' in out_seq.letter_annotations:
                     result.log['QUALITY'] = ''.join([chr(q+33) for q in
                                                      out_seq.letter_annotations['phred_quality']])
                 result.log['LENGTH'] = len(out_seq)
-                result.log['OVERLAP'] = x2 - x1
+                result.log['OVERLAP'] = overlap
             else:
-                result.log['HEADSEQ'] = head_seq.seq
-                result.log['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
                 result.log['ASSEMBLY'] = None
+            result.log['HEADPOS'] = ab
+            result.log['TAILPOS'] = xy
             result.log['ERROR'] = stitch['error']
             result.log['PVAL'] = stitch['pval']
 
@@ -583,8 +615,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
     if 'min_len' in assemble_args:  log['MIN_LEN'] = assemble_args['min_len']
     if 'max_len' in assemble_args:  log['MAX_LEN'] = assemble_args['max_len']
-    if 'skip_sub' in assemble_args:  log['SKIP_SUB'] = assemble_args['skip_sub']
-    if 'full_scan' in assemble_args:  log['FULL_SCAN'] = assemble_args['full_scan']
+    if 'skip_reverse' in assemble_args:  log['SKIP_REVERSE'] = assemble_args['skip_reverse']
+    if 'quick_error' in assemble_args:  log['QUICK_ERROR'] = assemble_args['quick_error']
     if 'gap' in assemble_args:  log['GAP'] = assemble_args['gap']
     log['NPROC'] = nproc
     printLog(log)
@@ -634,13 +666,9 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                  'seq_file_2': tail_file,
                  'index_dict': index_dict}
     # Define worker function and arguments
-    alpha = assemble_args['alpha']
-    del assemble_args['alpha']
     work_func = processAPQueue
     work_args = {'assemble_func': assemble_func, 
                  'assemble_args': assemble_args,
-                 'alpha': alpha,
-                 'max_error': assemble_args['max_error'],
                  'rc': rc,
                  'fields_1': head_fields,
                  'fields_2': tail_fields,
@@ -692,7 +720,7 @@ def getArgParser():
                                choices=default_coord_choices, default=default_coord_type,
                                help='The format of the sequence identifier which defines shared coordinate \
                                      information across paired ends')
-    parser_parent.add_argument('--rc', action='store', dest='rc', choices=('head', 'tail', 'both'), 
+    parser_parent.add_argument('--rc', action='store', dest='rc', choices=('head', 'tail', 'both'),
                                default=None, help='Specify to reverse complement sequences before stitching')
     parser_parent.add_argument('--1f', nargs='+', action='store', dest='head_fields', type=str, default=None, 
                                help='Specify annotation fields to copy from head records into assembled record')
@@ -711,11 +739,15 @@ def getArgParser():
                               default=default_min_len, help='Minimum sequence length to scan for overlap')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len, help='Maximum sequence length to scan for overlap')
-    parser_align.add_argument('--skipsub', action='store_true', dest='skip_sub',
-                              help='If specified do not allow sequences to be subsequences of one another')
-    parser_align.add_argument('--fullscan', action='store_true', dest='full_scan',
-                              help='If specified calculate error of entire sequence rather than halting \
-                                    the alignment after the maximum error threshold has been reached')
+    parser_align.add_argument('--skiprev', action='store_true', dest='skip_reverse',
+                              help='''If specified, do not scan past the end of the tail sequence
+                                      to allow the head sequence to overhang the end of the tail
+                                      sequence.''')
+    parser_align.add_argument('--quickerr', action='store_true', dest='quick_error',
+                              help='''If specified, halt error calculation after maximum error threshold
+                                      has been reached. This will result in all failed alignments having
+                                      an error of 1.0.''')
+
     parser_align.set_defaults(assemble_func=alignSeqPair)
     
     # Paired end concatenation mode argument parser
@@ -748,15 +780,15 @@ if __name__ == '__main__':
                                       'max_error':args_dict['max_error'],
                                       'min_len':args_dict['min_len'],
                                       'max_len':args_dict['max_len'],
-                                      'skip_sub':args_dict['skip_sub'],
-                                      'full_scan':args_dict['full_scan'],
+                                      'skip_reverse':args_dict['skip_reverse'],
+                                      'quick_error':args_dict['quick_error'],
                                       'p_matrix':getPMatrix(args_dict['max_len'] + 1)}
         del args_dict['alpha']
         del args_dict['max_error']
         del args_dict['min_len']
         del args_dict['max_len']
-        del args_dict['skip_sub']
-        del args_dict['full_scan']
+        del args_dict['skip_reverse']
+        del args_dict['quick_error']
     elif args_dict['assemble_func'] is joinSeqPair:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']

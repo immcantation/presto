@@ -309,7 +309,7 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
                 # Create output sequence
                 out_seq = getMaskedSeq(align, **mask_args)        
                 result.results = out_seq
-                result.valid = (align['error'] <= max_error) if len(out_seq) > 0 else False
+                result.valid = bool(align['error'] <= max_error) if len(out_seq) > 0 else False
                 
                 # Update log with successful alignment results
                 result.log['SEQORIENT'] = out_seq.annotations['seqorient']
