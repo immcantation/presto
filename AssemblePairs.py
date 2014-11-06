@@ -152,7 +152,7 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
 
 
 def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
-                 min_len=default_min_len, max_len=default_max_len, skip_reverse=False,
+                 min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
                  quick_error=False, p_matrix=None,
                  score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
@@ -165,7 +165,8 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     max_error = the maximum error rate for a valid assembly
     min_len = minimum length of overlap to test
     max_len = maximum length of overlap to test
-    skip_reverse = if True do not allow the head sequence to overhang the end of the tail sequence
+    scan_reverse = if True allow the head sequence to overhang the end of the tail sequence
+                   if False end alignment scan at end of tail sequence or start of head sequence
     quick_error = if True truncate error calculation after reaching max_error
     p_matrix = optional successes by trials numpy.array of p-values 
     score_dict = optional dictionary of character scores in the 
@@ -192,63 +193,113 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
                   'phred_quality' in head_seq.letter_annotations and \
                   'phred_quality' in tail_seq.letter_annotations
 
-    # Determine if sub-sequences are allowed and define scan indices
-    max_scan = max(head_len, tail_len)
-    min_scan = min(head_len, tail_len)
-    if (skip_reverse) or max_len < min(head_len, tail_len):
-        #max_pos = min(head_len, tail_len, max_len)
-        #scan_pos = xrange(min_len, max_pos + 1)
-        #head_offset = repeat(0, max_pos)
-        #tail_offset = repeat(0, max_pos)
-        head_scan = head_len
-        tail_scan = min_scan
+    # Determine if sub-sequences are allowed and define scan range
+    if scan_reverse and max_len >= min(head_len, tail_len):
+        scan_len = head_len + tail_len - min_len
     else:
-        head_scan = min_len
-        tail_scan = min_len
+        scan_len = min(max(head_len, tail_len), max_len)
 
-    #>>> NOT QUITE WORKING
-    # Define head sequence indices
-    head_start = chain(xrange(head_len - min_len, 0, -1),
-                       repeat(0, min_scan - head_scan + 1))
-    head_end = chain(repeat(head_len, min_scan - min_len),
-                     xrange(head_len, head_scan - 1, -1))
-
-    # Define tail sequence indices
-    tail_start = chain(repeat(0, max_scan - min_len),
-                       xrange(0, tail_len - tail_scan + 1, 1))
-    tail_end = chain(xrange(min_len, tail_len, 1),
-                     repeat(tail_len, max_scan - tail_scan + 1))
-
-    # # Define head sequence indices
-    # head_start = chain(xrange(head_len - min_len, 0, -1),
-    #                    repeat(0, max_scan - head_scan + 1))
-    # head_end = chain(repeat(head_len, max_scan - min_len),
-    #                  xrange(head_len, head_scan - 1, -1))
+    # Determine if sub-sequences are allowed and define scan indices
+    #min_scan = min(head_len, tail_len)
+    #max_scan = min(min_scan, max_len)
+    # if max_len < min(head_len, tail_len):
+    #     # Define head index ranges
+    #     head_start_range = head_len - min_len
+    #     head_start_repeat = 0
+    #     head_end_repeat = max_len
+    #     head_end_range = head_len
     #
-    # # Define tail sequence indices
-    # tail_start = chain(repeat(0, min_scan - min_len),
-    #                    xrange(0, tail_len - tail_scan + 1, 1))
-    # tail_end = chain(xrange(min_len, tail_len, 1),
-    #                  repeat(tail_len, min_scan - tail_scan + 1))
-    # # tail_start = chain(repeat(0, min_scan - min_len),
-    #                    xrange(0, tail_len - min_len + 1, 1))
+    #     # Define tail index ranges
+    #     tail_start_repeat = max_len
+    #     tail_start_range = 0
+    #     tail_end_range = max_len - min_len
+    #     tail_end_repeat = 0
     #
-    # tail_end = chain(xrange(min_len, tail_len, 1),
-    #                  repeat(tail_len, min_scan - min_len + 1))
+    # elif not scan_reverse:
+    #     # Define head index ranges
+    #     head_start_range = head_len - min_len
+    #     head_start_repeat = max(head_len, tail_len) - head_len # Differs
+    #     head_end_repeat = tail_len - min_len
+    #     head_end_range = min(head_len, tail_len) # Differs
+    #
+    #     # Define tail index ranges
+    #     tail_start_repeat = head_len - min_len
+    #     tail_start_range = max(head_len, tail_len) - tail_len
+    #     tail_end_range = tail_len
+    #     tail_end_repeat = max(head_len, tail_len) - tail_len
+    # else:
+    #     # Define head index ranges
+    #     head_start_range = head_len - min_len
+    #     head_start_repeat = tail_len - min_len # Differs
+    #     head_end_repeat = tail_len - min_len
+    #     head_end_range = min_len # Differs
+    #
+    #     # Define tail index ranges
+    #     tail_start_repeat = head_len - min_len
+    #     tail_start_range = tail_len - min_len  # Differs
+    #     tail_end_range = tail_len
+    #     tail_end_repeat = head_len - min_len # Differs
+    #
+    # print "\n-> NEW"
+    # min_len = 10
+    # #scan_len = head_len + tail_len - min_len
+    # scan_len = max(head_len, tail_len)
+    # #scan_len = 100
+    # #scan_len = max(head_len, tail_len)
+    # for i in range(min_len, scan_len + 1):
+    #     #print i, (max(0, head_len - i), min(head_len, head_len - scan_len - i)),
+    #     print i, (max(0, head_len - i), head_len - max(0, i - tail_len)),
+    #     print i, (max(0, i - head_len), min(tail_len, i))
+
+    # Define head sequence index iterators
+    # head_start = chain(xrange(head_start_range, -1, -1),
+    #                    repeat(0, head_start_repeat))
+    # head_end = chain(repeat(head_len, head_end_repeat),
+    #                  xrange(head_len, head_end_range - 1, -1))
+    # head_start = chain(xrange(head_start_range, head_len - max_len - 1, -1),
+    #                    repeat(0, head_start_repeat))
+    # head_end = chain(repeat(head_len, head_end_repeat),
+    #                  xrange(head_len, head_end_range - 1, -1))
+
+    # Define tail sequence index iterators
+    # tail_start = chain(repeat(0, tail_start_repeat),
+    #                    xrange(0, tail_start_range + 1, 1))
+    # tail_end = chain(xrange(min_len, tail_end_range + 1, 1),
+    #                  repeat(tail_len, tail_end_repeat))
+    # tail_start = chain(repeat(0, tail_start_repeat),
+    #                    xrange(0, tail_start_range + 1, 1))
+    # tail_end = chain(xrange(min_len, tail_end_range + 1, 1),
+    #                  repeat(tail_len, tail_end_repeat))
 
 
-    #print "-> NEW"
-    #print (len(list(head_start)), len(list(head_end))), (len(list(tail_start)), len(list(tail_end)))
-    #for x1, x2, y1, y2 in izip(head_start, head_end, tail_start, tail_end): print (x1, x2), (y1, y2)
+    #print "\n-> NEW"
+    #print '(%d->0|0*%d, %d*%d|%d->%d)' % \
+    #      (head_start_range, head_start_repeat, head_len, head_end_repeat, head_len, head_end_range)
+    #print '(0*%d|0->%d, %d->%d|%d*%d)' % \
+    #      (tail_start_repeat, tail_start_range, min_len, tail_end_range, tail_len, tail_end_repeat)
+    #print (len(list(head_start)), len(list(head_end))), (len(list(tail_start)), len(list(tail_end))
+    #for a, b in izip(head_start, head_end): print '(%03d, %03d)' % (a, b),
+    #print ''
+    #for x, y in izip(tail_start, tail_end): print '(%03d, %03d)' % (x, y),
+    #print ''
 
     # Iterate and score overlap segments
     head_str = str(head_seq.seq)
     tail_str = str(tail_seq.seq)
-    for a, b, x, y in izip(head_start, head_end, tail_start, tail_end):
+    #print "\n->NEW"
+    #for a, b, x, y in izip(head_start, head_end, tail_start, tail_end):
+    for i in xrange(min_len, scan_len + 1):
+        # a = max(0, head_len - i)
+        # b = head_len - max(0, i - tail_len)
+        # x = max(0, i - head_len)
+        # y = min(tail_len, i)
+        # print '[%03d]' % (i - min_len + 1), \
+        #       '%03d' % i, '(%03d, %03d)' % (a, b), \
+        #       '(%03d, %03d)' % (x, y)
         score, weight, error = scoreSeqPair(head_str[a:b],
                                             tail_str[x:y],
                                             scan_error,
-                                            y - x,
+                                            b - a,
                                             score_dict=score_dict)
         pval = p_matrix[score, weight]
         # Save stitch as optimal if p value and error improves
@@ -615,7 +666,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
     if 'min_len' in assemble_args:  log['MIN_LEN'] = assemble_args['min_len']
     if 'max_len' in assemble_args:  log['MAX_LEN'] = assemble_args['max_len']
-    if 'skip_reverse' in assemble_args:  log['SKIP_REVERSE'] = assemble_args['skip_reverse']
+    if 'scan_reverse' in assemble_args:  log['SCAN_REVERSE'] = assemble_args['scan_reverse']
     if 'quick_error' in assemble_args:  log['QUICK_ERROR'] = assemble_args['quick_error']
     if 'gap' in assemble_args:  log['GAP'] = assemble_args['gap']
     log['NPROC'] = nproc
@@ -739,10 +790,9 @@ def getArgParser():
                               default=default_min_len, help='Minimum sequence length to scan for overlap')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len, help='Maximum sequence length to scan for overlap')
-    parser_align.add_argument('--skiprev', action='store_true', dest='skip_reverse',
-                              help='''If specified, do not scan past the end of the tail sequence
-                                      to allow the head sequence to overhang the end of the tail
-                                      sequence.''')
+    parser_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
+                              help='''If specified, scan past the end of the tail sequence to allow
+                                      the head sequence to overhang the end of the tail sequence.''')
     parser_align.add_argument('--quickerr', action='store_true', dest='quick_error',
                               help='''If specified, halt error calculation after maximum error threshold
                                       has been reached. This will result in all failed alignments having
@@ -780,14 +830,14 @@ if __name__ == '__main__':
                                       'max_error':args_dict['max_error'],
                                       'min_len':args_dict['min_len'],
                                       'max_len':args_dict['max_len'],
-                                      'skip_reverse':args_dict['skip_reverse'],
+                                      'scan_reverse':args_dict['scan_reverse'],
                                       'quick_error':args_dict['quick_error'],
                                       'p_matrix':getPMatrix(args_dict['max_len'] + 1)}
         del args_dict['alpha']
         del args_dict['max_error']
         del args_dict['min_len']
         del args_dict['max_len']
-        del args_dict['skip_reverse']
+        del args_dict['scan_reverse']
         del args_dict['quick_error']
     elif args_dict['assemble_func'] is joinSeqPair:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
