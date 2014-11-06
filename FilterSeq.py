@@ -9,6 +9,7 @@ __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unpor
 __version__   = '0.4.5'
 __date__      = '2014.10.2'
 
+
 # Imports
 import os, sys
 from argparse import ArgumentParser
@@ -33,13 +34,13 @@ default_min_length = 250
 default_window = 10
 
 
-def filterLength(seq, min_length=default_min_length, inner=True, 
+def filterLength(data, min_length=default_min_length, inner=True,
                  missing_chars=''.join(default_missing_chars)):
     """
     Filters sequences by length
     
     Arguments: 
-    seq = a SeqRecord object to process
+    data = a SeqData object with a single SeqRecord to process
     min_length = The minimum length allowed
     inner = if True exclude outer missing characters from calculation
     missing_chars = a string of missing character values
@@ -47,6 +48,9 @@ def filterLength(seq, min_length=default_min_length, inner=True,
     Returns:
     a SeqResult object
     """
+    # Get SeqRecord
+    seq = data.data
+
     # Remove outer missing characters if required
     if inner:  
         seq_str = str(seq.seq).strip(missing_chars)
@@ -56,7 +60,7 @@ def filterLength(seq, min_length=default_min_length, inner=True,
     
     # Build result object
     valid = (n >= min_length)
-    result = SeqResult(seq.id, seq)
+    result = SeqResult(data.id, seq)
     if valid:
         result.results = seq
         result.valid = True
@@ -68,13 +72,13 @@ def filterLength(seq, min_length=default_min_length, inner=True,
     return result
 
 
-def filterMissing(seq, max_missing=default_max_missing, inner=True, 
+def filterMissing(data, max_missing=default_max_missing, inner=True,
                   missing_chars=''.join(default_missing_chars)):
     """
     Filters sequences by number of missing nucleotides
     
     Arguments: 
-    seq = a SeqRecord object to process
+    data = a SeqData object with a single SeqRecord to process
     max_missing = The maximum number of allowed ambiguous characters
     inner = if True exclude outer missing characters from calculation
     missing_chars = a string of missing character values
@@ -82,7 +86,10 @@ def filterMissing(seq, max_missing=default_max_missing, inner=True,
     Returns:
     a SeqResult object
     """
+    # Get SeqRecord
+    seq = data.data
     seq_str = str(seq.seq)
+
     # Remove outer missing character if required
     if inner:  seq_str = seq_str.strip(missing_chars)
     # Count missing characters
@@ -90,7 +97,7 @@ def filterMissing(seq, max_missing=default_max_missing, inner=True,
     
     # Build result object
     valid = (n <= max_missing)
-    result = SeqResult(seq.id, seq)
+    result = SeqResult(data.id, seq)
     if valid:
         result.results = seq
         result.valid = True
@@ -102,13 +109,13 @@ def filterMissing(seq, max_missing=default_max_missing, inner=True,
     return result
 
 
-def filterRepeats(seq, max_repeat=default_max_repeat, include_missing=False, inner=True,
+def filterRepeats(data, max_repeat=default_max_repeat, include_missing=False, inner=True,
                   missing_chars=''.join(default_missing_chars)):
     """
     Filters sequences by fraction of ambiguous nucleotides
     
     Arguments: 
-    seq = a SeqRecord object to process
+    data = a SeqData object with a single SeqRecord to process
     max_repeat = The maximum number of allowed repeating characters
     include_missing = if True count ambiguous character repeats;
                       if False do not consider ambiguous character repeats
@@ -118,7 +125,10 @@ def filterRepeats(seq, max_repeat=default_max_repeat, include_missing=False, inn
     Returns:
     a SeqResult object
     """
+    # Get SeqRecord
+    seq = data.data
     seq_str = str(seq.seq)
+
     # Remove outer missing character if required
     if inner:  seq_str = seq_str.strip(missing_chars)
     # Remove missing characters if required
@@ -130,7 +140,7 @@ def filterRepeats(seq, max_repeat=default_max_repeat, include_missing=False, inn
     
     # Build result object
     valid = (n <= max_repeat)
-    result = SeqResult(seq.id, seq)
+    result = SeqResult(data.id, seq)
     if valid:
         result.results = seq
         result.valid = True
@@ -142,13 +152,13 @@ def filterRepeats(seq, max_repeat=default_max_repeat, include_missing=False, inn
     return result
 
 
-def filterQuality(seq, min_qual=default_min_qual, inner=True,
+def filterQuality(data, min_qual=default_min_qual, inner=True,
                   missing_chars=''.join(default_missing_chars)):
     """
     Filters sequences by quality score
     
     Arguments: 
-    seq = a SeqRecord object to process
+    data = a SeqData object with a single SeqRecord to process
     min_qual = minimum mean quality score for retained sequences
     inner = if True exclude outer missing characters from calculation
     missing_chars = a string of missing character values
@@ -156,6 +166,9 @@ def filterQuality(seq, min_qual=default_min_qual, inner=True,
     Returns:
     a SeqResult object
     """
+    # Get SeqRecord
+    seq = data.data
+
     if inner:  
         seq_str = str(seq.seq)
         seq_cut = seq_str.strip(missing_chars)
@@ -168,7 +181,7 @@ def filterQuality(seq, min_qual=default_min_qual, inner=True,
 
     # Build result object
     valid = (q >= min_qual)
-    result = SeqResult(seq.id, seq)
+    result = SeqResult(data.id, seq)
     if valid:
         result.results = seq
         result.valid = True
@@ -180,12 +193,12 @@ def filterQuality(seq, min_qual=default_min_qual, inner=True,
     return result
 
 
-def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=False):
+def trimQuality(data, min_qual=default_min_qual, window=default_window, reverse=False):
     """
     Cuts sequences using a moving mean quality score
     
     Arguments: 
-    seq = a SeqRecord object to process
+    data = a SeqData object with a single SeqRecord to process
     min_qual = minimum mean quality to define a cut point
     window = nucleotide window size
     reverse = if True cut the head of the sequence;
@@ -194,6 +207,9 @@ def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=F
     Returns:
     a SeqResult object
     """
+    # Get SeqRecord
+    seq = data.data
+
     quals = seq.letter_annotations['phred_quality']
     # Reverse quality scores if required
     if reverse:  quals = quals[::-1]
@@ -217,7 +233,7 @@ def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=F
         
     # Build result object
     valid = (len(trim_seq) > 0)
-    result = SeqResult(seq.id, seq)
+    result = SeqResult(data.id, seq)
     if valid:
         result.results = trim_seq
         result.valid = True
@@ -230,17 +246,20 @@ def trimQuality(seq, min_qual=default_min_qual, window=default_window, reverse=F
     return result
 
 
-def maskQuality(seq, min_qual=default_min_qual):
+def maskQuality(data, min_qual=default_min_qual):
     """
     Masks characters by in sequence by quality score
     
     Arguments: 
-    seq = a SeqRecord object to process
+    data = a SeqData object with a single SeqRecord to process
     min_qual = minimum quality for retained characters
         
     Returns:
     a SeqResult object
     """
+    # Get SeqRecord
+    seq = data.data
+
     seq_str = str(seq.seq)
     quals = seq.letter_annotations['phred_quality']
     # Mask low quality nucleotides
@@ -253,7 +272,7 @@ def maskQuality(seq, min_qual=default_min_qual):
                          letter_annotations=seq.letter_annotations)
     
     # Build result object
-    result = SeqResult(seq.id, seq)
+    result = SeqResult(data.id, seq)
     result.results = mask_seq
     result.valid = True
     

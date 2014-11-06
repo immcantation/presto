@@ -31,14 +31,47 @@ from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict, reverseComplement, scoreSeqPair
 from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
-from IgCore import manageProcesses, SeqData, SeqResult
+from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
 
 # Defaults
-default_alpha = 1e-5
+default_alpha = 0.01
 default_max_error = 0.2
 default_min_len = 1
 default_max_len = 1000
 default_gap = 0
+
+
+class PairAssembly:
+    """
+    A class defining a paired-end assembly result
+    """
+    # Instantiation
+    def __init__(self, seq=None):
+        self.seq = seq
+        self.pos_1 = None
+        self.pos_2 = None
+        self.pvalue = 1.0
+        self.error = 1.0
+        self.valid = False
+
+    # Set boolean evaluation to valid value
+    def __nonzero__(self):
+        return self.valid
+
+    # Set length evaluation to length of SeqRecord
+    def __len__(self):
+        if self.seq is None:
+            return 0
+        else:
+            return len(self.seq)
+
+    # Set overlap length to pos_1 difference
+    @property
+    def overlap(self):
+        if self.pos_1 is None:
+            return None
+        else:
+            return self.pos_1[1] - self.pos_1[0]
 
 
 def getPMatrix(x):
@@ -114,6 +147,7 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
     return record
 
 
+# FIXME: convert return to PairAssembly
 def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     """
     Concatenates two sequences 
@@ -199,100 +233,17 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     else:
         scan_len = min(max(head_len, tail_len), max_len)
 
-    # Determine if sub-sequences are allowed and define scan indices
-    #min_scan = min(head_len, tail_len)
-    #max_scan = min(min_scan, max_len)
-    # if max_len < min(head_len, tail_len):
-    #     # Define head index ranges
-    #     head_start_range = head_len - min_len
-    #     head_start_repeat = 0
-    #     head_end_repeat = max_len
-    #     head_end_range = head_len
-    #
-    #     # Define tail index ranges
-    #     tail_start_repeat = max_len
-    #     tail_start_range = 0
-    #     tail_end_range = max_len - min_len
-    #     tail_end_repeat = 0
-    #
-    # elif not scan_reverse:
-    #     # Define head index ranges
-    #     head_start_range = head_len - min_len
-    #     head_start_repeat = max(head_len, tail_len) - head_len # Differs
-    #     head_end_repeat = tail_len - min_len
-    #     head_end_range = min(head_len, tail_len) # Differs
-    #
-    #     # Define tail index ranges
-    #     tail_start_repeat = head_len - min_len
-    #     tail_start_range = max(head_len, tail_len) - tail_len
-    #     tail_end_range = tail_len
-    #     tail_end_repeat = max(head_len, tail_len) - tail_len
-    # else:
-    #     # Define head index ranges
-    #     head_start_range = head_len - min_len
-    #     head_start_repeat = tail_len - min_len # Differs
-    #     head_end_repeat = tail_len - min_len
-    #     head_end_range = min_len # Differs
-    #
-    #     # Define tail index ranges
-    #     tail_start_repeat = head_len - min_len
-    #     tail_start_range = tail_len - min_len  # Differs
-    #     tail_end_range = tail_len
-    #     tail_end_repeat = head_len - min_len # Differs
-    #
-    # print "\n-> NEW"
-    # min_len = 10
-    # #scan_len = head_len + tail_len - min_len
-    # scan_len = max(head_len, tail_len)
-    # #scan_len = 100
-    # #scan_len = max(head_len, tail_len)
-    # for i in range(min_len, scan_len + 1):
-    #     #print i, (max(0, head_len - i), min(head_len, head_len - scan_len - i)),
-    #     print i, (max(0, head_len - i), head_len - max(0, i - tail_len)),
-    #     print i, (max(0, i - head_len), min(tail_len, i))
-
-    # Define head sequence index iterators
-    # head_start = chain(xrange(head_start_range, -1, -1),
-    #                    repeat(0, head_start_repeat))
-    # head_end = chain(repeat(head_len, head_end_repeat),
-    #                  xrange(head_len, head_end_range - 1, -1))
-    # head_start = chain(xrange(head_start_range, head_len - max_len - 1, -1),
-    #                    repeat(0, head_start_repeat))
-    # head_end = chain(repeat(head_len, head_end_repeat),
-    #                  xrange(head_len, head_end_range - 1, -1))
-
-    # Define tail sequence index iterators
-    # tail_start = chain(repeat(0, tail_start_repeat),
-    #                    xrange(0, tail_start_range + 1, 1))
-    # tail_end = chain(xrange(min_len, tail_end_range + 1, 1),
-    #                  repeat(tail_len, tail_end_repeat))
-    # tail_start = chain(repeat(0, tail_start_repeat),
-    #                    xrange(0, tail_start_range + 1, 1))
-    # tail_end = chain(xrange(min_len, tail_end_range + 1, 1),
-    #                  repeat(tail_len, tail_end_repeat))
-
-
-    #print "\n-> NEW"
-    #print '(%d->0|0*%d, %d*%d|%d->%d)' % \
-    #      (head_start_range, head_start_repeat, head_len, head_end_repeat, head_len, head_end_range)
-    #print '(0*%d|0->%d, %d->%d|%d*%d)' % \
-    #      (tail_start_repeat, tail_start_range, min_len, tail_end_range, tail_len, tail_end_repeat)
-    #print (len(list(head_start)), len(list(head_end))), (len(list(tail_start)), len(list(tail_end))
-    #for a, b in izip(head_start, head_end): print '(%03d, %03d)' % (a, b),
-    #print ''
-    #for x, y in izip(tail_start, tail_end): print '(%03d, %03d)' % (x, y),
-    #print ''
-
     # Iterate and score overlap segments
     head_str = str(head_seq.seq)
     tail_str = str(tail_seq.seq)
+    stitch = PairAssembly()
     #print "\n->NEW"
     #for a, b, x, y in izip(head_start, head_end, tail_start, tail_end):
     for i in xrange(min_len, scan_len + 1):
-        # a = max(0, head_len - i)
-        # b = head_len - max(0, i - tail_len)
-        # x = max(0, i - head_len)
-        # y = min(tail_len, i)
+        a = max(0, head_len - i)
+        b = head_len - max(0, i - tail_len)
+        x = max(0, i - head_len)
+        y = min(tail_len, i)
         # print '[%03d]' % (i - min_len + 1), \
         #       '%03d' % i, '(%03d, %03d)' % (a, b), \
         #       '(%03d, %03d)' % (x, y)
@@ -301,21 +252,19 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
                                             scan_error,
                                             b - a,
                                             score_dict=score_dict)
-        pval = p_matrix[score, weight]
+        p = p_matrix[score, weight]
         # Save stitch as optimal if p value and error improves
-        if error <= best_dict['error'] and pval <= best_dict['pval']:
-           best_dict['pos_1'] = (a, b)
-           best_dict['pos_2'] = (x, y)
-           best_dict['pval'] = pval
-           best_dict['error'] = error
+        if error <= stitch.error and p <= stitch.pvalue:
+           stitch.pos_1 = (a, b)
+           stitch.pos_2 = (x, y)
+           stitch.pvalue = p
+           stitch.error = error
 
     # Build stitched sequences and assign best_dict values
-    if best_dict['pos_1'] is not None and \
-       best_dict['pval'] <= alpha and \
-       best_dict['error'] <= max_error:
+    if stitch.pos_1 is not None:
         # Correct quality scores and resolve conflicts
-        a, b = best_dict['pos_1']
-        x, y = best_dict['pos_2']
+        a, b = stitch.pos_1
+        x, y = stitch.pos_2
         if has_quality:
             # Build quality consensus
             overlap_seq = overlapConsensus(head_seq[a:b],
@@ -326,29 +275,29 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
 
         if b < head_len and x > 0:
             # Head overlaps end of tail
-            best_dict['seq'] = tail_seq[:x] + overlap_seq + head_seq[b:]
+            stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
         elif a == 0 and b == head_len and x >= 0:
             # Head is a subsequence of tail
-            best_dict['seq'] = tail_seq[:x] + overlap_seq + tail_seq[y:]
+            stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
         elif b <= head_len and x == 0 and y == tail_len:
             # Tail is a subsequence of head
-            best_dict['seq'] = head_seq[:a] + overlap_seq + head_seq[b:]
+            stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
         else:
             # Tail overlaps end of head
-            best_dict['seq'] = head_seq[:a] + overlap_seq + tail_seq[y:]
+            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
 
         # Define best stitch ID
-        best_dict['seq'].id = head_seq.id if head_seq.id == tail_seq.id \
+        stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
                               else '+'.join([head_seq.id, tail_seq.id])
-        best_dict['seq'].name = best_dict['seq'].id
-        best_dict['seq'].description = ''
+        stitch.seq.name = stitch.seq.id
+        stitch.seq.description = ''
 
-        #print len(best_dict['seq'])
+    stitch.valid = bool(stitch.pvalue <= alpha and stitch.error <= max_error)
 
-    return best_dict
+    return stitch
 
 
-def feedAPQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
+def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
     """
     Feeds the data queue with sequence pairs for processQueue processes
 
@@ -396,117 +345,89 @@ def feedAPQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
     return None
 
 
-def processAPQueue(alive, data_queue, result_queue, assemble_func, assemble_args={},
-                   rc=None, fields_1=None, fields_2=None,
-                   delimiter=default_delimiter):
+def processAssembly(data, assemble_func, assemble_args={}, rc=None,
+                   fields_1=None, fields_2=None, delimiter=default_delimiter):
     """
-    Pulls from data queue, performs calculations, and feeds results queue
+    Performs assembly of a sequence pair
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing 
-            continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
+    data = a SeqData object with a list of exactly two SeqRecords
     assemble_func = the function to use to assemble paired ends
     assemble_args = a dictionary of arguments to pass to the assembly function
     rc = Defines which sequences ('head','tail','both') to reverse complement
          before assembly; if None do not reverse complement sequences
-    fields_1 = list of annotations in head_file records to copy to assembled record;
+    fields_1 = list of annotations in head SeqRecord to copy to assembled record;
                if None do not copy an annotation
-    fields_2 = list of annotations in tail_file records to copy to assembled record;
+    fields_2 = list of annotations in tail SeqRecord to copy to assembled record;
                if None do not copy an annotation
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
+    delimiter = a tuple of delimiters for (fields, values, value lists)
 
-    Returns: 
-    None
+    Returns:
+    a SeqResult object
     """
-    try:
-        # Iterator over data queue until sentinel object reached
-        while alive.value:
-            # Get data from queue
-            if data_queue.empty():  continue
-            else:  data = data_queue.get()
-            # Exit upon reaching sentinel
-            if data is None:  break
-            
-            # Reverse complement sequences if required  
-            head_seq = data.data[0] if rc not in ('head', 'both') \
-                       else reverseComplement(data.data[0])
-            tail_seq = data.data[1] if rc not in ('tail', 'both') \
-                       else reverseComplement(data.data[1])
+    # Reverse complement sequences if required
+    head_seq = data.data[0] if rc not in ('head', 'both') \
+               else reverseComplement(data.data[0])
+    tail_seq = data.data[1] if rc not in ('tail', 'both') \
+               else reverseComplement(data.data[1])
 
-            # Define result object for iteration
-            result = SeqResult(data.id, [head_seq, tail_seq])
+    # Define result object
+    result = SeqResult(data.id, [head_seq, tail_seq])
 
-            # Assemble sequences
-            stitch = assemble_func(head_seq, tail_seq, **assemble_args)
+    # Define stitched sequence annotation
+    stitch_ann = OrderedDict([('ID', data.id)])
+    if fields_1 is not None:
+        head_ann = parseAnnotation(head_seq.description, fields_1,
+                                   delimiter=delimiter)
+        stitch_ann = mergeAnnotation(stitch_ann, head_ann, delimiter=delimiter)
+        result.log['HEADFIELDS'] = '|'.join(['%s=%s' % (k, v)
+                                             for k, v in head_ann.iteritems()])
+    if fields_2 is not None:
+        tail_ann = parseAnnotation(tail_seq.description, fields_2,
+                                   delimiter=delimiter)
+        stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
+        result.log['TAILFIELDS'] = '|'.join(['%s=%s' % (k, v)
+                                             for k, v in tail_ann.iteritems()])
 
-            # Define stitched sequence annotation
-            stitch_ann = OrderedDict([('ID', data.id)])                  
-            if fields_1 is not None:
-                head_ann = parseAnnotation(head_seq.description, fields_1, 
-                                           delimiter=delimiter)
-                stitch_ann = mergeAnnotation(stitch_ann, head_ann, delimiter=delimiter)
-                result.log['HEADFIELDS'] = '|'.join(['%s=%s' % (k, v) 
-                                                     for k, v in head_ann.iteritems()])
-            if fields_2 is not None:
-                tail_ann = parseAnnotation(tail_seq.description, fields_2, 
-                                           delimiter=delimiter)
-                stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
-                result.log['TAILFIELDS'] = '|'.join(['%s=%s' % (k, v) 
-                                                     for k, v in tail_ann.iteritems()])
+    # Assemble sequences
+    stitch = assemble_func(head_seq, tail_seq, **assemble_args)
+    result.valid = stitch.valid
 
-            ab = stitch['pos_1']
-            xy = stitch['pos_2']
-            if ab is not None and xy is not None:
-                #print ab, xy
-                result.log['HEADSEQ'] = ' ' * xy[0] + head_seq.seq
-                result.log['TAILSEQ'] = ' ' * ab[0] + tail_seq.seq
-                overlap = ab[1] - ab[0]
-            else:
-                result.log['HEADSEQ'] = head_seq.seq
-                result.log['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
-                overlap = 0
+    ab = stitch.pos_1
+    xy = stitch.pos_2
+    if ab is not None and xy is not None:
+        #print ab, xy
+        result.log['HEADSEQ'] = ' ' * xy[0] + head_seq.seq
+        result.log['TAILSEQ'] = ' ' * ab[0] + tail_seq.seq
+    else:
+        result.log['HEADSEQ'] = head_seq.seq
+        result.log['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
 
-            # Define stitching log
-            if stitch['seq'] is not None:
-                out_seq = stitch['seq']
-                # Update stitch annotation
-                out_seq.id = flattenAnnotation(stitch_ann, delimiter=delimiter)
-                out_seq.name = out_seq.id
-                out_seq.description = '' 
-                # Add stitch to results
-                result.results = out_seq
-                result.valid = True
-                result.log['ASSEMBLY'] = out_seq.seq
-                if 'phred_quality' in out_seq.letter_annotations:
-                    result.log['QUALITY'] = ''.join([chr(q+33) for q in
-                                                     out_seq.letter_annotations['phred_quality']])
-                result.log['LENGTH'] = len(out_seq)
-                result.log['OVERLAP'] = overlap
-            else:
-                result.log['ASSEMBLY'] = None
-            result.log['HEADPOS'] = ab
-            result.log['TAILPOS'] = xy
-            result.log['ERROR'] = stitch['error']
-            result.log['PVAL'] = stitch['pval']
+    # Define stitching log
+    if stitch.seq is not None:
+        # Update stitch annotation
+        stitch.seq.id = flattenAnnotation(stitch_ann, delimiter=delimiter)
+        stitch.seq.name = stitch.seq.id
+        stitch.seq.description = ''
+        result.results = stitch.seq
+        result.log['ASSEMBLY'] = stitch.seq.seq
+        if 'phred_quality' in stitch.seq.letter_annotations:
+            result.log['QUALITY'] = ''.join([chr(q+33) for q in
+                                             stitch.seq.letter_annotations['phred_quality']])
+    else:
+        result.log['ASSEMBLY'] = None
+    result.log['HEADPOS'] = ab
+    result.log['TAILPOS'] = xy
+    result.log['LENGTH'] = len(stitch)
+    result.log['OVERLAP'] = stitch.overlap
+    result.log['ERROR'] = stitch.error
+    result.log['PVALUE'] = stitch.pvalue
 
-            # Feed results to result queue
-            result_queue.put(result)
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        alive.value = False
-        sys.stderr.write('Error processing sequence pair with ID: %s.\n' % data.id)
-        raise
-    
-    return None
+    return result
 
 
-def collectAPQueue(alive, result_queue, collect_queue, result_count, seq_file_1, seq_file_2, 
-                   out_args):
+def collectPairQueue(alive, result_queue, collect_queue, result_count,
+                     seq_file_1, seq_file_2, out_args):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
@@ -712,20 +633,22 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                 SeqIO.write(tail_dict[k], tail_handle, tail_type)
     
     # Define feeder function and arguments
-    feed_func = feedAPQueue
+    feed_func = feedPairQueue
     feed_args = {'seq_file_1': head_file,
                  'seq_file_2': tail_file,
                  'index_dict': index_dict}
     # Define worker function and arguments
-    work_func = processAPQueue
-    work_args = {'assemble_func': assemble_func, 
-                 'assemble_args': assemble_args,
-                 'rc': rc,
-                 'fields_1': head_fields,
-                 'fields_2': tail_fields,
-                 'delimiter': out_args['delimiter']}
+    process_args = {'assemble_func': assemble_func,
+                    'assemble_args': assemble_args,
+                    'rc': rc,
+                    'fields_1': head_fields,
+                    'fields_2': tail_fields,
+                    'delimiter': out_args['delimiter']}
+    work_func = processSeqQueue
+    work_args = {'process_func': processAssembly,
+                 'process_args': process_args}
     # Define collector function and arguments
-    collect_func = collectAPQueue
+    collect_func = collectPairQueue
     collect_args = {'result_count': pair_count,
                     'seq_file_1': head_file,
                     'seq_file_2': tail_file,

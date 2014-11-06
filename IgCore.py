@@ -820,7 +820,7 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
     
     return sum(scores) / len(scores)
 
-
+# TODO: apply min_qual to single sequence case
 def qualityConsensus(seq_list, min_qual=default_min_qual, 
                      min_freq=default_min_freq, max_miss=None,
                      dependent=False):
@@ -1227,7 +1227,6 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
             seq_iter = readSeqFile(seq_file)
             data_iter = ((s.id, s) for s in seq_iter)
         else:
-            #index_args={'field':'BARCODE', 'delimiter':default_delimiter}
             seq_dict = readSeqFile(seq_file, index=True)
             index_dict = index_func(seq_dict, **index_args)
             data_iter = ((k, [seq_dict[i] for i in v]) \
@@ -1283,10 +1282,9 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
             if data is None:  break
 
             # Perform filtering
-            result = process_func(data.data, **process_args)
+            result = process_func(data, **process_args)
 
             # Feed results to result queue
-            result.id = result.log['ID'] = data.id
             result_queue.put(result)
         else:
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
@@ -1294,7 +1292,7 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence with ID: %.\n' % data.id)
+        sys.stderr.write('Error processing sequence with ID: %s.\n' % data.id)
         raise
     
     return None
