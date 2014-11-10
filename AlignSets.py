@@ -35,7 +35,7 @@ from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
 
 # Defaults
-default_muscle_exec = r'/usr/local/bin/muscle3.8.31_i86linux64'
+default_muscle_exec = r'/usr/local/bin/muscle'
 
 
 def alignSeqSet(seq_list, muscle_exec=default_muscle_exec):

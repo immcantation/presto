@@ -793,8 +793,7 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
         else:
             weight = min(weightSeq(seq1), weightSeq(seq2))
             error = 1.0 - float(score) / weight
-            
-    
+
     return (score, weight, error)
 
 

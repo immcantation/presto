@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2014.11.10'
 
 # Imports
 import os, sys
@@ -41,7 +41,7 @@ default_max_len = 1000
 default_gap = 0
 
 
-class PairAssembly:
+class AssemblyRecord:
     """
     A class defining a paired-end assembly result
     """
@@ -50,6 +50,8 @@ class PairAssembly:
         self.seq = seq
         self.pos_1 = None
         self.pos_2 = None
+        self.gap = 0
+        self.zscore = float('-inf')
         self.pvalue = 1.0
         self.error = 1.0
         self.valid = False
@@ -74,23 +76,57 @@ class PairAssembly:
             return self.pos_1[1] - self.pos_1[0]
 
 
-def getPMatrix(x):
+class AssemblyStats:
     """
-    Generates a matrix of p-values from a binomial distribution 
-
-    Arguments: 
-    x = maximum trials
-
-    Returns:
-    a numpy.array of successes by trials p-values 
+    Class containing p-value and z-score matrices for scoring assemblies
     """
-    p_matrix = np.ones([x, x], dtype=float) 
-    a = np.array(range(x))
-    for i in a:
-        p_matrix[i, ] = 1 - stats.binom.cdf(i - 1, a, 0.25) - stats.binom.pmf(i, a, 0.25) / 2
-    
-    return p_matrix
+    # Instantiation
+    def __init__(self, n):
+        self.p = AssemblyStats._getPMatrix(n)
+        self.z = AssemblyStats._getZMatrix(n)
+        #print self.z
 
+    @staticmethod
+    def _getPMatrix(n):
+        """
+        Generates a matrix of mid-p correct p-values from a binomial distribution
+
+        Arguments:
+        n = maximum trials
+
+        Returns:
+        a numpy.array of successes by trials p-values
+        """
+        p_matrix = np.empty([n, n], dtype=float)
+        p_matrix.fill(np.nan)
+        k = np.arange(n, dtype=float)
+        for i, x in enumerate(k):
+            p_matrix[x, i:] = 1 - stats.binom.cdf(x - 1, k[i:], 0.25) - stats.binom.pmf(x, k[i:], 0.25) / 2.0
+        return p_matrix
+
+    @staticmethod
+    def _getZMatrix(n):
+        """
+        Generates a matrix of z-score approximations for a binomial distribution
+
+        Arguments:
+        n = maximum trials
+
+        Returns:
+        a numpy.array of successes by trials z-scores
+        """
+        z_matrix = np.empty([n, n], dtype=float)
+        z_matrix.fill(np.nan)
+        k = np.arange(0, n, dtype=float)
+        for i, x in enumerate(k):
+            j = i + 1 if i == 0 else i
+            z_matrix[x, j:] = (x - k[j:]/4.0)/np.sqrt(3.0/16.0*k[j:])
+        return z_matrix
+
+
+# TODO: reference guided join
+# usearch -ublast HD11N_Subseq_R2.fasta -db IMGT_Human_IGV.fasta --strand both -evalue 1e-5 -maxaccepts 1 -userout ublast_out_R2.txt -userfields query+target+evalue+id+alnlen+qlo+qhi+tlo+thi+qstrand+tstrand
+# def getReferenceGap():
 
 def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
     """
@@ -147,7 +183,6 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
     return record
 
 
-# FIXME: convert return to PairAssembly
 def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     """
     Concatenates two sequences 
@@ -181,13 +216,17 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
                        [0] * gap + \
                        tail_seq.letter_annotations['phred_quality']
         record.letter_annotations = {'phred_quality':join_quality}
-                               
-    return {'seq':record, 'error':0, 'pval':0, 'len':-gap}
+
+    stitch = AssemblyRecord(record)
+    stitch.valid = True
+    stitch.gap = gap
+
+    return stitch
 
 
 def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
-                 min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                 quick_error=False, p_matrix=None,
+                 min_len=default_min_len, max_len=default_max_len, min_qual=None,
+                 scan_reverse=False, assembly_stats=None,
                  score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Stitches two sequences together by aligning the ends
@@ -199,10 +238,10 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     max_error = the maximum error rate for a valid assembly
     min_len = minimum length of overlap to test
     max_len = maximum length of overlap to test
+    min_qual = the minimum quality score required to consider a base in the alignment score
     scan_reverse = if True allow the head sequence to overhang the end of the tail sequence
                    if False end alignment scan at end of tail sequence or start of head sequence
-    quick_error = if True truncate error calculation after reaching max_error
-    p_matrix = optional successes by trials numpy.array of p-values 
+    assembly_stats = optional successes by trials numpy.array of p-values
     score_dict = optional dictionary of character scores in the 
                  form {(char1, char2): score}
                      
@@ -211,21 +250,29 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
                    (tail overlap range)}
     """
     # Set alignment parameters
-    if p_matrix is None:  p_matrix = getPMatrix(max_len + 1)
-    scan_error = max_error if quick_error else None
-
-    # Define empty return dictionary
-    best_dict = {'seq':None, 'error':1.0, 'pval':1.0, 'pos_1':None, 'pos_2':None}
+    if assembly_stats is None:  assembly_stats = AssemblyStats(max_len + 1)
 
     # Define general parameters
-    head_len = len(head_seq)
-    tail_len = len(tail_seq)
+    head_str = str(head_seq.seq)
+    tail_str = str(tail_seq.seq)
+    head_len = len(head_str)
+    tail_len = len(tail_str)
 
     # Determine if quality scores are present
     has_quality = hasattr(head_seq, 'letter_annotations') and \
                   hasattr(tail_seq, 'letter_annotations') and \
                   'phred_quality' in head_seq.letter_annotations and \
                   'phred_quality' in tail_seq.letter_annotations
+
+    if min_qual is not None and has_quality:
+        # Mask head characters
+        head_qual = head_seq.letter_annotations['phred_quality']
+        head_mask = [head_str[i] if q >= min_qual else 'N' for i, q in enumerate(head_qual)]
+        head_str = ''.join(head_mask)
+        # Mask tail characters
+        tail_qual = tail_seq.letter_annotations['phred_quality']
+        tail_mask = [tail_str[i] if q >= min_qual else 'N' for i, q in enumerate(tail_qual)]
+        tail_str = ''.join(tail_mask)
 
     # Determine if sub-sequences are allowed and define scan range
     if scan_reverse and max_len >= min(head_len, tail_len):
@@ -234,9 +281,7 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
         scan_len = min(max(head_len, tail_len), max_len)
 
     # Iterate and score overlap segments
-    head_str = str(head_seq.seq)
-    tail_str = str(tail_seq.seq)
-    stitch = PairAssembly()
+    stitch = AssemblyRecord()
     #print "\n->NEW"
     #for a, b, x, y in izip(head_start, head_end, tail_start, tail_end):
     for i in xrange(min_len, scan_len + 1):
@@ -247,17 +292,18 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
         # print '[%03d]' % (i - min_len + 1), \
         #       '%03d' % i, '(%03d, %03d)' % (a, b), \
         #       '(%03d, %03d)' % (x, y)
-        score, weight, error = scoreSeqPair(head_str[a:b],
-                                            tail_str[x:y],
-                                            scan_error,
-                                            b - a,
-                                            score_dict=score_dict)
-        p = p_matrix[score, weight]
-        # Save stitch as optimal if p value and error improves
-        if error <= stitch.error and p <= stitch.pvalue:
+        # print "HEAD:", head_str[a:b]
+        # print "TAIL:", tail_str[x:y]
+        score, weight, error = scoreSeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
+        z = assembly_stats.z[score, weight]
+        # Save stitch as optimal if z-score improves
+        #if error <= stitch.error and p <= stitch.pvalue:
+        if z > stitch.zscore:
+           #print z, p, error
            stitch.pos_1 = (a, b)
            stitch.pos_2 = (x, y)
-           stitch.pvalue = p
+           stitch.zscore = z
+           stitch.pvalue = assembly_stats.p[score, weight]
            stitch.error = error
 
     # Build stitched sequences and assign best_dict values
@@ -267,8 +313,7 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
         x, y = stitch.pos_2
         if has_quality:
             # Build quality consensus
-            overlap_seq = overlapConsensus(head_seq[a:b],
-                                           tail_seq[x:y])
+            overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
         else:
             # Assign head sequence to conflicts when no quality information is available
             overlap_seq = head_seq[a:b]
@@ -401,7 +446,7 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
         result.log['TAILSEQ'] = ' ' * ab[0] + tail_seq.seq
     else:
         result.log['HEADSEQ'] = head_seq.seq
-        result.log['TAILSEQ'] = ' ' * len(head_seq) + tail_seq.seq
+        result.log['TAILSEQ'] = ' ' * (len(head_seq) + stitch.gap) + tail_seq.seq
 
     # Define stitching log
     if stitch.seq is not None:
@@ -587,6 +632,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
     if 'min_len' in assemble_args:  log['MIN_LEN'] = assemble_args['min_len']
     if 'max_len' in assemble_args:  log['MAX_LEN'] = assemble_args['max_len']
+    if 'min_qual' in assemble_args:  log['MIN_QUAL'] = assemble_args['min_qual']
     if 'scan_reverse' in assemble_args:  log['SCAN_REVERSE'] = assemble_args['scan_reverse']
     if 'quick_error' in assemble_args:  log['QUICK_ERROR'] = assemble_args['quick_error']
     if 'gap' in assemble_args:  log['GAP'] = assemble_args['gap']
@@ -713,14 +759,12 @@ def getArgParser():
                               default=default_min_len, help='Minimum sequence length to scan for overlap')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len, help='Maximum sequence length to scan for overlap')
+    parser_align.add_argument('-q', action='store', dest='min_qual', type=float, default=None,
+                              help='''The minimum quality score to allow consideration of a
+                                      position in the alignment score.''')
     parser_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
                               help='''If specified, scan past the end of the tail sequence to allow
                                       the head sequence to overhang the end of the tail sequence.''')
-    parser_align.add_argument('--quickerr', action='store_true', dest='quick_error',
-                              help='''If specified, halt error calculation after maximum error threshold
-                                      has been reached. This will result in all failed alignments having
-                                      an error of 1.0.''')
-
     parser_align.set_defaults(assemble_func=alignSeqPair)
     
     # Paired end concatenation mode argument parser
@@ -749,19 +793,19 @@ if __name__ == '__main__':
     
     # Define assemble_args dictionary to pass to maskPrimers
     if args_dict['assemble_func'] is alignSeqPair:
-        args_dict['assemble_args'] = {'alpha':args_dict['alpha'],
-                                      'max_error':args_dict['max_error'],
-                                      'min_len':args_dict['min_len'],
-                                      'max_len':args_dict['max_len'],
-                                      'scan_reverse':args_dict['scan_reverse'],
-                                      'quick_error':args_dict['quick_error'],
-                                      'p_matrix':getPMatrix(args_dict['max_len'] + 1)}
+        args_dict['assemble_args'] = {'alpha': args_dict['alpha'],
+                                      'max_error': args_dict['max_error'],
+                                      'min_len': args_dict['min_len'],
+                                      'max_len': args_dict['max_len'],
+                                      'scan_reverse': args_dict['scan_reverse'],
+                                      'min_qual': args_dict['min_qual'],
+                                      'assembly_stats': AssemblyStats(args_dict['max_len'] + 1)}
         del args_dict['alpha']
         del args_dict['max_error']
         del args_dict['min_len']
         del args_dict['max_len']
+        del args_dict['min_qual']
         del args_dict['scan_reverse']
-        del args_dict['quick_error']
     elif args_dict['assemble_func'] is joinSeqPair:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']
