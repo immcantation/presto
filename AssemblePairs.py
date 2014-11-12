@@ -49,8 +49,8 @@ default_max_hits = 10
 # usearch -ublast HD11N_Subseq_R2.fasta -db IMGT_Human_IGV.fasta --strand both -evalue 1e-5 -maxaccepts 1 -userout ublast_out_R2.txt -userfields query+target+evalue+id+alnlen+qlo+qhi+tlo+thi+qstrand+tstrand
 # def getReferenceGap():
 
-def referenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-                   usearch_exec=default_usearch_exec):
+def getReferenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+                       usearch_exec=default_usearch_exec):
     """
     Aligns a sequence against a reference database
 
@@ -97,7 +97,7 @@ def referenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     # Parse usearch output
     #out_handle.seek(0)
     field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
-                 'length', 'evalue', 'identity']
+                   'length', 'evalue', 'identity']
     align_df = pd.read_table(out_handle, header=None, names=field_names)
     # Convert to base-zero indices
     align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
@@ -143,10 +143,10 @@ def referenceSeqPair(head_seq, tail_seq, ref_file, evalue=default_evalue,
                   'phred_quality' in tail_seq.letter_annotations
 
     # Align against reference
-    head_df = referenceAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
-                                usearch_exec=usearch_exec)
-    tail_df = referenceAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
-                                usearch_exec=usearch_exec)
+    head_df = getReferenceAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                                    usearch_exec=usearch_exec)
+    tail_df = getReferenceAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                                    usearch_exec=usearch_exec)
 
     print head_df
     print tail_df
@@ -160,27 +160,61 @@ def referenceSeqPair(head_seq, tail_seq, ref_file, evalue=default_evalue,
     align_top = align_df.ix[0, :]
     #print align_df
     #print 'NROW:', len(align_df)
-    print align_top
+    #print align_top
 
-
+    # Get reference sequence
     ref_id = align_top['target']
     ref_dict = readSeqFile(ref_file, index=True)
     ref_seq = str(ref_dict[ref_id].seq.upper())
 
-    ref_start = min(align_top[['target_start_head', 'target_start_tail']])
-    ref_end = max(align_top[['target_end_head', 'target_end_tail']])
+    ref_start = align_top[['target_start_head', 'target_start_tail']].min()
+    ref_end = align_top[['target_end_head', 'target_end_tail']].max()
+
+    #ref_len =  align_top['target_end_tail'] - align_top['target_start_head']
+    #ref_len =  align_top['target_end_head'] - align_top['target_start_tail']
+    ab_len = (align_top['query_end_head'] - align_top['query_start_head'])
+    xy_len = (align_top['query_end_tail'] - align_top['query_start_tail'])
+
+
+    ab_shift = align_top['target_start_head'] - align_top['query_start_head']
+    xy_shift = align_top['target_start_tail'] - align_top['query_start_tail']
+    ref_len = align_top[['target_end_head', 'target_end_tail']].min() - \
+              align_top[['target_start_head', 'target_start_tail']].max()
+
+    #a = align_top['query_start_head'] + align_top['target_start_tail']
+    a = align_top[['target_start_head', 'target_start_tail']].max() - ab_shift
+    b = a + ref_len
+
+    #x = align_top['query_start_tail'] + align_top['target_start_head']
+    x = align_top[['target_start_head', 'target_start_tail']].max() - xy_shift
+    y = x + ref_len
+
+    a2 = max(0, a - x)
+    b2 = min(b + (tail_len - y), head_len)
+    x2 = max(0, x - a)
+    y2 = min(y + (head_len - b), tail_len)
 
     print 'HEADQRY>', (align_top['query_start_head'], align_top['query_end_head'])
-    print 'TAILQRY>', (align_top['query_start_tail'], align_top['query_end_tail'])
     print 'HEADREF>', (align_top['target_start_head'], align_top['target_end_head'])
+
+    print 'TAILQRY>', (align_top['query_start_tail'], align_top['query_end_tail'])
     print 'TAILREF>', (align_top['target_start_tail'], align_top['target_end_tail'])
+
     print ' REFPOS>', (ref_start, ref_end)
-    print 'HEADLEN>', align_top['query_end_head'] - align_top['query_start_head']
-    print ' HEADP1>', (align_top['query_start_head'] + align_top['target_start_tail'])
-    print ' HEADP2>', (align_top['query_start_head'] + align_top['target_start_tail'])
-    print 'TAILLEN>', align_top['query_end_tail'] - align_top['query_start_tail']
-    print ' TAILP1>'
-    print ' TAILP2>'
+    print ' REFLEN>', ref_len
+
+    print '  ABOFF>', ab_shift
+    print '  XYOFF>', xy_shift
+
+    print 'HEAD-A1>', a
+    print 'HEAD-A2>', a2
+    print 'HEAD-B1>', b
+    print 'HEAD-B2>', b2
+
+    print 'TAIL-X1>', x
+    print 'TAIL-X2>', x2
+    print 'TAIL-Y1>', y
+    print 'TAIL-Y2>', y2
 
     print '   HEAD>', \
         head_str[:align_top['query_start_head']] + \
