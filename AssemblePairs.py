@@ -131,6 +131,31 @@ class AssemblyStats:
         return z_matrix
 
 
+def makeUsearchDb(ref_file, usearch_exec=default_usearch_exec):
+    """
+    Makes a usearch database file for ublast
+
+    Arguments:
+    ref_file = the path to the reference database file
+    usearch_exec = the path to the usearch executable
+
+    Returns:
+    a handle to the named temporary file containing the database file
+    """
+    # Open temporary file
+    db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
+
+    # Define usearch command
+    cmd = ' '.join([usearch_exec,
+               '-makeudb_ublast', ref_file,
+               '-output', db_handle.name])
+
+    child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    stdout_str, stderr_str = child.communicate()
+
+    return db_handle
+
+
 def getReferenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
                           usearch_exec=default_usearch_exec):
     """
@@ -195,7 +220,7 @@ def getReferenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default
     return align_df
 
 
-def referenceSeqPair(head_seq, tail_seq, ref_file, max_error=default_max_error,
+def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file, max_error=default_max_error,
                      evalue=default_evalue, max_hits=default_max_hits,
                      usearch_exec=default_usearch_exec,
                      score_dict=getScoreDict(n_score=0, gap_score=0)):
@@ -205,6 +230,7 @@ def referenceSeqPair(head_seq, tail_seq, ref_file, max_error=default_max_error,
     Arguments:
     head_seq = the head SeqRecord
     head_seq = the tail SeqRecord
+    ref_dict = a dictionary of reference SeqRecord objects
     ref_file = the path to the reference database file
     max_error = the maximum error rate for a valid assembly
     evalue = the E-value cut-off for ublast
@@ -323,8 +349,7 @@ def referenceSeqPair(head_seq, tail_seq, ref_file, max_error=default_max_error,
 
     # Get reference sequence
     ref_id = align_top['target']
-    ref_dict = readSeqFile(ref_file, index=True)
-    ref_seq = ref_dict[ref_id].upper()
+    ref_seq = ref_dict[ref_id]
 
     # Assign reference info
     stitch.ref_seq = ref_seq[outer_start:outer_end]
@@ -885,7 +910,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     log['FILE1'] = os.path.basename(head_file) 
     log['FILE2'] = os.path.basename(tail_file)
     log['COORD_TYPE'] = coord_type
-    if 'ref_file' in assemble_args:  log['REF_FILE'] = assemble_args['ref_file']
+    if 'ref_file' in assemble_args:  log['REFFILE'] = assemble_args['ref_file']
     if 'alpha' in assemble_args:  log['ALPHA'] = assemble_args['alpha']
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
     if 'min_len' in assemble_args:  log['MIN_LEN'] = assemble_args['min_len']
@@ -1092,7 +1117,11 @@ if __name__ == '__main__':
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']
     elif args_dict['assemble_func'] is referenceSeqPair:
+        ref_dict = {s.id:s.upper() for s in readSeqFile(args_dict['ref_file'])}
+        #ref_file = makeUsearchDb(args_dict['ref_file'], args_dict['usearch_exec'])
+        #ref_file.name
         args_dict['assemble_args'] = {'ref_file': args_dict['ref_file'],
+                                      'ref_dict': ref_dict,
                                       'max_error': args_dict['max_error'],
                                       'evalue': args_dict['evalue'],
                                       'max_hits': args_dict['max_hits'],
@@ -1116,6 +1145,3 @@ if __name__ == '__main__':
         args_dict['head_file'] = head
         args_dict['tail_file'] = tail
         assemblePairs(**args_dict)
-            
-            
-            
