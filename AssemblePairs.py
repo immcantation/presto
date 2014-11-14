@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from argparse import ArgumentParser
+from cStringIO import StringIO
 from collections import OrderedDict
 from itertools import chain, izip, repeat
 from subprocess import PIPE, Popen
@@ -42,6 +43,7 @@ default_min_len = 1
 default_max_len = 1000
 default_gap = 0
 default_usearch_exec = r'/usr/local/bin/usearch'
+default_blastn_exec = r'/usr/bin/blastn'
 default_evalue = 1e-5
 default_max_hits = 10
 
@@ -156,10 +158,57 @@ def makeUsearchDb(ref_file, usearch_exec=default_usearch_exec):
     return db_handle
 
 
-def getReferenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-                          usearch_exec=default_usearch_exec):
+def getBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+                       blastn_exec=default_blastn_exec):
     """
-    Aligns a sequence against a reference database
+    Aligns a sequence against a reference database using ublast
+
+    Arguments:
+    seq = a SeqRecord objects to align
+    ref_dict = a dictionary of reference SeqRecord objects
+    evalue = the E-value cut-off for ublast
+    maxhits = the maxhits output limit for ublast
+    blastn_exec = the path to the usearch executable
+
+    Returns:
+    a DataFrame of alignment results
+    """
+    seq_fasta = seq.format('fasta')
+    #ref_fasta = ''.join([s.format('fasta') for s in ref_dict.itervalues()])
+
+    # Define usearch command
+    cmd = ' '.join([blastn_exec,
+                    '-query -',
+                    #'-query', str(seq.seq),
+                    '-subject', ref_file,
+                    '-strand plus',
+                    '-evalue', str(evalue),
+                    '-max_target_seqs', str(max_hits),
+                    '-outfmt "6 qseqid sseqid qstart qend sstart send length evalue pident"',
+                    '-num_threads 1'])
+    #print cmd
+    # Run blastn
+    child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    stdout_str, stderr_str = child.communicate(seq_fasta)
+    out_handle = StringIO(stdout_str)
+    #print stdout_str
+    #print stderr_str
+
+    # Parse blastn output
+    field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
+                   'length', 'evalue', 'identity']
+    align_df = pd.read_table(out_handle, header=None, names=field_names)
+    # Convert to base-zero indices
+    align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
+    #print align_df
+
+    return align_df
+
+
+def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+                       usearch_exec=default_usearch_exec):
+    """
+    Aligns a sequence against a reference database using ublast
 
     Arguments:
     seq = a SeqRecord objects to align
@@ -180,11 +229,12 @@ def getReferenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default
     cmd = ' '.join([usearch_exec,
                '-ublast', in_handle.name,
                '-db', ref_file,
-               '--strand plus',
+               '-strand plus',
                '-evalue', str(evalue),
                '-maxhits', str(max_hits),
                '-userout', out_handle.name,
-               '-userfields query+target+qlo+qhi+tlo+thi+alnlen+evalue+id'])
+               '-userfields query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+               '-threads 1'])
 
     # Write usearch input fasta file
     SeqIO.write(seq, in_handle, 'fasta')
@@ -220,7 +270,8 @@ def getReferenceAlignment(seq, ref_file, evalue=default_evalue, max_hits=default
     return align_df
 
 
-def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file, max_error=default_max_error,
+def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
+                     max_error=default_max_error,
                      evalue=default_evalue, max_hits=default_max_hits,
                      usearch_exec=default_usearch_exec,
                      score_dict=getScoreDict(n_score=0, gap_score=0)):
@@ -253,10 +304,17 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file, max_error=default_m
                   'phred_quality' in tail_seq.letter_annotations
 
     # Align against reference
-    head_df = getReferenceAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
-                                    usearch_exec=usearch_exec)
-    tail_df = getReferenceAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
-                                    usearch_exec=usearch_exec)
+    head_df = getUblastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                                 usearch_exec=usearch_exec)
+    tail_df = getUblastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                                 usearch_exec=usearch_exec)
+    #head_df = getBlastnAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    #tail_df = getBlastnAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    #head_df = getUblastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    #tail_df = getUblastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits)
+
+    # head_df = align_func(head_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    # tail_df = align_func(tail_seq, ref_file, evalue=evalue, max_hits=max_hits)
 
     #print head_df
     #print tail_df

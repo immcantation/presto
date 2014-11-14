@@ -21,6 +21,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
+
 # Defaults
 default_delimiter = ('|', '=', ',')
 default_separator = default_delimiter[2]
@@ -39,6 +40,10 @@ default_out_args = {'log_file':None,
                     'out_name':None,
                     'out_type':None,
                     'clean':False}
+
+# Constants
+TERMINATION_SENTINEL = None
+EXCEPTION_SENTINEL = None
 
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
@@ -1153,7 +1158,7 @@ def manageProcesses(feed_func, work_func, collect_func,
                             args=(alive, data_queue), 
                             kwargs=feed_args)
         feeder.start()
-    
+
         # Initiate worker processes
         workers = []
         for __ in range(nproc):
@@ -1280,8 +1285,13 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
             # Exit upon reaching sentinel
             if data is None:  break
 
-            # Perform filtering
+            # Perform work
             result = process_func(data, **process_args)
+
+            #import cProfile
+            #prof = cProfile.Profile()
+            #result = prof.runcall(process_func, data, **process_args)
+            #prof.dump_stats('worker-%d.prof' % os.getpid())
 
             # Feed results to result queue
             result_queue.put(result)
