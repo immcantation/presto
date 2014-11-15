@@ -18,7 +18,7 @@ from argparse import ArgumentParser
 from cStringIO import StringIO
 from collections import OrderedDict
 from itertools import chain, izip, repeat
-from subprocess import PIPE, Popen
+from subprocess import check_output, PIPE, Popen, STDOUT
 from time import time
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
@@ -226,15 +226,27 @@ def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     out_handle = tempfile.NamedTemporaryFile()
 
     # Define usearch command
-    cmd = ' '.join([usearch_exec,
-               '-ublast', in_handle.name,
-               '-db', ref_file,
-               '-strand plus',
-               '-evalue', str(evalue),
-               '-maxhits', str(max_hits),
-               '-userout', out_handle.name,
-               '-userfields query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
-               '-threads 1'])
+    # cmd = ' '.join([usearch_exec,
+    #            '-ublast', in_handle.name,
+    #            '-db', ref_file,
+    #            '-strand plus',
+    #            '-evalue', str(evalue),
+    #            '-maxhits', str(max_hits),
+    #            '-userout', out_handle.name,
+    #            '-userfields query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+    #            '-threads 1'])
+
+    # Define usearch command
+    cmd = [usearch_exec,
+           '-ublast', in_handle.name,
+           '-db', ref_file,
+           '-strand', 'plus',
+           '-evalue', str(evalue),
+           '-maxhits', str(max_hits),
+           '-userout', out_handle.name,
+           '-userfields', 'query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+           '-threads', '1']
+
 
     # Write usearch input fasta file
     SeqIO.write(seq, in_handle, 'fasta')
@@ -245,9 +257,9 @@ def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 
     # Run usearch ublast algorithm
     in_handle.seek(0)
-    #call(cmd, shell=(sys.platform != 'win32'))
-    child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
-    stdout_str, stderr_str = child.communicate()
+    stdout_str = check_output(cmd, stderr=STDOUT, shell=False)
+    #child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    #stdout_str, stderr_str = child.communicate()
     #print stdout_str
     #print stderr_str
 
@@ -358,7 +370,7 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     x = max(0, x_inner - a_inner)
     y = min(y_inner + (head_len - b_inner), tail_len)
 
-    # Join sequences if head and tail do not overlap overwise assemble
+    # Join sequences if head and tail do not overlap, otherwise assemble
     if a > b and x > y:
         stitch = joinSeqPair(head_seq, tail_seq, gap=(a - b))
         stitch.error = 0
@@ -405,11 +417,9 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     stitch.head_pos = (a, b)
     stitch.tail_pos = (x, y)
 
-    # Get reference sequence
+    # Assign reference info
     ref_id = align_top['target']
     ref_seq = ref_dict[ref_id]
-
-    # Assign reference info
     stitch.ref_seq = ref_seq[outer_start:outer_end]
     stitch.ref_pos = (max(a_outer, x_outer), min(b_outer, y_outer))
 
