@@ -814,9 +814,9 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     if stitch.gap is not None:
         result.log['GAP'] = stitch.gap
     if stitch.error is not None:
-        result.log['ERROR'] = stitch.error
+        result.log['ERROR'] = '%.4f' % stitch.error
     if stitch.pvalue is not None:
-        result.log['PVALUE'] = stitch.pvalue
+        result.log['PVALUE'] = '%.4e' % stitch.pvalue
 
     return result
 
