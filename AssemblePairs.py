@@ -3,11 +3,11 @@
 Assembles paired-end reads into a single sequence
 """
 
-__author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
+__author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Chris Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.11.11'
+__date__      = '2014.11.18'
 
 # Imports
 import csv, os, sys, tempfile
@@ -38,7 +38,7 @@ from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
 
 # Defaults
 default_alpha = 0.01
-default_max_error = 0.2
+default_max_error = 0.3
 default_min_len = 1
 default_max_len = 1000
 default_gap = 0
