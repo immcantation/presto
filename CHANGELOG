@@ -1,10 +1,11 @@
-November 17, 2014
+November 20, 2014
 Version 0.4.5
 
 IgCore:
 + Features added for Change-O compatibility.
 + Added custom help formatter.
 + Modifications to internals of multiprocessing code.
++ Changed maximum consensus quality score from 93 to 90.
 
 AssemblePairs:
 + Added more verbose logging.

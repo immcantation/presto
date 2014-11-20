@@ -2,14 +2,16 @@
 # Super script to run the pRESTO 0.4.5 pipeline on AbVitro AbSeq (V3) data
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.11.18
+# Date:    2014.11.20
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
 #   $2 = read 2 file (V-region start sequence)
-#   $3 = output directory
-#   $4 = output file prefix
-#   $5 = number of subprocesses for multiprocessing tools
+#   $3 = read 1 primer file
+#   $4 = read 2 primer file
+#   $5 = output directory
+#   $6 = output file prefix
+#   $7 = number of subprocesses for multiprocessing tools
 
 # Define pipeline steps
 LOG_RUNTIMES=true
@@ -20,7 +22,7 @@ MASK_STEP=true
 
 # Define pRESTO run parameters
 FS_QUAL=20
-FS_MASK=40
+FS_MASK=60
 FS_MISS=20
 MP_UIDLEN=17
 MP_R1_MAXERR=0.2
@@ -36,15 +38,18 @@ CS_MISS=20
 MUSCLE_EXEC=$HOME/bin/muscle
 
 # Define primer files
-R1_PRIMER_FILE='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta'
-R2_PRIMER_FILE='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimersShifted.fasta'
+#R1_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta'
+#R2_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimer.fasta'
+#R2_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimersShifted.fasta'
 
 # Capture command line parameters
 R1_FILE=$(readlink -f $1)
 R2_FILE=$(readlink -f $2)
-OUTDIR=$3
-OUTNAME=$4
-NPROC=$5
+R1_PRIMERS=$(readlink -f $3)
+R2_PRIMERS=$(readlink -f $4)
+OUTDIR=$5
+OUTNAME=$6
+NPROC=$7
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
@@ -74,15 +79,16 @@ echo "  $(SplitSeq.py -v 2>&1)"
 
 # Filter low quality reads
 echo -e "\nSTART"
-STEP_COUNT=1
+STEP=0
 
 # Remove low quality reads
 if $QUAL_STEP; then
-    printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "FilterSeq quality"
-    $RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC --outname "${OUTNAME}-R1" \
-        --outdir . --clean >> $RUNLOG
-    $RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC --outname "${OUTNAME}-R2" \
-        --outdir . --clean >> $RUNLOG
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
+    #OUTPREFIX="$(printf '%02d' $STEP)--${OUTNAME}"
+    $RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC \
+        --outname "${OUTNAME}-R1" --outdir . --clean >> $RUNLOG
+    $RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC \
+        --outname "${OUTNAME}-R2" --outdir . --clean >> $RUNLOG
     MPR1_FILE="${OUTNAME}-R1_quality-pass.fastq"
     MPR2_FILE="${OUTNAME}-R2_quality-pass.fastq"
 else
@@ -92,22 +98,22 @@ fi
 
 
 # Identify primers and UID 
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "MaskPrimers score"
-$RUN MaskPrimers.py score -s $MPR1_FILE -p $R1_PRIMER_FILE --mode cut \
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
+$RUN MaskPrimers.py score -s $MPR1_FILE -p $R1_PRIMERS --mode cut \
     --start 0 --maxerror $MP_R1_MAXERR --nproc $NPROC --log PrimerLogR1.log \
     --outname "${OUTNAME}-R1" --outdir . --clean >> $RUNLOG
-$RUN MaskPrimers.py score -s $MPR2_FILE -p $R2_PRIMER_FILE --mode cut \
+$RUN MaskPrimers.py score -s $MPR2_FILE -p $R2_PRIMERS --mode cut \
     --start $MP_UIDLEN --barcode --maxerror $MP_R2_MAXERR --nproc $NPROC --log PrimerLogR2.log \
     --outname "${OUTNAME}-R2" --outdir . --clean >> $RUNLOG
 
 # Assign UIDs to read 1 sequences
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "PairSeq"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
 $RUN PairSeq.py -1 "${OUTNAME}-R2_primers-pass.fastq" -2 "${OUTNAME}-R1_primers-pass.fastq" \
     -f BARCODE --coord illumina --clean >> $RUNLOG
 
 # Multiple align UID read groups
 if $ALIGN_STEP; then
-    printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "AlignSets muscle"
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AlignSets muscle"
 	$RUN AlignSets.py muscle -s "${OUTNAME}-R1_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
 	    --nproc $NPROC --log AlignLogR1.log --outname "${OUTNAME}-R1" --clean >> $RUNLOG
 	$RUN AlignSets.py muscle -s "${OUTNAME}-R2_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
@@ -120,7 +126,7 @@ else
 fi
 
 # Build UID consensus sequences
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "BuildConsensus"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
 if $BC_CALCDIV; then
     $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
 	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
@@ -138,7 +144,7 @@ else
 fi
 
 # Assemble paired ends
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "AssemblePairs align"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs align"
 if $AP_SCANREV; then
     $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
         -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f PRCONS CONSCOUNT \
@@ -152,42 +158,42 @@ else
 fi
 
 # Rewrite header with minimum of CONSCOUNT
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "ParseHeaders collapse"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
 $RUN ParseHeaders.py collapse -s "${OUTNAME}-AP_assemble-pass.fastq" -f CONSCOUNT --act min \
     --outname "${OUTNAME}-AP" > /dev/null
 
 # Remove duplicate sequences
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "CollapseSeq"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
 $RUN CollapseSeq.py -s "${OUTNAME}-AP_reheader.fastq" -n $CS_MISS --uf PRCONS \
     --cf CONSCOUNT --act sum --outname "${OUTNAME}-AP" --inner >> $RUNLOG
 
 # Filter to sequences with at least 2 supporting sources
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "SplitSeq group"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitSeq group"
 $RUN SplitSeq.py group -s "${OUTNAME}-AP_collapse-unique.fastq" -f CONSCOUNT --num 2 >> $RUNLOG
 
 # Mask low quality positions
 if $MASK_STEP; then
-    printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "FilterSeq maskqual"
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
     $RUN FilterSeq.py maskqual -s "${OUTNAME}-AP_collapse-unique_atleast-2.fastq" -q $FS_MASK \
-        --nproc $NPROC --log MissingLog.log --outname "${OUTNAME}-AP" --clean >> $RUNLOG
+        --nproc $NPROC --outname "${OUTNAME}-AP" --clean >> $RUNLOG
     FSMISS_FILE="${OUTNAME}-AP_maskqual-pass.fastq"
 else
     FSMISS_FILE="${OUTNAME}-AP_collapse-unique_atleast-2.fastq"
 fi
 
 # Remove sequences with many Ns
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "FilterSeq missing"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq missing"
 $RUN FilterSeq.py missing -s $FSMISS_FILE -n $FS_MISS --inner --nproc $NPROC \
     --log MissingLog.log --outname "${OUTNAME}-AP" --clean --fasta >> $RUNLOG
 
 # Create table of final repertoire
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "ParseHeaders table"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
 mv "${OUTNAME}-AP_missing-pass.fasta" "${OUTNAME}_high-fidelity.fasta"
 $RUN ParseHeaders.py table -s "${OUTNAME}_high-fidelity.fasta" -f ID PRCONS CONSCOUNT DUPCOUNT \
     >> $RUNLOG
 
 # Process log files
-printf "  %2d: %-*s $(date +'%H:%M %D')" $((STEP_COUNT++)) 24 "ParseLog"
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseLog"
 if $QUAL_STEP; then
     $RUN ParseLog.py -l QualityLogR[1-2].log -f ID QUALITY > /dev/null &
 fi
@@ -202,12 +208,12 @@ if $ZIP_FILES; then
     gzip LogFiles.tar
     rm *LogR[1-2].log *Log.log
     
-    tar -cf TempFiles.tar *R[1-2]_*.fastq *under* *duplicate* *undetermined* *reheader*
+    tar -cf TempFiles.tar *R[1-2]_*.fastq *under* *duplicate* *undetermined* *reheader* *fail*
     gzip TempFiles.tar
-    rm *R[1-2]_*.fastq *under* *duplicate* *undetermined* *reheader*
+    rm *R[1-2]_*.fastq *under* *duplicate* *undetermined* *reheader* *fail*
 fi
 
 # End
-echo -e "DONE\n" 
+printf "DONE\n"
 cd ../
 

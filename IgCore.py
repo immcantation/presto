@@ -893,7 +893,7 @@ def qualityConsensus(seq_list, min_qual=default_min_qual,
             qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
             
         # Select character with highest consensus quality
-        cons = [(c, min(q, 93)) for c, q in qual_cons.iteritems() \
+        cons = [(c, min(q, 90)) for c, q in qual_cons.iteritems() \
                 if q == max(qual_cons.values())][0]
         # Assign N if consensus quality or frequency threshold is failed
         if cons[1] < min_qual or char_freq[cons[0]] < min_freq:  
