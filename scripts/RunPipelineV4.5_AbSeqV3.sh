@@ -2,7 +2,7 @@
 # Super script to run the pRESTO 0.4.5 pipeline on AbVitro AbSeq (V3) data
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.11.20
+# Date:    2014.11.21
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -18,6 +18,8 @@ LOG_RUNTIMES=true
 ZIP_FILES=true
 QUAL_STEP=false
 ALIGN_STEP=false
+PRCONS_STEP=true
+CALCDIV_STEP=true
 MASK_STEP=true
 
 # Define pRESTO run parameters
@@ -27,7 +29,6 @@ FS_MISS=20
 MP_UIDLEN=17
 MP_R1_MAXERR=0.2
 MP_R2_MAXERR=0.5
-BC_CALCDIV=true
 BC_MAXDIV=0.1
 BC_PRCONS=0.6
 BC_QUAL=0
@@ -127,17 +128,31 @@ fi
 
 # Build UID consensus sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
-if $BC_CALCDIV; then
-    $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
-	    --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+if $CALCDIV_STEP; then
+    if $PRCONS_STEP; then
+        $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
+            -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
+            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+    else
+        $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
+            -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
+            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+    fi
+
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
 	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log \
 	    --outname "${OUTNAME}-R2" --clean >> $RUNLOG
 else
-	$RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-    	-q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
-    	--outname "${OUTNAME}-R1" --clean >> $RUNLOG
+    if $PRCONS_STEP; then
+        $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
+            -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
+            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+    else
+        $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
+            -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
+            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+    fi
+
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
     	-q $BC_QUAL --nproc $NPROC --log ConsensusLogR2.log \
     	--outname "${OUTNAME}-R2" --clean >> $RUNLOG
@@ -145,14 +160,21 @@ fi
 
 # Assemble paired ends
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs align"
+
+if $PRCONS_STEP; then
+    PRFIELD="PRCONS"
+else
+    PRFIELD="PRIMER"
+fi
+
 if $AP_SCANREV; then
     $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
-        -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f PRCONS CONSCOUNT \
+        -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
         --coord presto --rc tail --maxerror $AP_MAXERR --alpha $AP_ALPHA --nproc $NPROC \
         --log AssembleLog.log --outname "${OUTNAME}-AP" --scanrev >> $RUNLOG
 else
     $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
-        -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f PRCONS CONSCOUNT \
+        -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
         --coord presto --rc tail --maxerror $AP_MAXERR --alpha $AP_ALPHA --nproc $NPROC \
         --log AssembleLog.log --outname "${OUTNAME}-AP" >> $RUNLOG
 fi
@@ -189,8 +211,8 @@ $RUN FilterSeq.py missing -s $FSMISS_FILE -n $FS_MISS --inner --nproc $NPROC \
 # Create table of final repertoire
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
 mv "${OUTNAME}-AP_missing-pass.fasta" "${OUTNAME}_high-fidelity.fasta"
-$RUN ParseHeaders.py table -s "${OUTNAME}_high-fidelity.fasta" -f ID PRCONS CONSCOUNT DUPCOUNT \
-    >> $RUNLOG
+$RUN ParseHeaders.py table -s "${OUTNAME}_high-fidelity.fasta" \
+    -f ID PRIMER PRCONS CONSCOUNT DUPCOUNT >> $RUNLOG
 
 # Process log files
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseLog"
