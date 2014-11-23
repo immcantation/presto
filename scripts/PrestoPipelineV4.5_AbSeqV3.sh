@@ -13,6 +13,15 @@
 #   $6 = output file prefix
 #   $7 = number of subprocesses for multiprocessing tools
 
+# Capture command line parameters
+R1_FILE=$(readlink -f $1)
+R2_FILE=$(readlink -f $2)
+R1_PRIMERS=$(readlink -f $3)
+R2_PRIMERS=$(readlink -f $4)
+OUTDIR=$5
+OUTNAME=$6
+NPROC=$7
+
 # Define pipeline steps
 LOG_RUNTIMES=true
 ZIP_FILES=true
@@ -42,15 +51,6 @@ MUSCLE_EXEC=$HOME/bin/muscle
 #R1_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta'
 #R2_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimer.fasta'
 #R2_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimersShifted.fasta'
-
-# Capture command line parameters
-R1_FILE=$(readlink -f $1)
-R2_FILE=$(readlink -f $2)
-R1_PRIMERS=$(readlink -f $3)
-R2_PRIMERS=$(readlink -f $4)
-OUTDIR=$5
-OUTNAME=$6
-NPROC=$7
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
