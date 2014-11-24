@@ -606,7 +606,7 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     else:
         scan_len = min(max(head_len, tail_len), max_len)
 
-    # TODO: verify scoring works correctly with min_qual != None
+    # TODO:  verify scoring works correctly with min_qual != None
     # Iterate and score overlap segments
     stitch = AssemblyRecord()
     #print "\n->NEW"

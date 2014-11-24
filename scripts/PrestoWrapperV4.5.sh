@@ -4,6 +4,7 @@
 # Author:  Jason Anthony Vander Heiden
 # Date:    2014.11.20
 
+# Define run parameters
 DATA_DIR=/scratch2/kleinstein/shlomchik_salmonella
 SCRIPT=/scratch2/kleinstein/shlomchik_salmonella/scripts/RunPipelineV4.5_AbSeqV3.sh
 PRIMERS1=/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta

@@ -824,7 +824,7 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
     
     return sum(scores) / len(scores)
 
-# TODO: apply min_qual to single sequence case
+# TODO:  apply min_qual to single sequence case
 def qualityConsensus(seq_list, min_qual=default_min_qual, 
                      min_freq=default_min_freq, max_miss=None,
                      dependent=False):

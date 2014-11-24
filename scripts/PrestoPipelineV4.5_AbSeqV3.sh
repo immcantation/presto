@@ -33,7 +33,7 @@ MASK_STEP=true
 
 # Define pRESTO run parameters
 FS_QUAL=20
-FS_MASK=60
+FS_MASK=30
 FS_MISS=20
 MP_UIDLEN=17
 MP_R1_MAXERR=0.2
@@ -47,10 +47,6 @@ AP_ALPHA=0.01
 CS_MISS=20
 MUSCLE_EXEC=$HOME/bin/muscle
 
-# Define primer files
-#R1_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta'
-#R2_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimer.fasta'
-#R2_PRIMERS='/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimersShifted.fasta'
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR

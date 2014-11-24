@@ -13,7 +13,7 @@ AssemblePairs:
 + Changed precision of ERROR and PVALUE log fields.
 + Added support for cases where one mate pair is the subsequence of the other.
 + Added --scanrev flag to allow for head sequence to overhand end of tail.
-+ Removed truncated (quick) error calculation in align subcommand..
++ Removed truncated (quick) error calculation in align subcommand.
 + Changed internal selection of top scoring alignment to use Z-score
   approximation rather than a combination of error rate and binomial
   mid-p value.
