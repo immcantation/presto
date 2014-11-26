@@ -2,18 +2,22 @@
 Unit tests for AssemblePairs
 """
 
-__author__ = 'Jason Anthony Vander Heiden'
+__author__    = 'Jason Anthony Vander Heiden'
+__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
+__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
+__version__   = '0.0.0'
+__date__      = '2014.11.26'
 
 # Imports
 import unittest
-import AssemblePairs as ap
+import AssemblePairs as mod
 import time
 from IgCore import readSeqFile
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 
-class Test_AssemblePairs(unittest.TestCase):
+class TestAssemblePairs(unittest.TestCase):
 
     def setUp(self):
         print '-> %s()' % self._testMethodName
@@ -27,7 +31,7 @@ class Test_AssemblePairs(unittest.TestCase):
         #self.head_seq = Seq("GGAGCTTGCATTAGCATCGATACGGGGAGCTGTGGGCTCAGAAGCAGAGTTCTGGGGTGTCTCCACCATGGCCTGGACCCCTCTCTGGCTCACTCTCCTCACTCTTTGCATAGGTTCTGTGGTTTCTTCTGAGCTGACTCAGGACCCTGCTGTGTCTGTGGCCTTGGGACAGACAGTCAGGATCACATGCCAAGGAGACCGCCTCAGAAGCTATTATGCAAGCTGGTCCCCGCAGAATCCAGGACAGGCCCCCCTCCTTCTCATCTATGGTATAAC")
         #self.tail_seq = Seq("CTTGGGACAGACAGTCAGGATCACAGGCCAAGGAGACAGGCTCAGAAGCTAGTATGCAAGCGGGTACCAGCAGAAGCCAGGACAGGCCCCTGTACTTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
 
-        # Non-Overlapping MISEQ:121:000000000-A7VDM:1:1101:13900:1538
+        # Non-Overlmodping MISEQ:121:000000000-A7VDM:1:1101:13900:1538
         self.head_seq = Seq("GGAGCTTGCATTAGCATCGATACGGGGAGCTGTGGGCTCAGAAGCAGAGTTCTGGGGTGTCTCCACCATGGCCTGGACCCCTCTCTGGCTCACTCTCCTCACTCTTTGCATAGGTTCTGTGGTTTCTTCTGAGCTGACTCAGGACCCTGCTGTGTCTGTGGCCTTGGGACAGACAGTCAGGAT")
         self.tail_seq = Seq("TTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
 
@@ -49,20 +53,20 @@ class Test_AssemblePairs(unittest.TestCase):
 
     #@unittest.skip("-> referenceAlignment() skipped\n")
     def test_getUBlastAlignment(self):
-        head_df = ap.getUblastAlignment(self.head_rec, self.ref_file)
-        tail_df = ap.getUblastAlignment(self.tail_rec, self.ref_file)
+        head_df = mod.getUblastAlignment(self.head_rec, self.ref_file)
+        tail_df = mod.getUblastAlignment(self.tail_rec, self.ref_file)
         print head_df
         print tail_df
         self.fail()
 
     def test_getBlastnAlignment(self):
-        head_df = ap.getBlastnAlignment(self.head_rec, self.ref_file)
-        tail_df = ap.getBlastnAlignment(self.tail_rec, self.ref_file)
+        head_df = mod.getBlastnAlignment(self.head_rec, self.ref_file)
+        tail_df = mod.getBlastnAlignment(self.tail_rec, self.ref_file)
         print head_df
         print tail_df
         self.fail()
 
     #@unittest.skip("-> referenceSeqPair() skipped\n")
     def test_referenceSeqPair(self):
-        stitch = ap.referenceSeqPair(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
+        stitch = mod.referenceSeqPair(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
         self.fail()

@@ -50,10 +50,10 @@ MUSCLE_EXEC=$HOME/bin/muscle
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
-RUNLOG="${OUTDIR}/Pipeline.log"
+RUNLOG="Pipeline.log"
 echo '' > $RUNLOG 
 if $LOG_RUNTIMES; then
-	TIMELOG="${OUTDIR}/Time.log"
+	TIMELOG="Time.log"
 	echo '' > $TIMELOG 
 	RUN="nice -19 /usr/bin/time -o ${TIMELOG} -a -f %C\t%E\t%P\t%Mkb"
 else
