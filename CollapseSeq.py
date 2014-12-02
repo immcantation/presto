@@ -305,6 +305,7 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # TODO: add exact mode which does hash table search only and does not generate undetermined file
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             parents=[getCommonArgParser()], 

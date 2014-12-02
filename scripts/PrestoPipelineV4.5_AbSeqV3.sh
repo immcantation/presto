@@ -2,7 +2,7 @@
 # Super script to run the pRESTO 0.4.5 pipeline on AbVitro AbSeq (V3) data
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.11.21
+# Date:    2014.11.29
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -25,11 +25,11 @@ NPROC=$7
 # Define pipeline steps
 LOG_RUNTIMES=true
 ZIP_FILES=true
-QUAL_STEP=false
+QUAL_STEP=true
 ALIGN_STEP=false
 PRCONS_STEP=true
 CALCDIV_STEP=true
-MASK_STEP=true
+MASK_STEP=false
 
 # Define pRESTO run parameters
 FS_QUAL=20
@@ -44,7 +44,7 @@ BC_QUAL=0
 AP_SCANREV=true
 AP_MAXERR=0.3
 AP_ALPHA=0.01
-CS_MISS=20
+CS_MISS=0
 MUSCLE_EXEC=$HOME/bin/muscle
 
 
@@ -83,9 +83,9 @@ if $QUAL_STEP; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
     #OUTPREFIX="$(printf '%02d' $STEP)--${OUTNAME}"
     $RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R1" --outdir . --clean >> $RUNLOG
+        --outname "${OUTNAME}-R1" --outdir . --clean --log QualityLogR1.log >> $RUNLOG
     $RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R2" --outdir . --clean >> $RUNLOG
+        --outname "${OUTNAME}-R2" --outdir . --clean q--log QualityLogR2.log  >> $RUNLOG
     MPR1_FILE="${OUTNAME}-R1_quality-pass.fastq"
     MPR2_FILE="${OUTNAME}-R2_quality-pass.fastq"
 else
