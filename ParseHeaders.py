@@ -375,7 +375,8 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Annotation operation', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command',
+                                       help='Annotation operation', metavar='')
 
     # Subparser to add header fields
     parser_add = subparsers.add_parser('add', parents=[getCommonArgParser(log=False)],
@@ -477,7 +478,7 @@ if __name__ == '__main__':
         
     # Check modify_args arguments
     if args.command == 'add' and len(modify_args['fields']) != len(modify_args['values']):
-        parser.error('You must specify exactly one value (-x) per field (-f)')
+        parser.error('You must specify exactly one value (-u) per field (-f)')
     if args.command == 'collapse' and len(modify_args['fields']) != len(modify_args['actions']):
         parser.error('You must specify exactly one action (-a) per field (-f)')
     

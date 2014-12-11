@@ -1,9 +1,28 @@
-October 2, 2014  
+November 20, 2014
 Version 0.4.5
 
 IgCore:
-+ Features added for Change-O compatibility
-+ Added custom help formatter
++ Features added for Change-O compatibility.
++ Added custom help formatter.
++ Modifications to internals of multiprocessing code.
++ Changed maximum consensus quality score from 93 to 90.
++ Fixed a few typos in error messages.
+
+AssemblePairs:
++ Added more verbose logging.
++ Change PVAL log field to PVALUE.
++ Changed precision of ERROR and PVALUE log fields.
++ Added support for cases where one mate pair is the subsequence of the other.
++ Added --scanrev flag to allow for head sequence to overhand end of tail.
++ Removed truncated (quick) error calculation in align subcommand.
++ Changed internal selection of top scoring alignment to use Z-score
+  approximation rather than a combination of error rate and binomial
+  mid-p value.
++ Added '-q (minimum quality score)' parameter to allow exclusion of low quality
+  bases from scoring in align subcommand.
++ Added reference subcommand which uses V-region germline alignments from
+  ublast to assemble paired-ends.
++ Internal changes to multiprocessing structure.
 
 -------------------------------------------------------------------------------
 June 10, 2014

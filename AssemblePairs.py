@@ -3,19 +3,22 @@
 Assembles paired-end reads into a single sequence
 """
 
-__author__    = 'Jason Anthony Vander Heiden, Gur Yaari'
+__author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Chris Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.11.10'
+__date__      = '2014.12.11'
 
 # Imports
-import os, sys
+import csv, os, sys, tempfile
 import numpy as np
+import pandas as pd
 import scipy.stats as stats
 from argparse import ArgumentParser
+from cStringIO import StringIO
 from collections import OrderedDict
 from itertools import chain, izip, repeat
+from subprocess import check_output, PIPE, Popen, STDOUT
 from time import time
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
@@ -35,10 +38,14 @@ from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
 
 # Defaults
 default_alpha = 0.01
-default_max_error = 0.2
+default_max_error = 0.3
 default_min_len = 1
 default_max_len = 1000
 default_gap = 0
+default_usearch_exec = r'/usr/local/bin/usearch'
+default_blastn_exec = r'/usr/bin/blastn'
+default_evalue = 1e-5
+default_max_hits = 10
 
 
 class AssemblyRecord:
@@ -48,12 +55,14 @@ class AssemblyRecord:
     # Instantiation
     def __init__(self, seq=None):
         self.seq = seq
-        self.pos_1 = None
-        self.pos_2 = None
-        self.gap = 0
+        self.ref_seq = None
+        self.head_pos = None
+        self.tail_pos = None
+        self.ref_pos = None
+        self.gap = None
         self.zscore = float('-inf')
-        self.pvalue = 1.0
-        self.error = 1.0
+        self.pvalue = None
+        self.error = None
         self.valid = False
 
     # Set boolean evaluation to valid value
@@ -67,13 +76,13 @@ class AssemblyRecord:
         else:
             return len(self.seq)
 
-    # Set overlap length to pos_1 difference
+    # Set overlap length to head_pos difference
     @property
     def overlap(self):
-        if self.pos_1 is None:
+        if self.head_pos is None:
             return None
         else:
-            return self.pos_1[1] - self.pos_1[0]
+            return self.head_pos[1] - self.head_pos[0]
 
 
 class AssemblyStats:
@@ -124,9 +133,382 @@ class AssemblyStats:
         return z_matrix
 
 
-# TODO: reference guided join
-# usearch -ublast HD11N_Subseq_R2.fasta -db IMGT_Human_IGV.fasta --strand both -evalue 1e-5 -maxaccepts 1 -userout ublast_out_R2.txt -userfields query+target+evalue+id+alnlen+qlo+qhi+tlo+thi+qstrand+tstrand
-# def getReferenceGap():
+def makeUsearchDb(ref_file, usearch_exec=default_usearch_exec):
+    """
+    Makes a usearch database file for ublast
+
+    Arguments:
+    ref_file = the path to the reference database file
+    usearch_exec = the path to the usearch executable
+
+    Returns:
+    a handle to the named temporary file containing the database file
+    """
+    # Open temporary file
+    db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
+
+    # Define usearch command
+    cmd = ' '.join([usearch_exec,
+               '-makeudb_ublast', ref_file,
+               '-output', db_handle.name])
+
+    child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    stdout_str, stderr_str = child.communicate()
+
+    return db_handle
+
+
+def getBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+                       blastn_exec=default_blastn_exec):
+    """
+    Aligns a sequence against a reference database using ublast
+
+    Arguments:
+    seq = a SeqRecord objects to align
+    ref_dict = a dictionary of reference SeqRecord objects
+    evalue = the E-value cut-off for ublast
+    maxhits = the maxhits output limit for ublast
+    blastn_exec = the path to the usearch executable
+
+    Returns:
+    a DataFrame of alignment results
+    """
+    seq_fasta = seq.format('fasta')
+    #ref_fasta = ''.join([s.format('fasta') for s in ref_dict.itervalues()])
+
+    # Define usearch command
+    cmd = ' '.join([blastn_exec,
+                    '-query -',
+                    #'-query', str(seq.seq),
+                    '-subject', ref_file,
+                    '-strand plus',
+                    '-evalue', str(evalue),
+                    '-max_target_seqs', str(max_hits),
+                    '-outfmt "6 qseqid sseqid qstart qend sstart send length evalue pident"',
+                    '-num_threads 1'])
+    #print cmd
+    # Run blastn
+    child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    stdout_str, stderr_str = child.communicate(seq_fasta)
+    out_handle = StringIO(stdout_str)
+    #print stdout_str
+    #print stderr_str
+
+    # Parse blastn output
+    field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
+                   'length', 'evalue', 'identity']
+    align_df = pd.read_table(out_handle, header=None, names=field_names)
+    # Convert to base-zero indices
+    align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
+    #print align_df
+
+    return align_df
+
+
+def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+                       usearch_exec=default_usearch_exec):
+    """
+    Aligns a sequence against a reference database using ublast
+
+    Arguments:
+    seq = a SeqRecord objects to align
+    ref_file = the path to the reference database file
+    evalue = the E-value cut-off for ublast
+    maxhits = the maxhits output limit for ublast
+    usearch_exec = the path to the usearch executable
+
+    Returns:
+    a DataFrame of alignment results
+    """
+    #print "\n->NEW"
+    # Open temporary files
+    in_handle = tempfile.NamedTemporaryFile()
+    out_handle = tempfile.NamedTemporaryFile()
+
+    # Define usearch command
+    # cmd = ' '.join([usearch_exec,
+    #            '-ublast', in_handle.name,
+    #            '-db', ref_file,
+    #            '-strand plus',
+    #            '-evalue', str(evalue),
+    #            '-maxhits', str(max_hits),
+    #            '-userout', out_handle.name,
+    #            '-userfields query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+    #            '-threads 1'])
+
+    # Define usearch command
+    cmd = [usearch_exec,
+           '-ublast', in_handle.name,
+           '-db', ref_file,
+           '-strand', 'plus',
+           '-evalue', str(evalue),
+           '-maxhits', str(max_hits),
+           '-userout', out_handle.name,
+           '-userfields', 'query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+           '-threads', '1']
+
+
+    # Write usearch input fasta file
+    SeqIO.write(seq, in_handle, 'fasta')
+
+    #in_handle.seek(0)
+    #seq_in = SeqIO.read(in_handle, 'fasta')
+    #print seq_in
+
+    # Run usearch ublast algorithm
+    in_handle.seek(0)
+    stdout_str = check_output(cmd, stderr=STDOUT, shell=False)
+    #child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    #stdout_str, stderr_str = child.communicate()
+    #print stdout_str
+    #print stderr_str
+
+    # Parse usearch output
+    #out_handle.seek(0)
+    field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
+                   'length', 'evalue', 'identity']
+    align_df = pd.read_table(out_handle, header=None, names=field_names)
+    # Convert to base-zero indices
+    align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
+    #print align_df
+
+    # Close temp file handles
+    #print in_handle.name
+    #print out_handle.name
+    #print cmd
+    in_handle.close()
+    out_handle.close()
+
+    return align_df
+
+
+def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
+                     max_error=default_max_error,
+                     evalue=default_evalue, max_hits=default_max_hits,
+                     usearch_exec=default_usearch_exec,
+                     score_dict=getScoreDict(n_score=0, gap_score=0)):
+    """
+    Stitches two sequences together by aligning against a reference database
+
+    Arguments:
+    head_seq = the head SeqRecord
+    head_seq = the tail SeqRecord
+    ref_dict = a dictionary of reference SeqRecord objects
+    ref_file = the path to the reference database file
+    max_error = the maximum error rate for a valid assembly
+    evalue = the E-value cut-off for ublast
+    max_hits = the maxhits output limit for ublast
+    usearch_exec = the path to the usearch executable
+    score_dict = optional dictionary of character scores in the
+                 form {(char1, char2): score}
+
+    Returns:
+    an AssemblyRecord object
+    """
+    # Define general parameters
+    head_len = len(head_seq)
+    tail_len = len(tail_seq)
+
+    # Determine if quality scores are present
+    has_quality = hasattr(head_seq, 'letter_annotations') and \
+                  hasattr(tail_seq, 'letter_annotations') and \
+                  'phred_quality' in head_seq.letter_annotations and \
+                  'phred_quality' in tail_seq.letter_annotations
+
+    # Align against reference
+    head_df = getUblastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                                 usearch_exec=usearch_exec)
+    tail_df = getUblastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                                 usearch_exec=usearch_exec)
+    #head_df = getBlastnAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    #tail_df = getBlastnAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    #head_df = getUblastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    #tail_df = getUblastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits)
+
+    # head_df = align_func(head_seq, ref_file, evalue=evalue, max_hits=max_hits)
+    # tail_df = align_func(tail_seq, ref_file, evalue=evalue, max_hits=max_hits)
+
+    #print head_df
+    #print tail_df
+
+    # Subset results to matching reference assignments
+    align_df = pd.merge(head_df, tail_df, on='target', how='inner', suffixes=('_head', '_tail'))
+
+    # If no matching targets return failed results
+    if len(align_df) < 1:
+        return AssemblyRecord()
+
+    # Select top alignment
+    align_top = align_df.ix[0, :]
+    #print align_df
+    #print 'NROW:', len(align_df)
+    #print align_top
+
+    # Get offset of target and reference positions
+    head_shift = align_top['target_start_head'] - align_top['query_start_head']
+    tail_shift = align_top['target_start_tail'] - align_top['query_start_tail']
+
+    # Get positions of outer reference match in head (a, b) and tail (x, y) sequences
+    outer_start = align_top[['target_start_head', 'target_start_tail']].min()
+    outer_end = align_top[['target_end_head', 'target_end_tail']].max()
+    a_outer = outer_start - head_shift
+    b_outer = outer_end - head_shift
+    x_outer = outer_start - tail_shift
+    y_outer = outer_end - tail_shift
+
+    # Get positions of inner reference match in head (a,b) and tail (x,y) sequences
+    inner_start = align_top[['target_start_head', 'target_start_tail']].max()
+    inner_end = align_top[['target_end_head', 'target_end_tail']].min()
+    a_inner = inner_start - head_shift
+    b_inner = inner_end - head_shift
+    x_inner = inner_start - tail_shift
+    y_inner = inner_end - tail_shift
+
+    # Determine head (a, b) and tail (x, y) overlap positions
+    a = max(0, a_inner - x_inner)
+    b = min(b_inner + (tail_len - y_inner), head_len)
+    x = max(0, x_inner - a_inner)
+    y = min(y_inner + (head_len - b_inner), tail_len)
+
+    # Join sequences if head and tail do not overlap, otherwise assemble
+    if a > b and x > y:
+        stitch = joinSeqPair(head_seq, tail_seq, gap=(a - b))
+    else:
+        stitch = AssemblyRecord()
+        stitch.gap = 0
+
+        # Define overlap sequence
+        if has_quality:
+            # Build quality consensus
+            overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
+        else:
+            # Assign head sequence to conflicts when no quality information is available
+            overlap_seq = head_seq[a:b]
+
+        # Assemble sequence
+        if a > 0 and y < tail_len:
+            # Tail overlaps end of head
+            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
+        elif b < head_len and x > 0:
+            # Head overlaps end of tail
+            stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
+        elif a == 0 and b == head_len:
+            # Head is a subsequence of tail
+            stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
+        elif x == 0 and y == tail_len:
+            # Tail is a subsequence of head
+            stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
+        else:
+            sys.stderr.write('ERROR:  Invalid overlap condition for %s\n' % head_seq.id)
+
+        # Define stitch ID
+        stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
+                                    else '+'.join([head_seq.id, tail_seq.id])
+        stitch.seq.name = stitch.seq.id
+        stitch.seq.description = ''
+
+    # Assign position info
+    stitch.head_pos = (a, b)
+    stitch.tail_pos = (x, y)
+
+    # Assign reference info
+    ref_id = align_top['target']
+    ref_seq = ref_dict[ref_id]
+    stitch.ref_seq = ref_seq[outer_start:outer_end]
+    stitch.ref_pos = (max(a_outer, x_outer), max(b_outer, y_outer))
+
+    # Calculate assembly error
+    score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
+                                 ref_seq.seq[outer_start:outer_end],
+                                 score_dict=score_dict)
+    stitch.error = error
+    stitch.valid = bool(stitch.error <= max_error)
+
+
+    # score, weight = 0.0, 0.0
+    # print '\n->NEW'
+    # # Calculate score of overlap
+    # if a < b and x < y:
+    #     s = scoreSeqPair(head_seq.seq[a:b], tail_seq.seq[x:y], score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'OVERLAP:', (a, b), (x, y), s
+    #
+    # # Calculate score of head alignment before overlap
+    # if a_outer < a:
+    #     s = scoreSeqPair(head_seq.seq[a_outer:a],
+    #                      ref_seq.seq[(a_outer + head_shift):(a + head_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'HEAD_A:', (a_outer, a), ((a_outer + head_shift), (a + head_shift)), s
+    #
+    # # Calculate score of head alignment after overlap
+    # if b < b_outer:
+    #     s = scoreSeqPair(head_seq.seq[b:b_outer],
+    #                      ref_seq.seq[(b + head_shift):(b_outer + head_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'HEAD_B:', (b, b_outer), ((b + head_shift), (b_outer + head_shift)), s
+    #
+    # # Calculate error of tail alignment before overlap
+    # if x_outer < x:
+    #     s = scoreSeqPair(tail_seq.seq[x_outer:x],
+    #                      ref_seq.seq[(x_outer + tail_shift):(x + tail_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'TAIL_X:', (x_outer, x), ((x_outer + tail_shift), (x + tail_shift)), s
+    #
+    # # Calculate error of tail alignment after overlap
+    # if y < y_outer:
+    #     s = scoreSeqPair(tail_seq.seq[y:y_outer],
+    #                      ref_seq.seq[(y + tail_shift):(y_outer + tail_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'TAIL_Y:', (y, y_outer), ((y + tail_shift), (y_outer + tail_shift)), s
+
+    # Calculate overlap error
+    #__, __, error = scoreSeqPair(head_seq.seq[a:b], tail_seq.seq[x:y], score_dict=score_dict)
+    # stitch.error = 1.0 - score / weight
+    # stitch.valid = bool(stitch.error <= max_error)
+
+    # Log stuff
+    # print 'HEADQRY>', (align_top['query_start_head'], align_top['query_end_head'])
+    # print 'HEADREF>', (align_top['target_start_head'], align_top['target_end_head'])
+    #
+    # print 'TAILQRY>', (align_top['query_start_tail'], align_top['query_end_tail'])
+    # print 'TAILREF>', (align_top['target_start_tail'], align_top['target_end_tail'])
+    #
+    # print '  INPOS>', (inner_start, inner_end)
+    # print ' OUTPOS>', (outer_start, outer_end)
+    #
+    # print '  ABOFF>', head_shift
+    # print '  XYOFF>', tail_shift
+    #
+    # print ' HEADIN>', (a_inner, b_inner)
+    # print 'HEADOUT>', (a_outer, b_outer)
+    # print 'HEADLAP>', (a, b)
+    #
+    # print ' TAILIN>', (x_inner, y_inner)
+    # print 'TAILOUT>', (x_outer, y_outer)
+    # print 'TAILLAP>', (x, y)
+    #
+    # print ' HEADSEQ>', ' ' * stitch.tail_pos[0] + head_seq.seq
+    # print ' TAILSEQ>', ' ' * stitch.head_pos[0] + tail_seq.seq
+    # print '  REFSEQ>', ' ' * stitch.ref_pos[0] + stitch.ref_seq.seq
+    # print 'ASSEMBLY>', stitch.seq.seq
+    # print '   REFID>', stitch.ref_seq.id
+    # print '     GAP>', stitch.gap
+    # print '   ERROR>', stitch.error, (score, weight)
+    # print ' HEADPOS>', stitch.head_pos
+    # print ' TAILPOS>', stitch.tail_pos
+    # print '  REFPOS>', stitch.ref_pos
+
+    return stitch
+
 
 def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
     """
@@ -193,7 +575,7 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     gap = number of gap characters to insert between head and tail
     
     Returns: 
-    dictionary of {joined SeqRecord object, error rate, p-value, overlap length}
+    an AssemblyRecord object
     """
     # Define joined ID
     join_id = head_seq.id if head_seq.id == tail_seq.id \
@@ -246,8 +628,7 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
                  form {(char1, char2): score}
                      
     Returns: 
-    dictionary of {stitched SeqRecord object, error rate, p-value, (head overlap range),
-                   (tail overlap range)}
+    an AssemblyRecord object
     """
     # Set alignment parameters
     if assembly_stats is None:  assembly_stats = AssemblyStats(max_len + 1)
@@ -280,6 +661,7 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
     else:
         scan_len = min(max(head_len, tail_len), max_len)
 
+    # TODO:  verify scoring works correctly with min_qual != None
     # Iterate and score overlap segments
     stitch = AssemblyRecord()
     #print "\n->NEW"
@@ -300,17 +682,17 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
         #if error <= stitch.error and p <= stitch.pvalue:
         if z > stitch.zscore:
            #print z, p, error
-           stitch.pos_1 = (a, b)
-           stitch.pos_2 = (x, y)
+           stitch.head_pos = (a, b)
+           stitch.tail_pos = (x, y)
            stitch.zscore = z
            stitch.pvalue = assembly_stats.p[score, weight]
            stitch.error = error
 
     # Build stitched sequences and assign best_dict values
-    if stitch.pos_1 is not None:
+    if stitch.head_pos is not None:
         # Correct quality scores and resolve conflicts
-        a, b = stitch.pos_1
-        x, y = stitch.pos_2
+        a, b = stitch.head_pos
+        x, y = stitch.tail_pos
         if has_quality:
             # Build quality consensus
             overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
@@ -318,18 +700,21 @@ def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_
             # Assign head sequence to conflicts when no quality information is available
             overlap_seq = head_seq[a:b]
 
-        if b < head_len and x > 0:
+        if a > 0 and y < tail_len:
+            # Tail overlaps end of head
+            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
+        elif b < head_len and x > 0:
             # Head overlaps end of tail
             stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
-        elif a == 0 and b == head_len and x >= 0:
+        elif a == 0 and b == head_len:
             # Head is a subsequence of tail
             stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
-        elif b <= head_len and x == 0 and y == tail_len:
+        elif x == 0 and y == tail_len:
             # Tail is a subsequence of head
             stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
         else:
-            # Tail overlaps end of head
-            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
+            sys.stderr.write('ERROR:  Invalid overlap condition for %s\n' % head_seq.id)
+
 
         # Define best stitch ID
         stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
@@ -436,17 +821,22 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
 
     # Assemble sequences
     stitch = assemble_func(head_seq, tail_seq, **assemble_args)
+    ab = stitch.head_pos
+    xy = stitch.tail_pos
     result.valid = stitch.valid
 
-    ab = stitch.pos_1
-    xy = stitch.pos_2
+    # Add reference to log
+    if stitch.ref_seq is not None and stitch.ref_pos is not None:
+        result.log['REFID'] = stitch.ref_seq.id
+        result.log['REFSEQ'] = ' ' * stitch.ref_pos[0] + stitch.ref_seq.seq
+
     if ab is not None and xy is not None:
         #print ab, xy
         result.log['HEADSEQ'] = ' ' * xy[0] + head_seq.seq
         result.log['TAILSEQ'] = ' ' * ab[0] + tail_seq.seq
     else:
         result.log['HEADSEQ'] = head_seq.seq
-        result.log['TAILSEQ'] = ' ' * (len(head_seq) + stitch.gap) + tail_seq.seq
+        result.log['TAILSEQ'] = ' ' * (len(head_seq) + (stitch.gap or 0)) + tail_seq.seq
 
     # Define stitching log
     if stitch.seq is not None:
@@ -455,18 +845,33 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
         stitch.seq.name = stitch.seq.id
         stitch.seq.description = ''
         result.results = stitch.seq
+        # Add assembly to log
         result.log['ASSEMBLY'] = stitch.seq.seq
         if 'phred_quality' in stitch.seq.letter_annotations:
             result.log['QUALITY'] = ''.join([chr(q+33) for q in
                                              stitch.seq.letter_annotations['phred_quality']])
     else:
         result.log['ASSEMBLY'] = None
-    result.log['HEADPOS'] = ab
-    result.log['TAILPOS'] = xy
+
+    # print ' HEADSEQ>', ' ' * stitch.tail_pos[0] + head_seq.seq
+    # print ' TAILSEQ>', ' ' * stitch.head_pos[0] + tail_seq.seq
+    # print '  REFSEQ>', ' ' * stitch.ref_pos[0] + stitch.ref_seq.seq
+    # print 'ASSEMBLY>', stitch.seq.seq
+    # print '   REFID>', stitch.ref_seq.id
+    # print '     GAP>', stitch.gap
+    # print '   ERROR>', stitch.error
+
     result.log['LENGTH'] = len(stitch)
     result.log['OVERLAP'] = stitch.overlap
-    result.log['ERROR'] = stitch.error
-    result.log['PVALUE'] = stitch.pvalue
+    if ab is not None and xy is not None:
+        result.log['HEADPOS'] = ab
+        result.log['TAILPOS'] = xy
+    if stitch.gap is not None:
+        result.log['GAP'] = stitch.gap
+    if stitch.error is not None:
+        result.log['ERROR'] = '%.4f' % stitch.error
+    if stitch.pvalue is not None:
+        result.log['PVALUE'] = '%.4e' % stitch.pvalue
 
     return result
 
@@ -628,14 +1033,16 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     log['FILE1'] = os.path.basename(head_file) 
     log['FILE2'] = os.path.basename(tail_file)
     log['COORD_TYPE'] = coord_type
+    if 'ref_file' in assemble_args:  log['REFFILE'] = assemble_args['ref_file']
     if 'alpha' in assemble_args:  log['ALPHA'] = assemble_args['alpha']
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
     if 'min_len' in assemble_args:  log['MIN_LEN'] = assemble_args['min_len']
     if 'max_len' in assemble_args:  log['MAX_LEN'] = assemble_args['max_len']
     if 'min_qual' in assemble_args:  log['MIN_QUAL'] = assemble_args['min_qual']
     if 'scan_reverse' in assemble_args:  log['SCAN_REVERSE'] = assemble_args['scan_reverse']
-    if 'quick_error' in assemble_args:  log['QUICK_ERROR'] = assemble_args['quick_error']
     if 'gap' in assemble_args:  log['GAP'] = assemble_args['gap']
+    if 'evalue' in assemble_args:  log['EVALUE'] = assemble_args['evalue']
+    if 'max_hits' in assemble_args:  log['MAX_HITS'] = assemble_args['max_hits']
     log['NPROC'] = nproc
     printLog(log)
 
@@ -774,7 +1181,30 @@ def getArgParser():
     parser_join.add_argument('--gap', action='store', dest='gap', type=int, default=default_gap, 
                              help='Number of gap characters to place between ends')
     parser_join.set_defaults(assemble_func=joinSeqPair)    
-    
+
+    # Reference alignment mode argument parser
+    parser_ref = subparsers.add_parser('reference', parents=[parser_parent],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='''Assembled pairs by aligning reads against a
+                                             reference database.''')
+    parser_ref.add_argument('-r', action='store', dest='ref_file', required=True,
+                            help='''A FASTA file containing the reference sequence database.''')
+    parser_ref.add_argument('--maxerror', action='store', dest='max_error', type=float,
+                            default=default_max_error,
+                            help='''Maximum allowable error rate.''')
+    parser_ref.add_argument('--evalue', action='store', dest='evalue', type=float,
+                            default=default_evalue,
+                            help='''Minimum E-value for the reference alignment.''')
+    parser_ref.add_argument('--maxhits', action='store', dest='max_hits', type=int,
+                            default=default_max_hits,
+                            help='''Maximum number of hits from ublast to check for matching
+                                 head and tail sequence reference alignments.''')
+    parser_ref.add_argument('--exec', action='store', dest='usearch_exec',
+                            default=default_usearch_exec,
+                            help='''The path to the usearch executable file.''')
+    parser_ref.set_defaults(assemble_func=referenceSeqPair)
+
+
     return parser
 
 
@@ -785,7 +1215,7 @@ if __name__ == '__main__':
     # Parse arguments
     parser = getArgParser()
     args = parser.parse_args()
-    args_dict = parseCommonArgs(args)
+    args_dict = parseCommonArgs(args, in_arg='ref_file')
     
     # Convert case of fields
     if args_dict['head_fields']:  args_dict['head_fields'] = map(str.upper, args_dict['head_fields']) 
@@ -809,7 +1239,26 @@ if __name__ == '__main__':
     elif args_dict['assemble_func'] is joinSeqPair:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']
-    
+    elif args_dict['assemble_func'] is referenceSeqPair:
+        ref_dict = {s.id:s.upper() for s in readSeqFile(args_dict['ref_file'])}
+        #ref_file = makeUsearchDb(args_dict['ref_file'], args_dict['usearch_exec'])
+        #ref_file.name
+        args_dict['assemble_args'] = {'ref_file': args_dict['ref_file'],
+                                      'ref_dict': ref_dict,
+                                      'max_error': args_dict['max_error'],
+                                      'evalue': args_dict['evalue'],
+                                      'max_hits': args_dict['max_hits'],
+                                      'usearch_exec': args_dict['usearch_exec']}
+        del args_dict['ref_file']
+        del args_dict['max_error']
+        del args_dict['evalue']
+        del args_dict['max_hits']
+        del args_dict['usearch_exec']
+
+        # Check if a valid USEARCH executable was specified
+        if not os.path.isfile(args.usearch_exec):
+            parser.error('%s does not exist' % args.usearch_exec)
+
     # Call assemblePairs for each sample file
     del args_dict['command']
     del args_dict['seq_files_1']
@@ -819,6 +1268,3 @@ if __name__ == '__main__':
         args_dict['head_file'] = head
         args_dict['tail_file'] = tail
         assemblePairs(**args_dict)
-            
-            
-            

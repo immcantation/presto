@@ -452,7 +452,7 @@ if __name__ == '__main__':
     if 'primer_field' in args_dict and args_dict['primer_field']:
         args_dict['primer_field'] = args_dict['primer_field'].upper()
     
-    # Check if a valid MUSCLE executable was specific for muscle mode
+    # Check if a valid MUSCLE executable was specified for muscle mode
     if args.command in ['muscle', 'table'] and not os.path.isfile(args.muscle_exec):
         parser.error('%s does not exist' % args.muscle_exec)
     

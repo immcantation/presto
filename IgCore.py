@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2014.11.18'
 
 # Imports
 import ctypes, math, os, re, signal, sys
@@ -20,6 +20,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
+
 
 # Defaults
 default_delimiter = ('|', '=', ',')
@@ -39,6 +40,10 @@ default_out_args = {'log_file':None,
                     'out_name':None,
                     'out_type':None,
                     'clean':False}
+
+# Constants
+TERMINATION_SENTINEL = None
+EXCEPTION_SENTINEL = None
 
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
@@ -720,6 +725,7 @@ def reverseComplement(seq):
     return new_record
 
 
+# TODO:  is this faster as a regex replacement of [N.-] with [ATGCN.-]?
 def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     """
     Determine if two sequences are equal, excluding missing positions
@@ -733,6 +739,7 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     True if the sequences are equal
     """
     equal = True
+    # TODO:  check that str.upper() calls can be removed for speed
     for a, b in izip(seq1.upper(), seq2.upper()):
         if a != b and a not in ignore_chars and b not in ignore_chars:
             equal = False
@@ -819,7 +826,8 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
     
     return sum(scores) / len(scores)
 
-# TODO: apply min_qual to single sequence case
+
+# TODO:  apply min_qual to single sequence case
 def qualityConsensus(seq_list, min_qual=default_min_qual, 
                      min_freq=default_min_freq, max_miss=None,
                      dependent=False):
@@ -888,7 +896,7 @@ def qualityConsensus(seq_list, min_qual=default_min_qual,
             qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
             
         # Select character with highest consensus quality
-        cons = [(c, min(q, 93)) for c, q in qual_cons.iteritems() \
+        cons = [(c, min(q, 90)) for c, q in qual_cons.iteritems() \
                 if q == max(qual_cons.values())][0]
         # Assign N if consensus quality or frequency threshold is failed
         if cons[1] < min_qual or char_freq[cons[0]] < min_freq:  
@@ -1153,7 +1161,7 @@ def manageProcesses(feed_func, work_func, collect_func,
                             args=(alive, data_queue), 
                             kwargs=feed_args)
         feeder.start()
-    
+
         # Initiate worker processes
         workers = []
         for __ in range(nproc):
@@ -1280,8 +1288,13 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
             # Exit upon reaching sentinel
             if data is None:  break
 
-            # Perform filtering
+            # Perform work
             result = process_func(data, **process_args)
+
+            #import cProfile
+            #prof = cProfile.Profile()
+            #result = prof.runcall(process_func, data, **process_args)
+            #prof.dump_stats('worker-%d.prof' % os.getpid())
 
             # Feed results to result queue
             result_queue.put(result)
@@ -1640,7 +1653,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                 sys.exit('ERROR:  Database file %s does not exist' % f)
             if os.path.splitext(f)[-1].lower() not in db_types:
                 sys.exit('ERROR:  Database file %s is not a supported type. Must be one: %s' \
-                         % (','.join(db_types), f))       
+                         % (f, ', '.join(db_types)))
     
     # Verify single-end sequence files
     if 'seq_files' in args_dict:
@@ -1649,7 +1662,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                 sys.exit('ERROR:  Sequence file %s does not exist' % f)
             if os.path.splitext(f)[-1].lower() not in seq_types:
                 sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
-                         % (','.join(seq_types), f))
+                         % (f, ', '.join(seq_types)))
     
     # Verify paired-end sequence files
     if 'seq_files_1' and 'seq_files_2' in args_dict:
@@ -1663,7 +1676,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                 sys.exit('ERROR:  Sequence file %s does not exist' % f)
             if os.path.splitext(f)[-1].lower() not in seq_types:
                 sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
-                         % (','.join(seq_types), f))
+                         % (f, ', '.join(seq_types)))
                     
     # Verify primer file
     if 'primer_file' in args_dict:
@@ -1672,7 +1685,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
             sys.exit('ERROR:  Primer file %s does not exist' % primer_file)
         if os.path.splitext(primer_file)[-1].lower() not in primer_types:
             sys.exit('ERROR:  Primer file %s is not a supported type. Must be one: %s' \
-                     % (','.join(primer_types), primer_file))
+                     % (primer_file, ', '.join(primer_types)))
     
     # Verify non-standard input files
     if in_arg is not None and in_arg in args_dict:
@@ -1683,7 +1696,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                 sys.exit('ERROR:  Input %s does not exist' % f)
             if in_types is not None and os.path.splitext(f)[-1].lower() not in in_types:
                 sys.exit('ERROR:  Input %s is not a supported type. Must be one: %s' \
-                         % (','.join(in_types), f))
+                         % (f, ', '.join(in_types)))
     
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir'] is not None:
