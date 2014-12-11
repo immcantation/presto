@@ -138,7 +138,7 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
                 elif min_field is not None:
                     swap = float(parseAnnotation(seq.description, delimiter=delimiter)[min_field]) > \
                            float(parseAnnotation(seq_last.description, delimiter=delimiter)[min_field])
-                # >>> QUALITY EVALUATION IS A BOTTLENECK
+                # TODO:  QUALITY EVALUATION IS A BOTTLENECK
                 else:
                     if hasattr(seq, 'letter_annotations') and 'phred_quality' in seq.letter_annotations:
                         q_this = float(sum(seq.letter_annotations['phred_quality'])) / len(seq)

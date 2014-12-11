@@ -6,6 +6,7 @@ IgCore:
 + Added custom help formatter.
 + Modifications to internals of multiprocessing code.
 + Changed maximum consensus quality score from 93 to 90.
++ Fixed a few typos in error messages.
 
 AssemblePairs:
 + Added more verbose logging.

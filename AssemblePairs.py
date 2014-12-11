@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Chris Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.11.18'
+__date__      = '2014.12.11'
 
 # Imports
 import csv, os, sys, tempfile
@@ -348,6 +348,14 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     head_shift = align_top['target_start_head'] - align_top['query_start_head']
     tail_shift = align_top['target_start_tail'] - align_top['query_start_tail']
 
+    # Get positions of outer reference match in head (a, b) and tail (x, y) sequences
+    outer_start = align_top[['target_start_head', 'target_start_tail']].min()
+    outer_end = align_top[['target_end_head', 'target_end_tail']].max()
+    a_outer = outer_start - head_shift
+    b_outer = outer_end - head_shift
+    x_outer = outer_start - tail_shift
+    y_outer = outer_end - tail_shift
+
     # Get positions of inner reference match in head (a,b) and tail (x,y) sequences
     inner_start = align_top[['target_start_head', 'target_start_tail']].max()
     inner_end = align_top[['target_end_head', 'target_end_tail']].min()
@@ -356,15 +364,7 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     x_inner = inner_start - tail_shift
     y_inner = inner_end - tail_shift
 
-    # Get positions of outer reference match in head (a,b) and tail (x,y) sequences
-    outer_start = align_top[['target_start_head', 'target_start_tail']].min()
-    outer_end = align_top[['target_end_head', 'target_end_tail']].max()
-    a_outer = outer_start - head_shift
-    b_outer = outer_end - head_shift
-    x_outer = outer_start - tail_shift
-    y_outer = outer_end - tail_shift
-
-    # Determine head (a,b) and tail (x,y) overlap positions
+    # Determine head (a, b) and tail (x, y) overlap positions
     a = max(0, a_inner - x_inner)
     b = min(b_inner + (tail_len - y_inner), head_len)
     x = max(0, x_inner - a_inner)
@@ -373,7 +373,6 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     # Join sequences if head and tail do not overlap, otherwise assemble
     if a > b and x > y:
         stitch = joinSeqPair(head_seq, tail_seq, gap=(a - b))
-        stitch.error = 0
     else:
         stitch = AssemblyRecord()
         stitch.gap = 0
@@ -408,11 +407,6 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
         stitch.seq.name = stitch.seq.id
         stitch.seq.description = ''
 
-        # Calculate overlap error
-        __, __, error = scoreSeqPair(head_seq.seq[a:b], tail_seq.seq[x:y], score_dict=score_dict)
-        stitch.error = error
-        stitch.valid = bool(stitch.error <= max_error)
-
     # Assign position info
     stitch.head_pos = (a, b)
     stitch.tail_pos = (x, y)
@@ -421,7 +415,65 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     ref_id = align_top['target']
     ref_seq = ref_dict[ref_id]
     stitch.ref_seq = ref_seq[outer_start:outer_end]
-    stitch.ref_pos = (max(a_outer, x_outer), min(b_outer, y_outer))
+    stitch.ref_pos = (max(a_outer, x_outer), max(b_outer, y_outer))
+
+    # Calculate assembly error
+    score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
+                                 ref_seq.seq[outer_start:outer_end],
+                                 score_dict=score_dict)
+    stitch.error = error
+    stitch.valid = bool(stitch.error <= max_error)
+
+
+    # score, weight = 0.0, 0.0
+    # print '\n->NEW'
+    # # Calculate score of overlap
+    # if a < b and x < y:
+    #     s = scoreSeqPair(head_seq.seq[a:b], tail_seq.seq[x:y], score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'OVERLAP:', (a, b), (x, y), s
+    #
+    # # Calculate score of head alignment before overlap
+    # if a_outer < a:
+    #     s = scoreSeqPair(head_seq.seq[a_outer:a],
+    #                      ref_seq.seq[(a_outer + head_shift):(a + head_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'HEAD_A:', (a_outer, a), ((a_outer + head_shift), (a + head_shift)), s
+    #
+    # # Calculate score of head alignment after overlap
+    # if b < b_outer:
+    #     s = scoreSeqPair(head_seq.seq[b:b_outer],
+    #                      ref_seq.seq[(b + head_shift):(b_outer + head_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'HEAD_B:', (b, b_outer), ((b + head_shift), (b_outer + head_shift)), s
+    #
+    # # Calculate error of tail alignment before overlap
+    # if x_outer < x:
+    #     s = scoreSeqPair(tail_seq.seq[x_outer:x],
+    #                      ref_seq.seq[(x_outer + tail_shift):(x + tail_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'TAIL_X:', (x_outer, x), ((x_outer + tail_shift), (x + tail_shift)), s
+    #
+    # # Calculate error of tail alignment after overlap
+    # if y < y_outer:
+    #     s = scoreSeqPair(tail_seq.seq[y:y_outer],
+    #                      ref_seq.seq[(y + tail_shift):(y_outer + tail_shift)],
+    #                      score_dict=score_dict)
+    #     score += s[0]
+    #     weight += s[1]
+    #     print 'TAIL_Y:', (y, y_outer), ((y + tail_shift), (y_outer + tail_shift)), s
+
+    # Calculate overlap error
+    #__, __, error = scoreSeqPair(head_seq.seq[a:b], tail_seq.seq[x:y], score_dict=score_dict)
+    # stitch.error = 1.0 - score / weight
+    # stitch.valid = bool(stitch.error <= max_error)
 
     # Log stuff
     # print 'HEADQRY>', (align_top['query_start_head'], align_top['query_end_head'])
@@ -450,7 +502,10 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     # print 'ASSEMBLY>', stitch.seq.seq
     # print '   REFID>', stitch.ref_seq.id
     # print '     GAP>', stitch.gap
-    # print '   ERROR>', stitch.error
+    # print '   ERROR>', stitch.error, (score, weight)
+    # print ' HEADPOS>', stitch.head_pos
+    # print ' TAILPOS>', stitch.tail_pos
+    # print '  REFPOS>', stitch.ref_pos
 
     return stitch
 
