@@ -24,6 +24,11 @@ AssemblePairs:
   ublast to assemble paired-ends.
 + Internal changes to multiprocessing structure.
 
+CollapseSeq:
++ Added --keep flag to allow retention of sequences with high missing character
+  counts in unique sequence output file.
++ Removed case insensitivity - requiring all sequences to have matching case.
+
 -------------------------------------------------------------------------------
 June 10, 2014
 Version 0.4.4

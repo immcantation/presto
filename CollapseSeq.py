@@ -78,7 +78,7 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
     Returns: 
     a tuple of (uniq_dict, search_keys, dup_keys) modified from passed values
     """
-    # Define local variable
+    # Define local variables
     ambig_re = re.compile(r'[\.\-N]')
     score = (max_missing > 0)
     dup_keys = []
@@ -168,19 +168,20 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
 
 def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
                 copy_fields=None, copy_actions=None, max_field=None, min_field=None, 
-                inner=False, out_args=default_out_args):
+                inner=False, keep_missing=False, out_args=default_out_args):
     """
     Removes duplicate sequences from a file
 
     Arguments: 
     seq_file = filename of the sequence file to sample from
-    max_missing = number of ambiguous charactes to allow in a unique sequence
+    max_missing = number of ambiguous characters to allow in a unique sequence
     uniq_fields = a list of annotations that define a sequence as unique if they differ
     copy_fields = a list of annotations to copy into unique sequence annotations
     copy_actions = the list of collapseAnnotation actions to take on copy_fields 
     max_field = a numeric field whose maximum value determines the retained sequence
     min_field = a numeric field whose minimum value determines the retained sequence
     inner = if True exclude consecutive outer ambiguous characters from iterations and matching
+    keep_missing = if True retain sequences with more ambiguous characters than max_missing as unique
     out_args = common output argument dictionary from parseCommonArgs
               
     Returns: 
@@ -199,11 +200,14 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     log['MAX_FIELD'] = max_field
     log['MIN_FIELD'] = min_field
     log['INNER'] = inner
+    log['KEEP_MISSING'] = keep_missing
     printLog(log)
     
+    # TODO:  storing all sequences in memory is faster
     # Read input file
     in_type = getFileType(seq_file)
-    seq_dict = readSeqFile(seq_file, index=True)
+    #seq_dict = readSeqFile(seq_file, index=True)
+    seq_dict = SeqIO.to_dict(readSeqFile(seq_file, index=False))
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Count total sequences
@@ -264,6 +268,23 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
             # Write unique sequence
             SeqIO.write(out_seq, uniq_handle, out_args['out_type'])
     
+        # Write sequence with high missing character counts
+        if keep_missing:
+            for k in search_keys:
+                out_seq = seq_dict[k]
+                out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
+                out_ann = mergeAnnotation(out_ann, {'DUPCOUNT':1}, delimiter=out_args['delimiter'])
+                out_seq.id = out_seq.name = flattenAnnotation(out_ann, delimiter=out_args['delimiter'])
+                SeqIO.write(out_seq, uniq_handle, out_args['out_type'])
+
+    # Write sequence with high missing character counts
+    if not out_args['clean'] and not keep_missing:
+        with getOutputHandle(seq_file, 'collapse-undetermined', out_dir=out_args['out_dir'],
+                             out_name=out_args['out_name'], out_type=out_args['out_type']) \
+                as missing_handle:
+            for k in search_keys:
+                SeqIO.write(seq_dict[k], missing_handle, out_args['out_type'])
+
     if not out_args['clean']:
         # Write duplicate sequences 
         with getOutputHandle(seq_file, 'collapse-duplicate', out_dir=out_args['out_dir'], 
@@ -271,14 +292,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
                 as dup_handle:
             for k in dup_keys:
                 SeqIO.write(seq_dict[k], dup_handle, out_args['out_type'])
-        
-        # Write sequence with high missing character counts
-        with getOutputHandle(seq_file, 'collapse-undetermined', out_dir=out_args['out_dir'], 
-                             out_name=out_args['out_name'], out_type=out_args['out_type']) \
-                as missing_handle:
-            for k in search_keys:
-                SeqIO.write(seq_dict[k], missing_handle, out_args['out_type'])
-    
+
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(uniq_handle.name)
@@ -325,7 +339,7 @@ def getArgParser():
                         choices=default_action_choices,
                         help='List of actions to take for each copy field')
     parser.add_argument('--inner', action='store_true', dest='inner',
-                        help='If specified exclude consecutive missing characters at either end of \
+                        help='If specified, exclude consecutive missing characters at either end of \
                               the sequence')
     arg_group = parser.add_mutually_exclusive_group()
     arg_group.add_argument('--maxf', action='store', dest='max_field', type=str, default=None,
@@ -333,7 +347,13 @@ def getArgParser():
                                  mutually exclusive with --minf')
     arg_group.add_argument('--minf', action='store', dest='min_field', type=str, default=None,
                            help='Specify the field whose minimum value determines the retained sequence; \
-                                 mutually exclusive with --minf')    
+                                 mutually exclusive with --minf')
+    parser.add_argument('--keep', action='store_true', dest='keep_missing',
+                        help='''If specified, sequences with more missing characters than the \
+                             threshold set by the -n parameter will be written to the unique \
+                             sequence output file with a DUPCOUNT=1 annotation. If not specified, \
+                             such sequences will be written to a separate file.''')
+
     return parser
 
 

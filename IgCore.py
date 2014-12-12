@@ -740,7 +740,8 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     """
     equal = True
     # TODO:  check that str.upper() calls can be removed for speed
-    for a, b in izip(seq1.upper(), seq2.upper()):
+    #for a, b in izip(seq1.upper(), seq2.upper()):
+    for a, b in izip(seq1, seq2):
         if a != b and a not in ignore_chars and b not in ignore_chars:
             equal = False
             break
