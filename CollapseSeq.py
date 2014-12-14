@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2014.12.13'
 
 # Imports
 import os, re, sys
@@ -348,7 +348,7 @@ def getArgParser():
     arg_group.add_argument('--minf', action='store', dest='min_field', type=str, default=None,
                            help='Specify the field whose minimum value determines the retained sequence; \
                                  mutually exclusive with --minf')
-    parser.add_argument('--keep', action='store_true', dest='keep_missing',
+    parser.add_argument('--keepmiss', action='store_true', dest='keep_missing',
                         help='''If specified, sequences with more missing characters than the \
                              threshold set by the -n parameter will be written to the unique \
                              sequence output file with a DUPCOUNT=1 annotation. If not specified, \

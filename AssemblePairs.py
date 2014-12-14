@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Chris Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.12.11'
+__date__      = '2014.12.13'
 
 # Imports
 import csv, os, sys, tempfile
@@ -62,6 +62,7 @@ class AssemblyRecord:
         self.gap = None
         self.zscore = float('-inf')
         self.pvalue = None
+        self.evalue = None
         self.error = None
         self.valid = False
 
@@ -416,6 +417,7 @@ def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
     ref_seq = ref_dict[ref_id]
     stitch.ref_seq = ref_seq[outer_start:outer_end]
     stitch.ref_pos = (max(a_outer, x_outer), max(b_outer, y_outer))
+    stitch.evalue = tuple(align_top[['evalue_head', 'evalue_tail']])
 
     # Calculate assembly error
     score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
@@ -872,6 +874,9 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
         result.log['ERROR'] = '%.4f' % stitch.error
     if stitch.pvalue is not None:
         result.log['PVALUE'] = '%.4e' % stitch.pvalue
+    if stitch.evalue is not None:
+        result.log['HEADEVALUE'] = '%.4e' % stitch.evalue[0]
+        result.log['TAILEVALUE'] = '%.4e' % stitch.evalue[1]
 
     return result
 

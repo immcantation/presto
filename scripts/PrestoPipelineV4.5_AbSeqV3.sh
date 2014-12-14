@@ -2,7 +2,7 @@
 # Super script to run the pRESTO 0.4.5 pipeline on AbVitro AbSeq (V3) data
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.11.29
+# Date:    2014.12.13
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -25,28 +25,42 @@ NPROC=$7
 # Define pipeline steps
 LOG_RUNTIMES=true
 ZIP_FILES=true
-QUAL_STEP=true
-ALIGN_STEP=false
-PRCONS_STEP=true
-CALCDIV_STEP=true
-MASK_STEP=false
+FILTER_LOWQUAL=true
+ALIGN_UIDSETS=false
+REFERENCE_ASSEMBLY=true
+MASK_LOWQUAL=false
 
 # Define pRESTO run parameters
 FS_QUAL=20
 FS_MASK=30
 FS_MISS=20
+
 MP_UIDLEN=17
 MP_R1_MAXERR=0.2
 MP_R2_MAXERR=0.5
+
+BC_PRCONS_FLAG=true
+BC_DIV_FLAG=true
 BC_MAXDIV=0.1
 BC_PRCONS=0.6
 BC_QUAL=0
-AP_SCANREV=true
-AP_MAXERR=0.3
-AP_ALPHA=0.01
-CS_MISS=0
-MUSCLE_EXEC=$HOME/bin/muscle
 
+AP_ALN_SCANREV=true
+AP_ALN_MAXERR=0.3
+AP_ALN_MINLEN=8
+AP_ALN_ALPHA=1e-5
+
+AP_REF_MAXERR=0.5
+AP_REF_EVALUE=1e-5
+AP_REF_MAXHITS=100
+
+CS_KEEP=true
+CS_MISS=0
+
+REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_2014-08-23.fasta"
+#REF_FILE="/scratch2/kleinstein/germlines/IMGT_Mouse_IGV_2014-11-22.fasta"
+MUSCLE_EXEC=$HOME/bin/muscle
+USEARCH_EXEC=$HOME/bin/usearch
 
 # Define script execution command and log files
 mkdir -p $OUTDIR; cd $OUTDIR
@@ -79,13 +93,13 @@ echo -e "\nSTART"
 STEP=0
 
 # Remove low quality reads
-if $QUAL_STEP; then
+if $FILTER_LOWQUAL; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
     #OUTPREFIX="$(printf '%02d' $STEP)--${OUTNAME}"
     $RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC \
         --outname "${OUTNAME}-R1" --outdir . --clean --log QualityLogR1.log >> $RUNLOG
     $RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R2" --outdir . --clean q--log QualityLogR2.log  >> $RUNLOG
+        --outname "${OUTNAME}-R2" --outdir . --clean --log QualityLogR2.log  >> $RUNLOG
     MPR1_FILE="${OUTNAME}-R1_quality-pass.fastq"
     MPR2_FILE="${OUTNAME}-R2_quality-pass.fastq"
 else
@@ -109,7 +123,7 @@ $RUN PairSeq.py -1 "${OUTNAME}-R2_primers-pass.fastq" -2 "${OUTNAME}-R1_primers-
     -f BARCODE --coord illumina --clean >> $RUNLOG
 
 # Multiple align UID read groups
-if $ALIGN_STEP; then
+if $ALIGN_UIDSETS; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AlignSets muscle"
 	$RUN AlignSets.py muscle -s "${OUTNAME}-R1_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
 	    --nproc $NPROC --log AlignLogR1.log --outname "${OUTNAME}-R1" --clean >> $RUNLOG
@@ -124,8 +138,8 @@ fi
 
 # Build UID consensus sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
-if $CALCDIV_STEP; then
-    if $PRCONS_STEP; then
+if $BC_DIV_FLAG; then
+    if $BC_PRCONS_FLAG; then
         $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
             -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" --clean >> $RUNLOG
@@ -139,7 +153,7 @@ if $CALCDIV_STEP; then
 	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log \
 	    --outname "${OUTNAME}-R2" --clean >> $RUNLOG
 else
-    if $PRCONS_STEP; then
+    if $BC_PRCONS_FLAG; then
         $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
             -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" --clean >> $RUNLOG
@@ -154,81 +168,113 @@ else
     	--outname "${OUTNAME}-R2" --clean >> $RUNLOG
 fi
 
-# Assemble paired ends
+# Assemble paired ends via mate-pair alignment
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs align"
 
-if $PRCONS_STEP; then
+if $BC_PRCONS_FLAG; then
     PRFIELD="PRCONS"
 else
     PRFIELD="PRIMER"
 fi
 
-if $AP_SCANREV; then
+if $AP_ALN_SCANREV; then
     $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
         -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
-        --coord presto --rc tail --maxerror $AP_MAXERR --alpha $AP_ALPHA --nproc $NPROC \
-        --log AssembleLog.log --outname "${OUTNAME}-AP" --scanrev >> $RUNLOG
+        --coord presto --rc tail --minlen $AP_ALN_MINLEN --maxerror $AP_ALN_MAXERR \
+        --alpha $AP_ALN_ALPHA --nproc $NPROC --log AssembleAlignLog.log \
+        --outname "${OUTNAME}-ALN" --scanrev >> $RUNLOG
 else
     $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
         -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
-        --coord presto --rc tail --maxerror $AP_MAXERR --alpha $AP_ALPHA --nproc $NPROC \
-        --log AssembleLog.log --outname "${OUTNAME}-AP" >> $RUNLOG
+        --coord presto --rc tail --minlen $AP_ALN_MINLEN --maxerror $AP_ALN_MAXERR \
+        --alpha $AP_ALN_ALPHA --nproc $NPROC --log AssembleAlignLog.log \
+        --outname "${OUTNAME}-ALN" >> $RUNLOG
+fi
+
+# Assemble paired ends via alignment against V-region reference database
+if $REFERENCE_ASSEMBLY; then
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs reference"
+    $RUN AssemblePairs.py reference -1 "${OUTNAME}-ALN-1_assemble-fail.fastq" \
+        -2 "${OUTNAME}-ALN-2_assemble-fail.fastq" -r $REF_FILE \
+        --1f CONSCOUNT --2f $PRFIELD CONSCOUNT --coord presto \
+        --maxerror $AP_REF_MAXERR --evalue $AP_REF_EVALUE --maxhits $AP_REF_MAXHITS \
+        --nproc $NPROC --log AssembleReferenceLog.log --outname "${OUTNAME}-REF" \
+        --exec $USEARCH_EXEC >> $RUNLOG
+    cat "${OUTNAME}-ALN_assemble-pass.fastq" "${OUTNAME}-REF_assemble-pass.fastq" > \
+        "${OUTNAME}-CAT_assemble-pass.fastq"
+    PH_FILE="${OUTNAME}-CAT_assemble-pass.fastq"
+else
+    PH_FILE="${OUTNAME}-ALN_assemble-pass.fastq"
 fi
 
 # Rewrite header with minimum of CONSCOUNT
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
-$RUN ParseHeaders.py collapse -s "${OUTNAME}-AP_assemble-pass.fastq" -f CONSCOUNT --act min \
-    --outname "${OUTNAME}-AP" > /dev/null
+$RUN ParseHeaders.py collapse -s $PH_FILE -f CONSCOUNT --act min \
+    --outname "${OUTNAME}-FIN" > /dev/null
 
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
-$RUN CollapseSeq.py -s "${OUTNAME}-AP_reheader.fastq" -n $CS_MISS --uf PRCONS \
-    --cf CONSCOUNT --act sum --outname "${OUTNAME}-AP" --inner >> $RUNLOG
+if $CS_KEEP; then
+    $RUN CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS --uf PRCONS \
+        --cf CONSCOUNT --act sum --outname "${OUTNAME}-FIN" --inner --keepmiss >> $RUNLOG
+else
+    $RUN CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS --uf PRCONS \
+        --cf CONSCOUNT --act sum --outname "${OUTNAME}-FIN" --inner >> $RUNLOG
+fi
 
 # Filter to sequences with at least 2 supporting sources
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitSeq group"
-$RUN SplitSeq.py group -s "${OUTNAME}-AP_collapse-unique.fastq" -f CONSCOUNT --num 2 >> $RUNLOG
+$RUN SplitSeq.py group -s "${OUTNAME}-FIN_collapse-unique.fastq" -f CONSCOUNT --num 2 >> $RUNLOG
 
 # Mask low quality positions
-if $MASK_STEP; then
+if $MASK_LOWQUAL; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
-    $RUN FilterSeq.py maskqual -s "${OUTNAME}-AP_collapse-unique_atleast-2.fastq" -q $FS_MASK \
-        --nproc $NPROC --outname "${OUTNAME}-AP" --clean >> $RUNLOG
-    FSMISS_FILE="${OUTNAME}-AP_maskqual-pass.fastq"
+    $RUN FilterSeq.py maskqual -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" -q $FS_MASK \
+        --nproc $NPROC --outname "${OUTNAME}-FIN" --clean >> $RUNLOG
+    FSMISS_FILE="${OUTNAME}-FIN_maskqual-pass.fastq"
 else
-    FSMISS_FILE="${OUTNAME}-AP_collapse-unique_atleast-2.fastq"
+    FSMISS_FILE="${OUTNAME}-FIN_collapse-unique_atleast-2.fastq"
 fi
 
 # Remove sequences with many Ns
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq missing"
 $RUN FilterSeq.py missing -s $FSMISS_FILE -n $FS_MISS --inner --nproc $NPROC \
-    --log MissingLog.log --outname "${OUTNAME}-AP" --clean --fasta >> $RUNLOG
+    --log MissingLog.log --outname "${OUTNAME}-FIN" --clean >> $RUNLOG
 
 # Create table of final repertoire
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
-mv "${OUTNAME}-AP_missing-pass.fasta" "${OUTNAME}_high-fidelity.fasta"
-$RUN ParseHeaders.py table -s "${OUTNAME}_high-fidelity.fasta" \
+mv "${OUTNAME}-FIN_missing-pass.fastq" "${OUTNAME}_high-fidelity.fastq"
+$RUN ParseHeaders.py table -s "${OUTNAME}_high-fidelity.fastq" \
     -f ID PRIMER PRCONS CONSCOUNT DUPCOUNT >> $RUNLOG
 
 # Process log files
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseLog"
-if $QUAL_STEP; then
+if $FILTER_LOWQUAL; then
     $RUN ParseLog.py -l QualityLogR[1-2].log -f ID QUALITY > /dev/null &
 fi
 $RUN ParseLog.py -l PrimerLogR[1-2].log -f ID BARCODE PRIMER ERROR > /dev/null &
 $RUN ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT PRFREQ DIVERSITY > /dev/null &
-$RUN ParseLog.py -l AssembleLog.log -f ID REFID OVERLAP LENGTH GAP PVALUE ERROR HEADFIELDS TAILFIELDS > /dev/null &
+$RUN ParseLog.py -l AssembleAlignLog.log -f ID OVERLAP LENGTH ERROR PVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDS > /dev/null &
+if $REFERENCE_ASSEMBLY; then
+    $RUN ParseLog.py -l AssembleReferenceLog.log -f ID REFID OVERLAP LENGTH GAP ERROR HEADEVALUE TAILEVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDSY > /dev/null &
+fi
 $RUN ParseLog.py -l MissingLog.log -f ID MISSING > /dev/null &
 wait
 
 if $ZIP_FILES; then
     tar -cf LogFiles.tar *LogR[1-2].log *Log.log
-    gzip LogFiles.tar
     rm *LogR[1-2].log *Log.log
-    
-    tar -cf TempFiles.tar *R[1-2]_*.fastq *under* *duplicate* *undetermined* *reheader* *fail*
+    gzip LogFiles.tar
+
+    if $CS_KEEP; then
+        tar -cf TempFiles.tar *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *reheader* *fail*
+        rm *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *reheader* *fail*
+    else
+        tar -cf TempFiles.tar *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *undetermined* *reheader* *fail*
+        rm *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *undetermined* *reheader* *fail*
+    fi
     gzip TempFiles.tar
-    rm *R[1-2]_*.fastq *under* *duplicate* *undetermined* *reheader* *fail*
+
 fi
 
 # End

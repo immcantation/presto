@@ -69,4 +69,5 @@ class TestAssemblePairs(unittest.TestCase):
     #@unittest.skip("-> referenceSeqPair() skipped\n")
     def test_referenceSeqPair(self):
         stitch = mod.referenceSeqPair(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
+        #print tuple(stitch.evalue)
         self.fail()
