@@ -66,8 +66,8 @@ class TestAssemblePairs(unittest.TestCase):
         print tail_df
         self.fail()
 
-    #@unittest.skip("-> referenceSeqPair() skipped\n")
-    def test_referenceSeqPair(self):
-        stitch = mod.referenceSeqPair(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
+    #@unittest.skip("-> referenceAssembly() skipped\n")
+    def test_referenceAssembly(self):
+        stitch = mod.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
         #print tuple(stitch.evalue)
         self.fail()

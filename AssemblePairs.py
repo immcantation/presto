@@ -283,11 +283,11 @@ def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     return align_df
 
 
-def referenceSeqPair(head_seq, tail_seq, ref_dict, ref_file,
-                     max_error=default_max_error,
-                     evalue=default_evalue, max_hits=default_max_hits,
-                     usearch_exec=default_usearch_exec,
-                     score_dict=getScoreDict(n_score=0, gap_score=0)):
+def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
+                      max_error=default_max_error,
+                      evalue=default_evalue, max_hits=default_max_hits,
+                      usearch_exec=default_usearch_exec,
+                      score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Stitches two sequences together by aligning against a reference database
 
@@ -608,10 +608,10 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     return stitch
 
 
-def alignSeqPair(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
-                 min_len=default_min_len, max_len=default_max_len, min_qual=None,
-                 scan_reverse=False, assembly_stats=None,
-                 score_dict=getScoreDict(n_score=0, gap_score=0)):
+def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
+                  min_len=default_min_len, max_len=default_max_len, min_qual=None,
+                  scan_reverse=False, assembly_stats=None,
+                  score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Stitches two sequences together by aligning the ends
 
@@ -1029,7 +1029,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     a list of successful output file names
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignSeqPair:'align', joinSeqPair:'join'}
+    cmd_dict = {alignAssembly:'align', joinSeqPair:'join', referenceAssembly:'reference'}
 
     # Print parameter info
     log = OrderedDict()
@@ -1177,7 +1177,7 @@ def getArgParser():
     parser_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
                               help='''If specified, scan past the end of the tail sequence to allow
                                       the head sequence to overhang the end of the tail sequence.''')
-    parser_align.set_defaults(assemble_func=alignSeqPair)
+    parser_align.set_defaults(assemble_func=alignAssembly)
     
     # Paired end concatenation mode argument parser
     parser_join = subparsers.add_parser('join', parents=[parser_parent],
@@ -1207,7 +1207,7 @@ def getArgParser():
     parser_ref.add_argument('--exec', action='store', dest='usearch_exec',
                             default=default_usearch_exec,
                             help='''The path to the usearch executable file.''')
-    parser_ref.set_defaults(assemble_func=referenceSeqPair)
+    parser_ref.set_defaults(assemble_func=referenceAssembly)
 
 
     return parser
@@ -1227,7 +1227,7 @@ if __name__ == '__main__':
     if args_dict['tail_fields']:  args_dict['tail_fields'] = map(str.upper, args_dict['tail_fields']) 
     
     # Define assemble_args dictionary to pass to maskPrimers
-    if args_dict['assemble_func'] is alignSeqPair:
+    if args_dict['assemble_func'] is alignAssembly:
         args_dict['assemble_args'] = {'alpha': args_dict['alpha'],
                                       'max_error': args_dict['max_error'],
                                       'min_len': args_dict['min_len'],
@@ -1244,7 +1244,7 @@ if __name__ == '__main__':
     elif args_dict['assemble_func'] is joinSeqPair:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']
-    elif args_dict['assemble_func'] is referenceSeqPair:
+    elif args_dict['assemble_func'] is referenceAssembly:
         ref_dict = {s.id:s.upper() for s in readSeqFile(args_dict['ref_file'])}
         #ref_file = makeUsearchDb(args_dict['ref_file'], args_dict['usearch_exec'])
         #ref_file.name

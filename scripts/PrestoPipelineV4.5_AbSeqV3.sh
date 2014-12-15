@@ -30,50 +30,58 @@ ALIGN_UIDSETS=false
 REFERENCE_ASSEMBLY=true
 MASK_LOWQUAL=false
 
-# Define pRESTO run parameters
+# FilterSeq run parameters
 FS_QUAL=20
 FS_MASK=30
 FS_MISS=20
 
+# MaskPrimers run parameters
 MP_UIDLEN=17
 MP_R1_MAXERR=0.2
 MP_R2_MAXERR=0.5
 
+# AlignSets run parameters
+MUSCLE_EXEC=$HOME/bin/muscle
+
+# BuildConsensus run parameters
 BC_PRCONS_FLAG=true
 BC_DIV_FLAG=true
 BC_MAXDIV=0.1
 BC_PRCONS=0.6
 BC_QUAL=0
 
+# AssemblePairs-align run parameters
 AP_ALN_SCANREV=true
 AP_ALN_MAXERR=0.3
 AP_ALN_MINLEN=8
 AP_ALN_ALPHA=1e-5
 
+# AssemblePairs-reference run parameters
 AP_REF_MAXERR=0.5
 AP_REF_EVALUE=1e-5
 AP_REF_MAXHITS=100
+REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_2014-08-23.fasta"
+#REF_FILE="/scratch2/kleinstein/germlines/IMGT_Mouse_IGV_2014-11-22.fasta"
+USEARCH_EXEC=$HOME/bin/usearch
 
+# CollapseSeq run parameters
 CS_KEEP=true
 CS_MISS=0
 
-REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_2014-08-23.fasta"
-#REF_FILE="/scratch2/kleinstein/germlines/IMGT_Mouse_IGV_2014-11-22.fasta"
-MUSCLE_EXEC=$HOME/bin/muscle
-USEARCH_EXEC=$HOME/bin/usearch
-
-# Define script execution command and log files
-mkdir -p $OUTDIR; cd $OUTDIR
+# Define log files
 RUNLOG="Pipeline.log"
-echo '' > $RUNLOG 
+TIMELOG="Time.log"
+
+# Make output directory and empty log files
+mkdir -p $OUTDIR; cd $OUTDIR
+echo '' > $RUNLOG
 if $LOG_RUNTIMES; then
-	TIMELOG="Time.log"
-	echo '' > $TIMELOG 
+	echo '' > $TIMELOG
 	RUN="nice -19 /usr/bin/time -o ${TIMELOG} -a -f %C\t%E\t%P\t%Mkb"
 else
 	RUN="nice -19"
 fi
-		
+
 # Start
 echo "DIRECTORY: ${OUTDIR}"
 echo "VERSIONS:"
