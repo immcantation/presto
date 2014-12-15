@@ -264,7 +264,7 @@ $RUN ParseLog.py -l PrimerLogR[1-2].log -f ID BARCODE PRIMER ERROR > /dev/null &
 $RUN ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT PRFREQ DIVERSITY > /dev/null &
 $RUN ParseLog.py -l AssembleAlignLog.log -f ID OVERLAP LENGTH ERROR PVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDS > /dev/null &
 if $REFERENCE_ASSEMBLY; then
-    $RUN ParseLog.py -l AssembleReferenceLog.log -f ID REFID OVERLAP LENGTH GAP ERROR HEADEVALUE TAILEVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDSY > /dev/null &
+    $RUN ParseLog.py -l AssembleReferenceLog.log -f ID REFID OVERLAP LENGTH GAP ERROR HEADEVALUE TAILEVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDS > /dev/null &
 fi
 $RUN ParseLog.py -l MissingLog.log -f ID MISSING > /dev/null &
 wait
