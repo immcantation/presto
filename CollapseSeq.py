@@ -275,6 +275,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
                 out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
                 out_ann = mergeAnnotation(out_ann, {'DUPCOUNT':1}, delimiter=out_args['delimiter'])
                 out_seq.id = out_seq.name = flattenAnnotation(out_ann, delimiter=out_args['delimiter'])
+                out_seq.description = ''
                 SeqIO.write(out_seq, uniq_handle, out_args['out_type'])
 
     # Write sequence with high missing character counts

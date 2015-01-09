@@ -95,8 +95,6 @@ echo "  $(PairSeq.py -v 2>&1)"
 echo "  $(ParseHeaders.py -v 2>&1)"
 echo "  $(ParseLog.py -v 2>&1)"
 echo "  $(SplitSeq.py -v 2>&1)"
-
-# Filter low quality reads
 echo -e "\nSTART"
 STEP=0
 
@@ -114,7 +112,6 @@ else
     MPR1_FILE=$R1_FILE
     MPR2_FILE=$R2_FILE
 fi
-
 
 # Identify primers and UID 
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
@@ -269,6 +266,7 @@ fi
 $RUN ParseLog.py -l MissingLog.log -f ID MISSING > /dev/null &
 wait
 
+# Zip intermediate and log files
 if $ZIP_FILES; then
     tar -cf LogFiles.tar *LogR[1-2].log *Log.log
     rm *LogR[1-2].log *Log.log
