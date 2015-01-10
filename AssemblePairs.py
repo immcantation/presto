@@ -37,15 +37,16 @@ from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
 from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
 
 # Defaults
-default_alpha = 0.01
+default_alpha = 1e-5
 default_max_error = 0.3
+default_min_ident = 0.5
 default_min_len = 1
 default_max_len = 1000
 default_gap = 0
 default_usearch_exec = r'/usr/local/bin/usearch'
 default_blastn_exec = r'/usr/bin/blastn'
 default_evalue = 1e-5
-default_max_hits = 10
+default_max_hits = 100
 
 
 class AssemblyRecord:
@@ -64,6 +65,7 @@ class AssemblyRecord:
         self.pvalue = None
         self.evalue = None
         self.error = None
+        self.ident = None
         self.valid = False
 
     # Set boolean evaluation to valid value
@@ -283,8 +285,7 @@ def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     return align_df
 
 
-def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
-                      max_error=default_max_error,
+def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits,
                       usearch_exec=default_usearch_exec,
                       score_dict=getScoreDict(n_score=0, gap_score=0)):
@@ -296,7 +297,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
     head_seq = the tail SeqRecord
     ref_dict = a dictionary of reference SeqRecord objects
     ref_file = the path to the reference database file
-    max_error = the maximum error rate for a valid assembly
+    min_ident = the minimum identity for a valid assembly
     evalue = the E-value cut-off for ublast
     max_hits = the maxhits output limit for ublast
     usearch_exec = the path to the usearch executable
@@ -421,10 +422,10 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
 
     # Calculate assembly error
     score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
-                                 ref_seq.seq[outer_start:outer_end],
-                                 score_dict=score_dict)
-    stitch.error = error
-    stitch.valid = bool(stitch.error <= max_error)
+                                        ref_seq.seq[outer_start:outer_end],
+                                        score_dict=score_dict)
+    stitch.ident = 1 - error
+    stitch.valid = bool(stitch.ident >= min_ident)
 
 
     # score, weight = 0.0, 0.0
@@ -582,7 +583,7 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     # Define joined ID
     join_id = head_seq.id if head_seq.id == tail_seq.id \
               else '+'.join([head_seq.id, tail_seq.id])
-    join_seq = str(head_seq.seq) + '-' * gap + str(tail_seq.seq)
+    join_seq = str(head_seq.seq) + 'N' * gap + str(tail_seq.seq)
     
     # Define return record
     record = SeqRecord(Seq(join_seq, IUPAC.ambiguous_dna), 
@@ -609,9 +610,8 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
 
 
 def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
-                  min_len=default_min_len, max_len=default_max_len, min_qual=None,
-                  scan_reverse=False, assembly_stats=None,
-                  score_dict=getScoreDict(n_score=0, gap_score=0)):
+                  min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
+                  assembly_stats=None, score_dict=getScoreDict(n_score=0, gap_score=0)):
     """
     Stitches two sequences together by aligning the ends
 
@@ -622,7 +622,6 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
     max_error = the maximum error rate for a valid assembly
     min_len = minimum length of overlap to test
     max_len = maximum length of overlap to test
-    min_qual = the minimum quality score required to consider a base in the alignment score
     scan_reverse = if True allow the head sequence to overhang the end of the tail sequence
                    if False end alignment scan at end of tail sequence or start of head sequence
     assembly_stats = optional successes by trials numpy.array of p-values
@@ -647,23 +646,12 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
                   'phred_quality' in head_seq.letter_annotations and \
                   'phred_quality' in tail_seq.letter_annotations
 
-    if min_qual is not None and has_quality:
-        # Mask head characters
-        head_qual = head_seq.letter_annotations['phred_quality']
-        head_mask = [head_str[i] if q >= min_qual else 'N' for i, q in enumerate(head_qual)]
-        head_str = ''.join(head_mask)
-        # Mask tail characters
-        tail_qual = tail_seq.letter_annotations['phred_quality']
-        tail_mask = [tail_str[i] if q >= min_qual else 'N' for i, q in enumerate(tail_qual)]
-        tail_str = ''.join(tail_mask)
-
     # Determine if sub-sequences are allowed and define scan range
     if scan_reverse and max_len >= min(head_len, tail_len):
         scan_len = head_len + tail_len - min_len
     else:
         scan_len = min(max(head_len, tail_len), max_len)
 
-    # TODO:  verify scoring works correctly with min_qual != None
     # Iterate and score overlap segments
     stitch = AssemblyRecord()
     #print "\n->NEW"
@@ -812,13 +800,13 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
         head_ann = parseAnnotation(head_seq.description, fields_1,
                                    delimiter=delimiter)
         stitch_ann = mergeAnnotation(stitch_ann, head_ann, delimiter=delimiter)
-        result.log['HEADFIELDS'] = '|'.join(['%s=%s' % (k, v)
+        result.log['FIELDS1'] = '|'.join(['%s=%s' % (k, v)
                                              for k, v in head_ann.iteritems()])
     if fields_2 is not None:
         tail_ann = parseAnnotation(tail_seq.description, fields_2,
                                    delimiter=delimiter)
         stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
-        result.log['TAILFIELDS'] = '|'.join(['%s=%s' % (k, v)
+        result.log['FIELDS2'] = '|'.join(['%s=%s' % (k, v)
                                              for k, v in tail_ann.iteritems()])
 
     # Assemble sequences
@@ -834,11 +822,11 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
 
     if ab is not None and xy is not None:
         #print ab, xy
-        result.log['HEADSEQ'] = ' ' * xy[0] + head_seq.seq
-        result.log['TAILSEQ'] = ' ' * ab[0] + tail_seq.seq
+        result.log['SEQ1'] = ' ' * xy[0] + head_seq.seq
+        result.log['SEQ2'] = ' ' * ab[0] + tail_seq.seq
     else:
-        result.log['HEADSEQ'] = head_seq.seq
-        result.log['TAILSEQ'] = ' ' * (len(head_seq) + (stitch.gap or 0)) + tail_seq.seq
+        result.log['SEQ1'] = head_seq.seq
+        result.log['SEQ2'] = ' ' * (len(head_seq) + (stitch.gap or 0)) + tail_seq.seq
 
     # Define stitching log
     if stitch.seq is not None:
@@ -852,6 +840,8 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
         if 'phred_quality' in stitch.seq.letter_annotations:
             result.log['QUALITY'] = ''.join([chr(q+33) for q in
                                              stitch.seq.letter_annotations['phred_quality']])
+        result.log['LENGTH'] = len(stitch)
+        result.log['OVERLAP'] = stitch.overlap
     else:
         result.log['ASSEMBLY'] = None
 
@@ -863,11 +853,9 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     # print '     GAP>', stitch.gap
     # print '   ERROR>', stitch.error
 
-    result.log['LENGTH'] = len(stitch)
-    result.log['OVERLAP'] = stitch.overlap
-    if ab is not None and xy is not None:
-        result.log['HEADPOS'] = ab
-        result.log['TAILPOS'] = xy
+    # if ab is not None and xy is not None:
+    #     result.log['HEADPOS'] = ab
+    #     result.log['TAILPOS'] = xy
     if stitch.gap is not None:
         result.log['GAP'] = stitch.gap
     if stitch.error is not None:
@@ -875,8 +863,11 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     if stitch.pvalue is not None:
         result.log['PVALUE'] = '%.4e' % stitch.pvalue
     if stitch.evalue is not None:
-        result.log['HEADEVALUE'] = '%.4e' % stitch.evalue[0]
-        result.log['TAILEVALUE'] = '%.4e' % stitch.evalue[1]
+        result.log['EVALUE1'] = '%.4e' % stitch.evalue[0]
+        result.log['EVALUE2'] = '%.4e' % stitch.evalue[1]
+    if stitch.ident is not None:
+        result.log['IDENTITY'] = '%.4f' % stitch.ident
+
 
     return result
 
@@ -1043,9 +1034,9 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if 'max_error' in assemble_args:  log['MAX_ERROR'] = assemble_args['max_error']
     if 'min_len' in assemble_args:  log['MIN_LEN'] = assemble_args['min_len']
     if 'max_len' in assemble_args:  log['MAX_LEN'] = assemble_args['max_len']
-    if 'min_qual' in assemble_args:  log['MIN_QUAL'] = assemble_args['min_qual']
     if 'scan_reverse' in assemble_args:  log['SCAN_REVERSE'] = assemble_args['scan_reverse']
     if 'gap' in assemble_args:  log['GAP'] = assemble_args['gap']
+    if 'min_ident' in assemble_args:  log['MIN_IDENT'] = assemble_args['min_ident']
     if 'evalue' in assemble_args:  log['EVALUE'] = assemble_args['evalue']
     if 'max_hits' in assemble_args:  log['MAX_HITS'] = assemble_args['max_hits']
     log['NPROC'] = nproc
@@ -1171,9 +1162,6 @@ def getArgParser():
                               default=default_min_len, help='Minimum sequence length to scan for overlap')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len, help='Maximum sequence length to scan for overlap')
-    parser_align.add_argument('-q', action='store', dest='min_qual', type=float, default=None,
-                              help='''The minimum quality score to allow consideration of a
-                                      position in the alignment score.''')
     parser_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
                               help='''If specified, scan past the end of the tail sequence to allow
                                       the head sequence to overhang the end of the tail sequence.''')
@@ -1184,7 +1172,7 @@ def getArgParser():
                                          formatter_class=CommonHelpFormatter,
                                          help='Assembled pairs by concatenating ends')
     parser_join.add_argument('--gap', action='store', dest='gap', type=int, default=default_gap, 
-                             help='Number of gap characters to place between ends')
+                             help='Number of N characters to place between ends')
     parser_join.set_defaults(assemble_func=joinSeqPair)    
 
     # Reference alignment mode argument parser
@@ -1194,12 +1182,14 @@ def getArgParser():
                                              reference database.''')
     parser_ref.add_argument('-r', action='store', dest='ref_file', required=True,
                             help='''A FASTA file containing the reference sequence database.''')
-    parser_ref.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                            default=default_max_error,
-                            help='''Maximum allowable error rate.''')
+    parser_ref.add_argument('--minident', action='store', dest='min_ident', type=float,
+                            default=default_min_ident,
+                            help='''Minimum identity of the assembled sequence required to call a
+                                 valid assembly (between 0 and 1).''')
     parser_ref.add_argument('--evalue', action='store', dest='evalue', type=float,
                             default=default_evalue,
-                            help='''Minimum E-value for the reference alignment.''')
+                            help='''Minimum E-value for the ublast reference alignment for both
+                                 the head and tail sequence.''')
     parser_ref.add_argument('--maxhits', action='store', dest='max_hits', type=int,
                             default=default_max_hits,
                             help='''Maximum number of hits from ublast to check for matching
@@ -1233,13 +1223,11 @@ if __name__ == '__main__':
                                       'min_len': args_dict['min_len'],
                                       'max_len': args_dict['max_len'],
                                       'scan_reverse': args_dict['scan_reverse'],
-                                      'min_qual': args_dict['min_qual'],
                                       'assembly_stats': AssemblyStats(args_dict['max_len'] + 1)}
         del args_dict['alpha']
         del args_dict['max_error']
         del args_dict['min_len']
         del args_dict['max_len']
-        del args_dict['min_qual']
         del args_dict['scan_reverse']
     elif args_dict['assemble_func'] is joinSeqPair:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
@@ -1250,12 +1238,12 @@ if __name__ == '__main__':
         #ref_file.name
         args_dict['assemble_args'] = {'ref_file': args_dict['ref_file'],
                                       'ref_dict': ref_dict,
-                                      'max_error': args_dict['max_error'],
+                                      'min_ident': args_dict['min_ident'],
                                       'evalue': args_dict['evalue'],
                                       'max_hits': args_dict['max_hits'],
                                       'usearch_exec': args_dict['usearch_exec']}
         del args_dict['ref_file']
-        del args_dict['max_error']
+        del args_dict['min_ident']
         del args_dict['evalue']
         del args_dict['max_hits']
         del args_dict['usearch_exec']

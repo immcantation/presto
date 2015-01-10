@@ -51,7 +51,7 @@ class TestAssemblePairs(unittest.TestCase):
         t = time.time() - self.start
         print "<- %s() %.3f" % (self._testMethodName, t)
 
-    #@unittest.skip("-> referenceAlignment() skipped\n")
+    #@unittest.skip("-> getUBlastAlignment() skipped\n")
     def test_getUBlastAlignment(self):
         head_df = mod.getUblastAlignment(self.head_rec, self.ref_file)
         tail_df = mod.getUblastAlignment(self.tail_rec, self.ref_file)
@@ -59,6 +59,7 @@ class TestAssemblePairs(unittest.TestCase):
         print tail_df
         self.fail()
 
+    #@unittest.skip("-> getBlastnAlignment() skipped\n")
     def test_getBlastnAlignment(self):
         head_df = mod.getBlastnAlignment(self.head_rec, self.ref_file)
         tail_df = mod.getBlastnAlignment(self.tail_rec, self.ref_file)
@@ -70,4 +71,19 @@ class TestAssemblePairs(unittest.TestCase):
     def test_referenceAssembly(self):
         stitch = mod.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
         #print tuple(stitch.evalue)
+        self.fail()
+
+    #@unittest.skip("-> alignAssembly() skipped\n")
+    def test_alignAssembly(self):
+        head = SeqRecord(Seq("TTTCCGG"), id="HEAD",
+                         letter_annotations={'phred_quality':[40,40,40,20,20,40,40]})
+        tail = SeqRecord(Seq("CTGGAAA"), id="TAIL",
+                         letter_annotations={'phred_quality':[40,20,40,40,40,40,40]})
+
+        stitch = mod.alignAssembly(head, tail, alpha=0.1)
+        print '    HEAD> %s' % head.seq
+        print '    TAIL>    %s\n' % tail.seq
+        print 'ASSEMBLY>', stitch.seq.seq
+        print '   ERROR>', stitch.error
+        print '  PVALUE>', stitch.pvalue, '\n'
         self.fail()

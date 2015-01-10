@@ -725,7 +725,6 @@ def reverseComplement(seq):
     return new_record
 
 
-# TODO:  is this faster as a regex replacement of [N.-] with [ATGCN.-]?
 def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     """
     Determine if two sequences are equal, excluding missing positions
@@ -739,7 +738,6 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     True if the sequences are equal
     """
     equal = True
-    # TODO:  check that str.upper() calls can be removed for speed
     #for a, b in izip(seq1.upper(), seq2.upper()):
     for a, b in izip(seq1, seq2):
         if a != b and a not in ignore_chars and b not in ignore_chars:
@@ -828,10 +826,8 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
     return sum(scores) / len(scores)
 
 
-# TODO:  apply min_qual to single sequence case
-def qualityConsensus(seq_list, min_qual=default_min_qual, 
-                     min_freq=default_min_freq, max_miss=None,
-                     dependent=False):
+def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_freq,
+                     max_miss=None, dependent=False):
     """
     Builds a consensus sequence from a set of sequences
 
@@ -848,7 +844,17 @@ def qualityConsensus(seq_list, min_qual=default_min_qual,
     """
     # Return a copy of the input SeqRecord upon singleton
     if len(seq_list) == 1:
-        return seq_list[0].upper()
+        seq = seq_list[0]
+        # Mask low quality nucleotides
+        seq_str = str(seq.seq)
+        quals = seq.letter_annotations['phred_quality']
+        seq_mask = [seq_str[i] if q >= min_qual else 'N' for i, q in enumerate(quals)]
+        seq = SeqRecord(Seq(''.join(seq_mask), IUPAC.ambiguous_dna),
+                        id=seq.id,
+                        name=seq.name,
+                        description=seq.description,
+                        letter_annotations=seq.letter_annotations)
+        return seq
     
     # Define characters to be ignored in consensus building
     ignore_set = set(['.', '-', 'N'])
@@ -932,7 +938,7 @@ def frequencyConsensus(seq_list, min_freq=default_min_freq, max_miss=None):
     """
     # Return a copy of the input SeqRecord upon singleton
     if len(seq_list) == 1:
-        return seq_list[0].upper()
+        return seq_list[0]
     
     # Define gap characters
     ignore_set = set(['.', '-', 'N'])

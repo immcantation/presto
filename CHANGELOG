@@ -10,7 +10,9 @@ IgCore:
 
 AssemblePairs:
 + Added more verbose logging.
-+ Change PVAL log field to PVALUE.
++ Changed PVAL log field to PVALUE.
++ Changed HEADSEQ and TAILSEQ log fields to SEQ1 and SEQ2.
++ Changed HEADFIELDS and TAILFIELDS log fields to FIELDS1 and FIELDS2.
 + Changed precision of ERROR and PVALUE log fields.
 + Added support for cases where one mate pair is the subsequence of the other.
 + Added --scanrev flag to allow for head sequence to overhand end of tail.
@@ -23,6 +25,12 @@ AssemblePairs:
 + Added reference subcommand which uses V-region germline alignments from
   ublast to assemble paired-ends.
 + Internal changes to multiprocessing structure.
++ Changed inserted gap character from - to N in join subcommand for better
+  compatibility with the behavior of IMGT/HighV-QUEST.
+
+BuildConsensus
++ Fixed bug where low quality positions where not being masked in single
+  sequence barcode groups.
 
 CollapseSeq:
 + Added --keep flag to allow retention of sequences with high missing character

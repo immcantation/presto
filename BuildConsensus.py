@@ -149,7 +149,7 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence set with ID: %.\n' % data.id)
+        sys.stderr.write('Error processing sequence set with ID: %s\n' % data.id)
         raise
     
     return None
@@ -272,7 +272,7 @@ def getArgParser():
     parser.add_argument('--bf', action='store', dest='barcode_field', type=str,
                         default=default_barcode_field, 
                         help='Position of description barcode field to group sequences by')
-    parser.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
+    parser.add_argument('-q', action='store', dest='min_qual', type=int, default=default_min_qual,
                         help='Consensus quality score cut-off under which an ambiguous character is assigned; \
                               does not apply when quality scores are unavailable')
     parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
