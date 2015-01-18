@@ -244,8 +244,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
         printLog(log, handle=log_handle)
                 
         # Break if no keys to search remain
-        if len(search_keys) == 0:
-            break
+        if len(search_keys) == 0:  break
     
     # Write unique sequences
     with getOutputHandle(seq_file, 'collapse-unique', out_dir=out_args['out_dir'], 

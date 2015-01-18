@@ -70,6 +70,7 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
 
     # TODO:  look into using SeqIO.index_db and key_function argument
     # TODO:  could store one read in memory and iterate over the other
+    # TODO:  store file1 in memory as {coord:SeqRecord) dictionary
     # TODO:  indata = SeqIO.index_db(":memory:", [file1, file2], "fastq")
     # Find paired sequences
     index_dict = indexSeqPairs(seq_dict_1, seq_dict_2, coord_type, delimiter=out_args['delimiter'])
