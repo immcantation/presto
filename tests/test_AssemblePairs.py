@@ -9,12 +9,11 @@ __version__   = '0.4.5'
 __date__      = '2014.12.11'
 
 # Imports
-import unittest
-import AssemblePairs as mod
-import time
-from IgCore import readSeqFile
+import time, unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from IgCore import readSeqFile
+import AssemblePairs as mod
 
 
 class TestAssemblePairs(unittest.TestCase):

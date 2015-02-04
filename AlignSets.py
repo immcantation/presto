@@ -304,7 +304,7 @@ def processASQueue(alive, data_queue, result_queue, align_func, align_args={},
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence set with ID: %.\n' % data.id)
+        sys.stderr.write('Error processing sequence set with ID: %s.\n' % data.id)
         raise
     
     return None
