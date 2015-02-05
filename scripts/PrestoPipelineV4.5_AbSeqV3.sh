@@ -57,7 +57,7 @@ AP_ALN_MINLEN=8
 AP_ALN_ALPHA=1e-5
 
 # AssemblePairs-reference run parameters
-AP_REF_MAXERR=0.5
+AP_REF_MINIDENT=0.5
 AP_REF_EVALUE=1e-5
 AP_REF_MAXHITS=100
 REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_2014-08-23.fasta"
@@ -202,7 +202,7 @@ if $REFERENCE_ASSEMBLY; then
     $RUN AssemblePairs.py reference -1 "${OUTNAME}-ALN-1_assemble-fail.fastq" \
         -2 "${OUTNAME}-ALN-2_assemble-fail.fastq" -r $REF_FILE \
         --1f CONSCOUNT --2f $PRFIELD CONSCOUNT --coord presto \
-        --maxerror $AP_REF_MAXERR --evalue $AP_REF_EVALUE --maxhits $AP_REF_MAXHITS \
+        --minident $AP_REF_MINIDENT --evalue $AP_REF_EVALUE --maxhits $AP_REF_MAXHITS \
         --nproc $NPROC --log AssembleReferenceLog.log --outname "${OUTNAME}-REF" \
         --exec $USEARCH_EXEC >> $RUNLOG
     cat "${OUTNAME}-ALN_assemble-pass.fastq" "${OUTNAME}-REF_assemble-pass.fastq" > \
