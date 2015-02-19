@@ -60,8 +60,8 @@ AP_ALN_ALPHA=1e-5
 AP_REF_MINIDENT=0.5
 AP_REF_EVALUE=1e-5
 AP_REF_MAXHITS=100
-REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_2014-08-23.fasta"
-#REF_FILE="/scratch2/kleinstein/germlines/IMGT_Mouse_IGV_2014-11-22.fasta"
+REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_ungapped_2014-08-23.fasta"
+#REF_FILE="/scratch2/kleinstein/germlines/IMGT_Mouse_IGV_ungapped_2014-11-22.fasta"
 USEARCH_EXEC=$HOME/bin/usearch
 
 # CollapseSeq run parameters

@@ -10,7 +10,7 @@ __version__   = '0.4.5'
 __date__      = '2014.10.2'
 
 # Imports
-import os, sys
+import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
@@ -181,7 +181,8 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
         chars = izip(adpt_seq, seq_record[start:end])
         score = sum([score_dict[(c1, c2)] for c1, c2 in chars])
         this_align.update({adpt_id: (score, start, end)})
-    
+
+    # TODO:  check that what happens with Ns is the same in score (currently mismatches) and align mode
     # Determine alignment with lowest error rate
     best_align, best_adpt, best_err = None, None, None
     for adpt, algn in this_align.iteritems():
@@ -439,11 +440,28 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
-    # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
-                            formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', help='Alignment method', metavar='')
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 mask-pass    processed reads with successful primer matches.
+                 mask-fail    raw reads failing primer identification.
 
+             output header fields:
+                 SEQORIENT    the orientation of the output sequence. Either F (input)
+                              or RC (reverse complement of input).
+                 PRIMER       name of the best primer match.
+                 BARCODE      the sequence preceding the primer match. Only output when
+                              the --barcode flag is specified.
+
+             ''')
+
+    # Define ArgumentParser
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
+                            formatter_class=CommonHelpFormatter)
+    subparsers = parser.add_subparsers(title='subcommands', metavar='',
+                                       help='Alignment method')
     
     # Parent parser
     parser_parent = getCommonArgParser(multiproc=True)
@@ -459,7 +477,9 @@ def getArgParser():
                               help='Specify to match the tail-end of the sequence against the \
                                     reverse complement of the primers')
     parser_parent.add_argument('--barcode', action='store_true', dest='barcode', 
-                               help='Specify to encode sequences with barcode sequences preceding primer matches')
+                               help='''Specify to encode sequences with barcode sequences
+                                    (unique molecular identifiers) preceding primer
+                                    matches.''')
     
     # Align mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parser_parent],
