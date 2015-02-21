@@ -1,4 +1,4 @@
-August 25, 2014  
+February 21, 2015
 Version 0.4.5  
 
 High Priority  
@@ -6,29 +6,25 @@ High Priority
 + Add multiprocessing to CollapseSeq if needed after algorithm improvement
 + Write two wrappers for server-side sequential processing of individual 
   sequence records and sets of records which bypassed intermediate files
-+ Write custom argparse.HelpFormatter to correct ordering and grouping of
-  positional, required and option arguments
++ Try reduce overhead of sibling process exception detection in
+  multiprocessing code.
 
 Low Priority  
 + Optimize everything
-+ Add --start parameter to align subcommand of MaskPrimers
-+ Add --with-replacement parameter to sample and samplepair subcommands of 
++ Add --with-replacement parameter to sample and samplepair subcommands of
   SplitSeq allowing sampling with replacement
 + Add --decreasing parameter to sort subcommand of SplitSeq
-+ Add flag allowing nested overlap (negative position overlap) of shorter 
-  sequence in AssemblePairs
 + Add flag for bidirectional annotation copying to PairSeq
 + Add --summary flag that generates count tables for plotting
   
 Potential Features  
-+ Maybe import ParseDB tool into pRESTO to convert csv/tab files to 
++ Maybe add --start parameter to align subcommand of MaskPrimers
++ Maybe import ParseDB tool into pRESTO to convert csv/tab files to
   FASTA/CLIP format
 + Maybe add fail files to ParseLog and table subcommand of ParseHeaders
 + Maybe add copy fields/actions to BuildConsensus and AssemblePairs
-+ Maybe add OUTFIELDS to AssemblePairs and BuildConsensus log
 + Maybe convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
 + Maybe add ParseLog subcommand that creates a summary table of counts
 + Maybe add a subcommand to SplitSeq enabling removal of a list of UIDs
 + Maybe add a purely positional barcode extraction mode to MaskPrimers
-+ Maybe add --plot flag to enable output of summary plots by moving 
-  current R log table plots to Python ggplot port
++ Maybe add --plot flag to enable output of summary plots

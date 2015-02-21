@@ -397,7 +397,7 @@ def getArgParser():
              offsets-reverse
                           3\' offset table for input into offset subcommand.
 
-         output description fields:
+         output annotation fields:
              None
          ''')
 

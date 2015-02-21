@@ -998,8 +998,9 @@ def getArgParser():
                  assemble-unpaired
                               raw reads without a mate pair.
 
-             output description fields:
-                 None
+             output annotation fields:
+                 <user defined>
+                              annotation fields specified by the --1f and --2f parameters.
              ''')
 
     # Define ArgumentParser

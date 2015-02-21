@@ -271,7 +271,7 @@ def getArgParser():
                  consensus-fail
                               raw reads failing consensus filtering criteria.
 
-             output description fields:
+             output annotation fields:
                  PRIMER       a comma delimited list of unique primer annotations found
                               within the barcode read group.
                  PRCOUNT      a comma delimited list of the corresponding counts of unique

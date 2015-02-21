@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.21'
 
 # Imports
-import os, sys
+import os, sys, textwrap
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
@@ -446,8 +446,40 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 error-position
+                              estimated error by read position.
+                 error-quality
+                              estimated error by the quality score assigned within the
+                              input file.
+                 error-nucleotide
+                              estimated error by nucleotide.
+                 error-set
+                              estimated error by barcode read group size.
+
+             output fields:
+                 POSITION     read position with base zero indexing.
+                 Q            Phred quality score.
+                 OBSERVED     observed nucleotide value.
+                 REFERENCE    consensus nucleotide for the barcode read group.
+                 SET_COUNT    barcode read group size.
+                 REPORTED_Q   mean Phred quality score reported within the input file for
+                              for the given position, quality score, nucleotide or
+                              read group.
+                 MISMATCHES   count of observed mismatches from consensus for the given
+                              position, quality score, nucleotide or read group.
+                 OBSERVATIONS total count of observed values for each position, quality
+                              score, nucleotide or read group size.
+                 ERROR        estimated error rate.
+                 EMPIRICAL_Q  estimated error rate converted to a Phred quality score.
+             ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(seq_out=False, multiproc=True)], 
                             formatter_class=CommonHelpFormatter)
     
@@ -456,15 +488,22 @@ def getArgParser():
     parser.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
                         help='The minimum number of sequences needed to consider a set')
     parser.add_argument('--mode', action='store', dest='mode', choices=('freq', 'qual'), default='freq', 
-                        help='Specifies which method to use to determin the consensus sequence; \
-                              either by pure frequency (freq) or with consideration of quality score (qual)')
+                        help='''Specifies which method to use to determine the consensus
+                             sequence. The "freq" method will determine the consensus by
+                             nucleotide frequency at each position and assign the most
+                             common value.  The "qual" method will weight values by their
+                             quality scores to determine the consensus nucleotide at
+                             each position.''')
     parser.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
-                        help='Consensus quality score cut-off under which an ambiguous character is assigned')
+                        help='''Consensus quality score cut-off under which an ambiguous '
+                             character is assigned.''')
     parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
-                        help='Fraction of character occurrences under which an ambiguous character is assigned')
+                        help='''Fraction of character occurrences under which an ambiguous
+                             character is assigned.''')
     parser.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,
-                        help='Specify to calculate the nucleotide diversity of each read group \
-                              (average pairwise error rate) and remove groups exceeding the given diversity threshold')
+                        help='''Specify to calculate the nucleotide diversity of each read
+                              group (average pairwise error rate) and exclude groups which
+                              exceed the given diversity threshold.''')
     
     return parser
 

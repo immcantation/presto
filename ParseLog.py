@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.21'
 
 # Imports
-import csv, os, sys
+import csv, os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
@@ -133,15 +133,28 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 table        tab delimited table of the selected annotations.
+
+             output annotation fields:
+                 <user defined>
+                              annotation fields specified by the -f parameter.
+             ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False)], 
                             formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
-                        help='List of log files to parse')
+                        help='List of log files to parse.')
     parser.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                        help='List of fields to collect')
+                        help='''List of fields to collect. The sequence identifier may
+                             be specified using the hidden field name "ID".''')
     
     return parser
 

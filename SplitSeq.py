@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.21'
 
 # Imports
-import os, sys
+import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from random import sample
@@ -153,8 +153,9 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                 sys.exit()
             
         # Create output handles
+        # out_label = '%s=%s' % (field, tag)
         handles_dict = {tag:getOutputHandle(seq_file, 
-                                            tag, 
+                                            tag,
                                             out_dir=out_args['out_dir'], 
                                             out_name=out_args['out_name'], 
                                             out_type=out_args['out_type'])
@@ -510,10 +511,34 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 part<######> reads partitioned by count, where <######> is the partition.
+                 <value>      reads partitioned by annotation <value>.
+                 under-<#>    reads partitioned by numeric threshold where the annotation
+                              value is strictly less than the threshold <#>.
+                 atleast-<#>  reads partitioned by numeric threshold where the annotation
+                              value is greater than or equal to the threshold <#>.
+                 sorted       reads sorted by annotation value.
+                 sorted-part<######>
+                              reads sorted by annotation value and partitioned by count,
+                              where <######> is the partition.
+                 sample<#>-n=<###>
+                              randomly sampled reads where <#> is the sampling instance
+                              and <###> is the number of sampled reads.
+
+             output annotation fields:
+                 None
+             ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Sequence file operation', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
+                                       help='Sequence file operation')
 
     # Subparser to downsize files to a maximum count
     parser_downsize = subparsers.add_parser('count', parents=[getCommonArgParser(annotation=False, log=False)],

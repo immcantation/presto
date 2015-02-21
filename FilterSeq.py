@@ -7,11 +7,11 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.21'
 
 
 # Imports
-import os, sys
+import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import groupby
@@ -355,10 +355,28 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 <subcommand>-pass
+                              reads passing filtering operation and modified accordingly,
+                              where <subcommand> is the name of the filtering operation
+                              that was run.
+                 <subcommand>-fail
+                              raw reads failing filtering criteria, where <subcommand> is
+                              the name of the filtering operation.
+
+             output annotation fields:
+                 None
+             ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', help='Filtering operation', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', metavar='',
+                                       help='Filtering operation')
     
     # Parent parser
     parser_parent = getCommonArgParser(annotation=False, log=True, multiproc=True)
@@ -369,9 +387,10 @@ def getArgParser():
                                           help='Sequence length filtering mode')
     parser_length.add_argument('-n', action='store', dest='min_length', type=int, 
                                default=default_min_length, 
-                               help='Minimum sequence length to retain')
+                               help='Minimum sequence length to retain.')
     parser_length.add_argument('--inner', action='store_true', dest='inner',
-                               help='If specified exclude consecutive missing characters at either end of the sequence')
+                               help='''If specified exclude consecutive missing characters
+                                    at either end of the sequence.''')
     parser_length.set_defaults(filter_func=filterLength)
     
     # Missing character filter mode argument parser
@@ -380,9 +399,10 @@ def getArgParser():
                                            help='Missing nucleotide filtering mode')
     parser_missing.add_argument('-n', action='store', dest='max_missing', type=int, 
                                 default=default_max_missing, 
-                                help='Threshold for fraction of gap or N nucleotides')
+                                help='Threshold for fraction of gap or N nucleotides.')
     parser_missing.add_argument('--inner', action='store_true', dest='inner',
-                                help='If specified exclude consecutive missing characters at either end of the sequence')
+                                help='''If specified exclude consecutive missing characters
+                                     at either end of the sequence.''')
     parser_missing.set_defaults(filter_func=filterMissing)
     
     # Continuous repeating character filter mode argument parser
@@ -391,11 +411,13 @@ def getArgParser():
                                            help='Consecutive nucleotide repeating filtering mode')
     parser_repeats.add_argument('-n', action='store', dest='max_repeat', type=int, 
                                 default=default_max_repeat, 
-                                help='Threshold for fraction of repeating nucleotides')
+                                help='Threshold for fraction of repeating nucleotides.')
     parser_repeats.add_argument('--missing', action='store_true', dest='include_missing',
-                                help='If specified count consecutive gap and N characters in addition to {A,C,G,T}')
+                                help='''If specified count consecutive gap and N characters '
+                                     in addition to {A,C,G,T}.''')
     parser_repeats.add_argument('--inner', action='store_true', dest='inner',
-                                help='If specified exclude consecutive missing characters at either end of the sequence')
+                                help='''If specified exclude consecutive missing characters
+                                     at either end of the sequence.''')
     parser_repeats.set_defaults(filter_func=filterRepeats)
     
     # Quality filter mode argument parser
@@ -403,9 +425,10 @@ def getArgParser():
                                           formatter_class=CommonHelpFormatter, 
                                           help='Quality filtering mode')
     parser_quality.add_argument('-q', action='store', dest='min_qual', type=float, 
-                                default=default_min_qual, help='Quality score threshold')
+                                default=default_min_qual, help='Quality score threshold.')
     parser_quality.add_argument('--inner', action='store_true', dest='inner',
-                                help='If specified exclude consecutive missing characters at either end of the sequence')
+                                help='''If specified exclude consecutive missing characters
+                                     at either end of the sequence.''')
     parser_quality.set_defaults(filter_func=filterQuality)
 
     # Mask mode argument parser
@@ -413,7 +436,7 @@ def getArgParser():
                                         formatter_class=CommonHelpFormatter,
                                         help='Character masking mode')
     parser_maskqual.add_argument('-q', action='store', dest='min_qual', type=float, 
-                             default=default_min_qual, help='Quality score threshold')
+                             default=default_min_qual, help='Quality score threshold.')
     parser_maskqual.set_defaults(filter_func=maskQuality)
 
     # Trim mode argument parser
@@ -421,12 +444,13 @@ def getArgParser():
                                             formatter_class=CommonHelpFormatter,
                                             help='Sequence trimming mode')
     parser_trimqual.add_argument('-q', action='store', dest='min_qual', type=float, 
-                                 default=default_min_qual, help='Quality score threshold')
+                                 default=default_min_qual, help='Quality score threshold.')
     parser_trimqual.add_argument('--win', action='store', dest='window', type=int, 
                                  default=default_window, 
-                                 help='Nucleotide window size for moving average calculation')
+                                 help='Nucleotide window size for moving average calculation.')
     parser_trimqual.add_argument('--reverse', action='store_true', dest='reverse', 
-                                 help='Specify to trim the head of the sequence rather than the tail')
+                                 help='''Specify to trim the head of the sequence rather
+                                      than the tail.''')
     parser_trimqual.set_defaults(filter_func=trimQuality)
     
     return parser

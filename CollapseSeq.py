@@ -335,13 +335,16 @@ def getArgParser():
                               having too many N characters in the sequence.
 
 
-             output description fields:
+             output annotation fields:
                  DUPCOUNT     total number of sequences within the set of duplicates for
                               each retained unique sequence. Meaning, the copy number of
                               each unique sequence within the data file.
+                 <user defined>
+                              annotation fields specified by the --cf parameter.
              ''')
 
-    # TODO: add exact mode which does hash table search only and does not generate undetermined file
+    # TODO: add exact mode which does hash table search only
+    # TODO: write better algorithm for ambiguous character mode
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),

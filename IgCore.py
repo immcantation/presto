@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.12.12'
+__date__      = '2015.02.21'
 
 # Imports
 import ctypes, math, os, re, textwrap, signal, sys
@@ -50,6 +50,24 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
     """
     Custom argparse.HelpFormatter
     """
+    # TODO:  add some sort of list formating for arguments with choices
+    # TODO:  override argument position.
+    # def __init__(self, prog, indent_increment=2, max_help_position=10, width=None):
+    #    super(self.__class__, self).__init__(self, prog,
+    #                                         indent_increment=indent_increment,
+    #                                         max_help_position=max_help_position,
+    #                                         width=width)
+
+    # TODO:  remove multiple inheritance and clean up default value printing.
+    # From ArgumentDefaultsHelpFormatter
+    # def _get_help_string(self, action):
+    #     help = action.help
+    #     if '%(default)' not in action.help:
+    #         if action.default is not SUPPRESS:
+    #             defaulting_nargs = [OPTIONAL, ZERO_OR_MORE]
+    #             if action.option_strings or action.nargs in defaulting_nargs:
+    #                 help += ' (default: %(default)s)'
+    #     return help
     pass
     
 
@@ -1107,6 +1125,37 @@ def getUnpairedIndex(seq_dict_1, seq_dict_2, coord_type=default_coord_type,
     return unpaired_1, unpaired_2
 
 
+def getCoordKey(seq, coord_type=default_coord_type, delimiter=default_delimiter):
+    """
+    Return the coordinate identifier for a SeqRecord
+
+    Arguments:
+    seq = a SeqRecord object
+    coord_type = the sequence header format;
+                 one of ['illumina', 'solexa', 'sra', '454', 'presto'];
+                 if unrecognized type or None return sequence ID.
+    delimiter = a tuple of delimiters for (fields, values, value lists)
+
+    Returns:
+    the coordinate identifier as a string
+
+    Supported formats:
+        illumina  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
+                  @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
+        sra       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
+        454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
+        pesto     @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
+    """
+    if coord_type in ('illumina', 'solexa'):
+        return seq.id.split()[0].split('#')[0]
+    elif coord_type in ('sra', '454'):
+        return seq.id.split()[0]
+    elif coord_type == 'presto':
+        return parseAnnotation(seq.id, delimiter=delimiter)['ID']
+    else:
+        return seq.id
+
+
 def getSeqCoord(seq_dict, coord_type=default_coord_type, delimiter=default_delimiter):
     """
     Create a sequence ID translation using delimiter truncation
@@ -1515,6 +1564,37 @@ def printLog(record, handle=sys.stdout, inset=None):
             sys.stderr.write('I/O error writing to log file: %s\n' % e.strerror)
 
     return record_str
+
+
+def printMessage(message, start_time=None, end=False):
+    """
+    Prints a progress message to standard out
+
+    Arguments:
+    message = the current task message
+    start_time = task start time returned by time.time();
+                 if None do not add run time to progress
+    end = if True print final message (add newline)
+
+    Returns:
+    None
+    """
+    # Define progress bar
+    bar = 'PROGRESS> %s [%s]' % (strftime('%H:%M:%S'), message)
+
+    # Add run time to bar if start_time is specified
+    if start_time is not None:
+        bar = '%s %.1f min' % (bar, (time() - start_time)/60)
+
+    # Print progress bar
+    if end:
+        print '\r%s\n' % bar
+        sys.stdout.flush()
+    else:
+        print '\r%s' % bar,
+        sys.stdout.flush()
+
+    return None
 
 
 def printProgress(current, total=None, step=None, start_time=None, end=False):

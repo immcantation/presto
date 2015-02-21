@@ -449,7 +449,7 @@ def getArgParser():
                  mask-pass    processed reads with successful primer matches.
                  mask-fail    raw reads failing primer identification.
 
-             output description fields:
+             output annotation fields:
                  SEQORIENT    the orientation of the output sequence. Either F (input)
                               or RC (reverse complement of input).
                  PRIMER       name of the best primer match.

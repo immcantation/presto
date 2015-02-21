@@ -1,8 +1,13 @@
 February 20, 2014
 Version 0.4.5
 
+Added details to the usage documentation for each tool which describes both
+the output files and annotation fields.
+
+output file and description
 IgCore:
 + Features added for Change-O compatibility.
++ Features added for PairSeq performance improvements.
 + Added custom help formatter.
 + Modifications to internals of multiprocessing code.
 + Changed maximum consensus quality score from 93 to 90.
@@ -41,6 +46,10 @@ CollapseSeq:
 MaskPrimers:
 + Changed behavior of N characters in primer identification. Ns now count as a
   match against any character, rather than a mismatch.
+
+PairSeq:
++ Performance improvements. The tool should now be considerably faster on very
+  large files, but will also require more memory.
 
 -------------------------------------------------------------------------------
 June 10, 2014
