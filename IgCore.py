@@ -10,10 +10,10 @@ __version__   = '0.4.5'
 __date__      = '2014.12.12'
 
 # Imports
-import ctypes, math, os, re, signal, sys
+import ctypes, math, os, re, textwrap, signal, sys
 import multiprocessing as mp
 import pandas as pd
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter, RawTextHelpFormatter
 from itertools import izip, izip_longest, product
 from collections import OrderedDict
 from time import time, strftime
@@ -27,7 +27,6 @@ from Bio.Alphabet import IUPAC
 default_delimiter = ('|', '=', ',')
 default_separator = default_delimiter[2]
 default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
-default_action_choices = ['min', 'max', 'sum', 'first', 'last', 'set']
 default_coord_type = 'presto'
 default_barcode_field = 'BARCODE'
 default_primer_field = 'PRIMER'

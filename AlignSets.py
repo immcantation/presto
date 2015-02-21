@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.20'
 
 # Imports
-import csv, os, sys
+import csv, os, sys, textwrap
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
@@ -386,10 +386,27 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+         '''
+         output files:
+             align-pass   multiple aligned reads.
+             align-fail   raw reads failing multiple alignment.
+             offsets-forward
+                          5\' offset table for input into offset subcommand.
+             offsets-reverse
+                          3\' offset table for input into offset subcommand.
+
+         output description fields:
+             None
+         ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Alignment method', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
+                                       help='Alignment method')
     
     # Parent parser    
     parser_parent = getCommonArgParser(multiproc=True)

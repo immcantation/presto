@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Chris Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2015.01.18'
+__date__      = '2015.02.20'
 
 # Imports
-import csv, os, sys, tempfile
+import csv, os, sys, tempfile, textwrap
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -987,10 +987,27 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 assemble-pass
+                              successfully assembled reads.
+                 assemble-fail
+                              raw reads failing paired-end assembly.
+                 assemble-unpaired
+                              raw reads without a mate pair.
+
+             output description fields:
+                 None
+             ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
-    subparsers = parser.add_subparsers(title='subcommands', dest='command', help='Assembly method', metavar='')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
+                                       help='Assembly method')
     
     # Parent parser    
     parser_parent = getCommonArgParser(paired=True, multiproc=True)

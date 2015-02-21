@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.20'
 
 # Imports
 import os, sys, textwrap
@@ -34,7 +34,7 @@ default_start = 0
 
 def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error, 
                  max_len=default_max_len, rev_primer=False, skip_rc=False, 
-                 score_dict=getScoreDict(n_score=0, gap_score=0)):
+                 score_dict=getScoreDict(n_score=1, gap_score=0)):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
 
@@ -115,7 +115,8 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         
         # Determine alignment with lowest error rate
         for adpt, algn in this_align.iteritems():
-            adpt_err = 1 - algn[2] / weightSeq(primers[adpt])
+            #adpt_err = 1.0 - algn[2] / weightSeq(primers[adpt])
+            adpt_err = 1.0 - algn[2] / len(primers[adpt])
             if best_err is None or adpt_err < best_err: 
                 best_align = this_align
                 best_rec = rec
@@ -144,7 +145,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
 
 
 def scorePrimers(seq_record, primers, start=default_start, rev_primer=False, 
-                 score_dict=getScoreDict(n_score=0, gap_score=0)):
+                 score_dict=getScoreDict(n_score=1, gap_score=0)):
     """
     Performs simple alignment of primers with a fixed starting position, 
     no reverse complement alignment, and no tail alignment option
@@ -186,7 +187,8 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     # Determine alignment with lowest error rate
     best_align, best_adpt, best_err = None, None, None
     for adpt, algn in this_align.iteritems():
-        adpt_err = 1.0 - float(algn[0]) / weightSeq(primers[adpt])
+        #adpt_err = 1.0 - float(algn[0]) / weightSeq(primers[adpt])
+        adpt_err = 1.0 - float(algn[0]) / len(primers[adpt])
         if best_err is None or adpt_err < best_err:
             best_align = algn
             best_adpt = adpt
@@ -269,7 +271,7 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
 
 
 def processMPQueue(alive, data_queue, result_queue, align_func, align_args={}, 
-                     mask_args={}, max_error=default_max_error):
+                   mask_args={}, max_error=default_max_error):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -392,7 +394,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     
     # Define alignment arguments and compile primers for align mode
     align_args['primers'] = primers 
-    align_args['score_dict'] = getScoreDict(n_score=0, gap_score=0)
+    align_args['score_dict'] = getScoreDict(n_score=1, gap_score=0)
     if align_func is alignPrimers:
         align_args['max_error'] = max_error
         align_args['primers_regex'] = compilePrimers(primers)
@@ -447,13 +449,12 @@ def getArgParser():
                  mask-pass    processed reads with successful primer matches.
                  mask-fail    raw reads failing primer identification.
 
-             output header fields:
+             output description fields:
                  SEQORIENT    the orientation of the output sequence. Either F (input)
                               or RC (reverse complement of input).
                  PRIMER       name of the best primer match.
                  BARCODE      the sequence preceding the primer match. Only output when
                               the --barcode flag is specified.
-
              ''')
 
     # Define ArgumentParser
@@ -466,29 +467,34 @@ def getArgParser():
     # Parent parser
     parser_parent = getCommonArgParser(multiproc=True)
     parser_parent.add_argument('-p', action='store', dest='primer_file', required=True, 
-                               help='A FASTA or REGEX file containing primer sequences')
-    parser_parent.add_argument('--mode', action='store', dest='mode', 
-                               choices=('cut', 'mask', 'tag', 'trim'), default='mask', 
-                               help='Specifies whether to mask primers with Ns, cut primers, \
-                                     trim region preceding primer, or only tag sample sequences')
+                               help='A FASTA or REGEX file containing primer sequences.')
+    parser_parent.add_argument('--mode', action='store', dest='mode',
+                               choices=('cut', 'mask', 'trim', 'tag'), default='mask',
+                               help='''Specifies the action to take with the primer sequence.
+                                    The "cut" mode will remove both the primer region and
+                                    the preceding sequence. The "mask" mode will replace the
+                                    primer region with Ns and remove the preceding sequence.
+                                    The "trim" mode will remove the region preceding the primer,
+                                    but leave the primer region intact. The "tag" mode will
+                                    leave the input sequence unmodified.''')
     parser_parent.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                               default=default_max_error, help='Maximum allowable error rate')
+                               default=default_max_error, help='Maximum allowable error rate.')
     parser_parent.add_argument('--revpr', action='store_true', dest='rev_primer', 
                               help='Specify to match the tail-end of the sequence against the \
-                                    reverse complement of the primers')
+                                    reverse complement of the primers.')
     parser_parent.add_argument('--barcode', action='store_true', dest='barcode', 
                                help='''Specify to encode sequences with barcode sequences
-                                    (unique molecular identifiers) preceding primer
-                                    matches.''')
+                                    (unique molecular identifiers) found preceding the primer
+                                    region.''')
     
     # Align mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
                                          help='Find primer matches using pairwise local alignment')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
-                              default=default_max_len, help='Maximum sequence length to scan for primers')
+                              default=default_max_len, help='Maximum sequence length to scan for primers.')
     parser_align.add_argument('--skiprc', action='store_true', dest='skip_rc', 
-                              help='Specify to prevent checking of sample reverse complement sequences')
+                              help='Specify to prevent checking of sample reverse complement sequences.')
     #parser_align.set_defaults(start=None)
     parser_align.set_defaults(align_func=alignPrimers)
     

@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.10.2'
+__date__      = '2015.02.20'
 
 # Imports
-import os, sys
+import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 
@@ -262,8 +262,31 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 consensus-pass
+                              consensus reads.
+                 consensus-fail
+                              raw reads failing consensus filtering criteria.
+
+             output description fields:
+                 PRIMER       a comma delimited list of unique primer annotations found
+                              within the barcode read group.
+                 PRCOUNT      a comma delimited list of the corresponding counts of unique
+                              primer annotations.
+                 PRCONS       the majority primer within the barcode read group.
+                 PRFREQ       the frequency of the majority primer.
+                 CONSCOUNT    the count of reads within the barcode read group which
+                              contributed to the consensus sequence. This is the total size
+                              of the read group, minus sequence excluded due to user defined
+                              filtering criteria.
+             ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(multiproc=True)], 
                             formatter_class=CommonHelpFormatter)
     

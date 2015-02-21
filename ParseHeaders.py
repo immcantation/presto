@@ -19,7 +19,6 @@ from Bio import SeqIO
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_action_choices
 from IgCore import default_delimiter, default_separator, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
 from IgCore import parseAnnotation, renameAnnotation
@@ -383,9 +382,9 @@ def getArgParser():
                                        formatter_class=CommonHelpFormatter,
                                        help='Adds field/value pairs to header annotations')    
     parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                            help='List of fields to add')
+                            help='List of fields to add.')
     parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
-                            help='List of values to add for each field')
+                            help='List of values to add for each field.')
     parser_add.set_defaults(func=modifyHeaders)
     parser_add.set_defaults(modify_func=addHeader)
 
@@ -394,19 +393,26 @@ def getArgParser():
                                             formatter_class=CommonHelpFormatter,
                                             help='Collapses header annotations with multiple entries')    
     parser_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                                 help='List of fields to collapse')
+                                 help='List of fields to collapse.')
     parser_collapse.add_argument('--act', nargs='+', action='store', dest='actions', required=True,
-                                 choices=default_action_choices,
-                                 help='List of actions to take for each field')
+                                 choices=['min', 'max', 'sum', 'first', 'last', 'set'],
+                                 help='''List of actions to take for each field defining how
+                                      each annotation will be combined into a single value.
+                                      The actions "min", "max", "sum" perform the corresponding
+                                      mathematical operation on numeric annotations. The
+                                      actions "first" and "last" choose the value from the
+                                      corresponding position in the annotation. The action
+                                      "set" collapses annotations into a comma delimited
+                                      list of unique values.''')
     parser_collapse.set_defaults(func=modifyHeaders)
     parser_collapse.set_defaults(modify_func=collapseHeader)
 
     # Subparser to delete header fields
     parser_delete = subparsers.add_parser('delete', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Deletes fields from header annotations')    
+                                          help='Deletes fields from header annotations')
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to delete')
+                               help='List of fields to delete.')
     parser_delete.set_defaults(func=modifyHeaders)
     parser_delete.set_defaults(modify_func=deleteHeader)
 
@@ -415,10 +421,10 @@ def getArgParser():
                                           formatter_class=CommonHelpFormatter,
                                           help='Expands annotation fields with multiple values')    
     parser_expand.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to expand')
+                               help='List of fields to expand.')
     parser_expand.add_argument('--sep', action='store', dest='separator', 
                                default=default_separator,
-                               help='The character separating each value in the fields')
+                               help='The character separating each value in the fields.')
     parser_expand.set_defaults(func=modifyHeaders)
     parser_expand.set_defaults(modify_func=expandHeader)
 
@@ -427,9 +433,9 @@ def getArgParser():
                                           formatter_class=CommonHelpFormatter,
                                           help='Renames headers annotation fields')    
     parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to rename')
+                               help='List of fields to rename.')
     parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
-                               help='List of new names for each field')
+                               help='List of new names for each field.')
     parser_rename.set_defaults(func=modifyHeaders)
     parser_rename.set_defaults(modify_func=renameHeader)
             
@@ -438,13 +444,13 @@ def getArgParser():
                                          formatter_class=CommonHelpFormatter,
                                          help='Writes sequence headers to a table')
     parser_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                              help='List of fields to collect')
+                              help='List of fields to collect.')
     parser_table.set_defaults(func=tableHeaders)
     
     # Subparser to convert header to pRESTO format
     parser_convert = subparsers.add_parser('convert', parents=[getCommonArgParser(log=False)],
                                        formatter_class=CommonHelpFormatter,
-                                       help='Converts sequence descriptions to pRESTO format')   
+                                       help='Converts sequence descriptions to pRESTO format.')
     parser_convert.set_defaults(func=convertHeaders)
     
     return parser

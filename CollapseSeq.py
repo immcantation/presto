@@ -7,10 +7,10 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2014.12.13'
+__date__      = '2015.02.20'
 
 # Imports
-import os, re, sys
+import os, re, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain, izip
@@ -19,7 +19,7 @@ from Bio import SeqIO
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_action_choices, default_delimiter, default_out_args
+from IgCore import default_delimiter, default_out_args
 from IgCore import collapseAnnotation, flattenAnnotation 
 from IgCore import mergeAnnotation, parseAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
@@ -319,39 +319,66 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+             '''
+             output files:
+                 collapse-unique
+                              unique sequences. Contains one representative from each set of
+                              duplicate sequences. The retained representative is determined
+                              by user defined criteria.
+                 collapse-duplicate
+                              raw reads which are duplicates of the sequences retained in
+                              the collapse-unique file.
+                 collapse-undetermined
+                              raw reads which were excluded from consideration due to
+                              having too many N characters in the sequence.
+
+
+             output description fields:
+                 DUPCOUNT     total number of sequences within the set of duplicates for
+                              each retained unique sequence. Meaning, the copy number of
+                              each unique sequence within the data file.
+             ''')
+
     # TODO: add exact mode which does hash table search only and does not generate undetermined file
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser()], 
                             formatter_class=CommonHelpFormatter)
 
     parser.add_argument('-n', action='store', dest='max_missing', type=int, default=default_max_missing, 
                         help='Maximum number of missing nucleotides to consider for collapsing \
-                              sequences; a sequence will be considered undetermined if it contains too \
-                              many missing nucleotides')
+                              sequences. A sequence will be considered undetermined if it contains too \
+                              many missing nucleotides.')
     parser.add_argument('--uf', nargs='+', action='store', dest='uniq_fields', type=str, default=None, 
                         help='Specifies a set of annotation fields that must match for sequences \
                               to be considered duplicates')
     parser.add_argument('--cf', nargs='+', action='store', dest='copy_fields', type=str, default=None, 
                         help='Specifies a set of annotation fields to copy into the unique \
-                              sequence output')
+                              sequence output.')
     parser.add_argument('--act', nargs='+', action='store', dest='copy_actions', default=None,
-                        choices=default_action_choices,
-                        help='List of actions to take for each copy field')
+                        choices=['min', 'max', 'sum', 'set'],
+                        help='''List of actions to take for each copy field which defines how
+                             each annotation will be combined into a single value. The actions
+                             "min", "max", "sum" perform the corresponding mathematical
+                             operation on numeric annotations. The action "set" collapses
+                             annotations into a comma delimited list of unique values.''')
     parser.add_argument('--inner', action='store_true', dest='inner',
                         help='If specified, exclude consecutive missing characters at either end of \
-                              the sequence')
+                              the sequence.')
     arg_group = parser.add_mutually_exclusive_group()
     arg_group.add_argument('--maxf', action='store', dest='max_field', type=str, default=None,
                            help='Specify the field whose maximum value determines the retained sequence; \
-                                 mutually exclusive with --minf')
+                                 mutually exclusive with --minf.')
     arg_group.add_argument('--minf', action='store', dest='min_field', type=str, default=None,
                            help='Specify the field whose minimum value determines the retained sequence; \
-                                 mutually exclusive with --minf')
+                                 mutually exclusive with --minf.')
     parser.add_argument('--keepmiss', action='store_true', dest='keep_missing',
-                        help='''If specified, sequences with more missing characters than the \
-                             threshold set by the -n parameter will be written to the unique \
-                             sequence output file with a DUPCOUNT=1 annotation. If not specified, \
+                        help='''If specified, sequences with more missing characters than the
+                             threshold set by the -n parameter will be written to the unique
+                             sequence output file with a DUPCOUNT=1 annotation. If not specified,
                              such sequences will be written to a separate file.''')
 
     return parser

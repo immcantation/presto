@@ -1,4 +1,4 @@
-November 20, 2014
+February 20, 2014
 Version 0.4.5
 
 IgCore:
@@ -36,6 +36,11 @@ CollapseSeq:
 + Added --keep flag to allow retention of sequences with high missing character
   counts in unique sequence output file.
 + Removed case insensitivity - requiring all sequences to have matching case.
++ Removed 'first' and 'last' from --act choices to avoid unexpected behavior.
+
+MaskPrimers:
++ Changed behavior of N characters in primer identification. Ns now count as a
+  match against any character, rather than a mismatch.
 
 -------------------------------------------------------------------------------
 June 10, 2014
