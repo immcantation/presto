@@ -278,14 +278,14 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
                 SeqIO.write(out_seq, uniq_handle, out_args['out_type'])
 
     # Write sequence with high missing character counts
-    if not out_args['clean'] and not keep_missing:
+    if out_args['failed'] and not keep_missing:
         with getOutputHandle(seq_file, 'collapse-undetermined', out_dir=out_args['out_dir'],
                              out_name=out_args['out_name'], out_type=out_args['out_type']) \
                 as missing_handle:
             for k in search_keys:
                 SeqIO.write(seq_dict[k], missing_handle, out_args['out_type'])
 
-    if not out_args['clean']:
+    if out_args['failed']:
         # Write duplicate sequences 
         with getOutputHandle(seq_file, 'collapse-duplicate', out_dir=out_args['out_dir'], 
                              out_name=out_args['out_name'], out_type=out_args['out_type']) \

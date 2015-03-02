@@ -39,7 +39,7 @@ default_out_args = {'log_file':None,
                     'out_dir':None,
                     'out_name':None,
                     'out_type':None,
-                    'clean':False}
+                    'failed':True}
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -443,7 +443,7 @@ def getFileType(filename):
     return file_type
 
 
-def readSeqFile(seq_file, index=False):
+def readSeqFile(seq_file, index=False, key_func=None):
     """
     Reads FASTA/FASTQ files
 
@@ -451,16 +451,22 @@ def readSeqFile(seq_file, index=False):
     seq_file = a FASTA or FASTQ file containing sample sequences
     index = if True return a dictionary from SeqIO.index();
             if False return an iterator from SeqIO.parse()
+    key_func = the key_function argument to pass to SeqIO.index if
+               index=True
+
     Returns: 
     a tuple of (input file type, sequence record object)
     """
     # Read and check file
     try:
         seq_type = getFileType(seq_file)
-        if index:  
-            seq_records = SeqIO.index(seq_file, seq_type, IUPAC.ambiguous_dna)
+        if index:
+            seq_records = SeqIO.index(seq_file, seq_type,
+                                      alphabet=IUPAC.ambiguous_dna,
+                                      key_function=key_func)
         else:  
-            seq_records = SeqIO.parse(seq_file, seq_type, IUPAC.ambiguous_dna)
+            seq_records = SeqIO.parse(seq_file, seq_type,
+                                      alphabet=IUPAC.ambiguous_dna)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
     except Exception as e:
@@ -1125,12 +1131,12 @@ def getUnpairedIndex(seq_dict_1, seq_dict_2, coord_type=default_coord_type,
     return unpaired_1, unpaired_2
 
 
-def getCoordKey(seq, coord_type=default_coord_type, delimiter=default_delimiter):
+def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimiter):
     """
-    Return the coordinate identifier for a SeqRecord
+    Return the coordinate identifier for a sequence description
 
     Arguments:
-    seq = a SeqRecord object
+    header = a sequence header string
     coord_type = the sequence header format;
                  one of ['illumina', 'solexa', 'sra', '454', 'presto'];
                  if unrecognized type or None return sequence ID.
@@ -1146,14 +1152,15 @@ def getCoordKey(seq, coord_type=default_coord_type, delimiter=default_delimiter)
         454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
         pesto     @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
     """
+    #header = seq.id
     if coord_type in ('illumina', 'solexa'):
-        return seq.id.split()[0].split('#')[0]
+        return header.split()[0].split('#')[0]
     elif coord_type in ('sra', '454'):
-        return seq.id.split()[0]
+        return header.split()[0]
     elif coord_type == 'presto':
-        return parseAnnotation(seq.id, delimiter=delimiter)['ID']
+        return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
-        return seq.id
+        return header
 
 
 def getSeqCoord(seq_dict, coord_type=default_coord_type, delimiter=default_delimiter):
@@ -1449,14 +1456,15 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file,
                                       out_name=out_args['out_name'], 
                                       out_type=out_type)
         # Defined failed alignment output handle
-        if out_args['clean']:  
-            fail_handle = None
-        else:  
-            fail_handle = getOutputHandle(seq_file, 
-                                          '%s-fail'  % task_label, 
-                                          out_dir=out_args['out_dir'], 
-                                          out_name=out_args['out_name'], 
+        if out_args['failed']:
+            fail_handle = getOutputHandle(seq_file,
+                                          '%s-fail'  % task_label,
+                                          out_dir=out_args['out_dir'],
+                                          out_name=out_args['out_name'],
                                           out_type=out_type)
+        else:
+            fail_handle = None
+
         # Define log handle
         if out_args['log_file'] is None:  
             log_handle = None
@@ -1659,7 +1667,7 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
         
         
 def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_out=False,
-                       annotation=True, log=True, multiproc=False):
+                       failed=True, log=True, annotation=True, multiproc=False):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
@@ -1669,8 +1677,9 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     paired = if True defined paired-end sequence input and output arguments
     db_in = if True include tab delimited database input arguments
     db_out = if True include tab delimited database output arguments
-    annotation = if True include annotation arguments
+    failed = if True include arguments for output of failed results
     log = if True include log arguments
+    annotation = if True include annotation arguments
     multiproc = if True include multiprocessing arguments
     
     Returns:
@@ -1682,49 +1691,51 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     if db_in:
         parser.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
                         help='A list of tab delimited database files.')
-    
     if db_out:
-        parser.add_argument('--clean', action='store_true', dest='clean', 
-                            help='If specified do not create files containing records that \
-                                  fail processing.')
-            
+        # Place holder for the future
+        pass
+
     # Sequence arguments
     if seq_in and not paired:
         parser.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
                             help='A list of FASTA/FASTQ files containing sequences to process.')
     elif seq_in and paired:
         parser.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
-                            help='An ordered list of FASTA/FASTQ files containing head/primary \
-                                  sequences.')
+                            help='''An ordered list of FASTA/FASTQ files containing
+                                 head/primary sequences.''')
         parser.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
-                            help='An ordered list of FASTA/FASTQ files containing tail/secondary \
-                                  sequences.')
+                            help='''An ordered list of FASTA/FASTQ files containing
+                                 tail/secondary sequences.''')
     if seq_out:
         parser.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
                             help='Specify to force output as FASTA rather than FASTQ.')
-        parser.add_argument('--clean', action='store_true', dest='clean', 
-                            help='If specified do not create files containing sequences that \
-                                  fail processing.')
-            
-    # Annotation arguments
-    if annotation:
-        parser.add_argument('--delim', nargs=3, action='store', dest='delimiter', 
-                            type=str, default=default_delimiter, 
-                            help='A list of the three delimiters that separate annotation blocks, \
-                                  field names and values, and values within a field, respectively.')
+
+    # Failed result arguments
+    if failed:
+        parser.add_argument('--failed', action='store_true', dest='failed',
+                            help='''If specified create files containing records that
+                                  fail processing.''')
 
     # Log arguments
     if log:
         parser.add_argument('--log', action='store', dest='log_file', default=None,
-                            help='Specify to write verbose logging to a file. May not be \
-                                  specified with multiple input files.')
-    
+                            help='''Specify to write verbose logging to a file. May not be
+                                  specified with multiple input files.''')
+
+    # Annotation arguments
+    if annotation:
+        parser.add_argument('--delim', nargs=3, action='store', dest='delimiter',
+                            type=str, default=default_delimiter,
+                            help='''A list of the three delimiters that separate annotation
+                                 blocks, field names and values, and values within a field,
+                                 respectively.''')
+
     # Multiprocessing arguments
     if multiproc:
         parser.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
                             help='The number of simultaneous computational processes to execute \
                                   (CPU cores to utilized).')
-    
+
     # Universal arguments
     parser.add_argument('--outdir', action='store', dest='out_dir', default=None,
                         help='Specify to changes the output directory to the location specified. \
@@ -1733,7 +1744,7 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
                         help='Changes the prefix of the successfully processed output file \
                               to the string specified. May not be specified with multiple \
                               input files.')
-    
+
     return parser
 
 
@@ -1837,7 +1848,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
 
     # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'delimiter', 'separator', 
-                'out_dir', 'out_name', 'out_type', 'clean']
+                'out_dir', 'out_name', 'out_type', 'failed']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
     

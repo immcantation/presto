@@ -541,7 +541,10 @@ def getArgParser():
                                        help='Sequence file operation')
 
     # Subparser to downsize files to a maximum count
-    parser_downsize = subparsers.add_parser('count', parents=[getCommonArgParser(annotation=False, log=False)],
+    parser_downsize = subparsers.add_parser('count',
+                                            parents=[getCommonArgParser(failed=False,
+                                                                        annotation=False,
+                                                                        log=False)],
                                             formatter_class=CommonHelpFormatter,
                                             help='Splits sequences files by number of records')
     parser_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
@@ -549,7 +552,8 @@ def getArgParser():
     parser_downsize.set_defaults(func=downsizeSeqFile)
     
     # Subparser to partition files by annotation
-    parser_group = subparsers.add_parser('group', parents=[getCommonArgParser(log=False)],
+    parser_group = subparsers.add_parser('group',
+                                         parents=[getCommonArgParser(failed=False, log=False)],
                                          formatter_class=CommonHelpFormatter,
                                          help='Splits sequences files by annotation')
     parser_group.add_argument('-f', action='store', dest='field', type=str, required=True,
@@ -560,7 +564,8 @@ def getArgParser():
     parser_group.set_defaults(func=groupSeqFile)
 
     # Subparser to randomly sample from unpaired files
-    parser_sample = subparsers.add_parser('sample', parents=[getCommonArgParser(log=False)],
+    parser_sample = subparsers.add_parser('sample',
+                                          parents=[getCommonArgParser(failed=False, log=False)],
                                           formatter_class=CommonHelpFormatter,
                                           help='Randomly samples from unpaired sequences files')
     parser_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True, 
@@ -573,7 +578,10 @@ def getArgParser():
     parser_sample.set_defaults(func=sampleSeqFile)
     
     # Subparser to randomly sample from paired files
-    parser_samplepair = subparsers.add_parser('samplepair', parents=[getCommonArgParser(paired=True, log=False)],
+    parser_samplepair = subparsers.add_parser('samplepair',
+                                              parents=[getCommonArgParser(failed=False,
+                                                                          paired=True,
+                                                                          log=False)],
                                           formatter_class=CommonHelpFormatter,
                                           help='Randomly samples from paired-end sequences files')
     parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, 
@@ -591,7 +599,8 @@ def getArgParser():
     parser_samplepair.set_defaults(func=samplePairSeqFile)
     
     # Subparser to sort files
-    parser_sort = subparsers.add_parser('sort', parents=[getCommonArgParser(log=False)],
+    parser_sort = subparsers.add_parser('sort',
+                                        parents=[getCommonArgParser(failed=False, log=False)],
                                         formatter_class=CommonHelpFormatter,
                                         help='Sorts sequences files by annotation')
     parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,

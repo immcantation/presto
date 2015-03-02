@@ -480,7 +480,9 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
-                            parents=[getCommonArgParser(seq_out=False, multiproc=True)], 
+                            parents=[getCommonArgParser(seq_out=False,
+                                                        failed=False,
+                                                        multiproc=True)],
                             formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field, 

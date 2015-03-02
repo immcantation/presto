@@ -62,43 +62,41 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
         out_name_1 = '%s-1' % out_args['out_name']
         out_name_2 = '%s-2' % out_args['out_name']
 
-    # Load file 1 into memory
+    # Open and count files
     start_time = time()
-    printMessage("Loading FILE1 into memory", start_time=start_time)
+    printMessage("Indexing files", start_time=start_time)
+    # Index file 1
     seq_count_1 = countSeqFile(seq_file_1)
-    seq_dict_1 = SeqIO.to_dict(readSeqFile(seq_file_1),
-                               key_function=lambda x: getCoordKey(x, coord_type=coord_type,
-                                                                  delimiter=out_args['delimiter']))
-    printMessage("Done", start_time=start_time, end=True)
-
+    seq_dict_1 = readSeqFile(seq_file_1, index=True,
+                             key_func=lambda x: getCoordKey(x, coord_type=coord_type,
+                                                            delimiter=out_args['delimiter']))
     # Define file 2 iterator
     seq_count_2 = countSeqFile(seq_file_2)
     seq_iter_2 = readSeqFile(seq_file_2, index=False)
+    printMessage("Done", start_time=start_time, end=True)
 
     # Open output file handles
     pass_handle_1 = getOutputHandle(seq_file_1, 'pair-pass', out_args['out_dir'], 
                                     out_name=out_name_1, out_type=out_type_1)
     pass_handle_2 = getOutputHandle(seq_file_2, 'pair-pass', out_args['out_dir'], 
                                     out_name=out_name_2, out_type=out_type_2)
-    if not out_args['clean']:
-        fail_handle_1 = getOutputHandle(seq_file_1, 'pair-fail', out_dir=out_args['out_dir'],
-                                        out_name=out_name_1, out_type=out_type_1)
-        fail_handle_2 = getOutputHandle(seq_file_2, 'pair-fail', out_dir=out_args['out_dir'],
-                                        out_name=out_name_2, out_type=out_type_2)
 
     # Iterate over pairs and write to output files
     start_time = time()
-    rec_count = pair_count = fail_count_2 = 0
+    rec_count = pair_count = 0
     for seq_2 in seq_iter_2:
         # Print progress for previous iteration
         printProgress(rec_count, seq_count_2, 0.05, start_time)
         rec_count += 1
 
         # Check for and file 2 mate pair in file 1
-        coord_2 = getCoordKey(seq_2, coord_type=coord_type, delimiter=out_args['delimiter'])
-        seq_1 = seq_dict_1.pop(coord_2, None)
+        coord_2 = getCoordKey(seq_2.id, coord_type=coord_type,
+                              delimiter=out_args['delimiter'])
+        #seq_1 = seq_dict_1.pop(coord_2, None)
+        seq_1 = seq_dict_1.get(coord_2, None)
 
         if seq_1 is not None:
+            # Record paired keys
             pair_count += 1
             # Copy annotations from seq_1 to seq_2
             if fields is not None:
@@ -111,19 +109,9 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
             # Write paired records
             SeqIO.write(seq_1, pass_handle_1, out_type_1)
             SeqIO.write(seq_2, pass_handle_2, out_type_2)
-        else:
-            # Count and write unmatched file 2 records
-            fail_count_2 += 1
-            if not out_args['clean']:
-                SeqIO.write(seq_2, fail_handle_2, out_type_2)
 
     # Print final progress
     printProgress(rec_count, seq_count_2, 0.05, start_time)
-
-    # Count and write unmatched file 1 records
-    fail_count_1 = len(seq_dict_1)
-    if not out_args['clean']:
-        SeqIO.write(seq_dict_1.itervalues(), fail_handle_1, out_type_1)
 
     # Print log
     log = OrderedDict()
@@ -131,8 +119,6 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     log['OUTPUT2'] = os.path.basename(pass_handle_2.name) 
     log['SEQUENCES1'] = seq_count_1
     log['SEQUENCES2'] = seq_count_2
-    log['FAIL1'] = fail_count_1
-    log['FAIL2'] = fail_count_2
     log['PASS'] = pair_count
     log['END'] = 'PairSeq'
     printLog(log)
@@ -159,7 +145,6 @@ def getArgParser():
              '''
              output files:
                  pair-pass    successfully paired reads with modified annotations.
-                 pair-fail    raw reads for which a mate pair could not be found.
 
              output annotation fields:
                  <user defined>
@@ -169,7 +154,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
-                            parents=[getCommonArgParser(paired=True, log=False)], 
+                            parents=[getCommonArgParser(paired=True, failed=False, log=False)],
                             formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-f', nargs='+', action='store', dest='fields', type=str, default=None, 

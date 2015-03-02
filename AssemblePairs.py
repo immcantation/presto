@@ -758,26 +758,26 @@ def collectPairQueue(alive, result_queue, collect_queue, result_count,
                                       out_name=out_args['out_name'], 
                                       out_type=out_type)
         # Defined failed assembly output handles
-        if out_args['clean']:
-            fail_handle_1 = None
-            fail_handle_2 = None
-        else:
+        if out_args['failed']:
             # Define output name
             if out_args['out_name'] is None:
                 out_name_1 = out_name_2 = None
-            else: 
+            else:
                 out_name_1 = '%s-1' % out_args['out_name']
                 out_name_2 = '%s-2' % out_args['out_name']
-            fail_handle_1 = getOutputHandle(seq_file_1, 
-                                            'assemble-fail', 
-                                            out_dir=out_args['out_dir'], 
-                                            out_name=out_name_1, 
+            fail_handle_1 = getOutputHandle(seq_file_1,
+                                            'assemble-fail',
+                                            out_dir=out_args['out_dir'],
+                                            out_name=out_name_1,
                                             out_type=out_type)
-            fail_handle_2 = getOutputHandle(seq_file_2, 
-                                            'assemble-fail', 
-                                            out_dir=out_args['out_dir'], 
-                                            out_name=out_name_2, 
+            fail_handle_2 = getOutputHandle(seq_file_2,
+                                            'assemble-fail',
+                                            out_dir=out_args['out_dir'],
+                                            out_name=out_name_2,
                                             out_type=out_type)
+        else:
+            fail_handle_1 = None
+            fail_handle_2 = None
 
         # Define log handle
         if out_args['log_file'] is None:
@@ -910,7 +910,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     pair_count = len(index_dict)
     
     # Write unmatched entries to files
-    if not out_args['clean']:
+    if out_args['failed']:
         # Define output type
         if out_args['out_type'] is not None:
             head_type = tail_type = out_args['out_type']        

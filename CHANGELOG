@@ -4,6 +4,9 @@ Version 0.4.5
 Added details to the usage documentation for each tool which describes both
 the output files and annotation fields.
 
+Renamed --clean flag to --failed flag with opposite behavior, such that the
+default behavior of all scripts is now clean output.
+
 output file and description
 IgCore:
 + Features added for Change-O compatibility.
@@ -49,7 +52,11 @@ MaskPrimers:
 
 PairSeq:
 + Performance improvements. The tool should now be considerably faster on very
-  large files, but will also require more memory.
+  large files.
++ Removed output of sequences which do not have a mate pair (pair-fail file).
+
+SplitSeq
++ Removed --clean (and --failed) flag from all subcommands.
 
 -------------------------------------------------------------------------------
 June 10, 2014

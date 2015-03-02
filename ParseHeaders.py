@@ -297,7 +297,7 @@ def convertHeaders(seq_file, out_args=default_out_args):
                                   out_dir=out_args['out_dir'],
                                   out_name=out_args['out_name'], 
                                   out_type=out_args['out_type'])
-    if not out_args['clean']:
+    if out_args['failed']:
         fail_handle = getOutputHandle(seq_file, 
                                       'reheader-fail', 
                                       out_dir=out_args['out_dir'],

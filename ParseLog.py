@@ -147,7 +147,8 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
-                            parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False)], 
+                            parents=[getCommonArgParser(seq_in=False, seq_out=False,
+                                                        failed=False, log=False)],
                             formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
