@@ -31,8 +31,37 @@ default_max_error = 0.2
 default_max_len = 50
 default_start = 0
 
+# TODO:  implement return as class?
+class PrimerAlignment:
+    """
+    A class defining a primer alignment result
+    """
+    # Instantiation
+    def __init__(self, seq=None):
+        self.seq = seq
+        self.primer = None
+        self.align_seq = None
+        self.align_primer = None
+        self.start = None
+        self.end = None
+        self.gaps = 0
+        self.error = 1
+        self.rev_primer = False
+        self.valid = False
 
-def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error, 
+    # Set boolean evaluation to valid value
+    def __nonzero__(self):
+        return self.valid
+
+    # Set length evaluation to length of alignment
+    def __len__(self):
+        if self.align_seq is None:
+            return 0
+        else:
+            return len(self.align_seq)
+
+
+def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error,
                  max_len=default_max_len, rev_primer=False, skip_rc=False, 
                  score_dict=getScoreDict(n_score=1, gap_score=0)):
     """
@@ -49,10 +78,15 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
-    dictionary of {seq:input SeqRecord object, align:primer alignment, 
-                   primer:primer id, start:alignment start, 
-                   end:alignment end, offset:input sequence alignment offset,
-                   error:error rate, rev_primer:True if alignment is tail-ended}
+    dictionary of {seq: input SeqRecord object,
+                   primer: primer id,
+                   align_seq: input sequence alignment,
+                   align_primer: primer alignment,
+                   start: alignment start in input sequence,
+                   end: alignment end  in input sequence,
+                   gaps: number of gaps in input sequence alignment
+                   error: error rate,
+                   rev_primer: True if alignment is tail-ended}
     """
     # Defined undefined parameters
     if primers_regex is None:  primers_regex = compilePrimers(primers)
@@ -61,8 +95,15 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     max_len = min(rec_len, max_len)
 
     # Create empty return dictionary
-    align_dict = {'seq':seq_record, 'align':None, 'primer':None,
-                  'start':None, 'end':None, 'error':1, 
+    # align = PrimerAlignment(seq_record)
+    align_dict = {'seq':seq_record,
+                  'primer':None,
+                  'align_seq':None,
+                  'align_primer':None,
+                  'start':None,
+                  'end':None,
+                  'gaps':0,
+                  'error':1,
                   'rev_primer':rev_primer}
 
     
@@ -87,18 +128,20 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
             # Parse matches
             if adpt_match:
                 align_dict['seq'] = rec
-                align_dict['align'] = '-' * adpt_match.start(0) + primers[adpt_id] + \
-                                      '-' * (max_len - adpt_match.end(0))
-                align_dict['primer'] = adpt_id
                 align_dict['seq'].annotations['primer'] = adpt_id
+                align_dict['primer'] = adpt_id
+                align_dict['align_seq'] = str(scan_rec.seq)
+                align_dict['align_primer'] = '-' * adpt_match.start(0) + \
+                                             primers[adpt_id] + \
+                                             '-' * (max_len - adpt_match.end(0))
                 align_dict['error'] = 0
-                align_dict['offset'] = 0
                 if not rev_primer:
                     align_dict['start'] = adpt_match.start(0)
                     align_dict['end'] = adpt_match.end(0)
                 else:
-                    align_dict['start'] = adpt_match.start(0) + rec_len - max_len
-                    align_dict['end'] = adpt_match.end(0) + rec_len - max_len
+                    rev_start = rec_len - max_len
+                    align_dict['start'] = adpt_match.start(0) + rev_start
+                    align_dict['end'] = adpt_match.end(0) + rev_start
 
                 return align_dict
     
@@ -128,19 +171,33 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
 
     # Set return dictionary to lowest error rate alignment
     if best_align:
-        align_offset = len(best_align[best_adpt][0]) - max_len
+        # Define input alignment string and gap count
+        align_seq = str(best_align[best_adpt][0])
+        align_len = len(align_seq)
+        align_gaps = align_len - max_len
+
+        # Populate return dict
         align_dict['seq'] = best_rec
-        align_dict['align'] = best_align[best_adpt][1]
         align_dict['primer'] = best_adpt
+        align_dict['align_seq'] = align_seq
+        align_dict['align_primer'] = best_align[best_adpt][1]
         align_dict['error'] = best_err
-        align_dict['offset'] = align_offset
+        align_dict['gaps'] = align_gaps
         if not rev_primer:
-            align_dict['start'] = max([best_align[best_adpt][3] - align_offset, 0])
-            align_dict['end'] = best_align[best_adpt][4] - align_offset
+            # TODO:  need to switch to an aligner that outputs start/end for both sequences in alignment
+            # Count gaps at the beginning of the input sequence added during alignment
+            start_gaps = align_len - len(align_seq.lstrip('-'))
+            # Assign start and end with gap adjustments
+            align_dict['start'] = best_align[best_adpt][3] - start_gaps
+            align_dict['end'] = best_align[best_adpt][4] - align_gaps
         else:
-            align_dict['start'] = best_align[best_adpt][3] + rec_len - max_len
-            align_dict['end'] = best_align[best_adpt][4] + rec_len - max_len
-    
+            # Count position from tail and end gaps
+            rev_start = rec_len - align_len
+            end_gaps = align_len - len(align_seq.rstrip('-'))
+            # Assign start and end with gap adjustments
+            align_dict['start'] = best_align[best_adpt][3] + rev_start + align_gaps
+            align_dict['end'] = best_align[best_adpt][4] + rev_start + end_gaps
+
     return align_dict
 
 
@@ -158,21 +215,34 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     score_dict = optional dictionary of {(char1, char2): score} alignment scores
     
     Returns:
-    dictionary of {seq:input SeqRecord object, align:primer alignment, 
-                   primer:primer id, start:alignment start, 
-                   end:alignment end, offset:input sequence alignment offset,
-                   error:error rate, rev_primer:True if alignment is tail-ended}
+    dictionary of {seq: input SeqRecord object,
+                   primer: primer id,
+                   align_seq: input sequence alignment,
+                   align_primer: primer alignment,
+                   start: alignment start in input sequence,
+                   end: alignment end  in input sequence,
+                   gaps: number of gaps in input sequence alignment
+                   error: error rate,
+                   rev_primer: True if alignment is tail-ended}
     """
     # Create empty return dictionary
+    # TODO:  is this upper() needed?
     seq_record = seq_record.upper()
-    align_dict = {'seq':seq_record, 'align':None, 'primer':None,
-                  'start':None, 'end':None, 'offset':0, 'error':1,
+    align_dict = {'seq':seq_record,
+                  'primer':None,
+                  'align_seq':None,
+                  'align_primer':None,
+                  'start':None,
+                  'end':None,
+                  'gaps':0,
+                  'error':1,
                   'rev_primer':rev_primer}
 
     # Define orientation variables
     seq_record.annotations['seqorient'] = 'F'
     seq_record.annotations['prorient'] = 'F' if not rev_primer else 'RC'
-    
+
+    # Score primers
     this_align = {}
     rec_len = len(seq_record)
     if rev_primer:  end = rec_len - start
@@ -184,7 +254,7 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
         this_align.update({adpt_id: (score, start, end)})
 
     # TODO:  check that what happens with Ns is the same in score (currently mismatches) and align mode
-    # Determine alignment with lowest error rate
+    # Determine primer with lowest error rate
     best_align, best_adpt, best_err = None, None, None
     for adpt, algn in this_align.iteritems():
         #adpt_err = 1.0 - float(algn[0]) / weightSeq(primers[adpt])
@@ -196,12 +266,17 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
 
     # Set return dictionary to lowest error rate alignment
     if best_align:
-        align_dict['align'] = '-' * best_align[1] + primers[best_adpt] if not rev_primer \
-                              else primers[best_adpt] + '-' * (rec_len - best_align[2]) 
         align_dict['primer'] = best_adpt
         align_dict['start'] = best_align[1]
         align_dict['end'] = best_align[2]
         align_dict['error'] = best_err
+        if not rev_primer:
+            align_dict['align_seq'] = str(seq_record.seq[:best_align[2]])
+            align_dict['align_primer'] = '-' * best_align[1] + primers[best_adpt]
+        else:
+            align_dict['align_seq'] = str(seq_record.seq[best_align[1]:])
+            align_dict['align_primer'] = primers[best_adpt] + '-' * (rec_len - best_align[2])
+
     
     return align_dict
 
@@ -223,7 +298,7 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
     rev_primer = align['rev_primer']
     
     # Build output sequence
-    if mode == 'tag' or not align['align']:
+    if mode == 'tag' or not align['align_primer']:
         out_seq = seq
     elif mode == 'trim':
         if not rev_primer:  
@@ -237,13 +312,21 @@ def getMaskedSeq(align, mode='mask', barcode=False, delimiter=default_delimiter)
             out_seq = seq[:align['start']]
     elif mode == 'mask':
         if not rev_primer:
-            out_seq = 'N' * (align['end'] - align['start']) + seq[align['end']:]
-            if hasattr(seq, 'letter_annotations') and 'phred_quality' in seq.letter_annotations:
-                out_seq.letter_annotations['phred_quality'] = seq.letter_annotations['phred_quality'][align['start']:]
+            mask_len = align['end'] - align['start'] + align['gaps']
+            out_seq = 'N' * mask_len + seq[align['end']:]
+            if hasattr(seq, 'letter_annotations') and \
+                    'phred_quality' in seq.letter_annotations:
+                out_seq.letter_annotations['phred_quality'] = \
+                    [0] * mask_len + \
+                    seq.letter_annotations['phred_quality'][align['end']:]
         else:
-            out_seq = seq[:align['start']] + 'N' * (min(align['end'], len(seq)) - align['start'])
-            if hasattr(seq, 'letter_annotations') and 'phred_quality' in seq.letter_annotations:
-                out_seq.letter_annotations['phred_quality'] = seq.letter_annotations['phred_quality'][:len(out_seq)]
+            mask_len = min(align['end'], len(seq)) - align['start'] + align['gaps']
+            out_seq = seq[:align['start']] + 'N' * mask_len
+            if hasattr(seq, 'letter_annotations') and \
+                    'phred_quality' in seq.letter_annotations:
+                out_seq.letter_annotations['phred_quality'] = \
+                    seq.letter_annotations['phred_quality'][:align['start']] + \
+                    [0] * mask_len
             
     # Add alignment annotations to output SeqRecord
     out_seq.annotations = seq.annotations    
@@ -305,7 +388,7 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
             align = align_func(in_seq, **align_args)
             
             # Process alignment results
-            if align['align'] is None:
+            if align['align_primer'] is None:
                 # Update log if no alignment
                 result.log['ALIGN'] = None
             else:
@@ -322,13 +405,22 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
                 if 'barcode' in out_seq.annotations:  
                     result.log['BARCODE'] = out_seq.annotations['barcode']
                 if not align['rev_primer']:
-                    result.log['INSEQ'] = '-' * align['offset'] + str(align['seq'].seq)
-                    result.log['ALIGN'] = align['align']
-                    result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align['offset'])
+                    align_cut = len(align['align_seq']) - align['gaps']
+                    result.log['RAWSEQ'] = align['seq'].seq
+                    result.log['INSEQ'] = align['align_seq'] + \
+                                          str(align['seq'].seq[align_cut:])
+                    result.log['ALIGN'] = align['align_primer']
+                    result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align['gaps'])
+                    #result.log['OUTSEQ'] = ' ' * (align['end'] + align['gaps']) + str(out_seq.seq)
+                    result.log['POS'] = '%i, %i' % (align['start'], align['end'])
                 else:
-                    result.log['INSEQ'] = str(align['seq'].seq) + '-' * align['offset']
-                    result.log['ALIGN'] = align['align'].rjust(len(in_seq) + align['offset'])
+                    align_cut = len(align['seq']) - len(align['align_seq']) + align['gaps']
+                    result.log['RAWSEQ'] = align['seq'].seq
+                    result.log['INSEQ'] = str(align['seq'].seq[:align_cut]) + align['align_seq']
+                    #result.log['ALIGN'] = ' ' * align_cut + align['align_primer']
+                    result.log['ALIGN'] = align['align_primer'].rjust(len(in_seq) + align['gaps'])
                     result.log['OUTSEQ'] = str(out_seq.seq)
+                    result.log['POS'] = '%i, %i' % (align['start'], align['end'])
                 result.log['ERROR'] = align['error']
             
             # Feed results to result queue
