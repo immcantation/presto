@@ -52,7 +52,8 @@ MaskPrimers:
 + Changed behavior of mask mode such that positions masked with Ns are now
   assigned quality scores of 0, rather than retaining their previous scores.
 + Fixed a bug with the align subcommand where deletions within the input
-  sequence (gaps in the alignment) where not being handled correctly.
+  sequence (gaps in the alignment) were causing an incorrect barcode start
+  position.
 
 PairSeq:
 + Performance improvements. The tool should now be considerably faster on very
