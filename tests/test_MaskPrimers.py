@@ -29,7 +29,9 @@ class TestMaskPrimers(unittest.TestCase):
         self.primers_n =  {1:'ACGTTT', 2:'GCCGTT'}
 
         #Test indels
-        seq_indel = [Seq('GGTTTAAGTTAAGATAATACGTCCGTCAGTCGTGATGTGTTTTACATGGGGGCATCACCCAG'),
+        seq_indel = [Seq('CGGATCTTCTACTCCATACGTCCGTCAGTCGTGGATCTGATCTAGCTGCGCCTTTTTCTCAG'),
+                     Seq('CGGATCTTCTACTCAAAACCGTCCTCAGTCGTGGATGTGGTCTAGCTGGGGCTGTTTCCCTG'),
+                     Seq('GGTTTAAGTTAAGATAATACGTCCGTCAGTCGTGATGTGTTTTACATGGGGGCATCACCCAG'),
                      Seq('CAACCACATCTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCT'),
                      Seq('CAACCACATGGGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCT'),
                      Seq('AGGTGAAGAAGCCTGGGGCCTCCGTGAAGGTCTCCTGCTCGGCTTCTGGATACGCCTTCACC'),
@@ -51,37 +53,37 @@ class TestMaskPrimers(unittest.TestCase):
     @unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
         score_dict=getScoreDict(n_score=1, gap_score=0)
-        results = [mod.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
-                   for x in self.records_n]
-        for x in results:
-            print '%s>' % x['seq'].id
-            print '   IN> %s' % x['seq'].seq
-            print '  SEQ> %s' % x['align_seq']
-            print '   PR> %s' % x['align_primer']
-            print '  ERR> %f' % x['error']
+        align = [mod.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
+                 for x in self.records_n]
+        for x in align:
+            print '%s>' % x.seq.id
+            print '   IN> %s' % x.seq.seq
+            print '  SEQ> %s' % x.align_seq
+            print '   PR> %s' % x.align_primer
+            print '  ERR> %f' % x.error
         self.fail()
 
     #@unittest.skip('-> alignPrimers() skipped\n')
     def test_alignPrimers(self):
         # print 'TEST Ns>'
         # score_dict=getScoreDict(n_score=1, gap_score=0)
-        # results_n = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
-        #              for x in self.records_n]
-        # for x in results_n:
-        #     print '  %s>' % x['seq'].id
-        #     print '   IN> %s' % x['seq'].seq
-        #     print '  SEQ> %s' % x['align_seq']
-        #     print '   PR> %s' % x['align_primer']
-        #     print '  ERR> %f' % x['error']
+        # align_n = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
+        #            for x in self.records_n]
+        # for x in align_n:
+        #     print '  %s>' % x.seq.id
+        #     print '   IN> %s' % x.seq.seq
+        #     print '  SEQ> %s' % x.align_seq
+        #     print '   PR> %s' % x.align_primer
+        #     print '  ERR> %f' % x.error
 
         print 'TEST INDELS>'
-        results_indel = [mod.alignPrimers(x, self.primers_indel, max_error=0.2)
-                         for x in self.records_indel]
-        for x in results_indel:
-            print '  %s>' % x['seq'].id
-            print '   IN> %s' % x['seq'].seq
-            print '  SEQ> %s' % x['align_seq']
-            print '   PR> %s' % x['align_primer']
-            print '  ERR> %f' % x['error']
+        align_indel = [mod.alignPrimers(x, self.primers_indel, max_error=0.2)
+                       for x in self.records_indel]
+        for x in align_indel:
+            print '  %s>' % x.seq.id
+            print '   IN> %s' % x.seq.seq
+            print '  SEQ> %s' % x.align_seq
+            print '   PR> %s' % x.align_primer
+            print '  ERR> %f' % x.error
 
         self.fail()

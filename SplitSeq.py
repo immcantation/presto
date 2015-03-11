@@ -10,10 +10,9 @@ __version__   = '0.4.5'
 __date__      = '2015.02.21'
 
 # Imports
-import os, sys, textwrap
+import os, random, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from random import sample
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -21,10 +20,10 @@ from Bio import SeqIO
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_coord_choices, default_coord_type, default_out_args
-from IgCore import getAnnotationValues, parseAnnotation, indexSeqPairs, subsetSeqIndex
+from IgCore import getAnnotationValues, parseAnnotation, subsetSeqIndex
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile, getFileType
+from IgCore import getOutputHandle, printLog, printMessage, printProgress
+from IgCore import countSeqFile, readSeqFile, getCoordKey, getFileType
 
  
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
@@ -238,7 +237,10 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     
     # Generate subset of records
     if field is not None and values is not None:
+        start_time = time()
+        printMessage("Subsetting by annotation", start_time=start_time, width=25)
         key_list = subsetSeqIndex(seq_dict, field, values, delimiter=out_args['delimiter'])
+        printMessage("Done", start_time=start_time, end=True, width=25)
     else:
         key_list = [k for k in seq_dict]
     # Determine total numbers of sampling records
@@ -248,7 +250,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     out_files = []
     for i, c in enumerate(max_count):
         # Sample from records
-        r = sample(range(rec_count), c) if c < rec_count else range(rec_count)
+        r = random.sample(range(rec_count), c) if c < rec_count else range(rec_count)
         sample_count = len(r)
         sample_keys = (key_list[x] for x in r)
         
@@ -294,6 +296,11 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     Returns: 
     a list of [seq_file_1, seq_file_2] output file names
     """
+    # Define private functions
+    def _key_func(x):
+        return getCoordKey(x, coord_type=coord_type, delimiter=out_args['delimiter'])
+
+    # Print console log
     log = OrderedDict()
     log['START']= 'SplitSeq'
     log['COMMAND'] = 'samplepair'
@@ -303,68 +310,71 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     log['FIELD'] = field
     log['VALUES'] = ','.join(values) if values else None
     printLog(log)
-    
-    # Read input files
-    in_type_1 = getFileType(seq_file_1)
-    seq_dict_1 = readSeqFile(seq_file_1, index=True)
-    in_type_2 = getFileType(seq_file_2)
-    seq_dict_2 = readSeqFile(seq_file_2, index=True)
 
     # Define output type
+    in_type_1 = getFileType(seq_file_1)
+    in_type_2 = getFileType(seq_file_2)
     if out_args['out_type'] is None:
         out_type_1 = in_type_1
         out_type_2 = in_type_2
-    else: 
+    else:
         out_type_1 = out_type_2 = out_args['out_type']
 
     # Define output name
     if out_args['out_name'] is None:
         out_name_1 = out_name_2 = None
-    else: 
+    else:
         out_name_1 = '%s-1' % out_args['out_name']
         out_name_2 = '%s-2' % out_args['out_name']
 
-    # Find matching sequences
-    index_dict = indexSeqPairs(seq_dict_1, seq_dict_2, coord_type, out_args['delimiter'])
-    
-    # Subset pair keys to those meeting field/value criteria
+    # Index input files
+    start_time = time()
+    printMessage("Indexing files", start_time=start_time, width=25)
+
+    seq_dict_1 = readSeqFile(seq_file_1, index=True, key_func=_key_func)
+    seq_dict_2 = readSeqFile(seq_file_2, index=True, key_func=_key_func)
+
+    # Subset keys to those meeting field/value criteria
     if field is not None and values is not None:
-        key_list_1 = subsetSeqIndex(seq_dict_1, field, values, delimiter=out_args['delimiter'])
-        key_list_2 = subsetSeqIndex(seq_dict_2, field, values, delimiter=out_args['delimiter'])
-        key_list = [k for k, (a, b) in index_dict.iteritems() \
-                       if a in key_list_1 and b in key_list_2]
+        printMessage("Subsetting by annotation", start_time=start_time, width=25)
+        key_set_1 = set(subsetSeqIndex(seq_dict_1, field, values,
+                                       delimiter=out_args['delimiter']))
+        key_set_2 = set(subsetSeqIndex(seq_dict_2, field, values,
+                                       delimiter=out_args['delimiter']))
     else:
-        # Added list typing for compatibility issue with Python 2.7.5 on OS X
-        # TypeError: object of type 'dictionary-keyiterator' has no len()
-        key_list = list(index_dict.keys())
-    # Determine total numbers of sampling pairs
-    pair_count = len(key_list)
+        key_set_1 = set(seq_dict_1.keys())
+        key_set_2 = set(seq_dict_2.keys())
+
+    # Find matching entries in key sets
+    printMessage("Pairing sequences", start_time=start_time, width=25)
+    pair_keys = key_set_1.intersection(key_set_2)
+    pair_count = len(pair_keys)
+    printMessage("Done", start_time=start_time, end=True, width=25)
 
     # Generate sample set for each value in max_count
     out_files = []
     for i, c in enumerate(max_count):
         # Sample from paired set
-        r = sample(range(pair_count), c) if c < pair_count else range(pair_count)
-        sample_count = len(r)
-        sample_keys = (key_list[x] for x in r)
-        
+        sample_count = min(c, pair_count)
+        sample_keys = random.sample(pair_keys, sample_count)
+
         # Open file handles
         out_handle_1 = getOutputHandle(seq_file_1, 
-                                       'sample%i-n=%i' % (i + 1, sample_count), 
+                                       'sample%i-n=%i' % (i + 1, sample_count),
                                        out_dir=out_args['out_dir'], 
                                        out_name=out_name_1, 
                                        out_type=out_type_1)
         out_handle_2 = getOutputHandle(seq_file_2, 
-                                       'sample%i-n=%i' % (i + 1, sample_count), 
+                                       'sample%i-n=%i' % (i + 1, sample_count),
                                        out_dir=out_args['out_dir'], 
                                        out_name=out_name_2, 
                                        out_type=out_type_2)
         out_files.append((out_handle_1.name, out_handle_2.name))
 
         for k in sample_keys:
-            key_1, key_2 = index_dict[k]
-            SeqIO.write(seq_dict_1[key_1], out_handle_1, out_type_1)
-            SeqIO.write(seq_dict_2[key_2], out_handle_2, out_type_2)
+            #key_1, key_2 = index_dict[k]
+            SeqIO.write(seq_dict_1[k], out_handle_1, out_type_1)
+            SeqIO.write(seq_dict_2[k], out_handle_2, out_type_2)
         
         # Print log for iteration
         log = OrderedDict()
@@ -382,7 +392,8 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     log = OrderedDict()
     log['END'] = 'SplitSeq'
     printLog(log)
-    
+
+
     return out_files
 
 

@@ -33,7 +33,7 @@ from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
 from IgCore import getScoreDict, reverseComplement, scoreSeqPair
-from IgCore import getUnpairedIndex, indexSeqPairs, readSeqFile
+from IgCore import countSeqFile, getCoordKey, readSeqFile
 from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
 
 # Defaults
@@ -583,7 +583,8 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
     return stitch
 
 
-def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
+def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
+                  coord_type=default_coord_type, delimiter=default_delimiter):
     """
     Feeds the data queue with sequence pairs for processQueue processes
 
@@ -593,23 +594,35 @@ def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
     data_queue = an multiprocessing.Queue to hold data for processing
     seq_file_1 = the name of sequence file 1
     seq_file_2 = the name of sequence file 2
-    index_dict = a dictionary returned by indexSeqPairs
-         
+    coord_type = the sequence header format
+    delimiter =  a tuple of delimiters for (fields, values, value lists)
+
     Returns: 
     None
     """
+    # Function to get coordinate info
+    def _key_func(x):
+        return getCoordKey(x, coord_type=coord_type, delimiter=delimiter)
+
+    # Generator function to read and check files
+    def _read_pairs(seq_file_1, seq_file_2):
+        iter_1 = readSeqFile(seq_file_1, index=False)
+        iter_2 = readSeqFile(seq_file_2, index=False)
+        for seq_1, seq_2 in izip(iter_1, iter_2):
+            key_1 = getCoordKey(seq_1.description, coord_type=coord_type,
+                                delimiter=delimiter)
+            key_2 = getCoordKey(seq_2.description, coord_type=coord_type,
+                                delimiter=delimiter)
+            if key_1 == key_2:
+                yield (key_1, [seq_1, seq_2])
+            else:
+                raise Exception('Coordinates for sequences %s and %s do not match' \
+                                 % (key_1, key_2))
+
     try:
-        # Open input files
-        seq_dict_1 = readSeqFile(seq_file_1, index=True)
-        seq_dict_2 = readSeqFile(seq_file_2, index=True)
-        # Define data iterator
-        data_iter = ((k, [seq_dict_1[i], seq_dict_2[j]]) \
-                     for k, (i, j) in index_dict.iteritems())
-    except:
-        alive.value = False
-        raise
-    
-    try:
+        # Open and parse input files
+        data_iter = _read_pairs(seq_file_1, seq_file_2)
+
         # Iterate over data_iter and feed data queue 
         while alive.value:
             # Get data from queue
@@ -617,7 +630,7 @@ def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2, index_dict):
             else:  data = next(data_iter, None)
             # Exit upon reaching end of iterator
             if data is None:  break
-            
+
             # Feed queue
             data_queue.put(SeqData(*data))
         else:
@@ -897,50 +910,22 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     log['NPROC'] = nproc
     printLog(log)
 
-    # Read input files
-    head_type = getFileType(head_file)
-    head_dict = readSeqFile(head_file, index=True)
-    head_count = len(head_dict) 
-    tail_type = getFileType(tail_file)
-    tail_dict = readSeqFile(tail_file, index=True)
-    tail_count = len(tail_dict)
+    # Count input files
+    head_count = countSeqFile(head_file)
+    tail_count = countSeqFile(tail_file)
+    if head_count != tail_count:
+        sys.exit('Error: FILE1 (n=%i) and FILE2 (n=%i) must have the same number of records' \
+                 % (head_count, tail_count))
 
-    # Find paired sequences
-    index_dict = indexSeqPairs(head_dict, tail_dict, coord_type, out_args['delimiter'])
-    pair_count = len(index_dict)
-    
-    # Write unmatched entries to files
-    if out_args['failed']:
-        # Define output type
-        if out_args['out_type'] is not None:
-            head_type = tail_type = out_args['out_type']        
-        # Define output name
-        if out_args['out_name'] is None:
-            head_name = tail_name = None
-        else: 
-            head_name = '%s-1' % out_args['out_name']
-            tail_name = '%s-2' % out_args['out_name']
-        
-        # Find unpaired sequences
-        head_unpaired, tail_unpaired = getUnpairedIndex(head_dict, tail_dict, coord_type, 
-                                                        out_args['delimiter'])
-        # Write unpaired head records
-        with getOutputHandle(head_file, 'assemble-unpaired', out_dir=out_args['out_dir'], 
-                             out_name=head_name, out_type=head_type) as head_handle:
-            for k in head_unpaired:
-                SeqIO.write(head_dict[k], head_handle, head_type)
-
-        # Write unpaired tail records
-        with getOutputHandle(tail_file, 'assemble-unpaired', out_dir=out_args['out_dir'], 
-                             out_name=tail_name, out_type=tail_type) as tail_handle:
-            for k in tail_unpaired:
-                SeqIO.write(tail_dict[k], tail_handle, tail_type)
-    
     # Define feeder function and arguments
     feed_func = feedPairQueue
+    # feed_args = {'seq_file_1': head_file,
+    #              'seq_file_2': tail_file,
+    #              'index_dict': index_dict}
     feed_args = {'seq_file_1': head_file,
                  'seq_file_2': tail_file,
-                 'index_dict': index_dict}
+                 'coord_type': coord_type,
+                 'delimiter': out_args['delimiter']}
     # Define worker function and arguments
     process_args = {'assemble_func': assemble_func,
                     'assemble_args': assemble_args,
@@ -953,11 +938,15 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                  'process_args': process_args}
     # Define collector function and arguments
     collect_func = collectPairQueue
-    collect_args = {'result_count': pair_count,
+    # collect_args = {'result_count': pair_count,
+    #                 'seq_file_1': head_file,
+    #                 'seq_file_2': tail_file,
+    #                 'out_args': out_args}
+    collect_args = {'result_count': head_count,
                     'seq_file_1': head_file,
                     'seq_file_2': tail_file,
                     'out_args': out_args}
-                   
+
     # Call process manager
     result = manageProcesses(feed_func, work_func, collect_func, 
                              feed_args, work_args, collect_args, 
@@ -966,10 +955,6 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
-    log['SEQUENCES1'] = head_count
-    log['SEQUENCES2'] = tail_count
-    log['UNPAIRED1'] = head_count - pair_count 
-    log['UNPAIRED2'] = tail_count - pair_count
     for k, v in result['log'].iteritems():  log[k] = v
     log['END'] = 'AssemblePairs'
     printLog(log)

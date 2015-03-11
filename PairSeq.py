@@ -41,6 +41,10 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     Returns: 
     a list of tuples holding successfully paired filenames for (seq_file_1, seq_file_2)
     """
+    # Define private functions
+    def _key_func(x):
+        return getCoordKey(x, coord_type=coord_type, delimiter=out_args['delimiter'])
+
     log = OrderedDict()
     log['START'] = 'PairSeq'
     log['FILE1'] = os.path.basename(seq_file_1) 
@@ -67,9 +71,7 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     printMessage("Indexing files", start_time=start_time)
     # Index file 1
     seq_count_1 = countSeqFile(seq_file_1)
-    seq_dict_1 = readSeqFile(seq_file_1, index=True,
-                             key_func=lambda x: getCoordKey(x, coord_type=coord_type,
-                                                            delimiter=out_args['delimiter']))
+    seq_dict_1 = readSeqFile(seq_file_1, index=True, key_func=_key_func)
     # Define file 2 iterator
     seq_count_2 = countSeqFile(seq_file_2)
     seq_iter_2 = readSeqFile(seq_file_2, index=False)

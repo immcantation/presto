@@ -1069,35 +1069,6 @@ def indexSeqSets(seq_dict, field=default_barcode_field, delimiter=default_delimi
     return set_dict
 
 
-def indexSeqPairs(seq_dict_1, seq_dict_2, coord_type=default_coord_type, 
-                  delimiter=default_delimiter):
-    """
-    Identifies sequence pairs by coordination information
-
-    Arguments: 
-    seq_dict_1 = a dictionary index of sequences returned from SeqIO.index()
-    seq_dict_2 = a dictionary index of sequences returned from SeqIO.index()
-    coord_type = the sequence header format
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
-    
-    Returns: 
-    a dictionary of {coordinate:(seq_dict_1 key, seq_dict_2 key)}
-    """
-    # Get coordinate dictionaries
-    coord_1 = getSeqCoord(seq_dict_1, coord_type, delimiter=delimiter)
-    coord_2 = getSeqCoord(seq_dict_2, coord_type, delimiter=delimiter)
-    
-    # Form sets of keys
-    set_1 = set(coord_1)
-    set_2 = set(coord_2)
-    
-    # Find matching entries in key sets
-    match_set = set_1.intersection(set_2)
-    index_dict = {n:(coord_1[n], coord_2[n]) for n in match_set}
-    
-    return index_dict
-
-
 def getUnpairedIndex(seq_dict_1, seq_dict_2, coord_type=default_coord_type, 
                      delimiter=default_delimiter):
     """
@@ -1574,7 +1545,7 @@ def printLog(record, handle=sys.stdout, inset=None):
     return record_str
 
 
-def printMessage(message, start_time=None, end=False):
+def printMessage(message, start_time=None, end=False, width=20):
     """
     Prints a progress message to standard out
 
@@ -1583,12 +1554,13 @@ def printMessage(message, start_time=None, end=False):
     start_time = task start time returned by time.time();
                  if None do not add run time to progress
     end = if True print final message (add newline)
+    width = maximum number of characters for messages
 
     Returns:
     None
     """
     # Define progress bar
-    bar = 'PROGRESS> %s [%s]' % (strftime('%H:%M:%S'), message)
+    bar = 'PROGRESS> %s [%s]' % (strftime('%H:%M:%S'), message.ljust(width))
 
     # Add run time to bar if start_time is specified
     if start_time is not None:

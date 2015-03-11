@@ -31,7 +31,7 @@ default_max_error = 0.2
 default_max_len = 50
 default_start = 0
 
-# TODO:  implement return as class?
+
 class PrimerAlignment:
     """
     A class defining a primer alignment result
@@ -46,7 +46,7 @@ class PrimerAlignment:
     gaps         = number of gaps in input sequence alignment
     error        = error rate
     rev_primer   = True if alignment is tail-ended
-    valid        =
+    valid        = True if alignment is valid
 
     Methods:
     __len__      = evaluates to the length of the variable align_seq
@@ -71,7 +71,7 @@ class PrimerAlignment:
 
     # Set length evaluation to length of alignment
     def __len__(self):
-        if self.align_primer is None:
+        if self.align_seq is None:
             return 0
         else:
             return len(self.align_seq)
@@ -94,15 +94,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
-    dictionary of {seq: input SeqRecord object,
-                   primer: primer id,
-                   align_seq: input sequence alignment,
-                   align_primer: primer alignment,
-                   start: alignment start in input sequence,
-                   end: alignment end  in input sequence,
-                   gaps: number of gaps in input sequence alignment
-                   error: error rate,
-                   rev_primer: True if alignment is tail-ended}
+    A PrimerAlignment object
     """
     # Defined undefined parameters
     if primers_regex is None:  primers_regex = compilePrimers(primers)
@@ -162,8 +154,9 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
         this_align = {}
         for adpt_id, adpt_seq in primers.iteritems():
-            pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq, 
-                                                score_dict, -1, -1, one_alignment_only=True)
+            pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq,
+                                                score_dict, -1, -1,
+                                                one_alignment_only=True)
             if pw2_align:  this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
         
@@ -183,15 +176,15 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     # Set return object to lowest error rate alignment
     if best_align:
         # Define input alignment string and gap count
-        align_seq = str(best_align[best_adpt][0])
-        align_len = len(align_seq)
+        align_primer = best_align[best_adpt][1]
+        align_len = len(align_primer)
         align_gaps = align_len - max_len
 
         # Populate return object
         align.seq = best_rec
         align.primer = best_adpt
-        align.align_seq = align_seq
-        align.align_primer = best_align[best_adpt][1]
+        align.align_seq = str(best_align[best_adpt][0])
+        align.align_primer = align_primer
         align.gaps = align_gaps
         align.error = best_err
         align.valid = True
@@ -199,19 +192,13 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         # Determine start and end positions
         if not rev_primer:
             # TODO:  need to switch to an aligner that outputs start/end for both sequences in alignment
-            # Count gaps at the beginning of the input sequence added during alignment
-            start_gaps = align_len - len(align_seq.lstrip('-'))
-            # Assign start and end with gap adjustments
-            align.start = best_align[best_adpt][3] - start_gaps
+            align.start = align_len - len(align_primer.lstrip('-'))
             align.end = best_align[best_adpt][4] - align_gaps
         else:
             # Count position from tail and end gaps
             rev_pos = rec_len - align_len
-            end_gaps = align_len - len(align_seq.rstrip('-'))
-            # Assign start and end with gap adjustments
-            align.start = best_align[best_adpt][3] + rev_pos + align_gaps
-            align.end = best_align[best_adpt][4] + rev_pos + end_gaps
-
+            align.start = rev_pos + best_align[best_adpt][3] + align_gaps
+            align.end = rev_pos + len(align_primer.rstrip('-'))
 
     return align
 
@@ -230,15 +217,7 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     score_dict = optional dictionary of {(char1, char2): score} alignment scores
     
     Returns:
-    dictionary of {seq: input SeqRecord object,
-                   primer: primer id,
-                   align_seq: input sequence alignment,
-                   align_primer: primer alignment,
-                   start: alignment start in input sequence,
-                   end: alignment end  in input sequence,
-                   gaps: number of gaps in input sequence alignment
-                   error: error rate,
-                   rev_primer: True if alignment is tail-ended}
+    A PrimerAlignment object
     """
     # Create empty return dictionary
     seq_record = seq_record.upper()
@@ -416,6 +395,7 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
                 result.log['PRSTART'] = out_seq.annotations['prstart']
                 if 'barcode' in out_seq.annotations:  
                     result.log['BARCODE'] = out_seq.annotations['barcode']
+                # TODO:  remove RAWSEQ and POS (debugging code)
                 if not align.rev_primer:
                     align_cut = len(align.align_seq) - align.gaps
                     result.log['RAWSEQ'] = align.seq.seq
