@@ -1069,39 +1069,6 @@ def indexSeqSets(seq_dict, field=default_barcode_field, delimiter=default_delimi
     return set_dict
 
 
-def getUnpairedIndex(seq_dict_1, seq_dict_2, coord_type=default_coord_type, 
-                     delimiter=default_delimiter):
-    """
-    Identifies sequence without a mate pair by coordination information
-
-    Arguments: 
-    seq_dict_1 = a dictionary index of sequences returned from SeqIO.index()
-    seq_dict_2 = a dictionary index of sequences returned from SeqIO.index()
-    coord_type = the sequence header format
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
-    
-    Returns: 
-    a tuple of lists containing unique ([seq_dict_1 keys], [seq_dict_2 keys])
-    """
-    # Get coordinate dictionaries
-    coord_1 = getSeqCoord(seq_dict_1, coord_type, delimiter=delimiter)
-    coord_2 = getSeqCoord(seq_dict_2, coord_type, delimiter=delimiter)
-    
-    # Form sets of coordinate keys
-    keys_1 = set(coord_1)
-    keys_2 = set(coord_2)
-    
-    # Find unmatched entries in coordinate key sets
-    uniq_keys_1 = keys_1.difference(keys_2)
-    uniq_keys_2 = keys_2.difference(keys_1)
-    
-    # Translate unmatched coordinate keys to sequences dictionary keys
-    unpaired_1 = [coord_1[n] for n in uniq_keys_1]
-    unpaired_2 = [coord_2[n] for n in uniq_keys_2]
-    
-    return unpaired_1, unpaired_2
-
-
 def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimiter):
     """
     Return the coordinate identifier for a sequence description
@@ -1132,50 +1099,6 @@ def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimit
         return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
         return header
-
-
-def getSeqCoord(seq_dict, coord_type=default_coord_type, delimiter=default_delimiter):
-    """
-    Create a sequence ID translation using delimiter truncation
-    
-    Arguments: 
-    seq_dict = a sequence dictionary generate by SeqIO.index()
-    coord_type = the sequence header format; 
-                 one of ['illumina', 'solexa', 'sra', '454', 'presto'];
-                 if unrecognized type or None create ID dictionary without translation
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
-                    
-    Returns: 
-    a dictionary of {coordinate: full ID}
-    """
-    # Sequencing identifier formats supported
-    # illumina:  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
-    #            @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
-    # sra:       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-    # 454:       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
-    # pesto      @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
-     
-    # Define _getCoord function by coordinate format
-    if coord_type in ('illumina', 'solexa'):
-        def _getCoord(s):  return s.split()[0].split('#')[0]
-    elif coord_type in ('sra', '454'):
-        def _getCoord(s):  return s.split()[0]
-    elif coord_type == 'presto':
-        def _getCoord(s):  return parseAnnotation(s, delimiter=delimiter)['ID']
-    else:
-        def _getCoord(s):  return s
-
-    # Create a seq_dict ID translation using IDs truncated by _getCoord()
-    ids = {}
-    for seq_id in seq_dict:
-        try:
-            id_key = _getCoord(seq_id)
-            ids.update({id_key:seq_id})
-        except:
-            sys.exit('ERROR:  No ID for sequence %s using coordinate format %s' \
-                     % (seq_id, coord_type))
-    
-    return ids
 
 
 def manageProcesses(feed_func, work_func, collect_func, 
