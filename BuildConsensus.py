@@ -7,21 +7,23 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2015.02.20'
+__date__      = '2015.03.15'
 
 # Imports
 import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
+from itertools import izip
 
 # IgPipeline imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import default_barcode_field, default_min_freq
+from IgCore import annotationConsensus, getAnnotationValues
 from IgCore import flattenAnnotation, mergeAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs 
 from IgCore import getFileType, printLog 
-from IgCore import annotationConsensus, frequencyConsensus, qualityConsensus
+from IgCore import frequencyConsensus, qualityConsensus
 from IgCore import calculateDiversity, indexSeqSets, subsetSeqSet
 from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
@@ -33,7 +35,8 @@ default_min_qual = 0
 
 def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
                    min_count=default_min_count, primer_field=None, primer_freq=None, 
-                   max_diversity=None, delimiter=default_delimiter):
+                   max_diversity=None, copy_fields=None, copy_actions=None,
+                   delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -51,6 +54,10 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                   if None do not filter by primer frequency
     max_diversity = the minimum diversity score to retain a set;
                     if None do not calculate diversity
+    copy_fields = a list of annotations to copy into consensus sequence annotations;
+                  if None no additional annotations will be copied
+    copy_actions = the list of actions to take for each copy_fields;
+                   one of ['set', 'majority', 'min', 'max', 'sum']
     delimiter = a tuple of delimiters for (annotations, field/values, value lists) 
 
     Returns: 
@@ -123,24 +130,56 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
     
             # If primer and diversity filters pass, generate consensus sequence
             consensus = cons_func(seq_list, **cons_args)
-    
+
             # Update log
             for i, s in enumerate(seq_list):
                 result.log['INSEQ%i' % (i + 1)] = str(s.seq)
             result.log['CONSENSUS'] = str(consensus.seq)
             if 'phred_quality' in consensus.letter_annotations:
                 result.log['QUALITY'] = ''.join([chr(c+33) for c in consensus.letter_annotations['phred_quality']])
-            
-            # Define annotation for consensus sequence
+
+            # TODO:  should move this into an improved annotationConsensus function with an action argument
+            # Parse copy_field annotations and define consensus annotations
+            if copy_fields is not None and copy_actions is not None:
+                copy_ann = OrderedDict()
+                for f, act in izip(copy_fields, copy_actions):
+                    # Numeric operations
+                    if act == 'min':
+                        vals = getAnnotationValues(seq_list, f, delimiter=delimiter)
+                        copy_ann[f] = '%.12g' % min([float(x or 0) for x in vals])
+                    elif act == 'max':
+                        vals = getAnnotationValues(seq_list, f, delimiter=delimiter)
+                        copy_ann[f] = '%.12g' % max([float(x or 0) for x in vals])
+                    elif act == 'sum':
+                        vals = getAnnotationValues(seq_list, f, delimiter=delimiter)
+                        copy_ann[f] = '%.12g' % sum([float(x or 0) for x in vals])
+                    elif act == 'set':
+                        vals = annotationConsensus(seq_list, f, delimiter=delimiter)
+                        copy_ann[f] = vals['set']
+                        copy_ann['%s_COUNT' % f] = vals['count']
+                    elif act == 'majority':
+                        vals = annotationConsensus(seq_list, f, delimiter=delimiter)
+                        copy_ann[f] = vals['cons']
+                        copy_ann['%s_FREQ' % f] = vals['freq']
+            else:
+                copy_ann = None
+
+            # Define annotation for output sequence
             cons_ann = OrderedDict([('ID', data.id),
                                     ('CONSCOUNT', cons_count)])
+
+            # Merge addition consensus annotations into output sequence annotations
             if primer_ann is not None:
                 cons_ann = mergeAnnotation(cons_ann, primer_ann, delimiter=delimiter)
+            if copy_ann is not None:
+                cons_ann = mergeAnnotation(cons_ann, copy_ann, delimiter=delimiter)
+
+            # Add output sequence annotations to consensus sequence
             consensus.id = consensus.name = flattenAnnotation(cons_ann, delimiter=delimiter)
             consensus.description = ''
             result.results = consensus
             result.valid = True
-            
+
             # Feed results to result queue
             result_queue.put(result)
         else:
@@ -159,7 +198,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                    min_count=default_min_count, min_freq=default_min_freq,
                    min_qual=default_min_qual, max_miss=None, primer_field=None, 
                    primer_freq=None, max_diversity=None, dependent=False, 
-                   out_args=default_out_args, nproc=None, queue_size=None):
+                   copy_fields=None, copy_actions=None, out_args=default_out_args,
+                   nproc=None, queue_size=None):
     """
     Generates consensus sequences
 
@@ -178,6 +218,10 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
                     if None do not calculate diversity
     dependent = if False treat barcode group sequences as independent data
+    copy_fields = a list of annotations to copy into consensus sequence annotations;
+                  if None no additional annotations will be copied
+    copy_actions = the list of actions to take for each copy_fields;
+                   one of ['set', 'majority', 'min', 'max', 'sum']
     out_args = common output argument dictionary from parseCommonArgs
     nproc = the number of processQueue processes;
             if None defaults to the number of CPUs
@@ -200,6 +244,10 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['PRIMER_FREQUENCY'] = primer_freq
     log['MAX_DIVERSITY'] = max_diversity
     log['DEPENDENT'] = dependent
+    log['COPY_FIELDS'] = ','.join([str(x) for x in copy_fields]) \
+                         if copy_fields is not None else None
+    log['COPY_ACTIONS'] = ','.join([str(x) for x in copy_actions]) \
+                          if copy_actions is not None else None
     log['NPROC'] = nproc
     printLog(log)
     
@@ -232,6 +280,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                  'primer_field': primer_field,
                  'primer_freq': primer_freq,
                  'max_diversity': max_diversity,
+                 'copy_fields': copy_fields,
+                 'copy_actions': copy_actions,
                  'delimiter': out_args['delimiter']}
     # Define collector function and arguments
     collect_func = collectSeqQueue
@@ -310,6 +360,21 @@ def getArgParser():
     parser.add_argument('--prcons', action='store', dest='primer_freq', type=float, default=None, 
                         help='Specify to define a minimum primer frequency required to assign a consensus primer, \
                               and filter out sequences with minority primers from the consensus building step')
+    parser.add_argument('--cf', nargs='+', action='store', dest='copy_fields', type=str, default=None,
+                        help='''Specifies a set of additional annotation fields to copy into
+                             the consensus sequence annotations.''')
+    parser.add_argument('--act', nargs='+', action='store', dest='copy_actions', default=None,
+                        choices=['min', 'max', 'sum', 'set', 'majority'],
+                        help='''List of actions to take for each copy field which defines how
+                             each annotation will be combined into a single value. The actions
+                             "min", "max", "sum" perform the corresponding mathematical
+                             operation on numeric annotations. The action "set" combines
+                             annotations into a comma delimited list of unique values and
+                             adds an annotation named <FIELD>_COUNT specifying the count
+                             of each item in the set. The action "majority" assigns the
+                             most frequent annotation to the consensus annotation and adds
+                             an annotation named <FIELD>_FREQ specifying the frequency
+                             of the majority value.''')
     parser.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,
                         help='Specify to calculate the nucleotide diversity of each read group \
                               (average pairwise error rate) and remove groups exceeding the given diversity threshold')
@@ -335,7 +400,12 @@ if __name__ == '__main__':
     # Check prcons argument dependencies
     if args.primer_freq and not args.primer_field:
         parser.error('You must define a primer field with --prf to use the --prcons option')
-        
+
+    # Check copy field and action arguments
+    if bool(args_dict['copy_fields']) ^ bool(args_dict['copy_actions']) or \
+       len((args_dict['copy_fields'] or '')) != len((args_dict['copy_actions'] or '')):
+            parser.error('You must specify exactly one copy action (--act) per copy field (--cf)')
+
     # Call buildConsensus for each sample file    
     del args_dict['seq_files']
     for f in args.__dict__['seq_files']:

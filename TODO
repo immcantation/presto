@@ -6,7 +6,6 @@ High Priority
 + Add multiprocessing to CollapseSeq if needed after algorithm improvement
 + Try reduce overhead of sibling process exception detection in
   multiprocessing code.
-+ Add copy fields and copy actions to BuildConsensus
 
 Low Priority  
 + Optimize everything

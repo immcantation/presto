@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2015.03.02'
+__date__      = '2015.03.15'
 
 # Imports
 import ctypes, math, os, re, textwrap, signal, sys
@@ -231,20 +231,20 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
 
 def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimiter):
     """
-    Convert annotations from a dictionary to a FASTA/FASTQ sequence description
+    Collapses multiple annotations into new single annotations for each field
 
     Arguments: 
     ann_dict = a dictionary of field/value pairs
     action = the _collapse action to take;
-             one of {min, max, sum, first, last, set}
+             one of {min, max, sum, first, last, set, cat}
     fields = a subset of ann_dict to _collapse;
              if None _collapse all but the ID field
     delimiter = a tuple of delimiters for (fields, values, value lists) 
     
     Returns: 
-    a modified field dictionary of {field:value}
+    a modified field dictionary of {field: value}
     """
-    # Define _collapse action            
+    # Define _collapse action
     if action == 'set':
         def _collapse(value):  return list(set(value))
     elif action == 'first':
@@ -257,6 +257,8 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
         def _collapse(value):  return '%.12g' % max([float(x or 0) for x in value])
     elif action == 'sum':
         def _collapse(value):  return '%.12g' % sum([float(x or 0) for x in value])
+    elif action == 'cat':
+        def _collapse(value):  return ''.join(value)
     else:
         def _collapse(value):  return value
 
@@ -284,7 +286,7 @@ def getAnnotationValues(seq_iter, field, unique=False, delimiter=default_delimit
     seq_iter = an iterator or list of SeqRecord objects
     field = the annotation field to retrieve values for
     unique = if True return a list of only the unique values;
-             if Falser return a list of all values
+             if False return a list of all values
     delimiter = a tuple of delimiters for (fields, values, value lists) 
 
     Returns: 
@@ -307,8 +309,10 @@ def annotationConsensus(seq_iter, field, delimiter=default_delimiter):
     delimiter = a tuple of delimiters for (annotations, field/values, value lists) 
     
     Returns:
-    a dictionary {set:list of annotation values, count:annotation counts,
-                  cons:consensus annotation,freq:majority annotation frequency)
+    a dictionary {set: list of unique annotation values,
+                  count: annotation counts,
+                  cons: consensus annotation,
+                  freq: majority annotation frequency)
     """
     # Define return dictionary
     cons_dict = {'set':None, 'count':None, 'cons':None, 'freq':None}

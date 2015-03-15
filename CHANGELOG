@@ -1,4 +1,4 @@
-February 20, 2014
+March 13, 2014
 Version 0.4.5
 
 Added details to the usage documentation for each tool which describes both
@@ -7,7 +7,6 @@ the output files and annotation fields.
 Renamed --clean flag to --failed flag with opposite behavior, such that the
 default behavior of all scripts is now clean output.
 
-output file and description
 IgCore:
 + Features added for Change-O compatibility.
 + Features added for PairSeq performance improvements.
@@ -44,11 +43,14 @@ AssemblePairs:
 BuildConsensus
 + Fixed bug where low quality positions where not being masked in single
   sequence barcode groups.
++ Added copy field (--cf) and copy action (--act) arguments to generate
+  consensus annotations for barcode read groups.
 
 CollapseSeq:
 + Added --keep flag to allow retention of sequences with high missing character
   counts in unique sequence output file.
-+ Removed case insensitivity - requiring all sequences to have matching case.
++ Removed case insensitivity for performance reasons. Now requires all sequences
+  to have matching case.
 + Removed 'first' and 'last' from --act choices to avoid unexpected behavior.
 
 MaskPrimers:
@@ -64,6 +66,10 @@ PairSeq:
 + Performance improvements. The tool should now be considerably faster on very
   large files.
 + Removed output of sequences which do not have a mate pair (pair-fail file).
+
+ParseHeaders:
++ Add 'cat' action to collapse subcommand which concatenates strings into
+  a single annotation.
 
 SplitSeq
 + Removed --clean (and --failed) flag from all subcommands.

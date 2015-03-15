@@ -54,7 +54,7 @@ def collapseHeader(header, fields, actions, delimiter=default_delimiter):
     header = an annotation dictionary returned by parseAnnotation
     fields = the list of fields to collapse
     actions = the list of collapse action take;
-              one of (max, min, sum, first, last, set) for each field
+              one of (max, min, sum, first, last, set, cat) for each field
     delimiter = a tuple of delimiters for (fields, values, value lists)
                     
     Returns: 
@@ -411,7 +411,7 @@ def getArgParser():
     parser_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                  help='List of fields to collapse.')
     parser_collapse.add_argument('--act', nargs='+', action='store', dest='actions', required=True,
-                                 choices=['min', 'max', 'sum', 'first', 'last', 'set'],
+                                 choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
                                  help='''List of actions to take for each field defining how
                                       each annotation will be combined into a single value.
                                       The actions "min", "max", "sum" perform the corresponding
@@ -419,7 +419,8 @@ def getArgParser():
                                       actions "first" and "last" choose the value from the
                                       corresponding position in the annotation. The action
                                       "set" collapses annotations into a comma delimited
-                                      list of unique values.''')
+                                      list of unique values. The action "cat" concatenates
+                                      the values together into a single string.''')
     parser_collapse.set_defaults(func=modifyHeaders)
     parser_collapse.set_defaults(modify_func=collapseHeader)
 
