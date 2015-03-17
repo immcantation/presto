@@ -83,6 +83,13 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     pass_handle_2 = getOutputHandle(seq_file_2, 'pair-pass', out_args['out_dir'], 
                                     out_name=out_name_2, out_type=out_type_2)
 
+    if out_args['failed']:
+        fail_handle_1 = getOutputHandle(seq_file_1, 'pair-fail', out_dir=out_args['out_dir'],
+                                        out_name=out_name_1, out_type=out_type_1)
+        fail_handle_2 = getOutputHandle(seq_file_2, 'pair-fail', out_dir=out_args['out_dir'],
+                                        out_name=out_name_2, out_type=out_type_2)
+        pass_keys = list()
+
     # Iterate over pairs and write to output files
     start_time = time()
     rec_count = pair_count = 0
@@ -91,10 +98,9 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
         printProgress(rec_count, seq_count_2, 0.05, start_time)
         rec_count += 1
 
-        # Check for and file 2 mate pair in file 1
+        # Check for file 2 mate pair in file 1
         coord_2 = getCoordKey(seq_2.id, coord_type=coord_type,
                               delimiter=out_args['delimiter'])
-        #seq_1 = seq_dict_1.pop(coord_2, None)
         seq_1 = seq_dict_1.get(coord_2, None)
 
         if seq_1 is not None:
@@ -112,13 +118,31 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
             SeqIO.write(seq_1, pass_handle_1, out_type_1)
             SeqIO.write(seq_2, pass_handle_2, out_type_2)
 
+        # Write unpaired file 2 records and updated paired key list for finding unpaired file 1 records
+        if out_args['failed']:
+            if seq_1 is not None:  pass_keys.append(coord_2)
+            else:  SeqIO.write(seq_2, fail_handle_2, out_type_2)
+
     # Print final progress
     printProgress(rec_count, seq_count_2, 0.05, start_time)
 
+    # Find and write unpaired file 1 records
+    if out_args['failed']:
+        start_time = time()
+        printMessage("Finding unpaired", start_time=start_time)
+
+        # Find file 1 unpaired keys
+        pass_keys = set(pass_keys)
+        unpaired = set(seq_dict_1).difference(pass_keys)
+        # Write unpaired file 1 records
+        for k in unpaired:  SeqIO.write(seq_dict_1[k], fail_handle_1, out_type_1)
+
+        printMessage("Done", start_time=start_time, end=True)
+
     # Print log
     log = OrderedDict()
-    log['OUTPUT1'] = os.path.basename(pass_handle_1.name) 
-    log['OUTPUT2'] = os.path.basename(pass_handle_2.name) 
+    log['OUTPUT1'] = os.path.basename(pass_handle_1.name)
+    log['OUTPUT2'] = os.path.basename(pass_handle_2.name)
     log['SEQUENCES1'] = seq_count_1
     log['SEQUENCES2'] = seq_count_2
     log['PASS'] = pair_count
@@ -156,7 +180,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
-                            parents=[getCommonArgParser(paired=True, failed=False, log=False)],
+                            parents=[getCommonArgParser(paired=True, failed=True, log=False)],
                             formatter_class=CommonHelpFormatter)
     
     parser.add_argument('-f', nargs='+', action='store', dest='fields', type=str, default=None, 

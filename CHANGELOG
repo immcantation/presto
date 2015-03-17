@@ -65,7 +65,8 @@ MaskPrimers:
 PairSeq:
 + Performance improvements. The tool should now be considerably faster on very
   large files.
-+ Removed output of sequences which do not have a mate pair (pair-fail file).
++ Specifying the --failed argument to request output of sequences which do not
+  have a mate pair will increase run time and memory usage.
 
 ParseHeaders:
 + Add 'cat' action to collapse subcommand which concatenates strings into
