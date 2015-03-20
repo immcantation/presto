@@ -80,9 +80,9 @@ if $QUAL_STEP; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
     #OUTPREFIX="$(printf '%02d' $STEP)--${OUTNAME}"
     $RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R1" --outdir . --clean >> $RUNLOG
+        --outname "${OUTNAME}-R1" --outdir . >> $RUNLOG
     $RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R2" --outdir . --clean >> $RUNLOG
+        --outname "${OUTNAME}-R2" --outdir . >> $RUNLOG
     APR1_FILE="${OUTNAME}-R1_quality-pass.fastq"
     APR2_FILE="${OUTNAME}-R2_quality-pass.fastq"
 else
@@ -106,7 +106,7 @@ fi
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align (PR1)"
 $RUN MaskPrimers.py align -s "${OUTNAME}_assemble-pass.fastq" -p $R1_PRIMERS --mode mask \
     --maxerror $MP1_MAXERR --maxlen $MP1_MAXLEN --nproc $NPROC \
-    --log PrimerPR1Log.log --outname "${OUTNAME}-PR1" --clean >> $RUNLOG
+    --log PrimerPR1Log.log --outname "${OUTNAME}-PR1" >> $RUNLOG
 
 # Rename V-region primer field
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename (PR1)"
@@ -117,7 +117,7 @@ $RUN ParseHeaders.py rename -s "${OUTNAME}-PR1_primers-pass.fastq" \
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align (PR2)"
 $RUN MaskPrimers.py align -s "${OUTNAME}-PR1_reheader.fastq" -p $R2_PRIMERS --mode mask \
     --maxerror $MP2_MAXERR --maxlen $MP2_MAXLEN --nproc $NPROC --revpr --skiprc \
-    --log PrimerPR2Log.log --outname "${OUTNAME}-PR2" --clean >> $RUNLOG
+    --log PrimerPR2Log.log --outname "${OUTNAME}-PR2" >> $RUNLOG
 
 # Rename C-region primer field
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename (PR2)"
@@ -133,7 +133,7 @@ $RUN CollapseSeq.py -s "${OUTNAME}-PR2_reheader.fastq" -n $CS_MISS --uf CPRIMER 
 if $MASK_STEP; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
     $RUN FilterSeq.py maskqual -s "${OUTNAME}-collapse-unique.fastq" -q $FS_MASK \
-        --nproc $NPROC --outname "${OUTNAME}-unique" --clean >> $RUNLOG
+        --nproc $NPROC --outname "${OUTNAME}-unique" >> $RUNLOG
     FSMISS_FILE="${OUTNAME}-unique_maskqual-pass.fastq"
 else
     FSMISS_FILE="${OUTNAME}_collapse-unique.fastq"
@@ -143,7 +143,7 @@ fi
 if $MISS_STEP; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq missing"
     $RUN FilterSeq.py missing -s $FSMISS_FILE -n $FS_MISS --inner --nproc $NPROC \
-        --log MissingLog.log --outname "${OUTNAME}" --clean --fasta >> $RUNLOG
+        --log MissingLog.log --outname "${OUTNAME}" --fasta >> $RUNLOG
     FINAL_FILE="${OUTNAME}_missing-pass.fastq"
 else
     FINAL_FILE=$FSMISS_FILE

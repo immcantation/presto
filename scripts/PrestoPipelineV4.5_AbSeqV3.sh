@@ -45,7 +45,7 @@ MUSCLE_EXEC=$HOME/bin/muscle
 
 # BuildConsensus run parameters
 BC_PRCONS_FLAG=true
-BC_DIV_FLAG=true
+BC_DIV_FLAG=false
 BC_MAXDIV=0.1
 BC_PRCONS=0.6
 BC_QUAL=0
@@ -103,9 +103,9 @@ if $FILTER_LOWQUAL; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
     #OUTPREFIX="$(printf '%02d' $STEP)--${OUTNAME}"
     $RUN FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R1" --outdir . --clean --log QualityLogR1.log >> $RUNLOG
+        --outname "${OUTNAME}-R1" --outdir . --log QualityLogR1.log >> $RUNLOG
     $RUN FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC \
-        --outname "${OUTNAME}-R2" --outdir . --clean --log QualityLogR2.log  >> $RUNLOG
+        --outname "${OUTNAME}-R2" --outdir . --log QualityLogR2.log  >> $RUNLOG
     MPR1_FILE="${OUTNAME}-R1_quality-pass.fastq"
     MPR2_FILE="${OUTNAME}-R2_quality-pass.fastq"
 else
@@ -117,23 +117,23 @@ fi
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
 $RUN MaskPrimers.py score -s $MPR1_FILE -p $R1_PRIMERS --mode cut \
     --start 0 --maxerror $MP_R1_MAXERR --nproc $NPROC --log PrimerLogR1.log \
-    --outname "${OUTNAME}-R1" --outdir . --clean >> $RUNLOG
+    --outname "${OUTNAME}-R1" --outdir . >> $RUNLOG
 $RUN MaskPrimers.py score -s $MPR2_FILE -p $R2_PRIMERS --mode cut \
     --start $MP_UIDLEN --barcode --maxerror $MP_R2_MAXERR --nproc $NPROC --log PrimerLogR2.log \
-    --outname "${OUTNAME}-R2" --outdir . --clean >> $RUNLOG
+    --outname "${OUTNAME}-R2" --outdir . >> $RUNLOG
 
 # Assign UIDs to read 1 sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
 $RUN PairSeq.py -1 "${OUTNAME}-R2_primers-pass.fastq" -2 "${OUTNAME}-R1_primers-pass.fastq" \
-    -f BARCODE --coord illumina --clean >> $RUNLOG
+    -f BARCODE --coord illumina >> $RUNLOG
 
 # Multiple align UID read groups
 if $ALIGN_UIDSETS; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AlignSets muscle"
 	$RUN AlignSets.py muscle -s "${OUTNAME}-R1_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
-	    --nproc $NPROC --log AlignLogR1.log --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+	    --nproc $NPROC --log AlignLogR1.log --outname "${OUTNAME}-R1" >> $RUNLOG
 	$RUN AlignSets.py muscle -s "${OUTNAME}-R2_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
-	    --nproc $NPROC --log AlignLogR2.log --outname "${OUTNAME}-R2" --clean >> $RUNLOG
+	    --nproc $NPROC --log AlignLogR2.log --outname "${OUTNAME}-R2" >> $RUNLOG
 	BCR1_FILE="${OUTNAME}-R1_align-pass.fastq"
 	BCR2_FILE="${OUTNAME}-R2_align-pass.fastq"
 else
@@ -147,31 +147,36 @@ if $BC_DIV_FLAG; then
     if $BC_PRCONS_FLAG; then
         $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
             -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
-            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+            --outname "${OUTNAME}-R1" >> $RUNLOG
     else
         $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
             -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR1.log \
-            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+            --outname "${OUTNAME}-R1" >> $RUNLOG
     fi
 
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
 	    -q $BC_QUAL --maxdiv $BC_MAXDIV --nproc $NPROC --log ConsensusLogR2.log \
-	    --outname "${OUTNAME}-R2" --clean >> $RUNLOG
+	    --outname "${OUTNAME}-R2" >> $RUNLOG
 else
     if $BC_PRCONS_FLAG; then
         $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
             -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
-            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+            --outname "${OUTNAME}-R1" >> $RUNLOG
     else
         $RUN BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
             -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
-            --outname "${OUTNAME}-R1" --clean >> $RUNLOG
+            --outname "${OUTNAME}-R1" >> $RUNLOG
     fi
 
 	$RUN BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
     	-q $BC_QUAL --nproc $NPROC --log ConsensusLogR2.log \
-    	--outname "${OUTNAME}-R2" --clean >> $RUNLOG
+    	--outname "${OUTNAME}-R2" >> $RUNLOG
 fi
+
+# Assign UIDs to read 1 sequences
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
+$RUN PairSeq.py -1 "${OUTNAME}-R2_consensus-pass.fastq" -2 "${OUTNAME}-R1_consensus-pass.fastq" \
+    --coord presto >> $RUNLOG
 
 # Assemble paired ends via mate-pair alignment
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs align"
@@ -183,17 +188,17 @@ else
 fi
 
 if $AP_ALN_SCANREV; then
-    $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
-        -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
+    $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass_pair-pass.fastq" \
+        -2 "${OUTNAME}-R1_consensus-pass_pair-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
         --coord presto --rc tail --minlen $AP_ALN_MINLEN --maxerror $AP_ALN_MAXERR \
         --alpha $AP_ALN_ALPHA --nproc $NPROC --log AssembleAlignLog.log \
-        --outname "${OUTNAME}-ALN" --scanrev >> $RUNLOG
+        --outname "${OUTNAME}-ALN" --scanrev --failed >> $RUNLOG
 else
-    $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass.fastq" \
-        -2 "${OUTNAME}-R1_consensus-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
+    $RUN AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass_pair-pass.fastq" \
+        -2 "${OUTNAME}-R1_consensus-pass_pair-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
         --coord presto --rc tail --minlen $AP_ALN_MINLEN --maxerror $AP_ALN_MAXERR \
         --alpha $AP_ALN_ALPHA --nproc $NPROC --log AssembleAlignLog.log \
-        --outname "${OUTNAME}-ALN" >> $RUNLOG
+        --outname "${OUTNAME}-ALN" --failed >> $RUNLOG
 fi
 
 # Assemble paired ends via alignment against V-region reference database
@@ -204,7 +209,7 @@ if $REFERENCE_ASSEMBLY; then
         --1f CONSCOUNT --2f $PRFIELD CONSCOUNT --coord presto \
         --minident $AP_REF_MINIDENT --evalue $AP_REF_EVALUE --maxhits $AP_REF_MAXHITS \
         --nproc $NPROC --log AssembleReferenceLog.log --outname "${OUTNAME}-REF" \
-        --exec $USEARCH_EXEC >> $RUNLOG
+        --exec $USEARCH_EXEC --failed >> $RUNLOG
     cat "${OUTNAME}-ALN_assemble-pass.fastq" "${OUTNAME}-REF_assemble-pass.fastq" > \
         "${OUTNAME}-CAT_assemble-pass.fastq"
     PH_FILE="${OUTNAME}-CAT_assemble-pass.fastq"
@@ -235,7 +240,7 @@ $RUN SplitSeq.py group -s "${OUTNAME}-FIN_collapse-unique.fastq" -f CONSCOUNT --
 if $MASK_LOWQUAL; then
     printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
     $RUN FilterSeq.py maskqual -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" -q $FS_MASK \
-        --nproc $NPROC --outname "${OUTNAME}-FIN" --clean >> $RUNLOG
+        --nproc $NPROC --outname "${OUTNAME}-FIN" >> $RUNLOG
     FSMISS_FILE="${OUTNAME}-FIN_maskqual-pass.fastq"
 else
     FSMISS_FILE="${OUTNAME}-FIN_collapse-unique_atleast-2.fastq"
@@ -244,7 +249,7 @@ fi
 # Remove sequences with many Ns
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq missing"
 $RUN FilterSeq.py missing -s $FSMISS_FILE -n $FS_MISS --inner --nproc $NPROC \
-    --log MissingLog.log --outname "${OUTNAME}-FIN" --clean >> $RUNLOG
+    --log MissingLog.log --outname "${OUTNAME}-FIN" >> $RUNLOG
 
 # Create table of final repertoire
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
