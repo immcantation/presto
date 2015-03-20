@@ -1,4 +1,4 @@
-March 4, 2015
+March 20, 2015
 Version 0.4.5  
 
 High Priority  
@@ -19,11 +19,11 @@ Low Priority
 + Write two wrappers for server-side sequential processing of
   individual sequence records and sets of records which bypasses
   intermediate files
++ Convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
 
 Potential Features  
 + Maybe add copy actions to AssemblePairs
 + Maybe add fail files to ParseLog and table subcommand of ParseHeaders
-+ Maybe convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
 + Maybe add ParseLog subcommand that creates a summary table of counts
 + Maybe add a subcommand to SplitSeq enabling removal of a list of UIDs
 + Maybe add a purely positional barcode extraction mode to MaskPrimers

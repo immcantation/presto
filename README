@@ -1,6 +1,6 @@
 VERSION
 -------------------------------------------------------------------------------
-February 21, 2015
+March 20, 2015
 Version 0.4.5
 
 REQUIREMENTS
@@ -10,4 +10,5 @@ REQUIREMENTS
 * SciPy 0.12         http://scipy.org
 * pandas 0.12        http://pandas.pydata.org
 * Biopython 1.59     http://biopython.org
-* MUSCLE v3.8.31     http://www.drive5.com/muscle
+* MUSCLE v3.8        http://www.drive5.com/muscle
+* USEARCH v7.0       http://www.drive5.com/usearch
