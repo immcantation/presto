@@ -1,4 +1,4 @@
-March 20, 2014
+March 20, 2015
 Version 0.4.5
 
 Added details to the usage documentation for each tool which describes both
@@ -12,10 +12,11 @@ IgCore:
 + Features added for PairSeq performance improvements.
 + Added custom help formatter.
 + Modifications to internals of multiprocessing code.
-+ Changed maximum consensus quality score from 93 to 90.
 + Fixed a few typos in error messages.
 
 AssemblePairs:
++ Added reference subcommand which uses V-region germline alignments from
+  ublast to assemble paired-ends.
 + Removed mate-pair matching operation to increase performance. Now requires
   both input files to contain matched and uniformly ordered reads. If files
   are not synchronized then PairSeq must be run first. AssemblePairs will
@@ -29,10 +30,6 @@ AssemblePairs:
 + Changed internal selection of top scoring alignment to use Z-score
   approximation rather than a combination of error rate and binomial
   mid-p value.
-+ Added '-q (minimum quality score)' parameter to allow exclusion of low quality
-  bases from scoring in align subcommand.
-+ Added reference subcommand which uses V-region germline alignments from
-  ublast to assemble paired-ends.
 + Internal changes to multiprocessing structure.
 + Changed inserted gap character from - to N in join subcommand for better
   compatibility with the behavior of IMGT/HighV-QUEST.
@@ -47,6 +44,7 @@ BuildConsensus
   sequence barcode groups.
 + Added copy field (--cf) and copy action (--act) arguments to generate
   consensus annotations for barcode read groups.
++ Changed maximum consensus quality score from 93 to 90.
 
 CollapseSeq:
 + Added --keep flag to allow retention of sequences with high missing character

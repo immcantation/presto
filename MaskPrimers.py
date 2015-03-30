@@ -395,22 +395,17 @@ def processMPQueue(alive, data_queue, result_queue, align_func, align_args={},
                 result.log['PRSTART'] = out_seq.annotations['prstart']
                 if 'barcode' in out_seq.annotations:  
                     result.log['BARCODE'] = out_seq.annotations['barcode']
-                # TODO:  remove RAWSEQ and POS (debugging code)
                 if not align.rev_primer:
                     align_cut = len(align.align_seq) - align.gaps
-                    result.log['RAWSEQ'] = align.seq.seq
                     result.log['INSEQ'] = align.align_seq + \
                                           str(align.seq.seq[align_cut:])
                     result.log['ALIGN'] = align.align_primer
                     result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align.gaps)
-                    result.log['POS'] = '%i, %i' % (align.start, align.end)
                 else:
                     align_cut = len(align.seq) - len(align.align_seq) + align.gaps
-                    result.log['RAWSEQ'] = align.seq.seq
                     result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
                     result.log['ALIGN'] = align.align_primer.rjust(len(in_seq) + align.gaps)
                     result.log['OUTSEQ'] = str(out_seq.seq)
-                    result.log['POS'] = '%i, %i' % (align.start, align.end)
                 result.log['ERROR'] = align.error
             
             # Feed results to result queue
