@@ -726,51 +726,6 @@ def getScoreDict(n_score=None, gap_score=None, alphabet='dna'):
     return IUPAC_dict
 
 
-def getDistMat(mat=None, n_score=0, gap_score=0, alphabet='dna'):
-    """
-    Generates a distance matrix
-
-    Arguments:
-    mat = input distance matrix to extend to full alphabet;
-          if unspecified, creates Hamming distance matrix that incorporates IUPAC equivalencies
-    n_score = score for all matches against an N character
-    gap_score = score for all matches against a [-, .] character
-    alphabet = the type of score dictionary to generate;
-               one of [dna, aa] for DNA and amino acid characters
-
-    Returns:
-    a distance matrix (pandas DataFrame)
-    """
-    if alphabet=='dna':
-        IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
-        n = 'N'
-        score_func = scoreDNA
-    elif alphabet=='aa':
-        IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        n = 'X'
-        score_func = scoreAA
-    else:
-        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type\n' % alphabet)
-
-    # Default matrix to inf
-    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars, columns=IUPAC_chars, dtype=float)
-    # Set gap score
-    for c in '-.':
-        dist_mat.loc[c] = dist_mat.loc[:,c] = gap_score
-    # Set n score
-    dist_mat.loc[n] = dist_mat.loc[:,n] = n_score
-    # Fill in provided distances from input matrix
-    if mat is not None:
-        for i,j in product(mat.index, mat.columns):
-            dist_mat.loc[i,j] = mat.loc[i,j]
-    # If no input matrix, create IUPAC-defined Hamming distance
-    else:
-        for i,j in product(dist_mat.index, dist_mat.columns):
-            dist_mat.loc[i,j] = 1 - score_func(i, j, n_score=1-n_score, gap_score=1-gap_score)
-
-    return dist_mat
-
-
 def reverseComplement(seq):
     """
     Takes the reverse complement of a sequence
