@@ -1,3 +1,12 @@
+-------------------------------------------------------------------------------
+April 04, 2015
+Version 0.4.6
+
+FilterSeq:
++ Added count of masked characters to log output of maskqual subcommand.
++ Changed repeats subcommand log field REPEAT to REPEATS.
+
+-------------------------------------------------------------------------------
 March 20, 2015
 Version 0.4.5
 

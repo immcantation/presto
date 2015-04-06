@@ -6,8 +6,8 @@ Filters sequences in FASTA/FASTQ files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2015.03.20'
+__version__   = '0.4.6'
+__date__      = '2015.04.04'
 
 
 # Imports
@@ -147,7 +147,7 @@ def filterRepeats(data, max_repeat=default_max_repeat, include_missing=False, in
     
     # Update result log
     result.log['SEQ'] = seq.seq
-    result.log['REPEAT'] = n
+    result.log['REPEATS'] = n
     
     return result
 
@@ -259,11 +259,13 @@ def maskQuality(data, min_qual=default_min_qual):
     """
     # Get SeqRecord
     seq = data.data
-
     seq_str = str(seq.seq)
     quals = seq.letter_annotations['phred_quality']
+
     # Mask low quality nucleotides
     mask_chars = [seq_str[i] if q >= min_qual else 'N' for i, q in enumerate(quals)]
+    mask_count = sum(1 for q in quals if q < min_qual)
+
     # Define masked SeqRecord
     mask_seq = SeqRecord(Seq(''.join(mask_chars), IUPAC.ambiguous_dna), 
                          id=seq.id, 
@@ -279,6 +281,7 @@ def maskQuality(data, min_qual=default_min_qual):
     # Update result log
     result.log['INSEQ'] = seq.seq
     result.log['OUTSEQ'] = mask_seq.seq
+    result.log['MASKED'] = mask_count
     
     return result
 

@@ -238,8 +238,8 @@ def processASQueue(alive, data_queue, result_queue, align_func, align_args={},
             continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
-    align_func = the function to use for consensus generation 
-    align_args = a dictionary of optional arguments for the consensus function
+    align_func = the function to use for alignment
+    align_args = a dictionary of optional arguments for the alignment function
     calc_div = if True perform diversity calculation
     delimiter = a tuple of delimiters for (annotations, field/values, value lists)
 

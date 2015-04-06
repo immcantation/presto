@@ -33,7 +33,6 @@ MASK_LOWQUAL=false
 # FilterSeq run parameters
 FS_QUAL=20
 FS_MASK=30
-FS_MISS=20
 
 # MaskPrimers run parameters
 MP_UIDLEN=17
@@ -222,40 +221,36 @@ printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse
 $RUN ParseHeaders.py collapse -s $PH_FILE -f CONSCOUNT --act min \
     --outname "${OUTNAME}-FIN" > /dev/null
 
+# Mask low quality positions
+if $MASK_LOWQUAL; then
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
+    $RUN FilterSeq.py maskqual -s "${OUTNAME}-FIN_reheader.fastq" -q $FS_MASK \
+        --nproc $NPROC --outname "${OUTNAME}-FIN" --log MaskqualLog.log >> $RUNLOG
+    CS_FILE="${OUTNAME}-FIN_maskqual-pass.fastq"
+else
+    CS_FILE="${OUTNAME}-FIN_reheader.fastq"
+fi
+
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
 if $CS_KEEP; then
-    $RUN CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS --uf PRCONS \
-        --cf CONSCOUNT --act sum --outname "${OUTNAME}-FIN" --inner --keepmiss >> $RUNLOG
+    $RUN CollapseSeq.py -s $CS_FILE -n $CS_MISS --uf PRCONS --cf CONSCOUNT --act sum \
+    --outname "${OUTNAME}-FIN" --inner --keepmiss >> $RUNLOG
 else
-    $RUN CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS --uf PRCONS \
-        --cf CONSCOUNT --act sum --outname "${OUTNAME}-FIN" --inner >> $RUNLOG
+    $RUN CollapseSeq.py -s $CS_FILE -n $CS_MISS --uf PRCONS --cf CONSCOUNT --act sum \
+    --outname "${OUTNAME}-FIN" --inner >> $RUNLOG
 fi
 
 # Filter to sequences with at least 2 supporting sources
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitSeq group"
 $RUN SplitSeq.py group -s "${OUTNAME}-FIN_collapse-unique.fastq" -f CONSCOUNT --num 2 >> $RUNLOG
 
-# Mask low quality positions
-if $MASK_LOWQUAL; then
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
-    $RUN FilterSeq.py maskqual -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" -q $FS_MASK \
-        --nproc $NPROC --outname "${OUTNAME}-FIN" >> $RUNLOG
-    FSMISS_FILE="${OUTNAME}-FIN_maskqual-pass.fastq"
-else
-    FSMISS_FILE="${OUTNAME}-FIN_collapse-unique_atleast-2.fastq"
-fi
-
-# Remove sequences with many Ns
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq missing"
-$RUN FilterSeq.py missing -s $FSMISS_FILE -n $FS_MISS --inner --nproc $NPROC \
-    --log MissingLog.log --outname "${OUTNAME}-FIN" >> $RUNLOG
-
 # Create table of final repertoire
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
-mv "${OUTNAME}-FIN_missing-pass.fastq" "${OUTNAME}_high-fidelity.fastq"
-$RUN ParseHeaders.py table -s "${OUTNAME}_high-fidelity.fastq" \
-    -f ID PRIMER PRCONS CONSCOUNT DUPCOUNT >> $RUNLOG
+$RUN ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique.fastq" \
+    -f ID PRCONS CONSCOUNT DUPCOUNT --outname "Unique" >> $RUNLOG
+$RUN ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" \
+    -f ID PRCONS CONSCOUNT DUPCOUNT --outname "UniqueAtleast2">> $RUNLOG
 
 # Process log files
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseLog"
@@ -264,28 +259,26 @@ if $FILTER_LOWQUAL; then
 fi
 $RUN ParseLog.py -l PrimerLogR[1-2].log -f ID BARCODE PRIMER ERROR > /dev/null &
 $RUN ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT PRFREQ DIVERSITY > /dev/null &
-$RUN ParseLog.py -l AssembleAlignLog.log -f ID OVERLAP LENGTH ERROR PVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDS > /dev/null &
+$RUN ParseLog.py -l AssembleAlignLog.log -f ID LENGTH OVERLAP ERROR PVALUE FIELDS1 FIELDS2 > /dev/null &
 if $REFERENCE_ASSEMBLY; then
-    $RUN ParseLog.py -l AssembleReferenceLog.log -f ID REFID OVERLAP LENGTH GAP ERROR HEADEVALUE TAILEVALUE HEADPOS TAILPOS HEADFIELDS TAILFIELDS > /dev/null &
+    $RUN ParseLog.py -l AssembleReferenceLog.log -f ID REFID LENGTH OVERLAP GAP EVALUE1 EVALUE2 IDENTITY FIELDS1 FIELDS2 > /dev/null &
 fi
-$RUN ParseLog.py -l MissingLog.log -f ID MISSING > /dev/null &
+if $MASK_LOWQUAL; then
+    $RUN ParseLog.py -l MaskqualLog.log -f ID MASKED > /dev/null &
+fi
 wait
 
 # Zip intermediate and log files
 if $ZIP_FILES; then
-    tar -cf LogFiles.tar *LogR[1-2].log *Log.log
-    rm *LogR[1-2].log *Log.log
+    LOG_FILES_ZIP = $(ls *LogR[1-2].log *Log.log)
+    tar -cf LogFiles.tar $LOG_FILES_ZIP
+    rm $LOG_FILES_ZIP
     gzip LogFiles.tar
 
-    if $CS_KEEP; then
-        tar -cf TempFiles.tar *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *reheader* *fail*
-        rm *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *reheader* *fail*
-    else
-        tar -cf TempFiles.tar *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *undetermined* *reheader* *fail*
-        rm *R[1-2]_*.fastq *assemble-pass* *under* *duplicate* *undetermined* *reheader* *fail*
-    fi
+    TEMP_FILES_ZIP = $(ls *.fastq | grep -v "collapse-unique.fastq\|collapse-unique_atleast-2.fastq")
+    tar -cf TempFiles.tar $TEMP_FILES_ZIP
+    rm $TEMP_FILES_ZIP
     gzip TempFiles.tar
-
 fi
 
 # End
