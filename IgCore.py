@@ -775,20 +775,42 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     return equal
  
 
-def weightSeq(seq):
+def weightDNA(seq, ignore_chars=('N', 'n', '.', '-')):
     """
-    Returns a score for a single sequence
+    Returns a score for a single sequence excluding missing positions
     
     Arguments: 
-    seq = a SeqRecord object
+    seq = a SeqRecord or Seq object
+    ignore_chars = list of characters to ignore when counting sequence length
     
     Returns:
     The sum of the character scores for the sequence
     """
-    nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    gap_score = 0
+    score = sum(1 for x in seq if x not in ignore_chars)
+    #score = sum()
+    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
+    #gap_score = 0
       
-    return max(nuc_score + gap_score, 1)
+    return max(score, 1)
+
+
+def weightAA(seq, ignore_chars=('X', 'x', '.', '-')):
+    """
+    Returns a score for a single sequence excluding missing positions
+
+    Arguments:
+    seq = a SeqRecord or Seq object
+    ignore_chars = list of characters to ignore when counting sequence length
+
+    Returns:
+    The sum of the character scores for the sequence
+    """
+    score = sum(1 for x in seq if x not in ignore_chars)
+    #score = sum()
+    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
+    #gap_score = 0
+
+    return max(score, 1)
 
 
 def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None, 
@@ -808,12 +830,13 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
     Returns:
     A tuple of the (score, minimum weight, error rate) for the pair of sequences
     """
+    # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
     if max_error is None:
         # Return accurate values when max_error is undefined
         chars = izip(seq1.upper(), seq2.upper())
         score = sum([score_dict[(a, b)] for a, b in chars])
-        weight = min(weightSeq(seq1), weightSeq(seq2))
+        weight = min(weightDNA(seq1), weightDNA(seq2))
         error = 1.0 - float(score) / weight
     else:
         # If max_error defined return when worst case reach
@@ -825,7 +848,7 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
                 score, weight, error = 0, 0, 1.0
                 break
         else:
-            weight = min(weightSeq(seq1), weightSeq(seq2))
+            weight = min(weightDNA(seq1), weightDNA(seq2))
             error = 1.0 - float(score) / weight
 
     return (score, weight, error)

@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getScoreDict, reverseComplement, weightSeq
+from IgCore import getScoreDict, reverseComplement
 from IgCore import compilePrimers, readPrimerFile, printLog
 from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
