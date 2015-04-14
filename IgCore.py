@@ -1481,7 +1481,8 @@ def printMessage(message, start_time=None, end=False, width=20):
 
     return None
 
-
+# TODO:  probably better to split this into printProgress and printCount (like printMessage)
+# TODO:  might be worth adding task argument for the name of the current operation.
 def printProgress(current, total=None, step=None, start_time=None, end=False):
     """
     Prints a progress bar to standard out
@@ -1648,15 +1649,15 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     
     # Count input files
     if 'db_files' in args_dict:      
-        input_count = len(args_dict['db_files'])
+        input_count = len(args_dict['db_files'] or [])
     elif 'seq_files' in args_dict:       
-        input_count = len(args_dict['seq_files'])
-    elif 'seq_files_1' in args_dict and 'seq_files_2' in args_dict:   
-        input_count = len(args_dict['seq_files_1'])
+        input_count = len(args_dict['seq_files']  or [])
+    elif all([k in args_dict for k in ('seq_files_1', 'seq_files_2')]):
+        input_count = len(args_dict['seq_files_1']  or [])
     elif 'primer_file' in args_dict:   
         input_count = 1
     elif in_arg is not None and in_arg in args_dict: 
-        input_count = len(args_dict[in_arg])
+        input_count = len(args_dict[in_arg] or [])
     else:
         sys.exit('ERROR:  Cannot determine input file argument')
     
@@ -1667,7 +1668,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         sys.exit('ERROR:  The --log argument may not be specified with multiple input files')
         
     # Verify database files
-    if 'db_files' in args_dict:
+    if 'db_files' in args_dict and args_dict['db_files']:
         for f in args_dict['db_files']:
             if not os.path.isfile(f):
                 sys.exit('ERROR:  Database file %s does not exist' % f)
@@ -1676,7 +1677,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                          % (f, ', '.join(db_types)))
     
     # Verify single-end sequence files
-    if 'seq_files' in args_dict:
+    if 'seq_files' in args_dict and args_dict['seq_files']:
         for f in args_dict['seq_files']:
             if not os.path.isfile(f):
                 sys.exit('ERROR:  Sequence file %s does not exist' % f)
@@ -1685,7 +1686,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                          % (f, ', '.join(seq_types)))
     
     # Verify paired-end sequence files
-    if 'seq_files_1' and 'seq_files_2' in args_dict:
+    if all([k in args_dict and args_dict[k] for k in ('seq_files_1', 'seq_files_2')]):
         if len(args_dict['seq_files_1']) != len(args_dict['seq_files_2']):
             sys.exit('ERROR:  The -1 and -2 arguments must contain the same number of files')
         for f1, f2 in zip(args_dict['seq_files_1'], args_dict['seq_files_2']):
@@ -1699,7 +1700,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                          % (f, ', '.join(seq_types)))
                     
     # Verify primer file
-    if 'primer_file' in args_dict:
+    if 'primer_file' in args_dict and args_dict['primer_file']:
         primer_file = args_dict['primer_file']
         if not os.path.isfile(primer_file):
             sys.exit('ERROR:  Primer file %s does not exist' % primer_file)
@@ -1708,7 +1709,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                      % (primer_file, ', '.join(primer_types)))
     
     # Verify non-standard input files
-    if in_arg is not None and in_arg in args_dict:
+    if in_arg is not None and in_arg in args_dict and args_dict[in_arg]:
         files = args_dict[in_arg] if isinstance(args_dict[in_arg], list) \
                 else [args_dict[in_arg]]
         for f in files:
@@ -1719,7 +1720,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                          % (f, ', '.join(in_types)))
     
     # Verify output directory
-    if 'out_dir' in args_dict and args_dict['out_dir'] is not None:
+    if 'out_dir' in args_dict and args_dict['out_dir']:
         if os.path.exists(args_dict['out_dir']) and not os.path.isdir(args_dict['out_dir']):
             sys.exit('ERROR:  Directory %s exists but it is not a directory' % args_dict['out_dir'])
 
