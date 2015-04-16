@@ -26,7 +26,7 @@ NPROC=$7
 LOG_RUNTIMES=true
 ZIP_FILES=true
 FILTER_LOWQUAL=true
-ALIGN_UIDSETS=false
+ALIGN_UIDSETS=true
 REFERENCE_ASSEMBLY=true
 MASK_LOWQUAL=false
 
@@ -44,7 +44,7 @@ MUSCLE_EXEC=$HOME/bin/muscle
 
 # BuildConsensus run parameters
 BC_PRCONS_FLAG=true
-BC_DIV_FLAG=false
+BC_DIV_FLAG=true
 BC_MAXDIV=0.1
 BC_PRCONS=0.6
 BC_QUAL=0
@@ -270,12 +270,12 @@ wait
 
 # Zip intermediate and log files
 if $ZIP_FILES; then
-    LOG_FILES_ZIP = $(ls *LogR[1-2].log *Log.log)
+    LOG_FILES_ZIP=$(ls *LogR[1-2].log *Log.log)
     tar -cf LogFiles.tar $LOG_FILES_ZIP
     rm $LOG_FILES_ZIP
     gzip LogFiles.tar
 
-    TEMP_FILES_ZIP = $(ls *.fastq | grep -v "collapse-unique.fastq\|collapse-unique_atleast-2.fastq")
+    TEMP_FILES_ZIP=$(ls *.fastq | grep -v "collapse-unique.fastq\|collapse-unique_atleast-2.fastq")
     tar -cf TempFiles.tar $TEMP_FILES_ZIP
     rm $TEMP_FILES_ZIP
     gzip TempFiles.tar
