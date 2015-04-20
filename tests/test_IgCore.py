@@ -1,5 +1,5 @@
 """
-Unit tests for MaskPrimers
+Unit tests for IgCore
 """
 
 __author__    = 'Jason Anthony Vander Heiden'

@@ -116,7 +116,8 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                 # If set fails count threshold, feed result queue and continue
                 result_queue.put(result)
                 continue
-                
+
+            # TODO: convert to error against consensus for the speeds
             # Calculate average pairwise error rate
             if max_diversity is not None:
                 diversity = calculateDiversity(seq_list)
@@ -196,7 +197,7 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
 
 def buildConsensus(seq_file, barcode_field=default_barcode_field, 
                    min_count=default_min_count, min_freq=default_min_freq,
-                   min_qual=default_min_qual, max_miss=None, primer_field=None, 
+                   min_qual=default_min_qual, max_gap=None, primer_field=None,
                    primer_freq=None, max_diversity=None, dependent=False, 
                    copy_fields=None, copy_actions=None, out_args=default_out_args,
                    nproc=None, queue_size=None):
@@ -209,7 +210,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     min_count = threshold number of sequences to define a consensus 
     min_freq = the frequency cutoff to assign a base 
     min_qual = the quality cutoff to assign a base
-    max_miss = the maximum frequency of (., -, N) characters allowed before 
+    max_gap = the maximum frequency of (., -) characters allowed before
                deleting a position; if None do not delete positions 
     primer_field = the annotation field containing primer tags;
                    if None do not annotate with primer tags
@@ -239,7 +240,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['MIN_COUNT'] = min_count
     log['MIN_FREQUENCY'] = min_freq
     log['MIN_QUALITY'] = min_qual
-    log['MAX_MISSING'] = max_miss
+    log['MAX_GAP'] = max_gap
     log['PRIMER_FIELD'] = primer_field
     log['PRIMER_FREQUENCY'] = primer_freq
     log['MAX_DIVERSITY'] = max_diversity
@@ -257,12 +258,12 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
         cons_func = qualityConsensus
         cons_args = {'min_qual': min_qual, 
                      'min_freq': min_freq,
-                     'max_miss': max_miss,
+                     'max_gap': max_gap,
                      'dependent': dependent}
     elif in_type == 'fasta':  
         cons_func = frequencyConsensus
         cons_args = {'min_freq': min_freq,
-                     'max_miss': max_miss}
+                     'max_gap': max_gap}
     else:
         sys.exit('ERROR:  Input file must be FASTA or FASTQ')
     
@@ -350,9 +351,9 @@ def getArgParser():
                               does not apply when quality scores are unavailable')
     parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
                         help='Fraction of character occurrences under which an ambiguous character is assigned.')
-    parser.add_argument('--maxmiss', action='store', dest='max_miss', type=float, default=None,
+    parser.add_argument('--maxgap', action='store', dest='max_gap', type=float, default=None,
                         help='If specified, this defines a cut-off for the frequency of allowed \
-                              missing values for each position. Positions exceeding the threshold \
+                              gap values for each position. Positions exceeding the threshold \
                               are deleted from the consensus. If not defined, positions are always \
                               retained.')
     parser.add_argument('--pf', action='store', dest='primer_field', type=str, default=None, 
