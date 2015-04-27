@@ -1,6 +1,11 @@
 -------------------------------------------------------------------------------
-April 04, 2015
+April 22, 2015
 Version 0.4.6
+
+BuildConsensus:
++ Changed --maxmiss argument to --maxgap and altered the behavior to only
+  perform deletion of positions based on gap characters (only "-" or "."
+  and not "N" characters).
 
 FilterSeq:
 + Added count of masked characters to log output of maskqual subcommand.
@@ -13,8 +18,8 @@ Version 0.4.5
 Added details to the usage documentation for each tool which describes both
 the output files and annotation fields.
 
-Renamed --clean flag to --failed flag with opposite behavior, such that the
-default behavior of all scripts is now clean output.
+Renamed --clean argument to --failed argument with opposite behavior, such that
+the default behavior of all scripts is now clean output.
 
 IgCore:
 + Features added for Change-O compatibility.

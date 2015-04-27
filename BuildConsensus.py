@@ -7,23 +7,26 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.5'
-__date__      = '2015.03.20'
+__date__      = '2015.04.27'
 
 # Imports
 import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip
+from itertools import izip, izip_longest
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import IUPAC
 
 # IgPipeline imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
+from IgCore import default_delimiter, default_out_args, default_missing_chars
 from IgCore import default_barcode_field, default_min_freq
 from IgCore import annotationConsensus, getAnnotationValues
 from IgCore import flattenAnnotation, mergeAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs 
 from IgCore import getFileType, printLog 
-from IgCore import frequencyConsensus, qualityConsensus
+from IgCore import getScoreDict, frequencyConsensus, qualityConsensus
 from IgCore import calculateDiversity, indexSeqSets, subsetSeqSet
 from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
@@ -32,10 +35,95 @@ from IgCore import manageProcesses, SeqResult
 default_min_count = 1
 default_min_qual = 0
 
+def deleteSeqPositions(seq, positions):
+    """
+    Deletes a list of positions from a SeqRecord
+
+    Arguments:
+    seq = a SeqRecord objects
+    positions = a set of positions (indices) to delete
+
+    Returns:
+    a modified SeqRecord with the specified positions removed
+    """
+    seq_del = ''.join([x for i, x in enumerate(seq.seq) if i not in positions])
+    record = SeqRecord(Seq(seq_del, IUPAC.ambiguous_dna),
+                       id=seq.id, name=seq.name, description=seq.description)
+
+    if 'phred_quality' in seq.letter_annotations:
+        qual_del = [x for i, x in enumerate(seq.letter_annotations['phred_quality']) \
+                    if i not in positions]
+        record.letter_annotations['phred_quality'] = qual_del
+
+    return record
+
+
+def findGapPositions(seq_list, max_gap, gap_chars=set(['.', '-'])):
+    """
+    Finds positions in a set of aligned sequences with a high number of gap characters.
+
+    Arguments:
+    seq_list = a list of SeqRecord objects with aligned sequences
+    max_gap = a float of the maximum gap frequency to consider a position as non-gapped
+    gap_chars = set of characters to consider as gaps
+
+    Returns:
+    a list of positions (indices) with gap frequency greater than max_gap
+    """
+    # Return an empty list in the singleton case
+    seq_count = float(len(seq_list))
+    if seq_count == 1:
+        return []
+
+    # Iterate through positions and count gaps
+    gap_positions = []
+    seq_str = [str(s.seq) for s in seq_list]
+    for i, chars in enumerate(izip_longest(*seq_str, fillvalue='-')):
+        gap_count = sum([chars.count(c) for c in gap_chars])
+        gap_freq = gap_count / seq_count
+
+        # Update gap position over threshold
+        if gap_freq > max_gap:
+            gap_positions.append(i)
+
+    return gap_positions
+
+
+def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
+                      score_dict=getScoreDict(n_score=0, gap_score=0)):
+    """
+    Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
+
+    Arguments:
+    seq_list = a list of SeqRecord objects with aligned sequences
+    ref_seq = a SeqRecord object containing the reference sequence to match against
+    ignore_chars = list of characters to exclude from mismatch counts
+    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+
+    Returns:
+    a float of the error rate for the set
+    """
+    # Count informative characters in reference sequence
+    ref_bases = sum(1 for b in ref_seq if b not in ignore_chars)
+
+    # Return 0 mismatches for single record case
+    if len(seq_list) <= 1:
+        return 0.0
+
+    # Iterate over seq_list and count mismatches
+    total, score = 0, 0
+    for seq in seq_list:
+        seq_bases = sum(1 for a in seq if a not in ignore_chars)
+        total += min(seq_bases, ref_bases)
+        score += sum([score_dict[(a, b)] for a, b in izip(seq, ref_seq)
+                      if a not in ignore_chars and b not in ignore_chars])
+
+    return 1.0 - float(score) / total
+
 
 def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
-                   min_count=default_min_count, primer_field=None, primer_freq=None, 
-                   max_diversity=None, copy_fields=None, copy_actions=None,
+                   min_count=default_min_count, primer_field=None, primer_freq=None,
+                   max_gap=None, max_error=None, copy_fields=None, copy_actions=None,
                    delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
@@ -52,8 +140,10 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                    if None do not annotate with primer names
     primer_freq = the maximum primer frequency that must be meet to build a consensus;
                   if None do not filter by primer frequency
-    max_diversity = the minimum diversity score to retain a set;
-                    if None do not calculate diversity
+    max_gap = the maximum frequency of (., -) characters allowed before
+              deleting a position; if None do not delete positions
+    max_error = the minimum error rate to retain a set;
+                if None do not calculate error rate
     copy_fields = a list of annotations to copy into consensus sequence annotations;
                   if None no additional annotations will be copied
     copy_actions = the list of actions to take for each copy_fields;
@@ -109,7 +199,7 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                     result_queue.put(result)
                     continue
     
-            # Update log
+            # Check count threshold
             cons_count = len(seq_list)
             result.log['CONSCOUNT'] = cons_count
             if cons_count < min_count:
@@ -117,27 +207,42 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                 result_queue.put(result)
                 continue
 
-            # TODO: convert to error against consensus for the speeds
-            # Calculate average pairwise error rate
-            if max_diversity is not None:
-                diversity = calculateDiversity(seq_list)
-                result.log['DIVERSITY'] = diversity
-                if diversity > max_diversity:
-                    # If diversity exceeds threshold, feed result queue and continue
-                    for i, s in enumerate(seq_list):
-                        result.log['INSEQ%i' % (i + 1)] = str(s.seq)
-                    result_queue.put(result)
-                    continue
-    
-            # If primer and diversity filters pass, generate consensus sequence
-            consensus = cons_func(seq_list, **cons_args)
-
-            # Update log
+            # Update log with input sequences
             for i, s in enumerate(seq_list):
                 result.log['INSEQ%i' % (i + 1)] = str(s.seq)
-            result.log['CONSENSUS'] = str(consensus.seq)
-            if 'phred_quality' in consensus.letter_annotations:
-                result.log['QUALITY'] = ''.join([chr(c+33) for c in consensus.letter_annotations['phred_quality']])
+
+            # If primer and count filters pass, generate consensus sequence
+            consensus = cons_func(seq_list, **cons_args)
+
+            # Delete positions with gap frequency over max_gap and update log with consensus
+            if max_gap is not None:
+                gap_positions = set(findGapPositions(seq_list, max_gap))
+                result.log['CONSENSUS'] = ''.join([' ' if i in gap_positions else x \
+                                                   for i, x in enumerate(consensus.seq)])
+                if 'phred_quality' in consensus.letter_annotations:
+                    result.log['QUALITY'] = ''.join([' ' if i in gap_positions else chr(q + 33) \
+                                                     for i, q in enumerate(consensus.letter_annotations['phred_quality'])])
+                consensus = deleteSeqPositions(consensus, gap_positions)
+            else:
+                gap_positions = None
+                result.log['CONSENSUS'] = str(consensus.seq)
+                if 'phred_quality' in consensus.letter_annotations:
+                    result.log['QUALITY'] = ''.join([chr(q + 33) for q in consensus.letter_annotations['phred_quality']])
+
+            # Calculate set error against consensus
+            if max_error is not None:
+                # Delete positions if required and calculate error
+                if gap_positions is not None:
+                    seq_check = [deleteSeqPositions(s, gap_positions) for s in seq_list]
+                else:
+                    seq_check = seq_list
+                error = calculateSetError(seq_check, consensus)
+                result.log['ERROR'] = error
+
+                # If error exceeds threshold, feed result queue and continue
+                if error > max_error:
+                    result_queue.put(result)
+                    continue
 
             # TODO:  should move this into an improved annotationConsensus function with an action argument
             # Parse copy_field annotations and define consensus annotations
@@ -197,9 +302,9 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
 
 def buildConsensus(seq_file, barcode_field=default_barcode_field, 
                    min_count=default_min_count, min_freq=default_min_freq,
-                   min_qual=default_min_qual, max_gap=None, primer_field=None,
-                   primer_freq=None, max_diversity=None, dependent=False, 
-                   copy_fields=None, copy_actions=None, out_args=default_out_args,
+                   min_qual=default_min_qual, primer_field=None, primer_freq=None,
+                   max_gap=None, max_error=None, copy_fields=None, copy_actions=None,
+                   dependent=False, out_args=default_out_args,
                    nproc=None, queue_size=None):
     """
     Generates consensus sequences
@@ -210,14 +315,14 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     min_count = threshold number of sequences to define a consensus 
     min_freq = the frequency cutoff to assign a base 
     min_qual = the quality cutoff to assign a base
-    max_gap = the maximum frequency of (., -) characters allowed before
-               deleting a position; if None do not delete positions 
     primer_field = the annotation field containing primer tags;
                    if None do not annotate with primer tags
     primer_freq = the maximum primer tag frequency that must be meet to build a consensus;
                   if None do not filter by primer frequency
-    max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
-                    if None do not calculate diversity
+    max_gap = the maximum frequency of (., -) characters allowed before
+               deleting a position; if None do not delete positions
+    max_error = a threshold defining the maximum allowed error rate to retain a read group;
+                if None do not calculate error rate
     dependent = if False treat barcode group sequences as independent data
     copy_fields = a list of annotations to copy into consensus sequence annotations;
                   if None no additional annotations will be copied
@@ -243,7 +348,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['MAX_GAP'] = max_gap
     log['PRIMER_FIELD'] = primer_field
     log['PRIMER_FREQUENCY'] = primer_freq
-    log['MAX_DIVERSITY'] = max_diversity
+    log['MAX_ERROR'] = max_error
     log['DEPENDENT'] = dependent
     log['COPY_FIELDS'] = ','.join([str(x) for x in copy_fields]) \
                          if copy_fields is not None else None
@@ -258,12 +363,10 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
         cons_func = qualityConsensus
         cons_args = {'min_qual': min_qual, 
                      'min_freq': min_freq,
-                     'max_gap': max_gap,
                      'dependent': dependent}
     elif in_type == 'fasta':  
         cons_func = frequencyConsensus
-        cons_args = {'min_freq': min_freq,
-                     'max_gap': max_gap}
+        cons_args = {'min_freq': min_freq}
     else:
         sys.exit('ERROR:  Input file must be FASTA or FASTQ')
     
@@ -280,7 +383,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                  'min_count': min_count,
                  'primer_field': primer_field,
                  'primer_freq': primer_freq,
-                 'max_diversity': max_diversity,
+                 'max_gap': max_gap,
+                 'max_error': max_error,
                  'copy_fields': copy_fields,
                  'copy_actions': copy_actions,
                  'delimiter': out_args['delimiter']}
@@ -376,9 +480,10 @@ def getArgParser():
                              most frequent annotation to the consensus annotation and adds
                              an annotation named <FIELD>_FREQ specifying the frequency
                              of the majority value.''')
-    parser.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,
-                        help='Specify to calculate the nucleotide diversity of each read group \
-                              (average pairwise error rate) and remove groups exceeding the given diversity threshold')
+    parser.add_argument('--maxerr', action='store', dest='max_error', type=float, default=None,
+                        help='''Specify to calculate the error rate of each read group
+                             (rate of mismatches from consensus) and remove groups exceeding
+                             the given error threshold.''')
     parser.add_argument('--dep', action='store_true', dest='dependent',
                         help='Specify to calculate consensus quality with a non-independence assumption')
     

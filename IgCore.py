@@ -30,7 +30,8 @@ default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
 default_coord_type = 'presto'
 default_barcode_field = 'BARCODE'
 default_primer_field = 'PRIMER'
-default_missing_chars = ['-', '.', 'N']
+default_missing_chars = set(['-', '.', 'N', 'n'])
+default_missing_residues = set(['.', '-', 'X', 'x'])
 default_min_freq = 0.6
 default_min_qual = 20
 default_out_args = {'log_file':None, 
@@ -760,7 +761,7 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     Arguments: 
     seq1 = a SeqRecord object
     seq2 = a SeqRecord object
-    ignore_chars = a list of characters to ignore
+    ignore_chars = a set of characters to ignore
     
     Returns:
     True if the sequences are equal
@@ -775,13 +776,13 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     return equal
  
 
-def weightDNA(seq, ignore_chars=('N', 'n', '.', '-')):
+def weightDNA(seq, ignore_chars=default_missing_chars):
     """
     Returns a score for a single sequence excluding missing positions
     
     Arguments: 
     seq = a SeqRecord or Seq object
-    ignore_chars = list of characters to ignore when counting sequence length
+    ignore_chars = set of characters to ignore when counting sequence length
     
     Returns:
     The sum of the character scores for the sequence
@@ -794,18 +795,18 @@ def weightDNA(seq, ignore_chars=('N', 'n', '.', '-')):
     return max(score, 1)
 
 
-def weightAA(seq, ignore_chars=('X', 'x', '.', '-')):
+def weightAA(seq, ignore_residues=default_missing_residues):
     """
     Returns a score for a single sequence excluding missing positions
 
     Arguments:
     seq = a SeqRecord or Seq object
-    ignore_chars = list of characters to ignore when counting sequence length
+    ignore_residues = set of characters to ignore when counting sequence length
 
     Returns:
     The sum of the character scores for the sequence
     """
-    score = sum(1 for x in seq if x not in ignore_chars)
+    score = sum(1 for x in seq if x not in ignore_residues)
     #score = sum()
     #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
     #gap_score = 0
@@ -878,7 +879,7 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
 
 
 def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_freq,
-                     max_gap=None, dependent=False):
+                     dependent=False, ignore_chars=default_missing_chars):
     """
     Builds a consensus sequence from a set of sequences
 
@@ -886,10 +887,9 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
     seq_list = a list of SeqRecord objects
     min_qual = the quality cutoff to assign a base
     min_freq = the frequency cutoff to assign a base
-    max_gap = the maximum frequency of (., -) characters allowed before
-               deleting a position; if None do not delete positions 
     dependent = if False assume sequences are independent for quality calculation
-    
+    ignore_chars = a set of characters to exclude when building a consensus sequence
+
     Returns: 
     a consensus SeqRecord object
     """
@@ -906,10 +906,6 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
                         description=seq.description,
                         letter_annotations=seq.letter_annotations)
         return seq
-    
-    # Define missing and gap characters
-    gap_set = set(['.', '-'])
-    ignore_set = set(['.', '-', 'N'])
 
     # Create sequence and annotation iterators
     # Pad unequal length sequences with character '-' and quality 0 
@@ -922,16 +918,10 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
     consensus_seq = []
     consensus_qual = []
     for chars, quals in izip(seq_iter, ann_iter):
-        # Remove position if max_gap is defined and positions contains too many gaps
-        if max_gap is not None:
-            gap_count = sum([chars.count(c) for c in gap_set])
-            gap_freq = float(gap_count) / len(chars)
-            if gap_freq > max_gap:  continue
-            
         # Define set of non-missing characters
-        char_set = set(chars).difference(ignore_set)
+        char_set = set(chars).difference(ignore_chars)
         
-        # Assign N if no non-N/gap characters and proceed to next position
+        # Assign N if no missing characters and proceed to next position
         if not char_set:
             consensus_seq.append('N')
             consensus_qual.append(0)
@@ -947,7 +937,8 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
         for c in char_set:
             qual_set[c] = [q for i, q in enumerate(quals) if chars[i] == c]
             qual_sum[c] = sum(qual_set[c])
-        
+
+        # TODO: write unit test and verify quality score calculation for sets with missing data
         # Calculate per character consensus quality scores
         if dependent:
             qual_cons = {c:int(max(qual_set[c]) * qual_sum[c] / qual_total) for c in qual_set}
@@ -975,15 +966,16 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
     return record
 
 
-def frequencyConsensus(seq_list, min_freq=default_min_freq, max_gap=None):
+def frequencyConsensus(seq_list, min_freq=default_min_freq,
+                       ignore_chars=default_missing_chars):
     """
     Builds a consensus sequence from a set of sequences
 
     Arguments: 
     set_seq = a list of SeqRecord objects
     min_freq = the frequency cutoff to assign a base
-    max_gap = the maximum frequency of (., -) characters allowed before
-               deleting a position; if None do not delete positions 
+    ignore_chars = a set of characters to exclude when building a consensus sequence
+
     
     Returns: 
     a consensus SeqRecord object
@@ -992,22 +984,12 @@ def frequencyConsensus(seq_list, min_freq=default_min_freq, max_gap=None):
     if len(seq_list) == 1:
         return seq_list[0]
     
-    # Define missing and gap characters
-    gap_set = set(['.', '-'])
-    ignore_set = set(['.', '-', 'N'])
-    
     # Build consensus
     seq_str = [str(s.seq) for s in seq_list]
     consensus_seq = []
     for chars in izip_longest(*seq_str, fillvalue='-'):
-        # Delete position if number of gap characters exceeds max_gap threshold
-        if max_gap is not None:
-            gap_count = sum([chars.count(c) for c in gap_set])
-            gap_freq = float(gap_count) / len(chars)
-            if gap_freq > max_gap:  continue
-            
         # Define set of non-missing characters
-        char_set = set(chars).difference(ignore_set)
+        char_set = set(chars).difference(ignore_chars)
         
         # Assign N if no non-missing characters and proceed to next position
         if not char_set:
