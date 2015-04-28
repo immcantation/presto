@@ -6,7 +6,7 @@ Builds a consensus sequence for each set of input sequences
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
+__version__   = '0.4.6'
 __date__      = '2015.04.27'
 
 # Imports
@@ -34,6 +34,7 @@ from IgCore import manageProcesses, SeqResult
 # Defaults
 default_min_count = 1
 default_min_qual = 0
+
 
 def deleteSeqPositions(seq, positions):
     """

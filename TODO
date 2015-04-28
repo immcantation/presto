@@ -1,5 +1,5 @@
-March 20, 2015
-Version 0.4.5  
+April 27, 2015
+Version 0.4.6
 
 High Priority  
 + Improve CollapseSeq algorithm for max_missing > 0

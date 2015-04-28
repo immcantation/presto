@@ -1,11 +1,18 @@
 -------------------------------------------------------------------------------
-April 22, 2015
+April 27, 2015
 Version 0.4.6
 
 BuildConsensus:
 + Changed --maxmiss argument to --maxgap and altered the behavior to only
   perform deletion of positions based on gap characters (only "-" or "."
   and not "N" characters).
++ Changed diversity calculation (--maxdiv) from Nei's nucleotide diversity to
+  an error rate (--maxerr) based on mismatches from consensus. It should be
+  considerably faster, with similar behavior.
++ Added exclusion of positions from the error rate calculation that are deleted
+  due to exceeding the --maxgap threshold .
++ Fixed misalignment of consensus sequence against input sequences when
+  positions are deleted due to exceeding the --maxgap threshold.
 
 FilterSeq:
 + Added count of masked characters to log output of maskqual subcommand.
