@@ -124,8 +124,8 @@ def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
 
 def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
                    min_count=default_min_count, primer_field=None, primer_freq=None,
-                   max_gap=None, max_error=None, copy_fields=None, copy_actions=None,
-                   delimiter=default_delimiter):
+                   max_gap=None, max_error=None, max_diversity=None,
+                   copy_fields=None, copy_actions=None, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -145,6 +145,8 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
               deleting a position; if None do not delete positions
     max_error = the minimum error rate to retain a set;
                 if None do not calculate error rate
+    max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
+                    if None do not calculate diversity
     copy_fields = a list of annotations to copy into consensus sequence annotations;
                   if None no additional annotations will be copied
     copy_actions = the list of actions to take for each copy_fields;
@@ -230,6 +232,16 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                 if 'phred_quality' in consensus.letter_annotations:
                     result.log['QUALITY'] = ''.join([chr(q + 33) for q in consensus.letter_annotations['phred_quality']])
 
+            # Calculate nucleotide diversity
+            if max_diversity is not None:
+                diversity = calculateDiversity(seq_list)
+                result.log['DIVERSITY'] = diversity
+
+                # If diversity exceeds threshold, feed result queue and continue
+                if diversity > max_diversity:
+                    result_queue.put(result)
+                    continue
+
             # Calculate set error against consensus
             if max_error is not None:
                 # Delete positions if required and calculate error
@@ -304,9 +316,9 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
 def buildConsensus(seq_file, barcode_field=default_barcode_field, 
                    min_count=default_min_count, min_freq=default_min_freq,
                    min_qual=default_min_qual, primer_field=None, primer_freq=None,
-                   max_gap=None, max_error=None, copy_fields=None, copy_actions=None,
-                   dependent=False, out_args=default_out_args,
-                   nproc=None, queue_size=None):
+                   max_gap=None, max_error=None, max_diversity=None,
+                   copy_fields=None, copy_actions=None, dependent=False,
+                   out_args=default_out_args, nproc=None, queue_size=None):
     """
     Generates consensus sequences
 
@@ -324,6 +336,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                deleting a position; if None do not delete positions
     max_error = a threshold defining the maximum allowed error rate to retain a read group;
                 if None do not calculate error rate
+    max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
+                    if None do not calculate diversity
     dependent = if False treat barcode group sequences as independent data
     copy_fields = a list of annotations to copy into consensus sequence annotations;
                   if None no additional annotations will be copied
@@ -350,6 +364,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['PRIMER_FIELD'] = primer_field
     log['PRIMER_FREQUENCY'] = primer_freq
     log['MAX_ERROR'] = max_error
+    log['MAX_DIVERSITY'] = max_diversity
     log['DEPENDENT'] = dependent
     log['COPY_FIELDS'] = ','.join([str(x) for x in copy_fields]) \
                          if copy_fields is not None else None
@@ -386,6 +401,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                  'primer_freq': primer_freq,
                  'max_gap': max_gap,
                  'max_error': max_error,
+                 'max_diversity': max_diversity,
                  'copy_fields': copy_fields,
                  'copy_actions': copy_actions,
                  'delimiter': out_args['delimiter']}
@@ -481,13 +497,29 @@ def getArgParser():
                              most frequent annotation to the consensus annotation and adds
                              an annotation named <FIELD>_FREQ specifying the frequency
                              of the majority value.''')
-    parser.add_argument('--maxerr', action='store', dest='max_error', type=float, default=None,
-                        help='''Specify to calculate the error rate of each read group
-                             (rate of mismatches from consensus) and remove groups exceeding
-                             the given error threshold.''')
     parser.add_argument('--dep', action='store_true', dest='dependent',
                         help='Specify to calculate consensus quality with a non-independence assumption')
-    
+
+    # Mutually exclusive argument group
+    arg_group = parser.add_mutually_exclusive_group()
+    arg_group.add_argument('--maxdiv', action='store', dest='max_diversity', type=float,
+                           default=None,
+                           help='''Specify to calculate the nucleotide diversity of each read
+                                group (average pairwise error rate) and remove groups exceeding
+                                the given diversity threshold. Diversity is calculate for all
+                                positions within the read group, ignoring any character filtering
+                                imposed by the -q, --freq and --maxgap arguments.
+                                Mutually exclusive with --maxerr.''')
+    arg_group.add_argument('--maxerr', action='store', dest='max_error', type=float,
+                           default=None,
+                           help='''Specify to calculate the error rate of each read group
+                                (rate of mismatches from consensus) and remove groups exceeding
+                                the given error threshold. The error rate is calculated against
+                                the final consensus sequence, which may include masked positions
+                                due to the -q and --freq arguments and may have deleted
+                                positions due to the --maxgap argument.
+                                Mutually exclusive with --maxdiv.''')
+
     return parser
 
         

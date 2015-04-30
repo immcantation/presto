@@ -371,6 +371,13 @@ def getArgParser():
     parser.add_argument('--inner', action='store_true', dest='inner',
                         help='If specified, exclude consecutive missing characters at either end of \
                               the sequence.')
+    parser.add_argument('--keepmiss', action='store_true', dest='keep_missing',
+                        help='''If specified, sequences with more missing characters than the
+                             threshold set by the -n parameter will be written to the unique
+                             sequence output file with a DUPCOUNT=1 annotation. If not specified,
+                             such sequences will be written to a separate file.''')
+
+    # Mutually exclusive argument group
     arg_group = parser.add_mutually_exclusive_group()
     arg_group.add_argument('--maxf', action='store', dest='max_field', type=str, default=None,
                            help='Specify the field whose maximum value determines the retained sequence; \
@@ -378,12 +385,6 @@ def getArgParser():
     arg_group.add_argument('--minf', action='store', dest='min_field', type=str, default=None,
                            help='Specify the field whose minimum value determines the retained sequence; \
                                  mutually exclusive with --minf.')
-    parser.add_argument('--keepmiss', action='store_true', dest='keep_missing',
-                        help='''If specified, sequences with more missing characters than the
-                             threshold set by the -n parameter will be written to the unique
-                             sequence output file with a DUPCOUNT=1 annotation. If not specified,
-                             such sequences will be written to a separate file.''')
-
     return parser
 
 
