@@ -144,16 +144,16 @@ printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
 if $BC_ERR_FLAG; then
     if $BC_PRCONS_FLAG; then
         BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-            -q $BC_QUAL --maxerr $BC_MAXERR --nproc $NPROC --log ConsensusLogR1.log \
+            -q $BC_QUAL --maxerror $BC_MAXERR --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
     else
         BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
-            -q $BC_QUAL --maxerr $BC_MAXERR --nproc $NPROC --log ConsensusLogR1.log \
+            -q $BC_QUAL --maxerror $BC_MAXERR --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
     fi
 
 	BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-	    -q $BC_QUAL --maxerr $BC_MAXERR --nproc $NPROC --log ConsensusLogR2.log \
+	    -q $BC_QUAL --maxerror $BC_MAXERR --nproc $NPROC --log ConsensusLogR2.log \
 	    --outname "${OUTNAME}-R2" >> $PIPELINE_LOG 2> $ERROR_LOG
 else
     if $BC_PRCONS_FLAG; then

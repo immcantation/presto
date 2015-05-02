@@ -25,7 +25,8 @@ from IgCore import getOutputHandle, printLog, printMessage, printProgress
 from IgCore import countSeqFile, getCoordKey, getFileType, readSeqFile
 
 
-def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type, 
+def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
+            coord_type=default_coord_type,
             out_args=default_out_args):
     """
     Generates consensus sequences
@@ -33,8 +34,10 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
     Arguments: 
     seq_file_1 = the file containing the grouped sequences and annotations
     seq_file_2 = the file to assign annotations to from seq_file_1
-    fields = list of annotations in seq_file_1 records to copy to seq_file_2 records;
-             if None do not copy an annotation
+    fields_1 = list of annotations in seq_file_1 records to copy to seq_file_2 records;
+               if None do not copy any annotations
+    fields_2 = list of annotations in seq_file_2 records to copy to seq_file_1 records;
+               if None do not copy any annotations
     coord_type = the sequence header format
     out_args = common output argument dictionary from parseCommonArgs
                     
@@ -47,8 +50,10 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
 
     log = OrderedDict()
     log['START'] = 'PairSeq'
-    log['FILE1'] = os.path.basename(seq_file_1) 
+    log['FILE1'] = os.path.basename(seq_file_1)
     log['FILE2'] = os.path.basename(seq_file_2)
+    log['FIELDS_1'] = ','.join(fields_1) if fields_1 is not None else None
+    log['FIELDS_2'] = ','.join(fields_2) if fields_2 is not None else None
     log['COORD_TYPE'] = coord_type
     printLog(log)
 
@@ -106,13 +111,32 @@ def pairSeq(seq_file_1, seq_file_2, fields=None, coord_type=default_coord_type,
         if seq_1 is not None:
             # Record paired keys
             pair_count += 1
-            # Copy annotations from seq_1 to seq_2
-            if fields is not None:
-                copy_ann = parseAnnotation(seq_1.description, fields, delimiter=out_args['delimiter'])
-                ann_2 = parseAnnotation(seq_2.description, delimiter=out_args['delimiter'])
-                ann_2 = mergeAnnotation(ann_2, copy_ann, delimiter=out_args['delimiter'])
-                seq_2.id = flattenAnnotation(ann_2, delimiter=out_args['delimiter'])
-                seq_2.description = ''
+
+            if fields_1 is not None or fields_2 is not None:
+                ann_1 = parseAnnotation(seq_1.description,
+                                        delimiter=out_args['delimiter'])
+                ann_2 = parseAnnotation(seq_2.description,
+                                        delimiter=out_args['delimiter'])
+
+                # Prepend annotations from seq_1 to seq_2
+                if fields_1 is not None:
+                    copy_ann = OrderedDict([(k, v) for k, v in ann_1.iteritems() \
+                                            if k in fields_1])
+                    merge_ann = mergeAnnotation(ann_2, copy_ann, prepend=True,
+                                                delimiter=out_args['delimiter'])
+                    seq_2.id = flattenAnnotation(merge_ann,
+                                                 delimiter=out_args['delimiter'])
+                    seq_2.description = ''
+
+                # Append annotations from seq_2 to seq_1
+                if fields_2 is not None:
+                    copy_ann = OrderedDict([(k, v) for k, v in ann_2.iteritems() \
+                                            if k in fields_2])
+                    merge_ann = mergeAnnotation(ann_1, copy_ann, prepend=False,
+                                                delimiter=out_args['delimiter'])
+                    seq_1.id = flattenAnnotation(merge_ann,
+                                                 delimiter=out_args['delimiter'])
+                    seq_1.description = ''
 
             # Write paired records
             SeqIO.write(seq_1, pass_handle_1, out_type_1)
@@ -183,9 +207,16 @@ def getArgParser():
                             parents=[getCommonArgParser(paired=True, failed=True, log=False)],
                             formatter_class=CommonHelpFormatter)
     
-    parser.add_argument('-f', nargs='+', action='store', dest='fields', type=str, default=None, 
+    parser.add_argument('--1f', nargs='+', action='store', dest='fields_1', type=str, default=None,
                         help='''The annotation fields to copy from file 1 records into file
-                             2 records.''')
+                             2 records. If a copied annotation already exists in a file 2
+                             record, then the annotations copied from file 1 will be added
+                             to the front of the existing annotation.''')
+    parser.add_argument('--2f', nargs='+', action='store', dest='fields_2', type=str, default=None,
+                        help='''The annotation fields to copy from file 2 records into file
+                             1 records. If a copied annotation already exists in a file 1
+                             record, then the annotations copied from file 2 will be added
+                             to the end of the existing annotation.''')
     parser.add_argument('--coord', action='store', dest='coord_type', 
                         choices=default_coord_choices, default=default_coord_type,
                         help='''The format of the sequence identifier which defines shared
@@ -202,8 +233,12 @@ if __name__ == '__main__':
     parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
+
     # Convert case of fields
-    if args_dict['fields']:  args_dict['fields'] = map(str.upper, args_dict['fields'])
+    if args_dict['fields_1'] is not None:
+        args_dict['fields_1'] = map(str.upper, args_dict['fields_1'])
+    if args_dict['fields_2'] is not None:
+        args_dict['fields_2'] = map(str.upper, args_dict['fields_2'])
 
     # Call pairSeq
     del args_dict['seq_files_1']

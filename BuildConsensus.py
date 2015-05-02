@@ -366,10 +366,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['MAX_ERROR'] = max_error
     log['MAX_DIVERSITY'] = max_diversity
     log['DEPENDENT'] = dependent
-    log['COPY_FIELDS'] = ','.join([str(x) for x in copy_fields]) \
-                         if copy_fields is not None else None
-    log['COPY_ACTIONS'] = ','.join([str(x) for x in copy_actions]) \
-                          if copy_actions is not None else None
+    log['COPY_FIELDS'] = ','.join(copy_fields) if copy_fields is not None else None
+    log['COPY_ACTIONS'] = ','.join(copy_actions) if copy_actions is not None else None
     log['NPROC'] = nproc
     printLog(log)
     
@@ -509,8 +507,8 @@ def getArgParser():
                                 the given diversity threshold. Diversity is calculate for all
                                 positions within the read group, ignoring any character filtering
                                 imposed by the -q, --freq and --maxgap arguments.
-                                Mutually exclusive with --maxerr.''')
-    arg_group.add_argument('--maxerr', action='store', dest='max_error', type=float,
+                                Mutually exclusive with --maxerror.''')
+    arg_group.add_argument('--maxerror', action='store', dest='max_error', type=float,
                            default=None,
                            help='''Specify to calculate the error rate of each read group
                                 (rate of mismatches from consensus) and remove groups exceeding

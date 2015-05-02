@@ -147,8 +147,8 @@ def parseAnnotation(record, fields=None, delimiter=default_delimiter):
     """
     annotation = record.split(delimiter[0])
     field_dict = OrderedDict([('ID', annotation.pop(0))])
-    for a in annotation:
-        vals = a.split(delimiter[1])
+    for ann in annotation:
+        vals = ann.split(delimiter[1])
         field_dict[vals[0].upper()] = vals[1] 
 
     # Subset return dictionary to requested fields
@@ -172,7 +172,10 @@ def flattenAnnotation(ann_dict, delimiter=default_delimiter):
     """
     annotation = ann_dict.get('ID', 'NONE')
     for k, v in ann_dict.iteritems():
-        if k.upper() == 'ID':  continue
+        # Skip ID field
+        if k.upper() == 'ID':
+            continue
+
         if isinstance(v, list):
             v = delimiter[2].join([str(x) for x in v])
         annotation += '%s%s%s%s' % (delimiter[0], k.upper(), delimiter[1], v) 
@@ -180,30 +183,44 @@ def flattenAnnotation(ann_dict, delimiter=default_delimiter):
     return annotation
 
 
-def mergeAnnotation(ann_dict_1, ann_dict_2, delimiter=default_delimiter):
+def mergeAnnotation(ann_dict_1, ann_dict_2, prepend=False,
+                    delimiter=default_delimiter):
     """
     Merges non-ID field annotations from one field dictionary into another
 
     Arguments:
-    ann_dict_1 = a dictionary of field/value pairs to add to
-    ann_dict_2 = a dictionary of field/value pairs to merge with fields_2
-    delimiter = a tuple of delimiters for (fields, values, value lists) 
+    ann_dict_1 = a dictionary of field/value pairs to append to
+    ann_dict_2 = a dictionary of field/value pairs to merge with ann_dict_2
+    prepend = if True then add ann_dict_2 values to the front of any ann_dict_1
+              values that are already present, rather than the default behavior
+              of appending ann_dict_2 values.
+    delimiter = a tuple of delimiters for (fields, values, value lists)
     
     Returns: 
-    a modified fields_1 dictonary of {field:value}
+    a modified ann_dict_1 dictonary of {field:values}
     """
+    # Define merge order
+    if prepend:
+        def _merge(x, y):  return '%s%s%s' % (y, delimiter[2], x)
+    else:
+        def _merge(x, y):  return '%s%s%s' % (x, delimiter[2], y)
+
+    merged_dict = ann_dict_1.copy()
     for k, v in ann_dict_2.iteritems():
-        if k.upper() == 'ID':  continue
-        if k in ann_dict_1:  
-            if isinstance(ann_dict_1[k], list):
-                ann_dict_1[k] = delimiter[2].join([str(x) for x in ann_dict_1[k]])
+        # Skip ID field
+        if k.upper() == 'ID':
+            continue
+
+        if k in merged_dict:
+            if isinstance(merged_dict[k], list):
+                merged_dict[k] = delimiter[2].join([str(x) for x in merged_dict[k]])
             if isinstance(v, list):
                 v = delimiter[2].join([str(x) for x in v])
-            ann_dict_1[k] += '%s%s' % (delimiter[2], v)
+            merged_dict[k] = _merge(merged_dict[k], v)
         else:  
-            ann_dict_1[k.upper()] = v
+            merged_dict[k.upper()] = v
 
-    return ann_dict_1
+    return merged_dict
 
 
 def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter):
@@ -220,16 +237,16 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
     a modified fields dictonary of {field:value}
     """
     if new_field in ann_dict:
-        new_ann = ann_dict.copy()
-        del new_ann[old_field]
-        mergeAnnotation(new_ann, {new_field:ann_dict[old_field]}, delimiter=delimiter)
+        rename_dict = ann_dict.copy()
+        del rename_dict[old_field]
+        mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
     else:
-        new_ann = OrderedDict([(new_field, v) if k == old_field else (k, v) \
-                               for k, v in ann_dict.iteritems()])
+        rename_dict = OrderedDict([(new_field, v) if k == old_field else (k, v) \
+                                   for k, v in ann_dict.iteritems()])
 
-    return new_ann
+    return rename_dict
 
-
+# TODO:  this converted min/max/sum collapse to strings instead of floats (for rounding purposes). which is odd.
 def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimiter):
     """
     Collapses multiple annotations into new single annotations for each field
@@ -259,12 +276,13 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
     elif action == 'sum':
         def _collapse(value):  return '%.12g' % sum([float(x or 0) for x in value])
     elif action == 'cat':
-        def _collapse(value):  return ''.join(value)
+        def _collapse(value):  return ''.join([str(x) for x in value])
     else:
         def _collapse(value):  return value
 
-    # Collapse fields        
-    for k, v in ann_dict.iteritems():
+    # Collapse fields
+    collapse_dict = ann_dict.copy()
+    for k, v in collapse_dict.iteritems():
         if k.upper() == 'ID':
             continue
         if fields is None or k in fields:
@@ -274,9 +292,9 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
             elif not isinstance(v, list):
                 v = [v]
             # Perform _collapse and reassign field
-            ann_dict[k] = _collapse(v)       
+            collapse_dict[k] = _collapse(v)
 
-    return ann_dict
+    return collapse_dict
 
 
 def getAnnotationValues(seq_iter, field, unique=False, delimiter=default_delimiter):

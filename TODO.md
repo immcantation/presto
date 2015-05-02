@@ -1,19 +1,20 @@
-April 27, 2015
-Version 0.4.6
+Version 0.4.6:  May 2, 2015
+-------------------------------------------------------------------------------
 
-High Priority  
+High Priority:
+
 + Improve CollapseSeq algorithm for max_missing > 0
 + Add multiprocessing to CollapseSeq if needed after algorithm improvement
 + Try reduce overhead of sibling process exception detection in
   multiprocessing code.
 
-Low Priority  
+Low Priority:
+
 + Optimize everything
-+ Add --with-replacement parameter to sample and samplepair subcommands of
++ Add `--with-replacement` parameter to sample and samplepair subcommands of
   SplitSeq allowing sampling with replacement
-+ Add --decreasing parameter to sort subcommand of SplitSeq
-+ Add flag for bidirectional annotation copying to PairSeq
-+ Add --summary flag that generates count tables for plotting
++ Add `--decreasing` parameter to sort subcommand of SplitSeq
++ Add `--summary` flag that generates count tables for plotting
 + Add sequence field option to table subcommand of ParseHeaders to allow
   addition of the sequence as a column of the table
 + Write two wrappers for server-side sequential processing of
@@ -21,11 +22,11 @@ Low Priority
   intermediate files
 + Convert FASTA writing to use Bio.SeqIO.FastaIO(wrap=0)
 
-Potential Features  
+Potential Features:
+  
 + Maybe add copy actions to AssemblePairs
 + Maybe add fail files to ParseLog and table subcommand of ParseHeaders
 + Maybe add ParseLog subcommand that creates a summary table of counts
 + Maybe add a subcommand to SplitSeq enabling removal of a list of UIDs
 + Maybe add a purely positional barcode extraction mode to MaskPrimers
-+ Maybe add --plot flag to enable output of summary plots
-
++ Maybe add `--plot` flag to enable output of summary plots
