@@ -84,19 +84,15 @@ Installation - Mac OS X
    `> brew install --env=std gfortran`
    
 5. Install Python 2.7.5+ and set it as the default python executable:  
-   ```
-   > brew install python
-   > echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile
-   ```
+   `> brew install python`  
+   `> echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile`  
    Exit and reopen the terminal application so the PATH setting takes effect
 
 6. Install NumPy, SciPy, pandas and Biopyton using the Python package manager:  
-   ```
-   > pip install numpy
-   > pip install scipy
-   > pip install pandas
-   > pip install biopython
-   ```
+   `> pip install numpy`  
+   `> pip install scipy`  
+   `> pip install pandas`  
+   `> pip install biopython`  
    
 7. Add the pRESTO installation to your `PATH` setting. For example,
    if you copy the pRESTO scripts into `/Users/Username/presto`, then set:  
