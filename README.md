@@ -1,4 +1,33 @@
-Linux
+Version 0.4.6:  May 4, 2015
+==============================================================================
+
+pRESTO is a toolkit for processing raw reads from high-throughput sequencing 
+of lymphocyte repertoires. Dramatic improvements in high-throughput sequencing 
+technologies now enable large-scale characterization of immunoglobulin 
+repertoires, defined as the collection of trans-membrane antigen-receptor 
+proteins located on the surface of T and B lymphocytes. The REpertoire 
+Sequencing TOolkit (pRESTO) is composed of a suite of utilities to handle all 
+stages of sequence processing prior to germline segment assignment. pRESTO is 
+designed to handle either single reads or paired-end reads. It includes 
+features for quality control, primer masking, annotation of reads with sequence 
+embedded barcodes, generation of single-molecule consensus sequences, assembly 
+of paired-end reads and identification of duplicate sequences. Numerous options 
+for sequence sorting, sampling and conversion operations are also included.
+
+
+Requirements
+-------------------------------------------------------------------------------
+
+* Python 2.7.5       http://python.org
+* NumPy 1.7          http://numpy.org
+* SciPy 0.12         http://scipy.org
+* pandas 0.12        http://pandas.pydata.org
+* Biopython 1.59     http://biopython.org
+* MUSCLE v3.8        http://www.drive5.com/muscle
+* USEARCH v7.0       http://www.drive5.com/usearch
+
+
+Installation - Linux
 -------------------------------------------------------------------------------
 
 1. The simplest way to install all Python dependencies is to install the full 
@@ -10,7 +39,7 @@ Linux
    directory to your `$PATH`.
 
 
-Windows
+Installation - Windows
 -------------------------------------------------------------------------------
 
 1. Install Python 2.7.5+ from [Python](http://python.org/download).
@@ -31,7 +60,7 @@ Windows
    `python.exe` from Python 2.7, and checking 'Always use the selected program'.
    
 
-Mac OS X
+Installation - Mac OS X
 -------------------------------------------------------------------------------
 
 1. Install Xcode 3.2.6
@@ -70,6 +99,6 @@ Mac OS X
    ```
    
 7. Add the pRESTO installation to your `PATH` setting. For example,
-   if you copy the pRESTO scripts into `/Users/Username/pRESTO`, then set:  
-   `> echo 'export PATH=$HOME/pRESTO:$PATH' >> ~/.profile`  
+   if you copy the pRESTO scripts into `/Users/Username/presto`, then set:  
+   `> echo 'export PATH=$HOME/presto:$PATH' >> ~/.profile`  
    Exit and reopen the terminal application so the PATH setting takes effect
