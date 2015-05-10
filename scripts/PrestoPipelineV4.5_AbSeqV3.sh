@@ -121,7 +121,7 @@ MaskPrimers.py score -s $MPR2_FILE -p $R2_PRIMERS --mode cut \
 # Assign UIDs to read 1 sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
 PairSeq.py -1 "${OUTNAME}-R2_primers-pass.fastq" -2 "${OUTNAME}-R1_primers-pass.fastq" \
-    -f BARCODE --coord illumina >> $PIPELINE_LOG 2> $ERROR_LOG
+    --1f BARCODE --coord illumina >> $PIPELINE_LOG 2> $ERROR_LOG
 
 # Multiple align UID read groups
 if $ALIGN_UIDSETS; then

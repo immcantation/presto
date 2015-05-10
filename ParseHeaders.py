@@ -262,7 +262,7 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
 
 def convertHeaders(seq_file, out_args=default_out_args):
     """
-    Builds a table of sequence header annotations
+    Converts sequence headers to the pRESTO format
 
     Arguments: 
     seq_file = the sequence file name

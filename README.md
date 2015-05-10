@@ -1,5 +1,5 @@
 Version 0.4.6:  May 4, 2015
-==============================================================================
+===============================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing 
 of lymphocyte repertoires. Dramatic improvements in high-throughput sequencing 
