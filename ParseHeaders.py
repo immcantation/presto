@@ -260,107 +260,6 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     return out_handle.name
 
 
-def convertHeaders(seq_file, out_args=default_out_args):
-    """
-    Converts sequence headers to the pRESTO format
-
-    Arguments: 
-    seq_file = the sequence file name
-    out_args = common output argument dictionary from parseCommonArgs
-                    
-    Returns: 
-    the output sequence file name
-    """
-    log = OrderedDict()
-    log['START'] = 'ParseHeaders'
-    log['COMMAND'] = 'convert'
-    log['FILE'] = os.path.basename(seq_file)
-    printLog(log)
-    
-    # Open input file
-    in_type = getFileType(seq_file)
-    seq_iter = readSeqFile(seq_file)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
-    
-    # Count records
-    result_count = countSeqFile(seq_file)
-
-    # Define replacement regular expressions
-    d = re.escape(out_args['delimiter'][0])
-    end_re = re.compile('(\s+%s+\s+)|(\s+%s+)|(%s+\s+)' % (d, d, d))
-    inner_re = re.compile('%s+' % d)
-    space_re = re.compile(r'\s+')
-
-    # Open output file handles
-    pass_handle = getOutputHandle(seq_file, 
-                                  'reheader-pass', 
-                                  out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'], 
-                                  out_type=out_args['out_type'])
-    if out_args['failed']:
-        fail_handle = getOutputHandle(seq_file, 
-                                      'reheader-fail', 
-                                      out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'], 
-                                      out_type=out_args['out_type'])
-    else:
-        fail_handle = None
-        
-    # Iterate over sequences
-    start_time = time()
-    seq_count = pass_count = fail_count = 0
-    for seq in seq_iter:
-        # Print progress for previous iteration and update count
-        printProgress(seq_count, result_count, 0.05, start_time)
-        seq_count += 1
-        
-        try:
-            # Check if header is already valid
-            parseAnnotation(seq.description, delimiter=out_args['delimiter'])
-        except:
-            # Attempt to convert header
-            header = re.sub(end_re, ' ', seq.description)
-            header = re.sub(inner_re, '_', header)
-            header = re.sub(space_re, ' ', header)
-            try:
-                # Check if modified header is valid
-                parseAnnotation(header, delimiter=out_args['delimiter'])
-            except:
-                # Assign header to None if header cannot be converted
-                header = None
-        else:
-            # Assign header to seq.description if already valid
-            header = seq.description
-
-        if header is not None:
-            # Write successfully converted sequences
-            pass_count += 1
-            seq.id = seq.name = header
-            seq.description = ''
-            SeqIO.write(seq, pass_handle, out_args['out_type'])
-        else:
-            fail_count += 1
-            if fail_handle is not None:
-                # Write successfully unconverted sequences
-                SeqIO.write(seq, fail_handle, out_args['out_type'])
-        
-    # Print counts
-    printProgress(seq_count, result_count, 0.05, start_time)
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
-    log['SEQUENCES'] = seq_count
-    log['PASS'] = pass_count
-    log['FAIL'] = fail_count
-    log['END'] = 'ParseHeaders'
-    printLog(log)
-
-    # Close file handles
-    pass_handle.close()
-    if fail_handle is not None:  fail_handle.close()
-    
-    return pass_handle.name
-
-
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -464,13 +363,7 @@ def getArgParser():
                               help='''List of fields to collect. The sequence identifier may
                                    be specified using the hidden field name "ID".''')
     parser_table.set_defaults(func=tableHeaders)
-    
-    # Subparser to convert header to pRESTO format
-    parser_convert = subparsers.add_parser('convert', parents=[getCommonArgParser(log=False)],
-                                       formatter_class=CommonHelpFormatter,
-                                       help='Converts sequence descriptions to pRESTO format.')
-    parser_convert.set_defaults(func=convertHeaders)
-    
+
     return parser
 
     

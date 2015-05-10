@@ -16,6 +16,11 @@ BuildConsensus:
 + Fixed misalignment of consensus sequence against input sequences when
   positions are deleted due to exceeding the `--maxgap` threshold.
 
+ConvertHeaders:
+
++ New script to handle conversion of different sequence description formats to
+  the pRESTO format.
+  
 FilterSeq:
 
 + Added count of masked characters to log output of maskqual subcommand.
@@ -25,6 +30,11 @@ PairSeq:
 
 + Changed `-f` argument to `--1f` argument.
 + Added `--2f` argument to copy file 2 annotations to file 1.
+
+ParseHeaders:
+
++ Moved convert subcommand to the generic subcommand of the new ConvertHeaders 
+  script and modified the conversion behavior.
 
 
 Version 0.4.5:  March 20, 2015
