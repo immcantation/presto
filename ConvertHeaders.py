@@ -148,30 +148,31 @@ def convertIlluminaHeader(desc):
         if len(fields) == 2:
             x = fields[1].split(':')
             index = x[3]
-            read = x[0]
+            read_num = x[0]
         else:
             fields = desc.split('#')
             x = fields[1].split('/')
             index = x[0]
-            read = x[1]
+            read_num = x[1]
 
         # Build header dictionary
         header = OrderedDict()
         header['ID'] = fields[0]
         header['INDEX'] = index
-        header['READ'] = read
+        header['READ'] = read_num
     except:
         header = None
 
     return header
 
 
-def convertIMGTHeader(desc):
+def convertIMGTHeader(desc, simple=False):
     """
     Converts germline headers from IMGT/GENE-DB into the pRESTO format
 
     Arguments:
     desc = a sequence description string
+    simple = if True then the header will be converted to only the allele name
 
     Returns:
     a dictionary of header {field: value} pairs
@@ -210,11 +211,13 @@ def convertIMGTHeader(desc):
         # Build header dictionary
         header = OrderedDict()
         header['ID'] = fields[1]
-        header['SPECIES'] = re.sub('\s', '_', fields[2])
-        header['REGION'] = fields[4]
-        header['FUNCTIONALITY'] = re.sub('[\(\)\[\]]', '', fields[3])
-        header['PARTIAL'] = 'FALSE' if re.sub('\s', '', fields[13]) == '' else 'TRUE'
-        header['ACCESSION'] = fields[0]
+
+        if not simple:
+            header['SPECIES'] = re.sub('\s', '_', fields[2])
+            header['REGION'] = fields[4]
+            header['FUNCTIONALITY'] = re.sub('[\(\)\[\]]', '', fields[3])
+            header['PARTIAL'] = 'FALSE' if re.sub('\s', '', fields[13]) == '' else 'TRUE'
+            header['ACCESSION'] = fields[0]
 
         # Position and length data
         #header['NUCLEOTIDES'] = re.sub('[^0-9]', '', fields[6])
@@ -255,13 +258,14 @@ def convertSRAHeader(desc):
     return header
 
 
-def convertHeaders(seq_file, convert_func, out_args=default_out_args):
+def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out_args):
     """
     Converts sequence headers to the pRESTO format
 
     Arguments:
     seq_file = the sequence file name
     convert_func = the function used to convert sequence headers
+    convert_args = a dictionary of arguments to pass to convert_func
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
@@ -306,9 +310,7 @@ def convertHeaders(seq_file, convert_func, out_args=default_out_args):
 
     # Set additional conversion arguments
     if convert_func == convertGenericHeader:
-        convert_args = {'delimiter':out_args['delimiter']}
-    else:
-        convert_args = {}
+        convert_args.update({'delimiter':out_args['delimiter']})
 
     # Iterate over sequences
     start_time = time()
@@ -411,6 +413,10 @@ def getArgParser():
                                         formatter_class=CommonHelpFormatter,
                                         help='''Converts sequence headers output by
                                              IMGT/GENE-DB.''')
+    parser_imgt.add_argument('--simple', action='store_true', dest='simple',
+                             help='''If specified, only the allele name, and no other
+                                  annotations, will appear in the converted sequence
+                                  header.''')
     parser_imgt.set_defaults(convert_func=convertIMGTHeader)
 
     # Subparser for conversion of SRA headers
@@ -430,6 +436,12 @@ if __name__ == '__main__':
     parser = getArgParser()
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
+
+    # Create convert_args
+    convert_keys = ['simple']
+    args_dict['convert_args'] = dict((k, args_dict[k]) for k in args_dict \
+                                     if k in convert_keys)
+    for k in args_dict['convert_args']:  del args_dict[k]
 
     # Calls header conversion function
     del args_dict['seq_files']

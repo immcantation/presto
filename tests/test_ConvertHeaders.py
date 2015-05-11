@@ -1,6 +1,8 @@
 """
 Unit tests for ConvertHeaders
 """
+# Future
+from __future__ import absolute_import, division, print_function
 
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
@@ -17,7 +19,7 @@ from Bio.SeqRecord import SeqRecord
 
 class TestConvertHeaders(unittest.TestCase):
     def setUp(self):
-        print '-> %s()' % self._testMethodName
+        print('-> %s()' % self._testMethodName)
         # Test DNA
         self.desc_imgt = ['M99641|IGHV1-18*01|Homo sapiens|F|V-REGION|188..483|296 nt|1| | | | |296+24=320| | |',
 						  'Z29978|IGHV1-69*07|Homo sapiens|F|V-REGION|1..233|233 nt|1| | | | |233+58=291|partial in 5\' and in 3\' | |',
@@ -42,19 +44,19 @@ class TestConvertHeaders(unittest.TestCase):
     def tearDown(self):
         # End clock
         t = time.time() - self.start
-        print '<- %s() %.3f' % (self._testMethodName, t)
+        print('<- %s() %.3f' % (self._testMethodName, t))
 
     #@unittest.skip('-> convertGenericHeader() skipped\n')
     def test_convertGenericHeader(self):
         results = [mod.convertGenericHeader(x) for x in self.desc_genbank]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
         results = [mod.convertGenericHeader(x) for x in self.desc_imgt]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
@@ -62,7 +64,13 @@ class TestConvertHeaders(unittest.TestCase):
     def test_convertIMGTHeader(self):
         results = [mod.convertIMGTHeader(x) for x in self.desc_imgt]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
+
+        self.assertTrue(all([x is not None for x in results]))
+
+        results = [mod.convertIMGTHeader(x, simple=True) for x in self.desc_imgt]
+        for x in results:
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
@@ -70,7 +78,7 @@ class TestConvertHeaders(unittest.TestCase):
     def test_convertIlluminaHeader(self):
         results = [mod.convertIlluminaHeader(x) for x in self.desc_illumina]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
@@ -78,7 +86,7 @@ class TestConvertHeaders(unittest.TestCase):
     def test_convertGenbankHeader(self):
         results = [mod.convertGenbankHeader(x) for x in self.desc_genbank]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
@@ -86,7 +94,7 @@ class TestConvertHeaders(unittest.TestCase):
     def test_convertSRAHeader(self):
         results = [mod.convertSRAHeader(x) for x in self.desc_sra]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
@@ -94,6 +102,6 @@ class TestConvertHeaders(unittest.TestCase):
     def test_convert454Header(self):
         results = [mod.convert454Header(x) for x in self.desc_454]
         for x in results:
-            print '%s' % x
+            print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))

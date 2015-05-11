@@ -16,6 +16,11 @@ BuildConsensus:
 + Fixed misalignment of consensus sequence against input sequences when
   positions are deleted due to exceeding the `--maxgap` threshold.
 
+ClusterSets:
+
++ New script to cluster read groups by barcode field (eg, UID barcodes) into
+  clustering with the read group.
+
 ConvertHeaders:
 
 + New script to handle conversion of different sequence description formats to

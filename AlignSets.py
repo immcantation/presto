@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.03.20'
+__date__      = '2015.05.11'
 
 # Imports
 import csv, os, sys, textwrap
@@ -18,7 +18,6 @@ from itertools import izip
 from subprocess import PIPE, Popen
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
-from Bio.Align.Applications import MuscleCommandline
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -38,9 +37,9 @@ from IgCore import manageProcesses, SeqResult
 default_muscle_exec = r'/usr/local/bin/muscle'
 
 
-def alignSeqSet(seq_list, muscle_exec=default_muscle_exec):
+def runMuscle(seq_list, muscle_exec=default_muscle_exec):
     """
-    Multiple aligns a set of sequences
+    Multiple aligns a set of sequences using MUSCLE
 
     Arguments: 
     seq_list = a list of SeqRecord objects to align
@@ -55,7 +54,7 @@ def alignSeqSet(seq_list, muscle_exec=default_muscle_exec):
         return align
     
     # Set MUSCLE command
-    cmd = MuscleCommandline(muscle_exec, maxiters=2, diags=True)
+    cmd = [muscle_exec, '-diags', '-maxiters', '2']
 
     # Convert sequences to FASTA and write to string
     stdin_handle = StringIO()
@@ -64,8 +63,7 @@ def alignSeqSet(seq_list, muscle_exec=default_muscle_exec):
     stdin_handle.close()
     
     # Open MUSCLE process
-    child = Popen(str(cmd), stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  shell=(sys.platform != 'win32'))
+    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     # Send sequences to MUSCLE stdin and retrieve stdout, stderr
     stdout_str, __ = child.communicate(stdin_str)
@@ -128,7 +126,7 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     return align
 
 
-def getOffsets(seq_list, align_func=alignSeqSet, align_args={}, reverse=False):
+def getOffsets(seq_list, align_func=runMuscle, align_args={}, reverse=False):
     """
     Create an offset dictionary for a list of sequences
 
@@ -177,7 +175,7 @@ def readOffsetFile(offset_file):
     return offset_dict
 
 
-def writeOffsetFile(primer_file, align_func=alignSeqSet, align_args={}, 
+def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
                     reverse=False, out_args=default_out_args):
     """
     Generates an offset table from a sequence file
@@ -331,12 +329,12 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     a tuple of (valid_file, invalid_file) names
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignSeqSet:'align', offsetSeqSet:'offset'}
+    cmd_dict = {runMuscle:'align', offsetSeqSet:'offset'}
     
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AlignSets'
-    log['COMMAND'] = cmd_dict.get(align_func, align_func.__name__)
+    log['COMMAND'] = cmd_dict[align_func]
     log['FILE'] = os.path.basename(seq_file)
     if 'mode' in align_args: log['MODE'] = align_args['mode']
     log['BARCODE_FIELD'] = barcode_field
@@ -422,7 +420,7 @@ def getArgParser():
                                           help='Align sequence sets using MUSCLE')
     parser_muscle.add_argument('--exec', action='store', dest='muscle_exec', default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
-    parser_muscle.set_defaults(align_func=alignSeqSet)
+    parser_muscle.set_defaults(align_func=runMuscle)
 
     # Primer offset mode argument parser
     parser_offset = subparsers.add_parser('offset', parents=[parser_parent],
@@ -449,7 +447,7 @@ def getArgParser():
                                help='If specified create a 3\' offset table instead')
     parser_table.add_argument('--exec', action='store', dest='muscle_exec', default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
-    parser_table.set_defaults(align_func=alignSeqSet)
+    parser_table.set_defaults(align_func=runMuscle)
     
     return parser
 
@@ -474,7 +472,7 @@ if __name__ == '__main__':
         parser.error('%s does not exist' % args.muscle_exec)
     
     # Define align_args
-    if args_dict['align_func'] is alignSeqSet:
+    if args_dict['align_func'] is runMuscle:
         args_dict['align_args'] = {'muscle_exec':args_dict['muscle_exec']}
         del args_dict['muscle_exec']
     elif args_dict['align_func'] is offsetSeqSet:

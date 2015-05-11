@@ -3,7 +3,7 @@
 Assembles paired-end reads into a single sequence
 """
 
-__author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Chris Bolen'
+__author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
@@ -136,7 +136,7 @@ class AssemblyStats:
         return z_matrix
 
 
-def makeUsearchDb(ref_file, usearch_exec=default_usearch_exec):
+def makeUSearchDb(ref_file, usearch_exec=default_usearch_exec):
     """
     Makes a usearch database file for ublast
 
@@ -161,10 +161,10 @@ def makeUsearchDb(ref_file, usearch_exec=default_usearch_exec):
     return db_handle
 
 
-def getBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+def runBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
                        blastn_exec=default_blastn_exec):
     """
-    Aligns a sequence against a reference database using ublast
+    Aligns a sequence against a reference database using BLASTN
 
     Arguments:
     seq = a SeqRecord objects to align
@@ -204,10 +204,10 @@ def getBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     return align_df
 
 
-def getUblastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
                        usearch_exec=default_usearch_exec):
     """
-    Aligns a sequence against a reference database using ublast
+    Aligns a sequence against a reference database using the UBLAST algorith of USEARCH
 
     Arguments:
     seq = a SeqRecord objects to align
@@ -289,9 +289,9 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
                   'phred_quality' in tail_seq.letter_annotations
 
     # Align against reference
-    head_df = getUblastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
+    head_df = runUBlastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
                                  usearch_exec=usearch_exec)
-    tail_df = getUblastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
+    tail_df = runUBlastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
                                  usearch_exec=usearch_exec)
 
     # Subset results to matching reference assignments

@@ -62,8 +62,8 @@ class TestAssemblePairs(unittest.TestCase):
 
     #@unittest.skip("-> getUBlastAlignment() skipped\n")
     def test_getUBlastAlignment(self):
-        head_df = mod.getUblastAlignment(self.head_rec, self.ref_file)
-        tail_df = mod.getUblastAlignment(self.tail_rec, self.ref_file)
+        head_df = mod.runUBlastAlignment(self.head_rec, self.ref_file)
+        tail_df = mod.runUBlastAlignment(self.tail_rec, self.ref_file)
         print 'HEAD SEQUENCE>'
         print head_df
         print 'TAIL SEQUENCE>'
@@ -72,8 +72,8 @@ class TestAssemblePairs(unittest.TestCase):
 
     @unittest.skip("-> getBlastnAlignment() skipped\n")
     def test_getBlastnAlignment(self):
-        head_df = mod.getBlastnAlignment(self.head_rec, self.ref_file)
-        tail_df = mod.getBlastnAlignment(self.tail_rec, self.ref_file)
+        head_df = mod.runBlastnAlignment(self.head_rec, self.ref_file)
+        tail_df = mod.runBlastnAlignment(self.tail_rec, self.ref_file)
         print 'HEAD SEQUENCE>'
         print head_df
         print 'TAIL SEQUENCE>'
