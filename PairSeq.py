@@ -6,8 +6,8 @@ Sorts and matches sequence records with matching coordinates across files
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2015.03.20'
+__version__   = '0.4.6'
+__date__      = '2015.05.12'
 
 # Imports
 import os, sys, textwrap
@@ -194,11 +194,12 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 pair-pass    successfully paired reads with modified annotations.
+               pair-pass             successfully paired reads with modified annotations.
+               pair-fail             raw reads that could not be assigned to a mate-pair.
 
              output annotation fields:
-                 <user defined>
-                              annotation fields specified by the -f parameter.
+               <user defined>        annotation fields specified by the --1f or --2f
+                                     parameters.
              ''')
 
     # Define ArgumentParser

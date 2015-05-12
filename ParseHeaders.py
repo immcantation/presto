@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.03.20'
+__date__      = '2015.05.12'
 
 # Imports
 import csv, os, re, sys, textwrap
@@ -274,14 +274,12 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 reheader-pass
-                              reads passing annotation operation and modified accordingly.
-                 reheader-fail
-                              raw reads failing annotation operation.
-                 headers      tab delimited table of the selected annotations.
+               reheader-pass  reads passing annotation operation and modified accordingly.
+               reheader-fail  raw reads failing annotation operation.
+               headers        tab delimited table of the selected annotations.
 
              output annotation fields:
-                 <user defined>
+               <user defined>
                               annotation fields specified by the -f parameter.
              ''')
 

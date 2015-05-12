@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.03.20'
+__date__      = '2015.05.12'
 
 # Imports
 import os, random, sys, textwrap
@@ -154,7 +154,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
         # Create output handles
         # out_label = '%s=%s' % (field, tag)
         handles_dict = {tag:getOutputHandle(seq_file, 
-                                            tag,
+                                            '%s-%s' % (field, tag),
                                             out_dir=out_args['out_dir'], 
                                             out_name=out_args['out_name'], 
                                             out_type=out_args['out_type'])
@@ -256,7 +256,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
         
         # Write sampled sequences to files
         with getOutputHandle(seq_file, 
-                             'sample%i-n=%i' % (i + 1, sample_count), 
+                             'sample%i-n%i' % (i + 1, sample_count),
                              out_dir=out_args['out_dir'], 
                              out_name=out_args['out_name'], 
                              out_type=out_args['out_type']) as out_handle:
@@ -360,12 +360,12 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
 
         # Open file handles
         out_handle_1 = getOutputHandle(seq_file_1, 
-                                       'sample%i-n=%i' % (i + 1, sample_count),
+                                       'sample%i-n%i' % (i + 1, sample_count),
                                        out_dir=out_args['out_dir'], 
                                        out_name=out_name_1, 
                                        out_type=out_type_1)
         out_handle_2 = getOutputHandle(seq_file_2, 
-                                       'sample%i-n=%i' % (i + 1, sample_count),
+                                       'sample%i-n%i' % (i + 1, sample_count),
                                        out_dir=out_args['out_dir'], 
                                        out_name=out_name_2, 
                                        out_type=out_type_2)
@@ -526,22 +526,28 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 part<######> reads partitioned by count, where <######> is the partition.
-                 <value>      reads partitioned by annotation <value>.
-                 under-<#>    reads partitioned by numeric threshold where the annotation
-                              value is strictly less than the threshold <#>.
-                 atleast-<#>  reads partitioned by numeric threshold where the annotation
-                              value is greater than or equal to the threshold <#>.
-                 sorted       reads sorted by annotation value.
-                 sorted-part<######>
+               part<partition>
+                              reads partitioned by count, where <partition> is the
+                              partition number.
+               <field>-<value>
+                              reads partitioned by annotation <field> and <value>.
+               under-<number>
+                              reads partitioned by numeric threshold where the annotation
+                              value is strictly less than the threshold <number>.
+               atleast-<number>
+                              reads partitioned by numeric threshold where the annotation
+                              value is greater than or equal to the threshold <number>.
+               sorted         reads sorted by annotation value.
+               sorted-part<partition>
                               reads sorted by annotation value and partitioned by count,
-                              where <######> is the partition.
-                 sample<#>-n=<###>
-                              randomly sampled reads where <#> is the sampling instance
-                              and <###> is the number of sampled reads.
+                              where <partition> is the partition number.
+               sample<instance>-n<count>
+                              randomly sampled reads where <instance> is a number
+                              specifying the sampling instance and <count> is the number
+                              of sampled reads.
 
              output annotation fields:
-                 None
+               None
              ''')
 
     # Define ArgumentParser

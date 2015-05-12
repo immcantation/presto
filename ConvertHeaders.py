@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.05.10'
+__date__      = '2015.05.12'
 
 # Imports
 import os, re, sys, textwrap
@@ -366,10 +366,13 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 convert-pass
-                              reads passing header conversion.
-                 convert-fail
-                              raw reads failing header conversion.
+               convert-pass   reads passing header conversion.
+               convert-fail   raw reads failing header conversion.
+
+             output annotation fields:
+               <format defined>
+                              the annotation fields added are specific to the header format
+                              of the input file.
              ''')
 
     # Define ArgumentParser

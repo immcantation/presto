@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.04.04'
+__date__      = '2015.05.12'
 
 
 # Imports
@@ -362,16 +362,16 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 <subcommand>-pass
+               <subcommand>-pass
                               reads passing filtering operation and modified accordingly,
                               where <subcommand> is the name of the filtering operation
                               that was run.
-                 <subcommand>-fail
+               <subcommand>-fail
                               raw reads failing filtering criteria, where <subcommand> is
                               the name of the filtering operation.
 
              output annotation fields:
-                 None
+               None
              ''')
 
     # Define ArgumentParser

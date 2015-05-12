@@ -1,4 +1,4 @@
-Version 0.4.6:  May 4, 2015
+Version 0.4.6:  May 12, 2015
 ===============================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing 

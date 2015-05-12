@@ -1,4 +1,4 @@
-Version 0.4.6:  May 2, 2015
+Version 0.4.6:  May 12, 2015
 -------------------------------------------------------------------------------
 
 BuildConsensus:
@@ -19,7 +19,7 @@ BuildConsensus:
 ClusterSets:
 
 + New script to cluster read groups by barcode field (eg, UID barcodes) into
-  clustering with the read group.
+  clustering within the read group.
 
 ConvertHeaders:
 

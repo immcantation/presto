@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.03.20'
+__date__      = '2015.05.12'
 
 # Imports
 import csv, os, sys, textwrap
@@ -137,11 +137,10 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 table        tab delimited table of the selected annotations.
+               table                 tab delimited table of the selected annotations.
 
              output annotation fields:
-                 <user defined>
-                              annotation fields specified by the -f parameter.
+               <user defined>        annotation fields specified by the -f parameter.
              ''')
 
     # Define ArgumentParser

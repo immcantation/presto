@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.03.20'
+__date__      = '2015.05.12'
 
 # Imports
 import os, sys, textwrap
@@ -523,14 +523,14 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 mask-pass    processed reads with successful primer matches.
-                 mask-fail    raw reads failing primer identification.
+               mask-pass      processed reads with successful primer matches.
+               mask-fail      raw reads failing primer identification.
 
              output annotation fields:
-                 SEQORIENT    the orientation of the output sequence. Either F (input)
+               SEQORIENT      the orientation of the output sequence. Either F (input)
                               or RC (reverse complement of input).
-                 PRIMER       name of the best primer match.
-                 BARCODE      the sequence preceding the primer match. Only output when
+               PRIMER         name of the best primer match.
+               BARCODE        the sequence preceding the primer match. Only output when
                               the --barcode flag is specified.
              ''')
 

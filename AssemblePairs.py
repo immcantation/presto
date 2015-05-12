@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.03.20'
+__date__      = '2015.05.12'
 
 # Imports
 import csv, os, sys, tempfile, textwrap
@@ -976,15 +976,11 @@ def getArgParser():
     fields = textwrap.dedent(
              '''
              output files:
-                 assemble-pass
-                              successfully assembled reads.
-                 assemble-fail
-                              raw reads failing paired-end assembly.
-                 assemble-unpaired
-                              raw reads without a mate pair.
+               assemble-pass  successfully assembled reads.
+               assemble-fail  raw reads failing paired-end assembly.
 
              output annotation fields:
-                 <user defined>
+               <user defined>
                               annotation fields specified by the --1f and --2f parameters.
              ''')
 

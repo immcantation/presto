@@ -6,11 +6,11 @@ Cluster sequences by group
 __author__    = 'Christopher Bolen, Jason Vander Heiden'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.05.11'
+__date__      = '2015.05.12'
 
 # Imports
-import csv, os, sys, tempfile, time
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+import csv, os, sys, tempfile, textwrap, time
+from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
 from Bio import SeqIO
@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import default_barcode_field
 from IgCore import parseAnnotation, mergeAnnotation, flattenAnnotation
-from IgCore import getCommonArgParser, parseCommonArgs, printLog
+from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs, printLog
 from IgCore import indexSeqSets, collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
 
@@ -265,29 +265,47 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # Define output file names and header fields
+    fields = textwrap.dedent(
+         '''
+         output files:
+           cluster-pass          clustered reads.
+           cluster-fail          raw reads failing clustering.
+
+         output annotation fields:
+           CLUSTER               a numeric cluster identifier defining the within-group
+                                 cluster.
+
+         ''')
+
     # Define ArgumentParser
-    parser = ArgumentParser(description=__doc__, version='%(prog)s:' + ' v%s-%s' %(__version__, __date__), 
+    parser = ArgumentParser(description=__doc__, epilog=fields,
+                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(multiproc=True)], 
-                            formatter_class=ArgumentDefaultsHelpFormatter)
+                            formatter_class=CommonHelpFormatter)
       
     parser.add_argument('--bf', action='store', dest='barcode_field', type=str,
-                               default=default_barcode_field, 
-                               help='The annotation field containing barcode labels for sequence grouping')
+                        default=default_barcode_field,
+                        help='''The annotation field containing barcode labels for
+                             sequence grouping.''')
         
     # usearch arguments
     parser.add_argument('--cf', action='store', dest='cluster_field', type=str, 
-                               default=default_cluster_field,
-                               help='The name of the annotation field to add with the cluster information for each sequence')
-    parser.add_argument('--id', action='store', dest='ident', type=float, default=default_ident,
-                               help='The sequence identity threshold for the usearch algorithm')
+                        default=default_cluster_field,
+                        help='''The name of the annotation field to add with the cluster
+                             information for each sequence.''')
+    parser.add_argument('--id', action='store', dest='ident', type=float,
+                        default=default_ident,
+                        help='The sequence identity threshold for the usearch algorithm.')
     parser.add_argument('--start', action='store', dest='seq_start', type=int,
-                               help='The start of the region to be used for clustering. \
-                                     Together with --stop, this parameter can be used to specify a subsequence \
-                                     of each read to use in the clustering algorithm.')
+                        help='''The start of the region to be used for clustering.
+                             Together with --end, this parameter can be used to specify a
+                             subsequence of each read to use in the clustering algorithm.''')
     parser.add_argument('--end', action='store', dest='seq_end', type=int,
                         help='The end of the region to be used for clustering.')
-    parser.add_argument('--exec', action='store', dest='usearch_exec', default=default_usearch_exec,
-                        help='The location of the USEARCH executable')
+    parser.add_argument('--exec', action='store', dest='usearch_exec',
+                        default=default_usearch_exec,
+                        help='The location of the USEARCH executable.')
     
     return parser
 
