@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.05.12'
+__date__      = '2015.05.13'
 
 # Imports
 import os, re, sys, textwrap
@@ -86,12 +86,13 @@ def convert454Header(desc):
     return header
 
 
-def convertGenbankHeader(desc):
+def convertGenbankHeader(desc, delimiter=default_delimiter):
     """
     Converts Genbank and RefSeq headers into the pRESTO format
 
     Arguments:
     desc = a sequence description string
+    delimiter = a tuple of delimiters for (fields, values, value lists)
 
     Returns:
     a dictionary of header {field: value} pairs
@@ -103,6 +104,9 @@ def convertGenbankHeader(desc):
         >gi|568336023|gb|CM000663.2| Homo sapiens chromosome 1, GRCh38 reference primary assembly
         gi|<GI record number>|<dbsrc>|<accession>.<version>|<description>
     """
+    # Define special characters to replace
+    sub_regex = '[%s\s]+' % re.escape(''.join(delimiter[1:]))
+
     # Split description and assign field names
     try:
         header = OrderedDict()
@@ -113,11 +117,11 @@ def convertGenbankHeader(desc):
             header['ID'] = fields[3]
             header['GI'] = fields[1]
             header['SOURCE'] = fields[2]
-            header['DESC'] = fields[4].strip()
+            header['DESC'] = re.sub(sub_regex, '_', fields[4].strip())
         else:
             fields = desc.split(' ')
             header['ID'] = fields[0]
-            header['DESC'] = ' '.join(fields[1:]).strip()
+            header['DESC'] = re.sub(sub_regex, '_', '_'.join(fields[1:]).strip())
     except:
         header = None
 
@@ -309,7 +313,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
         fail_handle = None
 
     # Set additional conversion arguments
-    if convert_func == convertGenericHeader:
+    if convert_func in [convertGenericHeader, convertGenbankHeader]:
         convert_args.update({'delimiter':out_args['delimiter']})
 
     # Iterate over sequences

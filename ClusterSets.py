@@ -6,7 +6,7 @@ Cluster sequences by group
 __author__    = 'Christopher Bolen, Jason Vander Heiden'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.6'
-__date__      = '2015.05.12'
+__date__      = '2015.05.13'
 
 # Imports
 import csv, os, sys, tempfile, textwrap, time
