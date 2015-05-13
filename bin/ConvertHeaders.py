@@ -10,19 +10,25 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import os, re, sys, textwrap
+import os
+import re
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from time import time
+
 from Bio import SeqIO
+
+import sys
+from time import time
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import parseAnnotation, flattenAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile, getFileType
+from presto.IgCore import default_delimiter, default_out_args
+from presto.IgCore import parseAnnotation, flattenAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog, printProgress
+from presto.IgCore import countSeqFile, readSeqFile, getFileType
 
 
 def convertGenericHeader(desc, delimiter=default_delimiter):

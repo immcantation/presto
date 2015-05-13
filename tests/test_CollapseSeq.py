@@ -10,12 +10,12 @@ __date__      = '2014.12.12'
 
 # Imports
 import unittest
-import CollapseSeq as mod
-import time
-from timeit import timeit
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import testSeqEqual
+
+import time
+from presto.IgCore import testSeqEqual
 
 
 class TestCollapseSeq(unittest.TestCase):

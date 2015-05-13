@@ -11,21 +11,26 @@ __date__      = '2015.05.13'
 
 
 # Imports
-import os, sys, textwrap
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import groupby
+
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+import sys
+from itertools import groupby
+
+
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_min_qual, default_out_args, default_missing_chars
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, printLog
-from IgCore import collectSeqQueue, feedSeqQueue, processSeqQueue
-from IgCore import manageProcesses, SeqResult
+from presto.IgCore import default_min_qual, default_out_args, default_missing_chars
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getFileType, printLog
+from presto.IgCore import collectSeqQueue, feedSeqQueue, processSeqQueue
+from presto.IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_max_missing = 10

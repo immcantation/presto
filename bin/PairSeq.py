@@ -10,19 +10,24 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import os, sys, textwrap
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from time import time
+
 from Bio import SeqIO
+
+import sys
+from time import time
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_coord_choices, default_coord_type, default_out_args
-from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printMessage, printProgress
-from IgCore import countSeqFile, getCoordKey, getFileType, readSeqFile
+from presto.IgCore import default_coord_choices, default_coord_type, default_out_args
+from presto.IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog, printMessage, printProgress
+from presto.IgCore import countSeqFile, getCoordKey, getFileType, readSeqFile
 
 
 def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,

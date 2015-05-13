@@ -10,28 +10,34 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import csv, os, sys, textwrap
+import csv
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
-from cStringIO import StringIO
-from itertools import izip
 from subprocess import PIPE, Popen
+
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+import sys
+from cStringIO import StringIO
+from itertools import izip
+
+
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import default_barcode_field, default_primer_field
-from IgCore import parseAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog
-from IgCore import indexSeqSets, calculateDiversity, readPrimerFile
-from IgCore import collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+from presto.IgCore import default_delimiter, default_out_args
+from presto.IgCore import default_barcode_field, default_primer_field
+from presto.IgCore import parseAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog
+from presto.IgCore import indexSeqSets, calculateDiversity, readPrimerFile
+from presto.IgCore import collectSeqQueue, feedSeqQueue
+from presto.IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_muscle_exec = r'/usr/local/bin/muscle'

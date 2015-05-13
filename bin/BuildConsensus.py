@@ -10,26 +10,31 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import os, sys, textwrap
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip, izip_longest
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
+import sys
+from itertools import izip, izip_longest
+
+
 # IgPipeline imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args, default_missing_chars
-from IgCore import default_barcode_field, default_min_freq
-from IgCore import annotationConsensus, getAnnotationValues
-from IgCore import flattenAnnotation, mergeAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs 
-from IgCore import getFileType, printLog 
-from IgCore import getScoreDict, frequencyConsensus, qualityConsensus
-from IgCore import calculateDiversity, indexSeqSets, subsetSeqSet
-from IgCore import collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+from presto.IgCore import default_delimiter, default_out_args, default_missing_chars
+from presto.IgCore import default_barcode_field, default_min_freq
+from presto.IgCore import annotationConsensus, getAnnotationValues
+from presto.IgCore import flattenAnnotation, mergeAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getFileType, printLog
+from presto.IgCore import getScoreDict, frequencyConsensus, qualityConsensus
+from presto.IgCore import calculateDiversity, indexSeqSets, subsetSeqSet
+from presto.IgCore import collectSeqQueue, feedSeqQueue
+from presto.IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_min_count = 1

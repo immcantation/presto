@@ -10,23 +10,28 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import os, sys, textwrap
-import numpy as np
-import pandas as pd
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
+
+import numpy as np
+import pandas as pd
+
+import sys
 from itertools import permutations
 from time import time
 
+
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_missing_chars, default_barcode_field, default_out_args
-from IgCore import default_min_freq, default_min_qual
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress, getFileType
-from IgCore import getScoreDict, calculateDiversity, countSeqSets, indexSeqSets
-from IgCore import frequencyConsensus, qualityConsensus
-from IgCore import feedSeqQueue, manageProcesses, SeqResult
+from presto.IgCore import default_missing_chars, default_barcode_field, default_out_args
+from presto.IgCore import default_min_freq, default_min_qual
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog, printProgress, getFileType
+from presto.IgCore import getScoreDict, calculateDiversity, countSeqSets, indexSeqSets
+from presto.IgCore import frequencyConsensus, qualityConsensus
+from presto.IgCore import feedSeqQueue, manageProcesses, SeqResult
 
 # Defaults
 default_min_count = 10

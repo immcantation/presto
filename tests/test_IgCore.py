@@ -9,11 +9,16 @@ __version__   = '0.4.5'
 __date__      = '2015.04.06'
 
 # Imports
-import itertools, time, unittest
-import IgCore as mod
+import unittest
 from collections import OrderedDict
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+
+import itertools
+import time
+from presto import IgCore as mod
+
 
 class TestIgCore(unittest.TestCase):
     def setUp(self):

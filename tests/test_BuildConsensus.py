@@ -11,9 +11,9 @@ __version__   = '0.4.5'
 __date__      = '2015.04.20'
 
 # Imports
-import itertools, time, unittest
-import IgCore as core
-import BuildConsensus as mod
+import time, unittest
+from presto import IgCore as core
+from bin import BuildConsensus as mod
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 

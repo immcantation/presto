@@ -9,12 +9,15 @@ __version__   = '0.4.5'
 __date__      = '2014.12.11'
 
 # Imports
-import time, unittest
+import unittest
+
 import pandas as pd
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import readSeqFile
-import AssemblePairs as mod
+
+import time
+from presto.IgCore import readSeqFile
+from bin import AssemblePairs as mod
 
 
 class TestAssemblePairs(unittest.TestCase):

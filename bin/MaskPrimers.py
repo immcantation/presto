@@ -10,21 +10,26 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import os, sys, textwrap
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip
+
 from Bio import pairwise2
+
+import sys
+from itertools import izip
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getScoreDict, reverseComplement
-from IgCore import compilePrimers, readPrimerFile, printLog
-from IgCore import collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+from presto.IgCore import default_delimiter, default_out_args
+from presto.IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getScoreDict, reverseComplement
+from presto.IgCore import compilePrimers, readPrimerFile, printLog
+from presto.IgCore import collectSeqQueue, feedSeqQueue
+from presto.IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_max_error = 0.2

@@ -11,9 +11,8 @@ __version__   = '0.4.6'
 __date__      = '2015.05.10'
 
 # Imports
-import itertools, time, unittest
-import IgCore as core
-import ClusterSets as mod
+import time, unittest
+from bin import ClusterSets as mod
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 

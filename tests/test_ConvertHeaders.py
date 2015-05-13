@@ -11,11 +11,9 @@ __version__   = '0.4.6'
 __date__      = '2015.05.09'
 
 # Imports
-import itertools, time, unittest
-import ConvertHeaders as mod
-from collections import OrderedDict
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
+import time, unittest
+from bin import ConvertHeaders as mod
+
 
 class TestConvertHeaders(unittest.TestCase):
     def setUp(self):

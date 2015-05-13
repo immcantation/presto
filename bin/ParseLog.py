@@ -10,16 +10,21 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import csv, os, sys, textwrap
+import csv
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
+
+import sys
 from time import time
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
+from presto.IgCore import default_out_args
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog, printProgress
 
 
 def parseLogRecord(record):

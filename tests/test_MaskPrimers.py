@@ -9,11 +9,15 @@ __version__   = '0.4.5'
 __date__      = '2015.02.20'
 
 # Imports
-import time, unittest
-import MaskPrimers as mod
+import unittest
+
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import getScoreDict
+
+import time
+from bin import MaskPrimers as mod
+from presto.IgCore import getScoreDict
+
 
 class TestMaskPrimers(unittest.TestCase):
 

@@ -9,21 +9,28 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import csv, os, sys, tempfile, textwrap, time
+import csv
+import os
+import tempfile
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
+
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
+import sys
+
+
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import default_barcode_field
-from IgCore import parseAnnotation, mergeAnnotation, flattenAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs, printLog
-from IgCore import indexSeqSets, collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+from presto.IgCore import default_delimiter, default_out_args
+from presto.IgCore import default_barcode_field
+from presto.IgCore import parseAnnotation, mergeAnnotation, flattenAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs, printLog
+from presto.IgCore import indexSeqSets, collectSeqQueue, feedSeqQueue
+from presto.IgCore import manageProcesses, SeqResult
 
 # Defaults
 default_cluster_field = r'CLUSTER'

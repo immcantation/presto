@@ -10,20 +10,26 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import os, random, sys, textwrap
+import os
+import random
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
-from time import time
+
 from Bio import SeqIO
+
+import sys
+from time import time
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_coord_choices, default_coord_type, default_out_args
-from IgCore import getAnnotationValues, parseAnnotation, subsetSeqIndex
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printMessage, printProgress
-from IgCore import countSeqFile, readSeqFile, getCoordKey, getFileType
+from presto.IgCore import default_coord_choices, default_coord_type, default_out_args
+from presto.IgCore import getAnnotationValues, parseAnnotation, subsetSeqIndex
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog, printMessage, printProgress
+from presto.IgCore import countSeqFile, readSeqFile, getCoordKey, getFileType
 
  
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):

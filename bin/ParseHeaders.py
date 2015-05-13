@@ -10,21 +10,27 @@ __version__   = '0.4.6'
 __date__      = '2015.05.13'
 
 # Imports
-import csv, os, re, sys, textwrap
+import csv
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
+
+from Bio import SeqIO
+
+import sys
 from itertools import izip
 from time import time
-from Bio import SeqIO
+
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_separator, default_out_args
-from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
-from IgCore import parseAnnotation, renameAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile, getFileType
+from presto.IgCore import default_delimiter, default_separator, default_out_args
+from presto.IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.IgCore import parseAnnotation, renameAnnotation
+from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IgCore import getOutputHandle, printLog, printProgress
+from presto.IgCore import countSeqFile, readSeqFile, getFileType
 
 
 def addHeader(header, fields, values, delimiter=default_delimiter):
