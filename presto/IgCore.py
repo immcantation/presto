@@ -2,6 +2,15 @@
 """
 Core functions shared by pRESTO modules
 """
+from __future__ import division, absolute_import, print_function
+
+try:
+    import itertools.izip as zip
+except ImportError:
+    pass
+
+from future.moves.itertools import zip_longest
+from future.utils import iteritems
 
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
@@ -14,7 +23,7 @@ import ctypes, math, os, re, textwrap, signal, sys
 import multiprocessing as mp
 import pandas as pd
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter, RawTextHelpFormatter
-from itertools import izip, izip_longest, product
+from itertools import product
 from collections import OrderedDict
 from time import time, strftime
 from Bio import SeqIO
@@ -171,7 +180,7 @@ def flattenAnnotation(ann_dict, delimiter=default_delimiter):
     a formatted sequence description string
     """
     annotation = ann_dict.get('ID', 'NONE')
-    for k, v in ann_dict.iteritems():
+    for k, v in iteritems(ann_dict):
         # Skip ID field
         if k.upper() == 'ID':
             continue
@@ -206,7 +215,7 @@ def mergeAnnotation(ann_dict_1, ann_dict_2, prepend=False,
         def _merge(x, y):  return '%s%s%s' % (x, delimiter[2], y)
 
     merged_dict = ann_dict_1.copy()
-    for k, v in ann_dict_2.iteritems():
+    for k, v in iteritems(ann_dict_2):
         # Skip ID field
         if k.upper() == 'ID':
             continue
@@ -242,7 +251,7 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
         mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
     else:
         rename_dict = OrderedDict([(new_field, v) if k == old_field else (k, v) \
-                                   for k, v in ann_dict.iteritems()])
+                                   for k, v in iteritems(ann_dict)])
 
     return rename_dict
 
@@ -282,7 +291,7 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
 
     # Collapse fields
     collapse_dict = ann_dict.copy()
-    for k, v in collapse_dict.iteritems():
+    for k, v in iteritems(collapse_dict):
         if k.upper() == 'ID':
             continue
         if fields is None or k in fields:
@@ -407,7 +416,7 @@ def compilePrimers(primers):
     """
     
     primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateIUPAC, v)) 
-                     for k, v in primers.iteritems()}  
+                     for k, v in iteritems(primers)}
     
     return primers_regex
 
@@ -625,7 +634,7 @@ def translateIUPAC(key):
         return key
     # Return regular expression string for ambiguous single character
     elif len(key) == 1 and key in IUPAC_ambig:
-        return ['[' + k + ']' for k, v in IUPAC_trans.iteritems() if v == key][0]
+        return ['[' + k + ']' for k, v in iteritems(IUPAC_trans) if v == key][0]
     # Return single ambiguous character for character set 
     elif key in IUPAC_trans:
         return IUPAC_trans[key]
@@ -653,7 +662,7 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
                    'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
+    IUPAC_matches = [p for k, v in iteritems(IUPAC_trans) for p in list(product(k, v))]
 
     # Check gap condition
     if gap_score is not None and (a in '-.' or b in '-.'):
@@ -694,7 +703,7 @@ def scoreAA(a, b, n_score=None, gap_score=None):
     IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
+    IUPAC_matches = [p for k, v in iteritems(IUPAC_trans) for p in list(product(k, v))]
 
     # Check gap condition
     if gap_score is not None and (a in '-.' or b in '-.'):
@@ -964,7 +973,7 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
             qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
             
         # Select character with highest consensus quality
-        cons = [(c, min(q, 90)) for c, q in qual_cons.iteritems() \
+        cons = [(c, min(q, 90)) for c, q in iteritems(qual_cons) \
                 if q == max(qual_cons.values())][0]
         # Assign N if consensus quality or frequency threshold is failed
         if cons[1] < min_qual or char_freq[cons[0]] < min_freq:  
@@ -1046,7 +1055,7 @@ def indexSeqSets(seq_dict, field=default_barcode_field, delimiter=default_delimi
     a dictionary of {set name:[record names]}
     """
     set_dict = {}
-    for key, rec in seq_dict.iteritems():
+    for key, rec in iteritems(seq_dict):
         tag = parseAnnotation(rec.description, delimiter=delimiter)[field]
         set_dict.setdefault(tag, []).append(key)
 
@@ -1223,7 +1232,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
             seq_dict = readSeqFile(seq_file, index=True)
             index_dict = index_func(seq_dict, **index_args)
             data_iter = ((k, [seq_dict[i] for i in v]) \
-                         for k, v in index_dict.iteritems()) 
+                         for k, v in iteritems(index_dict))
     except:
         alive.value = False
         raise
