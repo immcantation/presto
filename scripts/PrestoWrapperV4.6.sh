@@ -6,7 +6,7 @@
 
 # Define run parameters
 DATA_DIR=/scratch2/kleinstein/shlomchik_salmonella
-SCRIPT=/scratch2/kleinstein/shlomchik_salmonella/scripts/RunPipelineV4.5_AbSeqV3.sh
+SCRIPT=/scratch2/kleinstein/shlomchik_salmonella/scripts/PrestoPipelineV4.6_AbSeqV3.sh
 PRIMERS1=/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta
 PRIMERS2=/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimer.fasta
 RUN_ID=TG725
