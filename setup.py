@@ -1,7 +1,9 @@
-# coding: utf-8
+#!/usr/bin/env python
+
+# Imports
 from __future__ import print_function, absolute_import
-import sys
-from os.path import join as pjoin
+from presto import __author__, __copyright__, __license__, __version__, __date__
+import os, sys
 
 if sys.version_info < (2,7,5):
     print('At least Python 2.7.5 is required.\n', file=sys.stderr)
@@ -19,39 +21,51 @@ except ImportError:
     print("Please install pip before installing presto.", file=sys.stderr)
     exit(1)
 
-from presto import __version__, __author__, __license__
 
-# from http://stackoverflow.com/questions/14399534/how-can-i-reference-requirements-txt-for-the-install-requires-kwarg-in-setuptool
-install_reqs = parse_requirements("requirements.txt", session=False)
-reqs = [str(ir.req) for ir in install_reqs]
 
-_presto_scripts = ['AlignSets.py', 'AssemblePairs.py', 'BuildConsensus.py',
-                   'ClusterSets.py', 'CollapseSeq.py', 'ConvertHeaders.py',
-                   'EstimateError.py', 'FilterSeq.py',
-                   'MaskPrimers.py', 'PairSeq.py', 'ParseHeaders.py',
-                   'ParseLog.py', 'SplitSeq.py']
+# Parse requirements
+requirements = parse_requirements("requirements.txt", session=False)
+install_requires = [str(r.req) for r in requirements]
 
-presto_scripts = [pjoin('presto', s) for s in _presto_scripts]
+# Define installation path for commandline tools
+scripts = ['AlignSets.py',
+           'AssemblePairs.py',
+           'BuildConsensus.py',
+           'ClusterSets.py',
+           'CollapseSeq.py',
+           'ConvertHeaders.py',
+           'EstimateError.py',
+           'FilterSeq.py',
+           'MaskPrimers.py',
+           'PairSeq.py',
+           'ParseHeaders.py',
+           'ParseLog.py',
+           'SplitSeq.py']
+install_scripts = [os.path.join('bin', s) for s in scripts]
 
-setup(
-    name='presto',
-    version=__version__, # can also use __version__
-    author=__author__,
-    author_email='jason.vanderheiden@yale.edu',
-    description='A bioinformatics library for processing RepSeq data.',
-    zip_safe=False,
-    license=__license__,
-    url='https://clip.med.yale.edu/presto',
-    install_requires=reqs,
-    packages=['presto'],
-    scripts=presto_scripts,
-    package_data={'': ['*.sh']},
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Environment :: Console",
-        "Intended Audience :: Science/Research",
-        "Natural Language :: English",
-        "Programming Language :: Python :: 2.7",
-        "Topic :: Scientific/Engineering :: Bio-Informatics"
-    ]
-)
+# Load long package description
+with open('README.md', 'r') as f:
+    long_description = ''.join([x for x in f])
+
+# Setup
+setup(name='presto',
+      version=__version__,
+      author=__author__,
+      author_email='jason.vanderheiden@yale.edu',
+      description='A bioinformatics toolkit for processing high-throughput lymphocyte receptor sequencing data.',
+      long_description=long_description,
+      zip_safe=False,
+      license=__license__,
+      url='https://clip.med.yale.edu/presto',
+      install_requires=install_requires,
+      packages=['presto'],
+      scripts=install_scripts,
+      package_data={'': ['*.sh']},
+      platforms='any',
+      classifiers=['Development Status :: 4 - Beta',
+                   'Environment :: Console',
+                   'Intended Audience :: Science/Research',
+                   'Natural Language :: English',
+                   'Operating System :: OS Independent',
+                   'Programming Language :: Python :: 2.7',
+                   'Topic :: Scientific/Engineering :: Bio-Informatics'])
