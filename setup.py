@@ -5,6 +5,7 @@ from __future__ import print_function, absolute_import
 from presto import __author__, __copyright__, __license__, __version__, __date__
 import os, sys
 
+# Check setup requirements
 if sys.version_info < (2,7,5):
     print('At least Python 2.7.5 is required.\n', file=sys.stderr)
     exit(1)
@@ -20,7 +21,6 @@ try:
 except ImportError:
     print("Please install pip before installing presto.", file=sys.stderr)
     exit(1)
-
 
 
 # Parse requirements
@@ -60,7 +60,6 @@ setup(name='presto',
       install_requires=install_requires,
       packages=['presto'],
       scripts=install_scripts,
-      package_data={'': ['*.sh']},
       platforms='any',
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Console',

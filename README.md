@@ -1,4 +1,4 @@
-Version 0.4.6:  May 13, 2015
+Version 0.4.6:  May 21, 2015
 ===============================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing 
@@ -37,8 +37,7 @@ Installation - Linux
    install Biopython according to the 
    [instructions](http://biopython.org/DIST/docs/install/Installation.html).
 
-2. Unzip the pRESTO bundle into a directory of your choice and add that 
-   directory to your `$PATH`.
+2. Unzip the pRESTO bundle and run `python setup.py install --user`.
 
 
 Installation - Windows
@@ -50,13 +49,9 @@ Installation - Windows
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
    binary collection.
 
-3. Unzip the pRESTO bundle into a directory of your choice and add that 
-   directory to your `%Path%`.  On Windows 7 the `%Path%` setting is located under
-   'Control Panel' -> 'System and Security' -> 'System' -> 
-   'Advanced System Settings' -> 'Environment variables' -> 'System variables' 
-   -> 'Path'
+3. Unzip the pRESTO bundle and run `python setup.py install --user`.
 
-4. The pRESTO scripts should then be directly executable from the Command Prompt.
+4. The pRESTO scripts should be directly executable from the Command Prompt.
    If not, correct the file association for `.py` files by right-clicking on a 
    `.py` file, selecting 'Open with' -> 'Choose default program...', choosing the 
    `python.exe` from Python 2.7, and checking 'Always use the selected program'.
@@ -96,7 +91,4 @@ Installation - Mac OS X
    `> pip install pandas`  
    `> pip install biopython`  
    
-7. Add the pRESTO installation to your `PATH` setting. For example,
-   if you copy the pRESTO scripts into `/Users/Username/presto`, then set:  
-   `> echo 'export PATH=$HOME/presto:$PATH' >> ~/.profile`  
-   Exit and reopen the terminal application so the PATH setting takes effect
+7. Unzip the pRESTO bundle and run `python setup.py install --user`.
