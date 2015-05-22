@@ -2,8 +2,8 @@
 
 # Imports
 from __future__ import print_function, absolute_import
-from presto import __author__, __copyright__, __license__, __version__, __date__
 import os, sys
+import re
 
 # Check setup requirements
 if sys.version_info < (2,7,5):
@@ -23,8 +23,18 @@ except ImportError:
     exit(1)
 
 
+# modified from requests setup
+version = ''
+with open('presto/__init__.py', 'r') as handle:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        handle.read(), re.MULTILINE).group(1)
+
+if not version:
+    raise RuntimeError('Cannot find version information')
+
+
 # Parse requirements
-requirements = parse_requirements("requirements.txt")
+requirements = parse_requirements("requirements.txt", session=False)
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
@@ -49,13 +59,13 @@ with open('README.md', 'r') as f:
 
 # Setup
 setup(name='presto',
-      version=__version__,
-      author=__author__,
+      version=version,
+      author='Jason Vander Heiden',
       author_email='jason.vanderheiden@yale.edu',
       description='A bioinformatics toolkit for processing high-throughput lymphocyte receptor sequencing data.',
       long_description=long_description,
       zip_safe=False,
-      license=__license__,
+      license='Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported',
       url='https://clip.med.yale.edu/presto',
       keywords='bioinformatics immunoglobulin lymphocyte sequencing',
       install_requires=install_requires,
