@@ -49,12 +49,22 @@ Installation - Windows
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
    binary collection.
 
-3. Unzip the pRESTO bundle and run `python setup.py install --user`.
+3. Unzip the pRESTO bundle, open a Command Prompt, and run
+   `python setup.py install` from the pRESTO folder.
+   
+4. For a default installation of Python 2.7, the pRESTO scripts will be 
+   installed into `C:\Python27\Scripts` and should be directly executable from 
+   the Command Prompt. If this is not the case, then follow steps 5-6 below.
+   
+5. Add the installation directory to your `%Path%`. On Windows 7 the %Path% 
+   setting is located under 'Control Panel' -> 'System and Security' -> 
+   'System' -> 'Advanced System Settings' -> 'Environment variables' -> 
+   'System variables' -> 'Path'.
 
-4. The pRESTO scripts should be directly executable from the Command Prompt.
-   If not, correct the file association for `.py` files by right-clicking on a 
-   `.py` file, selecting 'Open with' -> 'Choose default program...', choosing the 
-   `python.exe` from Python 2.7, and checking 'Always use the selected program'.
+6. Set the file association for Python ('.py') files by right-clicking on a 
+   '.py' file, selecting 'Open with' -> 'Choose default program...', choosing the 
+   'python.exe' executable from the Python 2.7 folder, and checking 
+   'Always use the selected program'.
    
 
 Installation - Mac OS X
@@ -91,4 +101,5 @@ Installation - Mac OS X
    `> pip install pandas`  
    `> pip install biopython`  
    
-7. Unzip the pRESTO bundle and run `python setup.py install --user`.
+7. Unzip the pRESTO bundle, open a terminal window, and run
+   `python setup.py install` from the pRESTO folder.

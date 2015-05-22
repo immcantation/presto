@@ -24,7 +24,7 @@ except ImportError:
 
 
 # Parse requirements
-requirements = parse_requirements("requirements.txt", session=False)
+requirements = parse_requirements("requirements.txt")
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
