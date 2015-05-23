@@ -6,8 +6,8 @@ Core functions shared by pRESTO modules
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+__version__   = '0.4.7'
+__date__      = '2015.05.23'
 
 # Imports
 import ctypes, math, os, re, textwrap, signal, sys
@@ -1071,14 +1071,17 @@ def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimit
         illumina  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
                   @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
         sra       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
+                  @SRR001666.1.2 1 length=250
         454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
         pesto     @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
     """
     #header = seq.id
     if coord_type in ('illumina', 'solexa'):
         return header.split()[0].split('#')[0]
-    elif coord_type in ('sra', '454'):
+    elif coord_type == '454':
         return header.split()[0]
+    elif coord_type == 'sra':
+        return '.'.join(header.split()[0].split('.')[:2])
     elif coord_type == 'presto':
         return parseAnnotation(header, delimiter=delimiter)['ID']
     else:

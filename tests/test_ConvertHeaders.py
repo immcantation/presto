@@ -30,7 +30,9 @@ class TestConvertHeaders(unittest.TestCase):
                              'CM000663.2 Homo sapiens chromosome 1, GRCh38 reference primary assembly']
 
         self.desc_sra = ['SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36',
-                         'SRR735691.1 GXGJ56Z01AE06X length=222']
+                         'SRR735691.1 GXGJ56Z01AE06X length=222',
+                         'SRR1383326.1 1 length=250',
+                         'SRR1383326.1.2 1 length=250']
         
         self.desc_454 = ['000034_0199_0169 length=437 uaccno=GNDG01201ARRCR',
                          'GXGJ56Z01AE06X length=222']

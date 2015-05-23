@@ -6,8 +6,8 @@ Converts sequence headers to the pRESTO format
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+__version__   = '0.4.7'
+__date__      = '2015.05.23'
 
 # Imports
 import os, re, sys, textwrap
@@ -242,18 +242,32 @@ def convertSRAHeader(desc):
     Returns:
     a dictionary of header {field: value} pairs
 
-    Header example:
+    Header example from fastq-dum --split-files:
         @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-        @SRR735691.1 GXGJ56Z01AE06X length=222
-        @<ID> <original sequence description> <length=#>
+        @SRR1383326.1 1 length=250
+        @<accession>.<spot> <original sequence description> <length=#>
+    Header example from fastq-dum --split-files -I:
+        @SRR1383326.1.1 1 length=250
+        @<accession>.<spot>.<read number> <original sequence description> <length=#>
+
+
     """
     # Split description and assign field names
     try:
         fields = desc.split(' ')
 
+
         # Build header dictionary
         header = OrderedDict()
-        header['ID'] = fields[0]
+
+        # Check for read number if sequence id
+        read_id = fields[0].split('.')
+        if len(read_id) == 3:
+            header['ID'] = '.'.join(read_id[:2])
+            header['READ'] = read_id[2]
+        else:
+            header['ID'] = fields[0]
+
         header['DESC'] = fields[1]
         header['LENGTH'] = fields[2].replace('length=', '')
     except:
