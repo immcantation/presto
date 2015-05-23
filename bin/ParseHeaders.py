@@ -2,35 +2,25 @@
 """
 Parses pRESTO annotations in FASTA/FASTQ sequence headers
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import (__version__, __date__)
 
 # Imports
-import csv
-import os
-import textwrap
+import csv, os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-
-from Bio import SeqIO
-
-import sys
 from itertools import izip
 from time import time
+from Bio import SeqIO
 
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from presto.IgCore import default_delimiter, default_separator, default_out_args
-from presto.IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
-from presto.IgCore import parseAnnotation, renameAnnotation
-from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IgCore import getOutputHandle, printLog, printProgress
-from presto.IgCore import countSeqFile, readSeqFile, getFileType
+# Presto imports
+from presto.Core import default_delimiter, default_separator, default_out_args
+from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
+                              renameAnnotation, collapseAnnotation
+from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
+                      printLog, printProgress
 
 
 def addHeader(header, fields, values, delimiter=default_delimiter):

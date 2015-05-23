@@ -1,0 +1,546 @@
+"""
+Sequence processing functions
+"""
+# Future
+from __future__ import division, absolute_import, print_function
+from future.moves.itertools import zip_longest
+from future.utils import iteritems
+
+import os, re
+from itertools import product
+from Bio.Alphabet import IUPAC
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from presto.Core import (default_delimiter, default_missing_chars,
+                         default_missing_residues, default_min_qual,
+                         default_min_freq, default_barcode_field)
+from presto.Annotation import parseAnnotation
+
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import (__version__, __date__)
+
+
+def compilePrimers(primers):
+    """
+    Translates IUPAC Ambiguous Nucleotide characters to regular expressions and compiles them
+
+    Arguments:
+    key = a dictionary of sequences to translate
+
+    Returns:
+    dictionary of compiled regular expressions
+    """
+
+    primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateIUPAC, v))
+                     for k, v in iteritems(primers)}
+
+    return primers_regex
+
+
+def translateIUPAC(key):
+    """
+    Translates IUPAC Ambiguous Nucleotide characters to or from character sets
+
+    Arguments:
+    key = a string or re.search object containing the character set to translate
+
+    Returns:
+    character translation
+    """
+
+    # Define valid characters and character translations
+    IUPAC_uniq = '-.ACGT'
+    IUPAC_ambig = 'BDHKMNRSVWY'
+    IUPAC_trans = {'AG':'R', 'CT':'Y', 'CG':'S', 'AT':'W', 'GT':'K', 'AC':'M',
+                  'CGT':'B', 'AGT':'D', 'ACT':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
+                  '-.':'.'}
+
+    # Convert passed regular expression match to a string
+    if hasattr(key, 'group'): key = key.group(1)
+
+    # Sort character in alphabetic order
+    key = ''.join(sorted(key))
+
+    # Return input character if no translation needed
+    if len(key) == 1 and key in IUPAC_uniq:
+        return key
+    # Return regular expression string for ambiguous single character
+    elif len(key) == 1 and key in IUPAC_ambig:
+        return ['[' + k + ']' for k, v in iteritems(IUPAC_trans) if v == key][0]
+    # Return single ambiguous character for character set
+    elif key in IUPAC_trans:
+        return IUPAC_trans[key]
+    else:
+        return 'N'
+
+
+def scoreDNA(a, b, n_score=None, gap_score=None):
+    """
+    Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
+
+    Arguments:
+    a = first characters
+    b = second character
+    n_score = score for all matches against an N character;
+              if None score according to IUPAC character identity
+    gap_score = score for all matches against a [-, .] character;
+                if None score according to IUPAC character identity
+
+    Returns:
+    score for the character pair
+    """
+    # Define ambiguous character translations
+    IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
+                   'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
+                   '-.':'.'}
+    # Create list of tuples of synonymous character pairs
+    IUPAC_matches = [p for k, v in iteritems(IUPAC_trans) for p in list(product(k, v))]
+
+    # Check gap condition
+    if gap_score is not None and (a in '-.' or b in '-.'):
+        return gap_score
+
+    # Check N-value condition
+    if n_score is not None and (a == 'N' or b == 'N'):
+        return n_score
+
+    # Determine and return score for IUPAC match conditions
+    # Symmetric and reflexive
+    if a == b:
+        return 1
+    elif (a, b) in IUPAC_matches:
+        return 1
+    elif (b, a) in IUPAC_matches:
+        return 1
+    else:
+        return 0
+
+
+def scoreAA(a, b, n_score=None, gap_score=None):
+    """
+    Returns the score for a pair of IUPAC Extended Protein characters
+
+    Arguments:
+    a = first character
+    b = second character
+    n_score = score for all matches against an X character;
+              if None score according to IUPAC character identity
+    gap_score = score for all matches against a [-, .] character;
+                if None score according to IUPAC character identity
+
+    Returns:
+    score for the character pair
+    """
+    # Define ambiguous character translations
+    IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
+                   '-.':'.'}
+    # Create list of tuples of synonymous character pairs
+    IUPAC_matches = [p for k, v in iteritems(IUPAC_trans) for p in list(product(k, v))]
+
+    # Check gap condition
+    if gap_score is not None and (a in '-.' or b in '-.'):
+        return gap_score
+
+    # Check X-value condition
+    if n_score is not None and (a == 'X' or b == 'X'):
+        return n_score
+
+    # Determine and return score for IUPAC match conditions
+    # Symmetric and reflexive
+    if a == b:
+        return 1
+    elif (a, b) in IUPAC_matches:
+        return 1
+    elif (b, a) in IUPAC_matches:
+        return 1
+    else:
+        return 0
+
+
+def getScoreDict(n_score=None, gap_score=None, alphabet='dna'):
+    """
+    Generates a score dictionary
+
+    Arguments:
+    n_score = score for all matches against an N character;
+              if None score according to IUPAC character identity
+    gap_score = score for all matches against a [-, .] character;
+                if None score according to IUPAC character identity
+    alphabet = the type of score dictionary to generate;
+               one of [dna, aa] for DNA and amino acid characters
+
+    Returns:
+    a score dictionary of the form {(char1, char2) : score}
+    """
+    if alphabet=='dna':
+        IUPAC_chars = '-.ACGTRYSWKMBDHVN'
+        IUPAC_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score)
+                      for k in product(IUPAC_chars, repeat=2)}
+    elif alphabet=='aa':
+        IUPAC_chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        IUPAC_dict = {k:scoreAA(*k, x_score=n_score, gap_score=gap_score)
+                      for k in product(IUPAC_chars, repeat=2)}
+    else:
+        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type\n' % alphabet)
+
+    return IUPAC_dict
+
+
+def reverseComplement(seq):
+    """
+    Takes the reverse complement of a sequence
+
+    Arguments:
+    seq = a SeqRecord object, Seq object or string to reverse complement
+
+    Returns:
+    a object of the same type as the input with the reverse complement sequence
+    """
+
+    if isinstance(seq, SeqRecord):
+        new_record = seq.reverse_complement(id=True, name=True, description=True,
+                                            features=True, annotations=True,
+                                            letter_annotations=True)
+        #new_record.annotations['orientation'] = 'RC'
+    elif isinstance(seq, Seq):
+        new_record = seq.reverse_complement()
+    elif isinstance(seq, str):
+        new_record = str(Seq(seq, IUPAC.ambiguous_dna).reverse_complement())
+    else:
+        sys.exit('ERROR:  Invalid record type passed to reverseComplement')
+        new_record = None
+
+    return new_record
+
+
+def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
+    """
+    Determine if two sequences are equal, excluding missing positions
+
+    Arguments:
+    seq1 = a SeqRecord object
+    seq2 = a SeqRecord object
+    ignore_chars = a set of characters to ignore
+
+    Returns:
+    True if the sequences are equal
+    """
+    equal = True
+    #for a, b in zip(seq1.upper(), seq2.upper()):
+    for a, b in zip(seq1, seq2):
+        if a != b and a not in ignore_chars and b not in ignore_chars:
+            equal = False
+            break
+
+    return equal
+
+
+def weightDNA(seq, ignore_chars=default_missing_chars):
+    """
+    Returns a score for a single sequence excluding missing positions
+
+    Arguments:
+    seq = a SeqRecord or Seq object
+    ignore_chars = set of characters to ignore when counting sequence length
+
+    Returns:
+    The sum of the character scores for the sequence
+    """
+    score = sum(1 for x in seq if x not in ignore_chars)
+    #score = sum()
+    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
+    #gap_score = 0
+
+    return max(score, 1)
+
+
+def weightAA(seq, ignore_residues=default_missing_residues):
+    """
+    Returns a score for a single sequence excluding missing positions
+
+    Arguments:
+    seq = a SeqRecord or Seq object
+    ignore_residues = set of characters to ignore when counting sequence length
+
+    Returns:
+    The sum of the character scores for the sequence
+    """
+    score = sum(1 for x in seq if x not in ignore_residues)
+    #score = sum()
+    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
+    #gap_score = 0
+
+    return max(score, 1)
+
+
+def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
+                 score_dict=getScoreDict(n_score=0, gap_score=0)):
+    """
+    Determine the error rate for a pair of sequences
+
+    Arguments:
+    seq1 = a SeqRecord object
+    seq2 = a SeqRecord object
+    max_error = the maximum error rate; once reached return (0, 0, 1.0)
+                if None always return accurate score, weight and error
+    max_weight = the maximum weight to use when checking the max_error break condition;
+                 if None use the minimum length of seq1,seq2
+    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+
+    Returns:
+    A tuple of the (score, minimum weight, error rate) for the pair of sequences
+    """
+    # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
+    # Determine score
+    if max_error is None:
+        # Return accurate values when max_error is undefined
+        chars = zip(seq1.upper(), seq2.upper())
+        score = sum([score_dict[(a, b)] for a, b in chars])
+        weight = min(weightDNA(seq1), weightDNA(seq2))
+        error = 1.0 - float(score) / weight
+    else:
+        # If max_error defined return when worst case reach
+        score = 0
+        if not max_weight:  max_weight = min(len(seq1), len(seq2))
+        for i, (a, b) in enumerate(zip(seq1, seq2)):
+            score += score_dict[(a, b)]
+            if (i - float(score)) / max_weight > max_error:
+                score, weight, error = 0, 0, 1.0
+                break
+        else:
+            weight = min(weightDNA(seq1), weightDNA(seq2))
+            error = 1.0 - float(score) / weight
+
+    return (score, weight, error)
+
+
+def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)):
+    """
+    Determine the average pairwise error rate for a list of sequences
+
+    Arguments:
+    seq_list = a list of SeqRecord objects to score
+    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+
+    Returns:
+    The average pairwise error rate for the list of sequences
+    """
+    # Return 0 if less than 2 sequences
+    if len(seq_list) <= 1:
+        return 0
+
+    scores = []
+    for i, seq1 in enumerate(seq_list):
+        for seq2 in seq_list[(i + 1):]:
+            scores.append(scoreSeqPair(seq1, seq2, score_dict=score_dict)[2])
+
+    return sum(scores) / len(scores)
+
+
+def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_freq,
+                     dependent=False, ignore_chars=default_missing_chars):
+    """
+    Builds a consensus sequence from a set of sequences
+
+    Arguments:
+    seq_list = a list of SeqRecord objects
+    min_qual = the quality cutoff to assign a base
+    min_freq = the frequency cutoff to assign a base
+    dependent = if False assume sequences are independent for quality calculation
+    ignore_chars = a set of characters to exclude when building a consensus sequence
+
+    Returns:
+    a consensus SeqRecord object
+    """
+    # Return a copy of the input SeqRecord upon singleton
+    if len(seq_list) == 1:
+        seq = seq_list[0]
+        # Mask low quality nucleotides
+        seq_str = str(seq.seq)
+        quals = seq.letter_annotations['phred_quality']
+        seq_mask = [seq_str[i] if q >= min_qual else 'N' for i, q in enumerate(quals)]
+        seq = SeqRecord(Seq(''.join(seq_mask), IUPAC.ambiguous_dna),
+                        id=seq.id,
+                        name=seq.name,
+                        description=seq.description,
+                        letter_annotations=seq.letter_annotations)
+        return seq
+
+    # Create sequence and annotation iterators
+    # Pad unequal length sequences with character '-' and quality 0
+    seq_str = [str(s.seq) for s in seq_list]
+    seq_iter = zip_longest(*seq_str, fillvalue='-')
+    ann_list = [s.letter_annotations['phred_quality'] for s in seq_list]
+    ann_iter = zip_longest(*ann_list, fillvalue=0)
+
+    # Build consensus
+    consensus_seq = []
+    consensus_qual = []
+    for chars, quals in zip(seq_iter, ann_iter):
+        # Define set of non-missing characters
+        char_set = set(chars).difference(ignore_chars)
+
+        # Assign N if no missing characters and proceed to next position
+        if not char_set:
+            consensus_seq.append('N')
+            consensus_qual.append(0)
+            continue
+
+        # Define non-missing character frequencies
+        char_count = float(len([c for c in chars if c in char_set]))
+        char_freq = {c: chars.count(c) / char_count for c in char_set}
+
+        # Create per character quality sets and quality sums
+        qual_total = float(sum(quals))
+        qual_set, qual_sum = {}, {}
+        for c in char_set:
+            qual_set[c] = [q for i, q in enumerate(quals) if chars[i] == c]
+            qual_sum[c] = sum(qual_set[c])
+
+        # TODO: write unit test and verify quality score calculation for sets with missing data
+        # Calculate per character consensus quality scores
+        if dependent:
+            qual_cons = {c:int(max(qual_set[c]) * qual_sum[c] / qual_total) for c in qual_set}
+        else:
+            qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
+
+        # Select character with highest consensus quality
+        cons = [(c, min(q, 90)) for c, q in iteritems(qual_cons) \
+                if q == max(qual_cons.values())][0]
+        # Assign N if consensus quality or frequency threshold is failed
+        if cons[1] < min_qual or char_freq[cons[0]] < min_freq:
+            cons = ('N', 0)
+
+        # Assign consensus base and quality
+        consensus_seq.append(cons[0])
+        consensus_qual.append(cons[1])
+
+    # Define return SeqRecord
+    record = SeqRecord(Seq(''.join(consensus_seq), IUPAC.ambiguous_dna),
+                       id='consensus',
+                       name='consensus',
+                       description='',
+                       letter_annotations={'phred_quality':consensus_qual})
+
+    return record
+
+
+def frequencyConsensus(seq_list, min_freq=default_min_freq,
+                       ignore_chars=default_missing_chars):
+    """
+    Builds a consensus sequence from a set of sequences
+
+    Arguments:
+    set_seq = a list of SeqRecord objects
+    min_freq = the frequency cutoff to assign a base
+    ignore_chars = a set of characters to exclude when building a consensus sequence
+
+
+    Returns:
+    a consensus SeqRecord object
+    """
+    # Return a copy of the input SeqRecord upon singleton
+    if len(seq_list) == 1:
+        return seq_list[0]
+
+    # Build consensus
+    seq_str = [str(s.seq) for s in seq_list]
+    consensus_seq = []
+    for chars in zip_longest(*seq_str, fillvalue='-'):
+        # Define set of non-missing characters
+        char_set = set(chars).difference(ignore_chars)
+
+        # Assign N if no non-missing characters and proceed to next position
+        if not char_set:
+            consensus_seq.append('N')
+            continue
+
+        # Define non-missing character frequencies
+        char_count = float(len([c for c in chars if c in char_set]))
+        char_freq = {c: chars.count(c) / char_count for c in char_set}
+        freq_max = max(char_freq.values())
+
+        # Assign consensus as most frequent character
+        cons = [c if char_freq[c] >= min_freq else 'N' \
+                for c in char_set if char_freq[c] == freq_max][0]
+        consensus_seq.append(cons)
+
+    # Define return SeqRecord
+    record = SeqRecord(Seq(''.join(consensus_seq), IUPAC.ambiguous_dna),
+                       id='consensus',
+                       name='consensus',
+                       description='')
+
+    return record
+
+
+def indexSeqSets(seq_dict, field=default_barcode_field, delimiter=default_delimiter):
+    """
+    Identifies sets of sequences with the same ID field
+
+    Arguments:
+    seq_dict = a dictionary index of sequences returned from SeqIO.index()
+    field = the annotation field containing set IDs
+    delimiter = a tuple of delimiters for (fields, values, value lists)
+
+    Returns:
+    a dictionary of {set name:[record names]}
+    """
+    set_dict = {}
+    for key, rec in iteritems(seq_dict):
+        tag = parseAnnotation(rec.description, delimiter=delimiter)[field]
+        set_dict.setdefault(tag, []).append(key)
+
+    return set_dict
+
+
+def subsetSeqSet(seq_iter, field, values, delimiter=default_delimiter):
+    """
+    Subsets a sequence set by annotation value
+
+    Arguments:
+    seq_iter = an iterator or list of SeqRecord objects
+    field = the annotation field to select by
+    values = a list of annotation values that define the retained sequences
+    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+
+    Returns:
+    a modified list of SeqRecord objects
+    """
+    # Parse annotations from seq_list records
+    ann_list = [parseAnnotation(s.description, delimiter=delimiter) for s in seq_iter]
+
+    # Subset seq_list by annotation
+    if not isinstance(values, list):  values = [values]
+    seq_subset = [seq_iter[i] for i, a in enumerate(ann_list) if a[field] in values]
+
+    return seq_subset
+
+
+def subsetSeqIndex(seq_dict, field, values, delimiter=default_delimiter):
+    """
+    Subsets a sequence set by annotation value
+
+    Arguments:
+    seq_dict = a dictionary index of sequences returned from SeqIO.index()
+    field = the annotation field to select keys by
+    values = a list of annotation values that define the retained keys
+    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+
+    Returns:
+    a list of keys
+    """
+    # Parse annotations from seq_dict and subset keys
+    key_subset = [k for k in seq_dict \
+                  if parseAnnotation(seq_dict[k].description, delimiter=delimiter)[field] \
+                  in values]
+
+    return key_subset
+
+
+if __name__ == '__main__':
+    """
+    Print module information
+    """
+    print('%s: v%s-%s' % (os.path.basename(__file__), __version__, __date__))

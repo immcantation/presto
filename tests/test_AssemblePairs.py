@@ -1,23 +1,16 @@
 """
 Unit tests for AssemblePairs
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2014.12.11'
-
 # Imports
-import unittest
-
+import time, unittest
 import pandas as pd
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
-import time
-from presto.IgCore import readSeqFile
+from presto.IO import readSeqFile
 from bin import AssemblePairs as mod
+
+# Info
+__author__    = 'Jason Anthony Vander Heiden'
 
 
 class TestAssemblePairs(unittest.TestCase):
@@ -29,7 +22,7 @@ class TestAssemblePairs(unittest.TestCase):
         pd.set_option('display.width', 120)
 
         #self.ref_file = 'IMGT_Human_IGV.fasta'
-        self.ref_file = 'IG_TR.V.human.F+ORF+infrP.ungapped.fasta'
+        self.ref_file = 'data/IG_TR.V.human.F+ORF+infrP.ungapped.fasta'
         self.ref_dict = {s.id:s.upper() for s in readSeqFile(self.ref_file)}
         # MISEQ:121:000000000-A7VDM:1:1101:10041:1280
         #self.head_seq = Seq("CCACGTTTTAGTAATTAATACGGGAGCAAAAACCAGGGAAAGCCCCTAAGCTCCTGCTCTATGCTGCATCCACTTTGCAAAGTGTGGTCCCATCACGGTTCAGCGGCAGTGGATCTGGGACAGAATTCACTCTCACAATCAGCAGCCTGCAGCCTGAAGATTTTGCAACTTATTACTGTCAACAGCTTACTCCTTACCCTCCTACGTTCGCCCCAGGCCCCACGGTCGACCTCCACCCCCCTCTCGCTGCCCCCTCTCTCCCCTCCGACCCGCCTC")

@@ -4,17 +4,14 @@ Unit tests for ClusterSets
 # Future
 from __future__ import absolute_import, division, print_function
 
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.10'
-
 # Imports
 import time, unittest
 from bin import ClusterSets as mod
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+
+# Info
+__author__    = 'Jason Anthony Vander Heiden'
 
 class TestBuildConsensus(unittest.TestCase):
     def setUp(self):

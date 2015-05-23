@@ -2,35 +2,26 @@
 """
 Cluster sequences by group
 """
-
-__author__    = 'Christopher Bolen, Jason Vander Heiden'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+# Info
+__author__ = 'Christopher Bolen, Jason Anthony Vander Heiden'
+from presto import (__version__, __date__)
 
 # Imports
-import csv
-import os
-import tempfile
-import textwrap
+import csv, os, sys, tempfile, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
-
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
-import sys
-
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from presto.IgCore import default_delimiter, default_out_args
-from presto.IgCore import default_barcode_field
-from presto.IgCore import parseAnnotation, mergeAnnotation, flattenAnnotation
-from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs, printLog
-from presto.IgCore import indexSeqSets, collectSeqQueue, feedSeqQueue
-from presto.IgCore import manageProcesses, SeqResult
+# Presto imports
+from presto.Core import default_delimiter, default_out_args, default_barcode_field
+from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.IO import printLog
+from presto.Sequence import indexSeqSets
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   collectSeqQueue
 
 # Defaults
 default_cluster_field = r'CLUSTER'

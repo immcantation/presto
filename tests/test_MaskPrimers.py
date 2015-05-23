@@ -1,22 +1,15 @@
 """
 Unit tests for MaskPrimers
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2015.02.20'
-
 # Imports
-import unittest
-
+import time, unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
-import time
+from presto.Sequence import getScoreDict
 from bin import MaskPrimers as mod
-from presto.IgCore import getScoreDict
+
+# Info
+__author__    = 'Jason Anthony Vander Heiden'
 
 
 class TestMaskPrimers(unittest.TestCase):

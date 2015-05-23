@@ -2,35 +2,25 @@
 """
 Removes duplicate sequences from FASTA/FASTQ files
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import (__version__, __date__)
 
 # Imports
-import os
-import re
-import textwrap
+import os, re, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-
-from Bio import SeqIO
-
-import sys
 from itertools import chain, izip
 from time import time
+from Bio import SeqIO
 
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from presto.IgCore import default_delimiter, default_out_args
-from presto.IgCore import collapseAnnotation, flattenAnnotation
-from presto.IgCore import mergeAnnotation, parseAnnotation
-from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IgCore import getOutputHandle, printLog, printProgress
-from presto.IgCore import getFileType, readSeqFile, testSeqEqual
+# Presto imports
+from presto.Core import default_delimiter, default_out_args
+from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
+                              collapseAnnotation
+from presto.Sequence import testSeqEqual
+from presto.IO import getFileType, readSeqFile, getOutputHandle, printLog, printProgress
 
 # Default parameters
 default_max_missing = 0

@@ -2,45 +2,37 @@
 """
 Assembles paired-end reads into a single sequence
 """
-
-__author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+# Info
+__author__ = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
+from presto import (__version__, __date__)
 
 # Imports
-import os
-import tempfile
-import textwrap
-from argparse import ArgumentParser
-from collections import OrderedDict
-from subprocess import check_output, PIPE, Popen, STDOUT
-
+import os, sys, tempfile, textwrap
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from argparse import ArgumentParser
+from collections import OrderedDict
+from cStringIO import StringIO
+from itertools import izip
+from subprocess import check_output, PIPE, Popen, STDOUT
+from time import time
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-import sys
-from cStringIO import StringIO
-from itertools import izip
-from time import time
 
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from presto.IgCore import default_missing_chars, default_coord_choices, default_coord_type
-from presto.IgCore import default_delimiter, default_out_args
-from presto.IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
-from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IgCore import getFileType, getOutputHandle, printLog, printProgress
-from presto.IgCore import getScoreDict, reverseComplement, scoreSeqPair
-from presto.IgCore import countSeqFile, getCoordKey, readSeqFile
-from presto.IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
+# Presto imports
+from presto.Core import default_missing_chars, default_coord_choices, \
+                        default_coord_type, default_delimiter, default_out_args
+from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
+                               getCoordKey
+from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
+                      printLog, printProgress
+from presto.Sequence import getScoreDict, reverseComplement, scoreSeqPair
+from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
 # Defaults
 default_alpha = 1e-5

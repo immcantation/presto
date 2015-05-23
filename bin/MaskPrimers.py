@@ -2,34 +2,25 @@
 """
 Removes primers and annotates sequences with primer and barcode identifiers
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import (__version__, __date__)
 
 # Imports
-import os
-import textwrap
+import os, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-
+from itertools import izip
 from Bio import pairwise2
 
-import sys
-from itertools import izip
-
-
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from presto.IgCore import default_delimiter, default_out_args
-from presto.IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
-from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IgCore import getScoreDict, reverseComplement
-from presto.IgCore import compilePrimers, readPrimerFile, printLog
-from presto.IgCore import collectSeqQueue, feedSeqQueue
-from presto.IgCore import manageProcesses, SeqResult
+# Presto imports
+from presto.Core import default_delimiter, default_out_args
+from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.Sequence import compilePrimers, getScoreDict, reverseComplement
+from presto.IO import readPrimerFile, printLog
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   collectSeqQueue
 
 # Defaults
 default_max_error = 0.2

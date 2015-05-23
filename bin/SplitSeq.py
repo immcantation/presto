@@ -2,36 +2,26 @@
 """
 Sorts, samples and splits FASTA/FASTQ sequence files
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import (__version__, __date__)
 
 # Imports
-import os
-import random
-import textwrap
+import os, random, sys, textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
-from textwrap import dedent
-
+from time import time
 from Bio import SeqIO
 
-import sys
-from time import time
+# Presto imports
+from presto.Core import default_coord_choices, default_coord_type, default_out_args
+from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Sequence import subsetSeqIndex
+from presto.Annotation import parseAnnotation, getAnnotationValues, getCoordKey
+from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
+                      printLog, printMessage, printProgress
 
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from presto.IgCore import default_coord_choices, default_coord_type, default_out_args
-from presto.IgCore import getAnnotationValues, parseAnnotation, subsetSeqIndex
-from presto.IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.IgCore import getOutputHandle, printLog, printMessage, printProgress
-from presto.IgCore import countSeqFile, readSeqFile, getCoordKey, getFileType
-
- 
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     """
     Splits a FASTA/FASTQ file into segments with a limited number of records
@@ -154,7 +144,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                     If you are sure you want to do this, then increase the 
                     file limit in the OS (via ulimit) and rerun this tool.
                     ''' % file_count
-                sys.stderr.write(dedent(e))
+                sys.stderr.write(textwrap.dedent(e))
                 sys.exit()
             
         # Create output handles

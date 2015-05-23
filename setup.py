@@ -1,9 +1,12 @@
 #!/usr/bin/env python
+"""
+Presto setup
+"""
+# Future
+from __future__ import division, absolute_import, print_function
 
 # Imports
-from __future__ import print_function, absolute_import
-import os, sys
-import re
+import os, re, sys
 
 # Check setup requirements
 if sys.version_info < (2,7,5):
@@ -23,12 +26,12 @@ except ImportError:
     exit(1)
 
 
-# modified from requests setup
+# Get version
+# Modified from requests setup
 version = ''
-with open('presto/__init__.py', 'r') as handle:
+with open('presto/_version.py', 'r') as handle:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         handle.read(), re.MULTILINE).group(1)
-
 if not version:
     raise RuntimeError('Cannot find version information')
 
