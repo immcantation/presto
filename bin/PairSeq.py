@@ -8,9 +8,9 @@ from presto import __version__, __date__
 
 # Imports
 import os
-from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 

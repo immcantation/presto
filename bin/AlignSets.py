@@ -10,12 +10,12 @@ from presto import __version__, __date__
 import csv
 import os
 import sys
-from textwrap import dedent
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
 from itertools import izip
 from subprocess import PIPE, Popen
+from textwrap import dedent
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC

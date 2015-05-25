@@ -9,10 +9,10 @@ from presto import __version__, __date__
 # Imports
 import os
 import sys
-from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip, izip_longest
+from textwrap import dedent
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC

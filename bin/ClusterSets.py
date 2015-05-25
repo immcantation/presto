@@ -11,10 +11,10 @@ import csv
 import os
 import sys
 import tempfile
-from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
+from textwrap import dedent
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
@@ -254,7 +254,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
     for k, v in result['log'].iteritems():  log[k] = v
-    log['END'] = 'AssemblePairs'
+    log['END'] = 'ClusterSets'
     printLog(log)
 
     return result['out_files']

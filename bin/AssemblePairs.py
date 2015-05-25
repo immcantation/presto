@@ -10,7 +10,6 @@ from presto import __version__, __date__
 import os
 import sys
 import tempfile
-from textwrap import dedent
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -19,6 +18,7 @@ from collections import OrderedDict
 from cStringIO import StringIO
 from itertools import izip
 from subprocess import check_output, PIPE, Popen, STDOUT
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC

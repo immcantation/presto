@@ -9,10 +9,10 @@ from presto import __version__, __date__
 # Imports
 import csv
 import os
-from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 
