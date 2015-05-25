@@ -10,7 +10,7 @@ from presto import __version__, __date__
 import os
 import random
 import sys
-import textwrap
+from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
@@ -147,7 +147,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                     If you are sure you want to do this, then increase the 
                     file limit in the OS (via ulimit) and rerun this tool.
                     ''' % file_count
-                sys.stderr.write(textwrap.dedent(e))
+                sys.stderr.write(dedent(e))
                 sys.exit()
             
         # Create output handles
@@ -522,7 +522,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                part<partition>

@@ -2,13 +2,14 @@
 Unit tests for CollapseSeq
 """
 # Imports
-import time, unittest
+import time
+import unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from presto.Sequence import testSeqEqual
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestCollapseSeq(unittest.TestCase):

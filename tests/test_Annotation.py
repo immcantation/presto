@@ -8,7 +8,7 @@ import time, unittest
 from collections import OrderedDict
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestIgCore(unittest.TestCase):

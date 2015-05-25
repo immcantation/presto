@@ -9,7 +9,7 @@ from presto import __version__, __date__
 # Imports
 import csv
 import os
-import textwrap
+from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
@@ -132,7 +132,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                table                 tab delimited table of the selected annotations.

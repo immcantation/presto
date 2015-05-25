@@ -6,10 +6,10 @@ import time, unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from presto.Sequence import getScoreDict
-from bin import MaskPrimers as mod
+from bin import MaskPrimers as script
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestMaskPrimers(unittest.TestCase):
@@ -50,7 +50,7 @@ class TestMaskPrimers(unittest.TestCase):
     @unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
         score_dict=getScoreDict(n_score=1, gap_score=0)
-        align = [mod.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
+        align = [script.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print '%s>' % x.seq.id
@@ -74,7 +74,7 @@ class TestMaskPrimers(unittest.TestCase):
         #     print '  ERR> %f' % x.error
 
         print 'TEST INDELS>'
-        align_indel = [mod.alignPrimers(x, self.primers_indel, max_error=0.2)
+        align_indel = [script.alignPrimers(x, self.primers_indel, max_error=0.2)
                        for x in self.records_indel]
         for x in align_indel:
             print '  %s>' % x.seq.id

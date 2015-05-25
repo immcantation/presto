@@ -9,7 +9,7 @@ from presto import __version__, __date__
 # Imports
 import csv
 import os
-import textwrap
+from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
@@ -269,7 +269,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                reheader-pass  reads passing annotation operation and modified accordingly.

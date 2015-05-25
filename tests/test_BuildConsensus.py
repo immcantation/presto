@@ -5,14 +5,15 @@ Unit tests for BuildConsensus
 from __future__ import absolute_import, division, print_function
 
 # Imports
-import time, unittest
+import time
+import unittest
 import presto.Sequence
-from bin import BuildConsensus as mod
+from bin import BuildConsensus as script
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestBuildConsensus(unittest.TestCase):
@@ -70,37 +71,37 @@ class TestBuildConsensus(unittest.TestCase):
     #@unittest.skip('-> calculateSetError() skipped\n')
     def test_calculateSetError(self):
         cons = presto.Sequence.frequencyConsensus(self.records_dna)
-        error = mod.calculateSetError(self.records_dna, cons)
+        error = script.calculateSetError(self.records_dna, cons)
         print('  REF> %s' % cons.seq)
         print('ERROR> %f' % error)
         self.assertAlmostEqual(1 - 27 / 30, error, places=4)
 
         cons = presto.Sequence.qualityConsensus(self.records_dna)
-        error = mod.calculateSetError(self.records_dna, cons)
+        error = script.calculateSetError(self.records_dna, cons)
         print('  REF> %s' % cons.seq)
         print('ERROR> %f' % error)
         self.assertAlmostEqual(1 - 23 / 28, error, places=4)
 
     #@unittest.skip('-> findGapPositions() skipped\n')
     def test_findGapPositions(self):
-        result = mod.findGapPositions(self.records_dna, max_gap=0.4)
+        result = script.findGapPositions(self.records_dna, max_gap=0.4)
         print('MAX_GAP=0.4> %s' % result)
         self.assertEqual([4, 5], result)
 
-        result = mod.findGapPositions(self.records_dna, max_gap=0.8)
+        result = script.findGapPositions(self.records_dna, max_gap=0.8)
         print('MAX_GAP=0.8> %s' % result)
         self.assertEqual([], result)
 
     #@unittest.skip('-> deleteSeqPositions() skipped\n')
     def test_deleteSeqPositions(self):
-        pos = mod.findGapPositions(self.records_dna, max_gap=0.4)
+        pos = script.findGapPositions(self.records_dna, max_gap=0.4)
         cons = presto.Sequence.frequencyConsensus(self.records_dna)
-        result = mod.deleteSeqPositions(cons, pos)
+        result = script.deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.4> %s' % result.seq)
         self.assertEqual(self.cons_gap, str(result.seq))
 
-        pos = mod.findGapPositions(self.records_dna, max_gap=0.8)
+        pos = script.findGapPositions(self.records_dna, max_gap=0.8)
         cons = presto.Sequence.frequencyConsensus(self.records_dna)
-        result = mod.deleteSeqPositions(cons, pos)
+        result = script.deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.8> %s' % result.seq)
         self.assertEqual(self.cons_loose, str(result.seq))

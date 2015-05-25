@@ -9,7 +9,7 @@ from presto import __version__, __date__
 # Imports
 import os
 import sys
-import textwrap
+from textwrap import dedent
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
@@ -445,7 +445,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                error-position        estimated error by read position.

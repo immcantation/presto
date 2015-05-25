@@ -10,7 +10,7 @@ from presto import __version__, __date__
 import os
 import sys
 import tempfile
-import textwrap
+from textwrap import dedent
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -973,7 +973,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                assemble-pass  successfully assembled reads.

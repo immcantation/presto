@@ -11,7 +11,7 @@ import csv
 import os
 import sys
 import tempfile
-import textwrap
+from textwrap import dedent
 from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
@@ -268,17 +268,17 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
-         '''
-         output files:
-           cluster-pass          clustered reads.
-           cluster-fail          raw reads failing clustering.
+    fields = dedent(
+             '''
+             output files:
+               cluster-pass          clustered reads.
+               cluster-fail          raw reads failing clustering.
 
-         output annotation fields:
-           CLUSTER               a numeric cluster identifier defining the within-group
-                                 cluster.
+             output annotation fields:
+               CLUSTER               a numeric cluster identifier defining the within-group
+                                     cluster.
 
-         ''')
+             ''')
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -337,4 +337,3 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         clusterSets(**args_dict)
-

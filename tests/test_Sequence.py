@@ -3,14 +3,15 @@ Unit tests for Sequence module
 """
 
 # Imports
-import presto.Sequence
-import time, itertools, unittest
-from collections import OrderedDict
+import time
+import itertools
+import unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+import presto.Sequence
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestIgCore(unittest.TestCase):

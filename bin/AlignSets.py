@@ -10,7 +10,7 @@ from presto import __version__, __date__
 import csv
 import os
 import sys
-import textwrap
+from textwrap import dedent
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
@@ -381,7 +381,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
          '''
          output files:
            align-pass     multiple aligned reads.

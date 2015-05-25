@@ -5,11 +5,12 @@ Unit tests for ConvertHeaders
 from __future__ import absolute_import, division, print_function
 
 # Imports
-import time, unittest
-from bin import ConvertHeaders as mod
+import time
+import unittest
+from bin import ConvertHeaders as script
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestConvertHeaders(unittest.TestCase):
@@ -43,13 +44,13 @@ class TestConvertHeaders(unittest.TestCase):
 
     #@unittest.skip('-> convertGenericHeader() skipped\n')
     def test_convertGenericHeader(self):
-        results = [mod.convertGenericHeader(x) for x in self.desc_genbank]
+        results = [script.convertGenericHeader(x) for x in self.desc_genbank]
         for x in results:
             print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
-        results = [mod.convertGenericHeader(x) for x in self.desc_imgt]
+        results = [script.convertGenericHeader(x) for x in self.desc_imgt]
         for x in results:
             print('%s' % x)
 
@@ -57,13 +58,13 @@ class TestConvertHeaders(unittest.TestCase):
 
     #@unittest.skip('-> convertIMGTHeader() skipped\n')
     def test_convertIMGTHeader(self):
-        results = [mod.convertIMGTHeader(x) for x in self.desc_imgt]
+        results = [script.convertIMGTHeader(x) for x in self.desc_imgt]
         for x in results:
             print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
 
-        results = [mod.convertIMGTHeader(x, simple=True) for x in self.desc_imgt]
+        results = [script.convertIMGTHeader(x, simple=True) for x in self.desc_imgt]
         for x in results:
             print('%s' % x)
 
@@ -71,7 +72,7 @@ class TestConvertHeaders(unittest.TestCase):
 
     #@unittest.skip('-> convertIlluminaHeader() skipped\n')
     def test_convertIlluminaHeader(self):
-        results = [mod.convertIlluminaHeader(x) for x in self.desc_illumina]
+        results = [script.convertIlluminaHeader(x) for x in self.desc_illumina]
         for x in results:
             print('%s' % x)
 
@@ -79,7 +80,7 @@ class TestConvertHeaders(unittest.TestCase):
 
     #@unittest.skip('-> convertGenbankHeader() skipped\n')
     def test_convertGenbankHeader(self):
-        results = [mod.convertGenbankHeader(x) for x in self.desc_genbank]
+        results = [script.convertGenbankHeader(x) for x in self.desc_genbank]
         for x in results:
             print('%s' % x)
 
@@ -87,7 +88,7 @@ class TestConvertHeaders(unittest.TestCase):
 
     #@unittest.skip('-> convertSRAHeader() skipped\n')
     def test_convertSRAHeader(self):
-        results = [mod.convertSRAHeader(x) for x in self.desc_sra]
+        results = [script.convertSRAHeader(x) for x in self.desc_sra]
         for x in results:
             print('%s' % x)
 
@@ -95,7 +96,7 @@ class TestConvertHeaders(unittest.TestCase):
 
     #@unittest.skip('-> convert454Header() skipped\n')
     def test_convert454Header(self):
-        results = [mod.convert454Header(x) for x in self.desc_454]
+        results = [script.convert454Header(x) for x in self.desc_454]
         for x in results:
             print('%s' % x)
 

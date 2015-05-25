@@ -5,13 +5,14 @@ Unit tests for ClusterSets
 from __future__ import absolute_import, division, print_function
 
 # Imports
-import time, unittest
-from bin import ClusterSets as mod
+import time
+import unittest
+from bin import ClusterSets as script
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Info
-__author__    = 'Jason Anthony Vander Heiden'
+__author__ = 'Jason Anthony Vander Heiden'
 
 class TestBuildConsensus(unittest.TestCase):
     def setUp(self):
@@ -36,7 +37,7 @@ class TestBuildConsensus(unittest.TestCase):
 
     #@unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
-        results = mod.runUClust(self.records_clust)
+        results = script.runUClust(self.records_clust)
         print(results)
 
         self.assertEqual(sorted(self.results_clust), sorted(results))
