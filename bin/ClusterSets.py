@@ -192,7 +192,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                  out_args=default_out_args, nproc=None,
                  queue_size=None):
     """
-    performs CD-HIT clustering on sets of sequences
+    Performs clustering on sets of sequences
 
     Arguments: 
     seq_file = the sample sequence file name
@@ -207,7 +207,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                  if None defaults to 2*nproc
                       
     Returns: 
-    a tuple of (valid_file, invalid_file) names
+    a list of successful output file names
     """    
     # Print parameter info
     log = OrderedDict()
@@ -251,9 +251,12 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                              nproc, queue_size)
         
     # Print log
-    result['log']['END'] = 'ClusterReads'
-    printLog(result['log'])
-        
+    log = OrderedDict()
+    log['OUTPUT'] = result['log'].pop('OUTPUT')
+    for k, v in result['log'].iteritems():  log[k] = v
+    log['END'] = 'AssemblePairs'
+    printLog(log)
+
     return result['out_files']
 
 

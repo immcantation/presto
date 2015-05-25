@@ -12,6 +12,7 @@ from presto import __version__, __date__
 
 # Imports
 import re
+import sys
 from itertools import product
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq

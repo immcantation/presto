@@ -9,10 +9,12 @@ __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__
 
 # Imports
+import math
 import os
 import re
 import sys
 from collections import OrderedDict
+from time import time, strftime
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 
@@ -270,9 +272,11 @@ def printMessage(message, start_time=None, end=False, width=20):
 
     # Print progress bar
     if end:
-        print('\r%s\n' % bar, flush=True)
+        print('\r%s\n' % bar)
+        sys.stdout.flush()
     else:
-        print('\r%s' % bar, end='', flush=True)
+        print('\r%s' % bar, end='')
+        sys.stdout.flush()
 
     return None
 
@@ -328,10 +332,13 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
 
     # Print progress bar
     if current == 0:
-        print('%s' % bar, end='', flush=True)
+        print('%s' % bar, end='')
+        sys.stdout.flush()
     elif end:
-        print('\r%s\n' % bar, flush=True)
+        print('\r%s\n' % bar)
+        sys.stdout.flush()
     else:
-        print('\r%s' % bar, end='', flush=True)
+        print('\r%s' % bar, end='')
+        sys.stdout.flush()
 
     return None

@@ -13,8 +13,11 @@ from presto import __version__, __date__
 # Imports
 import ctypes
 import os
+import signal
+import sys
 import multiprocessing as mp
 from collections import OrderedDict
+from time import time
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
