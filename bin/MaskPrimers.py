@@ -429,7 +429,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     Arguments: 
     seq_file = name of file containing sample sequences
     primer_file = name of the file containing primer sequences
-    mode = defines the action taken; one of 'cut','mask','tag'
+    mode = defines the action taken; one of 'cut','mask','tag', 'trim'
     align_func = the function to call for alignment
     align_arcs = a dictionary of arguments to pass to align_func
     max_error = maximum acceptable error rate for a valid alignment

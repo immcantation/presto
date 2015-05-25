@@ -207,13 +207,13 @@ def runBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
                        usearch_exec=default_usearch_exec):
     """
-    Aligns a sequence against a reference database using the UBLAST algorith of USEARCH
+    Aligns a sequence against a reference database using the UBLAST algorithm of USEARCH
 
     Arguments:
-    seq = a SeqRecord objects to align
+    seq = a SeqRecord object to align
     ref_file = the path to the reference database file
     evalue = the E-value cut-off for ublast
-    maxhits = the maxhits output limit for ublast
+    max_hits = the maxhits output limit for ublast
     usearch_exec = the path to the usearch executable
 
     Returns:
