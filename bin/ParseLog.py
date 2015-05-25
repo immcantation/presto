@@ -4,17 +4,19 @@ Parses records in the console log of pRESTO modules
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, textwrap
+import csv
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
 
 # Presto imports
-from presto.Core import default_out_args
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getOutputHandle, printLog, printProgress
 
 

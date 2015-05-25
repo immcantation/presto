@@ -4,10 +4,12 @@ Removes duplicate sequences from FASTA/FASTQ files
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import os, re, sys, textwrap
+import os
+import re
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain, izip
@@ -15,8 +17,8 @@ from time import time
 from Bio import SeqIO
 
 # Presto imports
-from presto.Core import default_delimiter, default_out_args
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_delimiter, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               collapseAnnotation
 from presto.Sequence import testSeqEqual

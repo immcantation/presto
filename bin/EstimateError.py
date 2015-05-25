@@ -4,10 +4,12 @@ Calculates annotation set error rates
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import os, sys, textwrap
+import os
+import sys
+import textwrap
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
@@ -16,9 +18,9 @@ from itertools import permutations
 from time import time
 
 # Presto imports
-from presto.Core import default_missing_chars, default_barcode_field, default_out_args, \
-                        default_min_freq, default_min_qual
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_barcode_field, default_missing_chars, \
+                            default_min_freq, default_min_qual, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
 from presto.Sequence import getScoreDict, calculateDiversity, qualityConsensus, \
                             frequencyConsensus, indexSeqSets

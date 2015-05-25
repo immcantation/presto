@@ -4,10 +4,14 @@ Cluster sequences by group
 """
 # Info
 __author__ = 'Christopher Bolen, Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, tempfile, textwrap
+import csv
+import os
+import sys
+import tempfile
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
@@ -15,8 +19,9 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Core import default_delimiter, default_out_args, default_barcode_field
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_delimiter, default_barcode_field, \
+                            default_out_args, default_usearch_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.IO import printLog
 from presto.Sequence import indexSeqSets
@@ -24,8 +29,7 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 # Defaults
-default_cluster_field = r'CLUSTER'
-default_usearch_exec = r'/usr/local/bin/usearch'
+default_cluster_field = 'CLUSTER'
 default_ident = 0.9
 
 

@@ -7,7 +7,10 @@ __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, textwrap
+import csv
+import os
+import sys
+import textwrap
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
@@ -20,17 +23,14 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Core import default_delimiter, default_out_args, default_barcode_field, \
-                        default_primer_field
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_delimiter, default_barcode_field, \
+                            default_primer_field, default_out_args, default_muscle_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation
 from presto.Sequence import calculateDiversity, indexSeqSets
 from presto.IO import readPrimerFile, getOutputHandle, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
-
-# Defaults
-default_muscle_exec = r'/usr/local/bin/muscle'
 
 
 def runMuscle(seq_list, muscle_exec=default_muscle_exec):

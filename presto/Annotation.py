@@ -5,14 +5,13 @@ Annotation functions
 from __future__ import division, absolute_import, print_function
 from future.utils import iteritems
 
-# Imports
-import os
-from collections import OrderedDict
-from presto.Core import default_delimiter, default_coord_type
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
+
+# Imports
+from collections import OrderedDict
+from presto.Defaults import default_delimiter, default_coord_type
 
 
 def parseAnnotation(record, fields=None, delimiter=default_delimiter):
@@ -253,22 +252,18 @@ def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimit
         illumina  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
                   @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
         sra       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
+                  @SRR001666.1.2 1 length=250
         454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
         pesto     @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
     """
     #header = seq.id
     if coord_type in ('illumina', 'solexa'):
         return header.split()[0].split('#')[0]
-    elif coord_type in ('sra', '454'):
+    elif coord_type == '454':
         return header.split()[0]
+    elif coord_type == 'sra':
+        return '.'.join(header.split()[0].split('.')[:2])
     elif coord_type == 'presto':
         return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
         return header
-
-
-if __name__ == '__main__':
-    """
-    Print module information
-    """
-    print('%s: v%s-%s' % (os.path.basename(__file__), __version__, __date__))

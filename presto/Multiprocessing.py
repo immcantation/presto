@@ -6,19 +6,20 @@ from __future__ import division, absolute_import, print_function
 from builtins import range
 from future.utils import iteritems
 
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
+
 # Imports
-import ctypes, os
+import ctypes
+import os
 import multiprocessing as mp
 from collections import OrderedDict
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from presto.IO import (getFileType, readSeqFile, countSeqFile, countSeqSets,
-                       getOutputHandle, printLog, printProgress)
-
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto.IO import getFileType, readSeqFile, countSeqFile, countSeqSets, \
+                      getOutputHandle, printLog, printProgress
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -409,10 +410,3 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file,
         raise
 
     return None
-
-
-if __name__ == '__main__':
-    """
-    Print module information
-    """
-    print('%s: v%s-%s' % (os.path.basename(__file__), __version__, __date__))

@@ -4,10 +4,12 @@ Parses pRESTO annotations in FASTA/FASTQ sequence headers
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, textwrap
+import csv
+import os
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
@@ -15,8 +17,8 @@ from time import time
 from Bio import SeqIO
 
 # Presto imports
-from presto.Core import default_delimiter, default_separator, default_out_args
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_delimiter, default_separator, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               renameAnnotation, collapseAnnotation
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \

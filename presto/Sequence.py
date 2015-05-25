@@ -6,19 +6,22 @@ from __future__ import division, absolute_import, print_function
 from future.moves.itertools import zip_longest
 from future.utils import iteritems
 
-import os, re
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
+
+# Imports
+import re
 from itertools import product
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from presto.Core import (default_delimiter, default_missing_chars,
-                         default_missing_residues, default_min_qual,
-                         default_min_freq, default_barcode_field)
-from presto.Annotation import parseAnnotation
 
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+# Presto imports
+from presto.Defaults import default_delimiter, default_barcode_field, \
+                            default_missing_chars, default_missing_residues, \
+                            default_min_freq, default_min_qual
+from presto.Annotation import parseAnnotation
 
 
 def compilePrimers(primers):
@@ -537,10 +540,3 @@ def subsetSeqIndex(seq_dict, field, values, delimiter=default_delimiter):
                   in values]
 
     return key_subset
-
-
-if __name__ == '__main__':
-    """
-    Print module information
-    """
-    print('%s: v%s-%s' % (os.path.basename(__file__), __version__, __date__))

@@ -6,35 +6,37 @@ Presto setup
 from __future__ import division, absolute_import, print_function
 
 # Imports
-import os, re, sys
+import os
+import sys
 
 # Check setup requirements
 if sys.version_info < (2,7,5):
-    print('At least Python 2.7.5 is required.\n', file=sys.stderr)
-    exit(1)
+    sys.exit('At least Python 2.7.5 is required.\n')
 
 try:
     from setuptools import setup
 except ImportError:
-    print("Please install setuptools before installing presto.", file=sys.stderr)
-    exit(1)
+    sys.exit('Please install setuptools before installing presto.\n')
 
 try:
     from pip.req import parse_requirements
 except ImportError:
-    print("Please install pip before installing presto.", file=sys.stderr)
-    exit(1)
+    sys.exit('Please install pip before installing presto.\n')
 
+# Get version, author and license information
+info_file = os.path.join('presto', 'Version.py')
+__version__, __author__, __license__ = None, None, None
+try:
+    exec(open(info_file).read())
+except:
+    sys.exit('Failed to load package information from %s.\n' % info_file)
 
-# Get version
-# Modified from requests setup
-version = ''
-with open('presto/_version.py', 'r') as handle:
-    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                        handle.read(), re.MULTILINE).group(1)
-if not version:
-    raise RuntimeError('Cannot find version information')
-
+if __version__ is None:
+    sys.exit('Missing version information in %s\n.' % info_file)
+if __author__ is None:
+    sys.exit('Missing author information in %s\n.' % info_file)
+if __license__ is None:
+    sys.exit('Missing license information in %s\n.' % info_file)
 
 # Parse requirements
 requirements = parse_requirements("requirements.txt", session=False)
@@ -62,13 +64,13 @@ with open('README.md', 'r') as f:
 
 # Setup
 setup(name='presto',
-      version=version,
-      author='Jason Vander Heiden',
+      version=__version__,
+      author=__author__,
       author_email='jason.vanderheiden@yale.edu',
       description='A bioinformatics toolkit for processing high-throughput lymphocyte receptor sequencing data.',
       long_description=long_description,
       zip_safe=False,
-      license='Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported',
+      license=__license__,
       url='https://clip.med.yale.edu/presto',
       keywords='bioinformatics immunoglobulin lymphocyte sequencing',
       install_requires=install_requires,

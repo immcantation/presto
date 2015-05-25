@@ -4,19 +4,21 @@ Converts sequence headers to the pRESTO format
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import os, re, sys, textwrap
+import os
+import re
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from time import time
 from Bio import SeqIO
 
 # Presto imports
-from presto.Core import default_delimiter, default_out_args
+from presto.Defaults import default_delimiter, default_out_args
 from presto.Annotation import parseAnnotation, flattenAnnotation
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
 
@@ -238,18 +240,30 @@ def convertSRAHeader(desc):
     Returns:
     a dictionary of header {field: value} pairs
 
-    Header example:
+    Header example from fastq-dum --split-files:
         @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-        @SRR735691.1 GXGJ56Z01AE06X length=222
-        @<ID> <original sequence description> <length=#>
+        @SRR1383326.1 1 length=250
+        @<accession>.<spot> <original sequence description> <length=#>
+    Header example from fastq-dum --split-files -I:
+        @SRR1383326.1.1 1 length=250
+        @<accession>.<spot>.<read number> <original sequence description> <length=#>
     """
     # Split description and assign field names
     try:
         fields = desc.split(' ')
 
+
         # Build header dictionary
         header = OrderedDict()
-        header['ID'] = fields[0]
+
+        # Check for read number if sequence id
+        read_id = fields[0].split('.')
+        if len(read_id) == 3:
+            header['ID'] = '.'.join(read_id[:2])
+            header['READ'] = read_id[2]
+        else:
+            header['ID'] = fields[0]
+
         header['DESC'] = fields[1]
         header['LENGTH'] = fields[2].replace('length=', '')
     except:

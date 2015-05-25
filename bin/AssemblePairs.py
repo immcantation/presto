@@ -4,10 +4,13 @@ Assembles paired-end reads into a single sequence
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import os, sys, tempfile, textwrap
+import os
+import sys
+import tempfile
+import textwrap
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
@@ -22,13 +25,14 @@ from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-
 # Presto imports
-from presto.Core import default_missing_chars, default_coord_choices, \
-                        default_coord_type, default_delimiter, default_out_args
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_delimiter, default_coord_choices, \
+                            default_coord_type, default_missing_chars, \
+                            default_out_args, default_usearch_exec, \
+                            default_blastn_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
-                               getCoordKey
+                              getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
 from presto.Sequence import getScoreDict, reverseComplement, scoreSeqPair
@@ -41,8 +45,6 @@ default_min_ident = 0.5
 default_min_len = 1
 default_max_len = 1000
 default_gap = 0
-default_usearch_exec = r'/usr/local/bin/usearch'
-default_blastn_exec = r'/usr/bin/blastn'
 default_evalue = 1e-5
 default_max_hits = 100
 

@@ -1,3 +1,23 @@
+Version 0.4.7:  May 25, 2015
+-------------------------------------------------------------------------------
+
+AssemblePairs:
+
++ Added support for SRA style coordinate information where the where the read 
+  number has been appended to the spot number.
+
+ConvertHeaders:
+
++ Added support for SRA style sequence headers where the read number has been 
+  appended to the spot number; eg, output from 
+  `fastq-dump -I --split-files file.sra`.
+
+PairSeq:
+
++ Added support for SRA style coordinate information where the where the read 
+  number has been appended to the spot number.
+
+
 Version 0.4.6:  May 13, 2015
 -------------------------------------------------------------------------------
 

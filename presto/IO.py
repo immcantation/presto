@@ -4,18 +4,22 @@ File I/O and logging functions
 # Future
 from __future__ import division, absolute_import, print_function
 
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
+
 # Imports
-import os, re, sys
+import os
+import re
+import sys
 from collections import OrderedDict
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
-from presto.Core import default_barcode_field, default_delimiter
+
+# Presto imports
+from presto.Defaults import default_delimiter, default_barcode_field
 from presto.Annotation import parseAnnotation
 from presto.Sequence import translateIUPAC
-
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
 
 
 def readPrimerFile(primer_file):
@@ -331,10 +335,3 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
         print('\r%s' % bar, end='', flush=True)
 
     return None
-
-
-if __name__ == '__main__':
-    """
-    Print module information
-    """
-    print('%s: v%s-%s' % (os.path.basename(__file__), __version__, __date__))

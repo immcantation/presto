@@ -1,38 +1,23 @@
 """
-Core functions and default parameters
+Commandline interface functions
 """
 # Future
 from __future__ import division, absolute_import, print_function
 from builtins import zip
 
-# Imports
-import os, sys
-import multiprocessing as mp
-from argparse import (ArgumentParser, ArgumentDefaultsHelpFormatter,
-                      RawDescriptionHelpFormatter)
-
 # Info
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
-# Defaults
-default_delimiter = ('|', '=', ',')
-default_separator = default_delimiter[2]
-default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
-default_coord_type = 'presto'
-default_barcode_field = 'BARCODE'
-default_primer_field = 'PRIMER'
-default_missing_chars = set(['-', '.', 'N', 'n'])
-default_missing_residues = set(['.', '-', 'X', 'x'])
-default_min_freq = 0.6
-default_min_qual = 20
-default_out_args = {'log_file':None, 
-                    'delimiter':default_delimiter,
-                    'separator':default_separator,
-                    'out_dir':None,
-                    'out_name':None,
-                    'out_type':None,
-                    'failed':True}
+# Imports
+import os
+import sys
+import multiprocessing as mp
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
+                     RawDescriptionHelpFormatter
+
+# Presto imports
+from presto.Defaults import default_delimiter
 
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
@@ -248,10 +233,4 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     
     return args_dict
 
-
-if __name__ == '__main__':
-    """
-    Print module information
-    """
-    print('%s: v%s-%s' % (os.path.basename(__file__), __version__, __date__))
     

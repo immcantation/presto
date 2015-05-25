@@ -4,10 +4,12 @@ Builds a consensus sequence for each set of input sequences
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import (__version__, __date__)
+from presto import __version__, __date__
 
 # Imports
-import os, sys, textwrap
+import os
+import sys
+import textwrap
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip, izip_longest
@@ -16,9 +18,9 @@ from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import IUPAC
 
 # Presto imports
-from presto.Core import default_delimiter, default_out_args, default_missing_chars, \
-                        default_barcode_field, default_min_freq
-from presto.Core import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Defaults import default_delimiter, default_barcode_field, \
+                            default_missing_chars, default_min_freq, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
                               annotationConsensus
 from presto.IO import getFileType, printLog
