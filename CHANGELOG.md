@@ -12,6 +12,10 @@ ConvertHeaders:
   appended to the spot number; eg, output from 
   `fastq-dump -I --split-files file.sra`.
 
+ClusterSets:
+
++ Added missing OUTPUT console log field.
+
 PairSeq:
 
 + Added support for SRA style coordinate information where the where the read 
