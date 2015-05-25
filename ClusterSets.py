@@ -252,7 +252,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
     for k, v in result['log'].iteritems():  log[k] = v
-    log['END'] = 'AssemblePairs'
+    log['END'] = 'ClusterSets'
     printLog(log)
         
     return result['out_files']
