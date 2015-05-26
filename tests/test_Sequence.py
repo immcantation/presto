@@ -17,7 +17,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 class TestIgCore(unittest.TestCase):
     def setUp(self):
         print '-> %s()' % self._testMethodName
-        # Test DNA
+        # Test DNA sequences
         seq_dna = [Seq('CGGCGTAA'),
                    Seq('CGNNGTAA'),
                    Seq('CGGC--AA'),
@@ -29,7 +29,7 @@ class TestIgCore(unittest.TestCase):
         # TODO:  this 0.3333 case is funny (SEQ2 vs SEQ3). fix is not obvious.
         self.error_dna = [0.0, 0.0, 0.0, 0.3333, 0.0, 0.0]
 
-        #Test Amino Acids
+        #Test amino acid sequences
         seq_aa = [Seq('PQRRRWQQ'),
                   Seq('PQXRRWQX'),
                   Seq('PQR--WQQ'),
@@ -37,6 +37,30 @@ class TestIgCore(unittest.TestCase):
         self.records_aa = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                            for i, s in enumerate(seq_aa, start=1)]
         self.weight_aa = [8, 6, 6, 4]
+
+        # Test DNA characters
+        self.pairs_dna_chars = [('A', 'A'),
+                                ('A', 'C'),
+                                ('A', 'N'),
+                                ('N', 'A'),
+                                ('A', '-'),
+                                ('-', 'A')]
+
+        # Test amino acid characters
+        self.pairs_aa_chars = [('P', 'P'),
+                               ('P', 'Q'),
+                               ('P', 'X'),
+                               ('X', 'P'),
+                               ('P', '-'),
+                               ('-', 'P')]
+
+        # Character pair scores for default case
+        self.pairs_scores_def = [1, 0, 1, 1, 0, 0]
+        # Character pair scores for symmetric case
+        self.pairs_scores_sym = [1, 0, 1, 1, 1, 1]
+        # Character pair scores for asymmetric case where N/gaps in character one are a mismatch
+        self.pairs_scores_asym = [1, 0, 1, 0, 1, 0]
+
 
         # Start clock
         self.start = time.time()
@@ -67,7 +91,7 @@ class TestIgCore(unittest.TestCase):
     #@unittest.skip('-> scoreSeqPair() skipped\n')
     def test_scoreSeqPair(self):
         pairs = list(itertools.combinations(self.records_dna, 2))
-        scores = [presto.Sequence.scoreSeqPair(x, y) for x, y in pairs]
+        scores = [presto.Sequence.scoreDNASeqPair(x, y) for x, y in pairs]
         print 'DNA Scores>'
         for (x, y), s in zip(pairs, scores):
             print '  %s/%s> %s' % (x.id, y.id, s)
@@ -75,3 +99,27 @@ class TestIgCore(unittest.TestCase):
         self.assertEqual([round(s[2], 4) for s in scores],
                          [round(s, 4) for s in self.error_dna])
 
+    #@unittest.skip('-> scoreDNA() skipped\n')
+    def test_scoreDNA(self):
+        scores = [presto.Sequence.scoreDNA(a, b) for a, b in self.pairs_dna_chars]
+        print 'Default DNA Scores>'
+        for (a, b), s in zip(self.pairs_dna_chars, scores):
+            print '  %s==%s> %s' % (a, b, s)
+
+        self.assertSequenceEqual(self.pairs_scores_def, scores)
+
+        scores = [presto.Sequence.scoreDNA(a, b, n_score=(1, 1), gap_score=(1, 1)) \
+                  for a, b in self.pairs_dna_chars]
+        print 'Symmetric DNA Scores>'
+        for (a, b), s in zip(self.pairs_dna_chars, scores):
+            print '  %s==%s> %s' % (a, b, s)
+
+        self.assertSequenceEqual(self.pairs_scores_sym, scores)
+
+        scores = [presto.Sequence.scoreDNA(a, b, n_score=(0, 1), gap_score=(0, 1)) \
+                  for a, b in self.pairs_dna_chars]
+        print 'Asymmetric DNA Scores>'
+        for (a, b), s in zip(self.pairs_dna_chars, scores):
+            print '  %s==%s> %s' % (a, b, s)
+
+        self.assertSequenceEqual(self.pairs_scores_asym, scores)

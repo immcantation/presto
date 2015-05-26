@@ -24,7 +24,7 @@ from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCom
 from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
                               annotationConsensus
 from presto.IO import getFileType, printLog
-from presto.Sequence import subsetSeqSet, getScoreDict, calculateDiversity, \
+from presto.Sequence import subsetSeqSet, getDNAScoreDict, calculateDiversity, \
                             qualityConsensus, frequencyConsensus, indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
@@ -89,7 +89,7 @@ def findGapPositions(seq_list, max_gap, gap_chars=set(['.', '-'])):
 
 
 def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
-                      score_dict=getScoreDict(n_score=0, gap_score=0)):
+                      score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
     """
     Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
 

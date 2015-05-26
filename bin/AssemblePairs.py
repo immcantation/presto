@@ -35,7 +35,7 @@ from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotatio
                               getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
-from presto.Sequence import getScoreDict, reverseComplement, scoreSeqPair
+from presto.Sequence import getDNAScoreDict, reverseComplement, scoreDNASeqPair
 from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
 # Defaults
@@ -259,7 +259,7 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits,
                       usearch_exec=default_usearch_exec,
-                      score_dict=getScoreDict(n_score=0, gap_score=0)):
+                      score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning against a reference database
 
@@ -379,7 +379,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     stitch.evalue = tuple(align_top[['evalue_head', 'evalue_tail']])
 
     # Calculate assembly error
-    score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
+    score, weight, error = scoreDNASeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
                                         ref_seq.seq[outer_start:outer_end],
                                         score_dict=score_dict)
     stitch.ident = 1 - error
@@ -486,7 +486,7 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
 
 def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
                   min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                  assembly_stats=None, score_dict=getScoreDict(n_score=0, gap_score=0)):
+                  assembly_stats=None, score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning the ends
 
@@ -534,7 +534,7 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
         b = head_len - max(0, i - tail_len)
         x = max(0, i - head_len)
         y = min(tail_len, i)
-        score, weight, error = scoreSeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
+        score, weight, error = scoreDNASeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
         z = assembly_stats.z[score, weight]
         # Save stitch as optimal if z-score improves
         if z > stitch.zscore:

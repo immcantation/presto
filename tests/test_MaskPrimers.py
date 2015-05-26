@@ -5,7 +5,7 @@ Unit tests for MaskPrimers
 import time, unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from presto.Sequence import getScoreDict
+from presto.Sequence import getDNAScoreDict
 from bin import MaskPrimers as script
 
 # Info
@@ -23,7 +23,8 @@ class TestMaskPrimers(unittest.TestCase):
                  Seq('GGNNGTTTTACTAATTAATA')]
         self.records_n = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                           for i, s in enumerate(seq_n, start=1)]
-        self.primers_n =  {1:'ACGTTT', 2:'GCCGTT'}
+        self.primers_n =  {1:'ACGTTT',
+                           2:'GCCGTT'}
 
         #Test indels
         seq_indel = [Seq('CGGATCTTCTACTCCATACGTCCGTCAGTCGTGGATCTGATCTAGCTGCGCCTTTTTCTCAG'),
@@ -34,10 +35,15 @@ class TestMaskPrimers(unittest.TestCase):
                      Seq('AGGTGAAGAAGCCTGGGGCCTCCGTGAAGGTCTCCTGCTCGGCTTCTGGATACGCCTTCACC'),
                      Seq('A--TGAAGAAGCCTGGGGCCTCCGTGAAGGTCTCCTGCTCGGCTTCTGGATACGCCTTCACC'),
                      Seq('TCTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA'),
-                     Seq('-CTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA')]
+                     Seq('-CTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA'),
+                     Seq('-CCCCCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA'),
+                     Seq('CCCNNCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA')]
         self.records_indel = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                               for i, s in enumerate(seq_indel, start=1)]
-        self.primers_indel =  {1:'AATACGTCCGTCAGTCGTGGATGT', 2:'CATCTGTCCTC', 3:'GTGAAGAGCCTGG'}
+        self.primers_indel =  {1:'AATACGTCCGTCAGTCGTGGATGT',
+                               2:'CATCTGTCCTC',
+                               3:'GTGAAGAGCCTGG',
+                               4:'CCCC-CTCTNNA'}
 
         # Start clock
         self.start = time.time()
@@ -49,7 +55,7 @@ class TestMaskPrimers(unittest.TestCase):
 
     @unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
-        score_dict=getScoreDict(n_score=1, gap_score=0)
+        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
         align = [script.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
