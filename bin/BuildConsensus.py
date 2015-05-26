@@ -11,21 +11,19 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip, izip_longest
+from itertools import izip
 from textwrap import dedent
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import IUPAC
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
-                            default_missing_chars, default_min_freq, default_out_args
+    default_min_freq, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
                               annotationConsensus
 from presto.IO import getFileType, printLog
-from presto.Sequence import subsetSeqSet, getDNAScoreDict, calculateDiversity, \
-                            qualityConsensus, frequencyConsensus, indexSeqSets
+from presto.Sequence import subsetSeqSet, calculateDiversity, \
+                            qualityConsensus, frequencyConsensus, indexSeqSets, \
+                            calculateSetError, deleteSeqPositions, findGapPositions
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
@@ -34,93 +32,7 @@ default_min_count = 1
 default_min_qual = 0
 
 
-def deleteSeqPositions(seq, positions):
-    """
-    Deletes a list of positions from a SeqRecord
-
-    Arguments:
-    seq = a SeqRecord objects
-    positions = a set of positions (indices) to delete
-
-    Returns:
-    a modified SeqRecord with the specified positions removed
-    """
-    seq_del = ''.join([x for i, x in enumerate(seq.seq) if i not in positions])
-    record = SeqRecord(Seq(seq_del, IUPAC.ambiguous_dna),
-                       id=seq.id, name=seq.name, description=seq.description)
-
-    if 'phred_quality' in seq.letter_annotations:
-        qual_del = [x for i, x in enumerate(seq.letter_annotations['phred_quality']) \
-                    if i not in positions]
-        record.letter_annotations['phred_quality'] = qual_del
-
-    return record
-
-
-def findGapPositions(seq_list, max_gap, gap_chars=set(['.', '-'])):
-    """
-    Finds positions in a set of aligned sequences with a high number of gap characters.
-
-    Arguments:
-    seq_list = a list of SeqRecord objects with aligned sequences
-    max_gap = a float of the maximum gap frequency to consider a position as non-gapped
-    gap_chars = set of characters to consider as gaps
-
-    Returns:
-    a list of positions (indices) with gap frequency greater than max_gap
-    """
-    # Return an empty list in the singleton case
-    seq_count = float(len(seq_list))
-    if seq_count == 1:
-        return []
-
-    # Iterate through positions and count gaps
-    gap_positions = []
-    seq_str = [str(s.seq) for s in seq_list]
-    for i, chars in enumerate(izip_longest(*seq_str, fillvalue='-')):
-        gap_count = sum([chars.count(c) for c in gap_chars])
-        gap_freq = gap_count / seq_count
-
-        # Update gap position over threshold
-        if gap_freq > max_gap:
-            gap_positions.append(i)
-
-    return gap_positions
-
-
-def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
-                      score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
-    """
-    Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
-
-    Arguments:
-    seq_list = a list of SeqRecord objects with aligned sequences
-    ref_seq = a SeqRecord object containing the reference sequence to match against
-    ignore_chars = list of characters to exclude from mismatch counts
-    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
-
-    Returns:
-    a float of the error rate for the set
-    """
-    # Count informative characters in reference sequence
-    ref_bases = sum(1 for b in ref_seq if b not in ignore_chars)
-
-    # Return 0 mismatches for single record case
-    if len(seq_list) <= 1:
-        return 0.0
-
-    # Iterate over seq_list and count mismatches
-    total, score = 0, 0
-    for seq in seq_list:
-        seq_bases = sum(1 for a in seq if a not in ignore_chars)
-        total += min(seq_bases, ref_bases)
-        score += sum([score_dict[(a, b)] for a, b in izip(seq, ref_seq)
-                      if a not in ignore_chars and b not in ignore_chars])
-
-    return 1.0 - float(score) / total
-
-
-def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
+def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                    min_count=default_min_count, primer_field=None, primer_freq=None,
                    max_gap=None, max_error=None, max_diversity=None,
                    copy_fields=None, copy_actions=None, delimiter=default_delimiter):
