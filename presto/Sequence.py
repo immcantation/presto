@@ -305,7 +305,7 @@ def weightAA(seq, ignore_residues=default_missing_residues):
 
 
 def scoreDNASeqPair(seq1, seq2, max_error=None, max_weight=None,
-                 score_dict=getDNAScoreDict()):
+                    score_dict=getDNAScoreDict()):
     """
     Determine the error rate for a pair of sequences
 
