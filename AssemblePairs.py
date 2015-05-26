@@ -6,8 +6,8 @@ Assembles paired-end reads into a single sequence
 __author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+__version__   = '0.4.7'
+__date__      = '2015.05.26'
 
 # Imports
 import csv, os, sys, tempfile, textwrap
@@ -32,7 +32,7 @@ from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getScoreDict, reverseComplement, scoreSeqPair
+from IgCore import getDNAScoreDict, reverseComplement, scoreSeqPair
 from IgCore import countSeqFile, getCoordKey, readSeqFile
 from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
 
@@ -259,7 +259,7 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits,
                       usearch_exec=default_usearch_exec,
-                      score_dict=getScoreDict(n_score=0, gap_score=0)):
+                      score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning against a reference database
 
@@ -486,7 +486,7 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
 
 def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
                   min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                  assembly_stats=None, score_dict=getScoreDict(n_score=0, gap_score=0)):
+                  assembly_stats=None, score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning the ends
 

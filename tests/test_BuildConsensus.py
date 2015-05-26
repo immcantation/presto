@@ -72,37 +72,37 @@ class TestBuildConsensus(unittest.TestCase):
     #@unittest.skip('-> calculateSetError() skipped\n')
     def test_calculateSetError(self):
         cons = core.frequencyConsensus(self.records_dna)
-        error = mod.calculateSetError(self.records_dna, cons)
+        error = core.calculateSetError(self.records_dna, cons)
         print('  REF> %s' % cons.seq)
         print('ERROR> %f' % error)
         self.assertAlmostEqual(1 - 27 / 30, error, places=4)
 
         cons = core.qualityConsensus(self.records_dna)
-        error = mod.calculateSetError(self.records_dna, cons)
+        error = core.calculateSetError(self.records_dna, cons)
         print('  REF> %s' % cons.seq)
         print('ERROR> %f' % error)
         self.assertAlmostEqual(1 - 23 / 28, error, places=4)
 
     #@unittest.skip('-> findGapPositions() skipped\n')
     def test_findGapPositions(self):
-        result = mod.findGapPositions(self.records_dna, max_gap=0.4)
+        result = core.findGapPositions(self.records_dna, max_gap=0.4)
         print('MAX_GAP=0.4> %s' % result)
         self.assertEqual([4, 5], result)
 
-        result = mod.findGapPositions(self.records_dna, max_gap=0.8)
+        result = core.findGapPositions(self.records_dna, max_gap=0.8)
         print('MAX_GAP=0.8> %s' % result)
         self.assertEqual([], result)
 
     #@unittest.skip('-> deleteSeqPositions() skipped\n')
     def test_deleteSeqPositions(self):
-        pos = mod.findGapPositions(self.records_dna, max_gap=0.4)
+        pos = core.findGapPositions(self.records_dna, max_gap=0.4)
         cons = core.frequencyConsensus(self.records_dna)
-        result = mod.deleteSeqPositions(cons, pos)
+        result = core.deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.4> %s' % result.seq)
         self.assertEqual(self.cons_gap, str(result.seq))
 
-        pos = mod.findGapPositions(self.records_dna, max_gap=0.8)
+        pos = core.findGapPositions(self.records_dna, max_gap=0.8)
         cons = core.frequencyConsensus(self.records_dna)
-        result = mod.deleteSeqPositions(cons, pos)
+        result = core.deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.8> %s' % result.seq)
         self.assertEqual(self.cons_loose, str(result.seq))

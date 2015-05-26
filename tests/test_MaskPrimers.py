@@ -13,7 +13,7 @@ import time, unittest
 import MaskPrimers as mod
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import getScoreDict
+from IgCore import getDNAScoreDict
 
 class TestMaskPrimers(unittest.TestCase):
 
@@ -52,7 +52,7 @@ class TestMaskPrimers(unittest.TestCase):
 
     @unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
-        score_dict=getScoreDict(n_score=1, gap_score=0)
+        score_dict=getDNAScoreDict(n_score=1, gap_score=0)
         align = [mod.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:

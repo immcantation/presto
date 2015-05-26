@@ -1,10 +1,22 @@
 Version 0.4.7:  May 25, 2015
 -------------------------------------------------------------------------------
 
+IgCore:
+
++ Modified scoring functions to permit asymmetrical scores for N and gap 
+  characters.
+  
 AssemblePairs:
 
 + Added support for SRA style coordinate information where the where the read 
   number has been appended to the spot number.
++ Altered scoring so that Ns count as a match against any character in the 
+  error rate and identity calculations.
+
+BuildConsensus:
+
++ Altered scoring so that Ns count as a match against any character in the 
+  diversity and error rate calculations.
 
 ConvertHeaders:
 
@@ -15,6 +27,13 @@ ConvertHeaders:
 ClusterSets:
 
 + Added missing OUTPUT console log field.
+
+MaskPrimers:
+
++ Altering scoring behavior for N and gap (-, .) characters such that Ns and 
+  gaps in the input sequence are always counted as a mismatch, while Ns and
+  gaps in the primer sequence are always counted as a match, with priority
+  given to the input sequence score.
 
 PairSeq:
 

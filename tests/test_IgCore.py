@@ -1,7 +1,6 @@
 """
 Unit tests for IgCore
 """
-
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
@@ -42,6 +41,29 @@ class TestIgCore(unittest.TestCase):
         # Annotation dictionaries
         self.ann_dict_1 = OrderedDict([('ID', 'SEQ1'), ('TEST1', 'A,B'), ('TEST2', [1, 2])])
         self.ann_dict_2 = OrderedDict([('ID', 'SEQ2'), ('TEST1', 'C,C'), ('TEST2', 3)])
+
+        # Test DNA characters
+        self.pairs_dna_chars = [('A', 'A'),
+                                ('A', 'C'),
+                                ('A', 'N'),
+                                ('N', 'A'),
+                                ('A', '-'),
+                                ('-', 'A')]
+
+        # Test amino acid characters
+        self.pairs_aa_chars = [('P', 'P'),
+                               ('P', 'Q'),
+                               ('P', 'X'),
+                               ('X', 'P'),
+                               ('P', '-'),
+                               ('-', 'P')]
+
+        # Character pair scores for default case
+        self.pairs_scores_def = [1, 0, 1, 1, 0, 0]
+        # Character pair scores for symmetric case
+        self.pairs_scores_sym = [1, 0, 1, 1, 1, 1]
+        # Character pair scores for asymmetric case where N/gaps in character one are a mismatch
+        self.pairs_scores_asym = [1, 0, 1, 0, 1, 0]
 
         # Start clock
         self.start = time.time()
@@ -144,3 +166,28 @@ class TestIgCore(unittest.TestCase):
         result = mod.collapseAnnotation(self.ann_dict_1, 'sum', fields='TEST2')
         self.assertEqual('3', result['TEST2'])
         print result
+
+     #@unittest.skip('-> scoreDNA() skipped\n')
+    def test_scoreDNA(self):
+        scores = [mod.scoreDNA(a, b) for a, b in self.pairs_dna_chars]
+        print 'Default DNA Scores>'
+        for (a, b), s in zip(self.pairs_dna_chars, scores):
+            print '  %s==%s> %s' % (a, b, s)
+
+        self.assertSequenceEqual(self.pairs_scores_def, scores)
+
+        scores = [mod.scoreDNA(a, b, n_score=(1, 1), gap_score=(1, 1)) \
+                  for a, b in self.pairs_dna_chars]
+        print 'Symmetric DNA Scores>'
+        for (a, b), s in zip(self.pairs_dna_chars, scores):
+            print '  %s==%s> %s' % (a, b, s)
+
+        self.assertSequenceEqual(self.pairs_scores_sym, scores)
+
+        scores = [mod.scoreDNA(a, b, n_score=(0, 1), gap_score=(0, 1)) \
+                  for a, b in self.pairs_dna_chars]
+        print 'Asymmetric DNA Scores>'
+        for (a, b), s in zip(self.pairs_dna_chars, scores):
+            print '  %s==%s> %s' % (a, b, s)
+
+        self.assertSequenceEqual(self.pairs_scores_asym, scores)

@@ -6,8 +6,8 @@ Calculates annotation set error rates
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+__version__   = '0.4.7'
+__date__      = '2015.05.26'
 
 # Imports
 import os, sys, textwrap
@@ -24,7 +24,7 @@ from IgCore import default_missing_chars, default_barcode_field, default_out_arg
 from IgCore import default_min_freq, default_min_qual
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from IgCore import getOutputHandle, printLog, printProgress, getFileType
-from IgCore import getScoreDict, calculateDiversity, countSeqSets, indexSeqSets
+from IgCore import getDNAScoreDict, calculateDiversity, countSeqSets, indexSeqSets
 from IgCore import frequencyConsensus, qualityConsensus
 from IgCore import feedSeqQueue, manageProcesses, SeqResult
 
@@ -33,7 +33,7 @@ default_min_count = 10
         
 
 def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars, 
-                    score_dict=getScoreDict(n_score=1, gap_score=1)):
+                    score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(1, 1))):
     """
     Counts the occurrence of nucleotide mismatches in a set of sequences
 

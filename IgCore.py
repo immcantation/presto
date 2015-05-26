@@ -7,7 +7,7 @@ __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
 __version__   = '0.4.7'
-__date__      = '2015.05.23'
+__date__      = '2015.05.26'
 
 # Imports
 import ctypes, math, os, re, textwrap, signal, sys
@@ -637,18 +637,20 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
 
-    Arguments: 
+    Arguments:
     a = first characters
     b = second character
-    n_score = score for all matches against an N character;
-              if None score according to IUPAC character identity
-    gap_score = score for all matches against a [-, .] character;
-                if None score according to IUPAC character identity
+    n_score = a tuple of length two defining scores for all matches against an N
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
 
     Returns:
     score for the character pair
     """
-    # Define ambiguous character translations    
+    # Define ambiguous character translations
     IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
                    'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
                    '-.':'.'}
@@ -656,15 +658,18 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
     IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
     # Check gap condition
-    if gap_score is not None and (a in '-.' or b in '-.'):
-        return gap_score
+    if gap_score is not None and a in '-.':
+        return gap_score[0]
+    elif gap_score is not None and b in '-.':
+        return gap_score[1]
 
     # Check N-value condition
-    if n_score is not None and (a == 'N' or b == 'N'):
-        return n_score
+    if n_score is not None and a == 'N':
+        return n_score[0]
+    elif n_score is not None and b == 'N':
+        return n_score[1]
 
-    # Determine and return score for IUPAC match conditions
-    # Symmetric and reflexive
+    # Return symmetric and reflexive score for IUPAC match conditions
     if a == b:
         return 1
     elif (a, b) in IUPAC_matches:
@@ -675,37 +680,42 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def scoreAA(a, b, n_score=None, gap_score=None):
+def scoreAA(a, b, x_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Extended Protein characters
 
-    Arguments: 
+    Arguments:
     a = first character
     b = second character
-    n_score = score for all matches against an X character;
-              if None score according to IUPAC character identity
-    gap_score = score for all matches against a [-, .] character;
-                if None score according to IUPAC character identity
+    n_score = a tuple of length two defining scores for all matches against an X
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
 
     Returns:
     score for the character pair
     """
-    # Define ambiguous character translations    
+    # Define ambiguous character translations
     IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
     # Check gap condition
-    if gap_score is not None and (a in '-.' or b in '-.'):
-        return gap_score
+    if gap_score is not None and a in '-.':
+        return gap_score[0]
+    elif gap_score is not None and b in '-.':
+        return gap_score[1]
 
     # Check X-value condition
-    if n_score is not None and (a == 'X' or b == 'X'):
-        return n_score
+    if x_score is not None and a == 'X':
+        return x_score[0]
+    elif x_score is not None and b == 'X':
+        return x_score[1]
 
-    # Determine and return score for IUPAC match conditions
-    # Symmetric and reflexive
+    # Return symmetric and reflexive score for IUPAC match conditions
     if a == b:
         return 1
     elif (a, b) in IUPAC_matches:
@@ -716,33 +726,48 @@ def scoreAA(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def getScoreDict(n_score=None, gap_score=None, alphabet='dna'):
+def getDNAScoreDict(n_score=None, gap_score=None):
     """
     Generates a score dictionary
 
-    Arguments: 
-    n_score = score for all matches against an N character;
-              if None score according to IUPAC character identity
-    gap_score = score for all matches against a [-, .] character;
-                if None score according to IUPAC character identity
-    alphabet = the type of score dictionary to generate;
-               one of [dna, aa] for DNA and amino acid characters
-                
+    Arguments:
+    n_score = a tuple of length two defining scores for all matches against an N
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
+
     Returns:
     a score dictionary of the form {(char1, char2) : score}
     """
-    if alphabet=='dna':
-        IUPAC_chars = '-.ACGTRYSWKMBDHVN'
-        IUPAC_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score) 
-                      for k in product(IUPAC_chars, repeat=2)}
-    elif alphabet=='aa':
-        IUPAC_chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        IUPAC_dict = {k:scoreAA(*k, x_score=n_score, gap_score=gap_score) 
-                      for k in product(IUPAC_chars, repeat=2)}
-    else:
-        sys.stderr.write('ERROR:  The alphabet %s is not a recognized type\n' % alphabet)
+    chars = '-.ACGTRYSWKMBDHVN'
+    score_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score)
+                  for k in product(chars, repeat=2)}
 
-    return IUPAC_dict
+    return score_dict
+
+
+def getAAScoreDict(x_score=None, gap_score=None):
+    """
+    Generates a score dictionary
+
+    Arguments:
+    x_score = a tuple of length two defining scores for all matches against an X
+              character for (a, b), with the score for character (a) taking precedence;
+              if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a [-, .]
+                character for (a, b), with the score for character (a) taking precedence;
+                if None score symmetrically according to IUPAC character identity
+
+    Returns:
+    a score dictionary of the form {(char1, char2) : score}
+    """
+    chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    score_dict = {k:scoreAA(*k, x_score=x_score, gap_score=gap_score)
+                  for k in product(chars, repeat=2)}
+
+    return score_dict
 
 
 def reverseComplement(seq):
@@ -833,7 +858,7 @@ def weightAA(seq, ignore_residues=default_missing_residues):
 
 
 def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None, 
-                 score_dict=getScoreDict(n_score=0, gap_score=0)):
+                 score_dict=getDNAScoreDict()):
     """
     Determine the error rate for a pair of sequences
     
@@ -873,7 +898,7 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
     return (score, weight, error)
 
 
-def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)):
+def calculateDiversity(seq_list, score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
     """
     Determine the average pairwise error rate for a list of sequences
 
@@ -894,6 +919,92 @@ def calculateDiversity(seq_list, score_dict=getScoreDict(n_score=0, gap_score=0)
             scores.append(scoreSeqPair(seq1, seq2, score_dict=score_dict)[2])
     
     return sum(scores) / len(scores)
+
+
+def deleteSeqPositions(seq, positions):
+    """
+    Deletes a list of positions from a SeqRecord
+
+    Arguments:
+    seq = a SeqRecord objects
+    positions = a set of positions (indices) to delete
+
+    Returns:
+    a modified SeqRecord with the specified positions removed
+    """
+    seq_del = ''.join([x for i, x in enumerate(seq.seq) if i not in positions])
+    record = SeqRecord(Seq(seq_del, IUPAC.ambiguous_dna),
+                       id=seq.id, name=seq.name, description=seq.description)
+
+    if 'phred_quality' in seq.letter_annotations:
+        qual_del = [x for i, x in enumerate(seq.letter_annotations['phred_quality']) \
+                    if i not in positions]
+        record.letter_annotations['phred_quality'] = qual_del
+
+    return record
+
+
+def findGapPositions(seq_list, max_gap, gap_chars=set(['.', '-'])):
+    """
+    Finds positions in a set of aligned sequences with a high number of gap characters.
+
+    Arguments:
+    seq_list = a list of SeqRecord objects with aligned sequences
+    max_gap = a float of the maximum gap frequency to consider a position as non-gapped
+    gap_chars = set of characters to consider as gaps
+
+    Returns:
+    a list of positions (indices) with gap frequency greater than max_gap
+    """
+    # Return an empty list in the singleton case
+    seq_count = float(len(seq_list))
+    if seq_count == 1:
+        return []
+
+    # Iterate through positions and count gaps
+    gap_positions = []
+    seq_str = [str(s.seq) for s in seq_list]
+    for i, chars in enumerate(izip_longest(*seq_str, fillvalue='-')):
+        gap_count = sum([chars.count(c) for c in gap_chars])
+        gap_freq = gap_count / seq_count
+
+        # Update gap position over threshold
+        if gap_freq > max_gap:
+            gap_positions.append(i)
+
+    return gap_positions
+
+
+def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
+                      score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
+    """
+    Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
+
+    Arguments:
+    seq_list = a list of SeqRecord objects with aligned sequences
+    ref_seq = a SeqRecord object containing the reference sequence to match against
+    ignore_chars = list of characters to exclude from mismatch counts
+    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+
+    Returns:
+    a float of the error rate for the set
+    """
+    # Count informative characters in reference sequence
+    ref_bases = sum(1 for b in ref_seq if b not in ignore_chars)
+
+    # Return 0 mismatches for single record case
+    if len(seq_list) <= 1:
+        return 0.0
+
+    # Iterate over seq_list and count mismatches
+    total, score = 0, 0
+    for seq in seq_list:
+        seq_bases = sum(1 for a in seq if a not in ignore_chars)
+        total += min(seq_bases, ref_bases)
+        score += sum([score_dict[(a, b)] for a, b in izip(seq, ref_seq)
+                      if a not in ignore_chars and b not in ignore_chars])
+
+    return 1.0 - float(score) / total
 
 
 def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_freq,

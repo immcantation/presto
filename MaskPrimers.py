@@ -6,8 +6,8 @@ Removes primers and annotates sequences with primer and barcode identifiers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.6'
-__date__      = '2015.05.13'
+__version__   = '0.4.7'
+__date__      = '2015.05.26'
 
 # Imports
 import os, sys, textwrap
@@ -21,7 +21,7 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from IgCore import default_delimiter, default_out_args
 from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
 from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getScoreDict, reverseComplement
+from IgCore import getDNAScoreDict, reverseComplement
 from IgCore import compilePrimers, readPrimerFile, printLog
 from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
@@ -79,7 +79,7 @@ class PrimerAlignment:
 
 def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error,
                  max_len=default_max_len, rev_primer=False, skip_rc=False, 
-                 score_dict=getScoreDict(n_score=1, gap_score=0)):
+                 score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
 
@@ -204,7 +204,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
 
 
 def scorePrimers(seq_record, primers, start=default_start, rev_primer=False, 
-                 score_dict=getScoreDict(n_score=1, gap_score=0)):
+                 score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))):
     """
     Performs simple alignment of primers with a fixed starting position, 
     no reverse complement alignment, and no tail alignment option
@@ -235,7 +235,7 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     for adpt_id, adpt_seq in primers.iteritems():
         if rev_primer:  start = end - len(adpt_seq)
         else:  end = start + len(adpt_seq)
-        chars = izip(adpt_seq, seq_record[start:end])
+        chars = izip(seq_record[start:end], adpt_seq)
         score = sum([score_dict[(c1, c2)] for c1, c2 in chars])
         this_align.update({adpt_id: (score, start, end)})
 
@@ -471,7 +471,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     
     # Define alignment arguments and compile primers for align mode
     align_args['primers'] = primers 
-    align_args['score_dict'] = getScoreDict(n_score=1, gap_score=0)
+    align_args['score_dict'] = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
     if align_func is alignPrimers:
         align_args['max_error'] = max_error
         align_args['primers_regex'] = compilePrimers(primers)
