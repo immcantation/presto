@@ -23,7 +23,8 @@ class TestMaskPrimers(unittest.TestCase):
         seq_n = [Seq('CCACGTTTTAGTAATTAATA'),
                  Seq('CCNCGTTTTAGTAATTAATA'),
                  Seq('GGGCGTTTTAGTAATTAATA'),
-                 Seq('GGNNGTTTTACTAATTAATA')]
+                 Seq('GGNNGTTTTACTAATTAATA'),
+                 Seq('NNNNNNNNNACTAATTAATA')]
         self.records_n = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                           for i, s in enumerate(seq_n, start=1)]
         self.primers_n =  {1:'ACGTTT', 2:'GCCGTT'}
@@ -65,16 +66,16 @@ class TestMaskPrimers(unittest.TestCase):
 
     #@unittest.skip('-> alignPrimers() skipped\n')
     def test_alignPrimers(self):
-        # print 'TEST Ns>'
-        # score_dict=getScoreDict(n_score=1, gap_score=0)
-        # align_n = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
-        #            for x in self.records_n]
-        # for x in align_n:
-        #     print '  %s>' % x.seq.id
-        #     print '   IN> %s' % x.seq.seq
-        #     print '  SEQ> %s' % x.align_seq
-        #     print '   PR> %s' % x.align_primer
-        #     print '  ERR> %f' % x.error
+        print 'TEST Ns>'
+        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
+        align_n = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
+                   for x in self.records_n]
+        for x in align_n:
+            print '  %s>' % x.seq.id
+            print '   IN> %s' % x.seq.seq
+            print '  SEQ> %s' % x.align_seq
+            print '   PR> %s' % x.align_primer
+            print '  ERR> %f' % x.error
 
         print 'TEST INDELS>'
         align_indel = [mod.alignPrimers(x, self.primers_indel, max_error=0.2)

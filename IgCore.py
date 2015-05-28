@@ -26,21 +26,28 @@ from Bio.Alphabet import IUPAC
 # Defaults
 default_delimiter = ('|', '=', ',')
 default_separator = default_delimiter[2]
-default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
-default_coord_type = 'presto'
-default_barcode_field = 'BARCODE'
-default_primer_field = 'PRIMER'
-default_missing_chars = set(['-', '.', 'N', 'n'])
-default_missing_residues = set(['.', '-', 'X', 'x'])
-default_min_freq = 0.6
-default_min_qual = 20
-default_out_args = {'log_file':None, 
+default_out_args = {'log_file':None,
                     'delimiter':default_delimiter,
                     'separator':default_separator,
                     'out_dir':None,
                     'out_name':None,
                     'out_type':None,
                     'failed':True}
+
+default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
+default_coord_type = 'presto'
+default_barcode_field = 'BARCODE'
+default_primer_field = 'PRIMER'
+default_min_freq = 0.6
+default_min_qual = 20
+
+default_ambig_chars = set(['n', 'N'])
+default_gap_chars = set(['.', '-'])
+default_missing_chars = set(['-', '.', 'n', 'N'])
+default_missing_residues = set(['.', '-', 'x', 'X'])
+
+
+
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -819,6 +826,7 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     return equal
  
 
+# TODO:  can be removed I think.
 def weightDNA(seq, ignore_chars=default_missing_chars):
     """
     Returns a score for a single sequence excluding missing positions
@@ -838,6 +846,7 @@ def weightDNA(seq, ignore_chars=default_missing_chars):
     return max(score, 1)
 
 
+# TODO:  can be removed I think.
 def weightAA(seq, ignore_residues=default_missing_residues):
     """
     Returns a score for a single sequence excluding missing positions
@@ -857,18 +866,14 @@ def weightAA(seq, ignore_residues=default_missing_residues):
     return max(score, 1)
 
 
-def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None, 
-                 score_dict=getDNAScoreDict()):
+def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
     Determine the error rate for a pair of sequences
     
     Arguments: 
     seq1 = a SeqRecord object
     seq2 = a SeqRecord object
-    max_error = the maximum error rate; once reached return (0, 0, 1.0)
-                if None always return accurate score, weight and error
-    max_weight = the maximum weight to use when checking the max_error break condition;
-                 if None use the minimum length of seq1,seq2
+    ignore_chars = a set of characters to ignore when scoring and counting the weight
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
     
     Returns:
@@ -876,24 +881,12 @@ def scoreSeqPair(seq1, seq2, max_error=None, max_weight=None,
     """
     # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
-    if max_error is None:
-        # Return accurate values when max_error is undefined
-        chars = izip(seq1.upper(), seq2.upper())
-        score = sum([score_dict[(a, b)] for a, b in chars])
-        weight = min(weightDNA(seq1), weightDNA(seq2))
-        error = 1.0 - float(score) / weight
-    else:
-        # If max_error defined return when worst case reach
-        score = 0
-        if not max_weight:  max_weight = min(len(seq1), len(seq2))
-        for i, (a, b) in enumerate(izip(seq1, seq2)):
-            score += score_dict[(a, b)]
-            if (i - float(score)) / max_weight > max_error:
-                score, weight, error = 0, 0, 1.0
-                break
-        else:
-            weight = min(weightDNA(seq1), weightDNA(seq2))
-            error = 1.0 - float(score) / weight
+    chars = izip(seq1.upper(), seq2.upper())
+    score_list = [score_dict[(a, b)] for a, b in chars \
+                  if a not in ignore_chars and b not in ignore_chars]
+    score = sum(score_list)
+    weight = len(score_list)
+    error = 1.0 - float(score) / weight if weight > 0 else 1.0
 
     return (score, weight, error)
 
@@ -944,7 +937,7 @@ def deleteSeqPositions(seq, positions):
     return record
 
 
-def findGapPositions(seq_list, max_gap, gap_chars=set(['.', '-'])):
+def findGapPositions(seq_list, max_gap, gap_chars=default_gap_chars):
     """
     Finds positions in a set of aligned sequences with a high number of gap characters.
 

@@ -21,13 +21,29 @@ class TestIgCore(unittest.TestCase):
         seq_dna = [Seq('CGGCGTAA'),
                    Seq('CGNNGTAA'),
                    Seq('CGGC--AA'),
-                   Seq('CGNN--AA')]
+                   Seq('CGNN--AA'),
+                   Seq('NNNNNNNN'),
+                   Seq('NNNNNNAA'),
+                   Seq('--------'),
+                   Seq('CG------')]
         self.records_dna = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                             for i, s in enumerate(seq_dna, start=1)]
-        self.weight_dna = [8, 6, 6, 4]
+        self.weight_dna = [8, 6, 6, 4, 1, 2, 8, 8]
         # scoreSeqPair returns (score, minimum weight, error rate)
-        # TODO:  this 0.3333 case is funny (SEQ2 vs SEQ3). fix is not obvious.
-        self.error_dna = [0.0, 0.0, 0.0, 0.3333, 0.0, 0.0]
+        # 1vs2, 1vs3, 1vs4, 1vs5, 1vs6, 1v7, 1v8
+        # 2vs3, 2vs4, 2vs5, 2vs6, 2v7, 2v8,
+        # 3vs4, 3vs5, 3vs6, 3vs7, 3v8,
+        # 4vs5, 4vs6, 4vs7, 4vs8,
+        # 5vs6, 5vs7, 5v8,
+        # 6vs7, 6vs8,
+        # 7vs8
+        self.error_dna = [0.0/6, 2.0/8, 2.0/6, 1.0, 0.0/2, 8.0/8, 6.0/8,
+                          2.0/6, 2.0/6, 1.0, 0.0/2, 6.0/6, 4.0/6,
+                          0.0/6, 1.0, 0.0/2, 6.0/8, 4.0/8,
+                          1.0, 0.0/2, 4.0/6, 2.0/6,
+                          1.0, 1.0, 1.0,
+                          1.0, 2.0/2,
+                          2.0/8]
 
         #Test Amino Acids
         seq_aa = [Seq('PQRRRWQQ'),
@@ -93,11 +109,16 @@ class TestIgCore(unittest.TestCase):
 
     #@unittest.skip('-> scoreSeqPair() skipped\n')
     def test_scoreSeqPair(self):
+        ignore_chars = set(['N', 'n'])
         pairs = list(itertools.combinations(self.records_dna, 2))
-        scores = [mod.scoreSeqPair(x, y) for x, y in pairs]
+        scores = [mod.scoreSeqPair(x, y, ignore_chars=ignore_chars) for x, y in pairs]
         print 'DNA Scores>'
         for (x, y), s in zip(pairs, scores):
-            print '  %s/%s> %s' % (x.id, y.id, s)
+            print '  %s> %s' % (x.id, x.seq)
+            print '  %s> %s' % (y.id, y.seq)
+            print ' SCORE> %i' % s[0]
+            print 'WEIGHT> %i' % s[1]
+            print ' ERROR> %f\n' % s[2]
 
         self.assertEqual([round(s[2], 4) for s in scores],
                          [round(s, 4) for s in self.error_dna])
