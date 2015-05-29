@@ -41,12 +41,12 @@ default_primer_field = 'PRIMER'
 default_min_freq = 0.6
 default_min_qual = 20
 
-default_ambig_chars = set(['n', 'N'])
+default_mask_chars = set(['n', 'N'])
 default_gap_chars = set(['.', '-'])
 default_missing_chars = set(['-', '.', 'n', 'N'])
+default_mask_residues = set(['x', 'X'])
+default_gap_residues = set(['.', '-'])
 default_missing_residues = set(['.', '-', 'x', 'X'])
-
-
 
 
 # Constants
@@ -664,16 +664,14 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
-    # Check gap condition
+    # Check gap and N-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
+    elif n_score is not None and a in 'nN':
+        return n_score[0]
     elif gap_score is not None and b in '-.':
         return gap_score[1]
-
-    # Check N-value condition
-    if n_score is not None and a == 'N':
-        return n_score[0]
-    elif n_score is not None and b == 'N':
+    elif n_score is not None and b in 'nN':
         return n_score[1]
 
     # Return symmetric and reflexive score for IUPAC match conditions
@@ -710,16 +708,14 @@ def scoreAA(a, b, x_score=None, gap_score=None):
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
-    # Check gap condition
+    # Check gap and X-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
+    elif x_score is not None and a in 'xX':
+        return x_score[0]
     elif gap_score is not None and b in '-.':
         return gap_score[1]
-
-    # Check X-value condition
-    if x_score is not None and a == 'X':
-        return x_score[0]
-    elif x_score is not None and b == 'X':
+    elif x_score is not None and b in 'xX':
         return x_score[1]
 
     # Return symmetric and reflexive score for IUPAC match conditions
@@ -827,9 +823,9 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
  
 
 # TODO:  can be removed I think.
-def weightDNA(seq, ignore_chars=default_missing_chars):
+def weightSeq(seq, ignore_chars=set()):
     """
-    Returns a score for a single sequence excluding missing positions
+    Returns the length of a sequencing excluding ignored characters
     
     Arguments: 
     seq = a SeqRecord or Seq object
@@ -838,32 +834,7 @@ def weightDNA(seq, ignore_chars=default_missing_chars):
     Returns:
     The sum of the character scores for the sequence
     """
-    score = sum(1 for x in seq if x not in ignore_chars)
-    #score = sum()
-    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    #gap_score = 0
-      
-    return max(score, 1)
-
-
-# TODO:  can be removed I think.
-def weightAA(seq, ignore_residues=default_missing_residues):
-    """
-    Returns a score for a single sequence excluding missing positions
-
-    Arguments:
-    seq = a SeqRecord or Seq object
-    ignore_residues = set of characters to ignore when counting sequence length
-
-    Returns:
-    The sum of the character scores for the sequence
-    """
-    score = sum(1 for x in seq if x not in ignore_residues)
-    #score = sum()
-    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    #gap_score = 0
-
-    return max(score, 1)
+    return sum(1 for x in seq if x not in ignore_chars)
 
 
 def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):

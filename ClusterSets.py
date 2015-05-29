@@ -36,14 +36,14 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
-    Arguments: 
+    Arguments:
     seq_list = a list of SeqRecord objects to align
     ident = the sequence identity cutoff to be passed to usearch
     seq_start = the start position to trim sequences at before clustering
     seq_end = the end position to trim sequences at before clustering
     usearch_exec = the path to the usearch executable
 
-    Returns: 
+    Returns:
     a dictionary object containing {sequence id: cluster id}
     """
     # Return sequence if only one sequence in seq_list
@@ -105,15 +105,15 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
-    Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing 
+    Arguments:
+    alive = a multiprocessing.Value boolean controlling whether processing
             continues; when False function returns
     data_queue = a multiprocessing.Queue holding data to process
     result_queue = a multiprocessing.Queue to hold processed results
     cluster_args = a dictionary of optional arguments for the clustering function
     delimiter = a tuple of delimiters for (annotations, field/values, value lists)
 
-    Returns: 
+    Returns:
     None
     """
     try:
@@ -124,12 +124,12 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
             else:  data = data_queue.get()
             # Exit upon reaching sentinel
             if data is None:  break
-            
+
             # Define result object
             result = SeqResult(data.id, data.data)
             result.log['BARCODE'] = data.id
             result.log['SEQCOUNT'] = len(data)
-    
+
             # Perform clustering
             cluster_dict = runUClust(data.data, **cluster_args)
 
@@ -184,7 +184,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
 
 
 def clusterSets(seq_file, barcode_field=default_barcode_field,
-                 cluster_field=default_cluster_field, 
+                 cluster_field=default_cluster_field,
                  ident=default_ident, seq_start=None, seq_end=None,
                  usearch_exec=default_usearch_exec,
                  out_args=default_out_args, nproc=None,
@@ -192,7 +192,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     """
     Performs clustering on sets of sequences
 
-    Arguments: 
+    Arguments:
     seq_file = the sample sequence file name
     barcode_field = the annotation containing set IDs
     ident = the identity threshold for clustering sequences
@@ -203,10 +203,10 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
             if None defaults to the number of CPUs
     queue_size = maximum size of the argument queue;
                  if None defaults to 2*nproc
-                      
-    Returns: 
+
+    Returns:
     the clustered output file name
-    """    
+    """
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'ClusterSets'
@@ -224,7 +224,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                     'ident':ident,
                     'seq_start':seq_start,
                     'seq_end':seq_end}
- 
+
     # Define feeder function and arguments
     index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
     feed_func = feedSeqQueue
@@ -233,7 +233,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                  'index_args': index_args}
     # Define worker function and arguments
     work_func = processCSQueue
-    work_args = {'cluster_field': cluster_field, 
+    work_args = {'cluster_field': cluster_field,
                  'cluster_args': cluster_args,
                  'delimiter': out_args['delimiter']}
     # Define collector function and arguments
@@ -242,19 +242,19 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                     'task_label': 'cluster',
                     'out_args': out_args,
                     'index_field': barcode_field}
-    
+
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
-        
+
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
     for k, v in result['log'].iteritems():  log[k] = v
     log['END'] = 'ClusterSets'
     printLog(log)
-        
+
     return result['out_files']
 
 
@@ -262,10 +262,10 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments: 
+    Arguments:
     None
-                      
-    Returns: 
+
+    Returns:
     an ArgumentParser object
     """
     # Define output file names and header fields
@@ -284,19 +284,17 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
-                            parents=[getCommonArgParser(multiproc=True)], 
+                            parents=[getCommonArgParser(multiproc=True)],
                             formatter_class=CommonHelpFormatter)
-      
-    parser.add_argument('--bf', action='store', dest='barcode_field', type=str,
+
+    parser.add_argument('-f', action='store', dest='barcode_field', type=str,
                         default=default_barcode_field,
-                        help='''The annotation field containing barcode labels for
-                             sequence grouping.''')
-        
-    # usearch arguments
-    parser.add_argument('--cf', action='store', dest='cluster_field', type=str, 
+                        help='''The annotation field containing annotations, such as UID
+                             barcode, for sequence grouping.''')
+    parser.add_argument('-k', action='store', dest='cluster_field', type=str,
                         default=default_cluster_field,
-                        help='''The name of the annotation field to add with the cluster
-                             information for each sequence.''')
+                        help='''The name of the output annotation field to add with the
+                             cluster information for each sequence.''')
     parser.add_argument('--id', action='store', dest='ident', type=float,
                         default=default_ident,
                         help='The sequence identity threshold for the usearch algorithm.')
@@ -309,7 +307,7 @@ def getArgParser():
     parser.add_argument('--exec', action='store', dest='usearch_exec',
                         default=default_usearch_exec,
                         help='The location of the USEARCH executable.')
-    
+
     return parser
 
 
