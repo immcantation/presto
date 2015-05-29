@@ -129,7 +129,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         # Indel tests
         print 'TEST INDELS>'
-        align = [mod.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(-1, -1))
+        align = [mod.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
                  for x in self.records_indel]
         for x in align:
             print '  %s>' % x.seq.id

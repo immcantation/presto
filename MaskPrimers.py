@@ -27,7 +27,7 @@ from IgCore import collectSeqQueue, feedSeqQueue
 from IgCore import manageProcesses, SeqResult
 
 # Defaults
-default_gap_penalty = (-1, -1)
+default_gap_penalty = (1, 1)
 default_max_error = 0.2
 default_max_len = 50
 default_start = 0
@@ -93,7 +93,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     max_len = maximum length of sample sequence to align
     rev_primer = if True align with the tail end of the sequence
     skip_rc = if True do not check reverse complement sequences
-    gap_penalty = a tuple of the (gap open, gap extend) penalties
+    gap_penalty = a tuple of positive (gap open, gap extend) penalties
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
@@ -159,7 +159,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         for adpt_id, adpt_seq in primers.iteritems():
             pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq,
                                                 score_dict,
-                                                gap_penalty[0], gap_penalty[1],
+                                                -gap_penalty[0], -gap_penalty[1],
                                                 one_alignment_only=True)
             if pw2_align:  this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
@@ -466,6 +466,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     if 'max_len' in align_args: log['MAX_LEN'] = align_args['max_len']
     if 'rev_primer' in align_args: log['REV_PRIMER'] = align_args['rev_primer']
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']
+    if 'gap_penalty' in align_args: log['GAP_PENALTY'] = align_args['gap_penalty']
     log['NPROC'] = nproc
     printLog(log)
 
@@ -579,8 +580,8 @@ def getArgParser():
                               help='Specify to prevent checking of sample reverse complement sequences.')
     parser_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
                               type=float, default=default_gap_penalty,
-                              help='''A list of two values defining the gap open and gap
-                                   extension penalties for aligning the primers.''')
+                              help='''A list of two positive values defining the gap open
+                                   and gap extension penalties for aligning the primers.''')
     #parser_align.set_defaults(start=None)
     parser_align.set_defaults(align_func=alignPrimers)
     
