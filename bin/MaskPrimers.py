@@ -25,6 +25,7 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 # Defaults
+default_gap_penalty = (1, 1)
 default_max_error = 0.2
 default_max_len = 50
 default_start = 0
@@ -76,7 +77,8 @@ class PrimerAlignment:
 
 
 def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error,
-                 max_len=default_max_len, rev_primer=False, skip_rc=False, 
+                 max_len=default_max_len, rev_primer=False, skip_rc=False,
+                 gap_penalty=default_gap_penalty,
                  score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
@@ -89,6 +91,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     max_len = maximum length of sample sequence to align
     rev_primer = if True align with the tail end of the sequence
     skip_rc = if True do not check reverse complement sequences
+    gap_penalty = a tuple of the positive (gap open, gap extend) penalties
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
@@ -153,7 +156,8 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         this_align = {}
         for adpt_id, adpt_seq in primers.iteritems():
             pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq,
-                                                score_dict, -1, -1,
+                                                score_dict,
+                                                -gap_penalty[0], -gap_penalty[1],
                                                 one_alignment_only=True)
             if pw2_align:  this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
@@ -570,6 +574,10 @@ def getArgParser():
                               default=default_max_len, help='Maximum sequence length to scan for primers.')
     parser_align.add_argument('--skiprc', action='store_true', dest='skip_rc', 
                               help='Specify to prevent checking of sample reverse complement sequences.')
+    parser_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
+                              type=float, default=default_gap_penalty,
+                              help='''A list of two numbers defining the gap open and gap
+                                   extension penalties for aligning the primers.''')
     #parser_align.set_defaults(start=None)
     parser_align.set_defaults(align_func=alignPrimers)
     
@@ -599,10 +607,12 @@ if __name__ == '__main__':
     if args_dict['align_func'] is alignPrimers:
         args_dict['align_args'] = {'max_len':args_dict['max_len'],
                                    'rev_primer':args_dict['rev_primer'],
-                                   'skip_rc':args_dict['skip_rc']}
+                                   'skip_rc':args_dict['skip_rc'],
+                                   'gap_penalty':args_dict['gap_penalty']}
         del args_dict['max_len']
         del args_dict['rev_primer']
         del args_dict['skip_rc']
+        del args_dict['gap_penalty']
     elif args_dict['align_func'] is scorePrimers:
         args_dict['align_args'] = {'start':args_dict['start'],
                                    'rev_primer':args_dict['rev_primer']}
