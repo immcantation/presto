@@ -463,7 +463,8 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     if 'max_len' in align_args: log['MAX_LEN'] = align_args['max_len']
     if 'rev_primer' in align_args: log['REV_PRIMER'] = align_args['rev_primer']
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']
-    if 'gap_penalty' in align_args: log['GAP_PENALTY'] = align_args['gap_penalty']
+    if 'gap_penalty' in align_args:
+        log['GAP_PENALTY'] = ', '.join([str(x) for x in align_args['gap_penalty']])
     log['NPROC'] = nproc
     printLog(log)
 
