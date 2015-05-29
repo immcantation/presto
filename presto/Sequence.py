@@ -21,7 +21,7 @@ from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
-                            default_missing_chars, default_missing_residues, \
+                            default_gap_chars, default_mask_chars, default_missing_chars, \
                             default_min_freq, default_min_qual
 from presto.Annotation import parseAnnotation
 
@@ -325,7 +325,7 @@ def calculateDiversity(seq_list, score_dict=getDNAScoreDict()):
     return sum(scores) / len(scores)
 
 
-def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
+def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
                       score_dict=getDNAScoreDict()):
     """
     Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
@@ -380,7 +380,7 @@ def deleteSeqPositions(seq, positions):
     return record
 
 
-def findGapPositions(seq_list, max_gap, gap_chars=set(['.', '-'])):
+def findGapPositions(seq_list, max_gap, gap_chars=default_gap_chars):
     """
     Finds positions in a set of aligned sequences with a high number of gap characters.
 

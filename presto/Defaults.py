@@ -30,5 +30,7 @@ default_usearch_exec = r'/usr/local/bin/usearch'
 default_blastn_exec = r'/usr/bin/blastn'
 
 # Sequence sets
-default_missing_chars = set(['-', '.', 'N', 'n'])
-default_missing_residues = set(['.', '-', 'X', 'x'])
+default_gap_chars = set(['-', '.'])
+default_mask_chars = set(['n', 'N'])
+default_missing_chars = set(['-', '.', 'n', 'N'])
+default_missing_residues = set(['.', '-', 'x', 'N'])
