@@ -939,7 +939,7 @@ def findGapPositions(seq_list, max_gap, gap_chars=default_gap_chars):
     return gap_positions
 
 
-def calculateSetError(seq_list, ref_seq, ignore_chars=default_missing_chars,
+def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
                       score_dict=getDNAScoreDict()):
     """
     Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
