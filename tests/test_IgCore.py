@@ -240,7 +240,7 @@ class TestIgCore(unittest.TestCase):
         self.assertEqual('3', result['TEST2'])
         print result
 
-     #@unittest.skip('-> scoreDNA() skipped\n')
+    #@unittest.skip('-> scoreDNA() skipped\n')
     def test_scoreDNA(self):
         scores = [mod.scoreDNA(a, b) for a, b in self.pairs_dna_chars]
         print 'Default DNA Scores>'

@@ -79,7 +79,7 @@ class PrimerAlignment:
 
 def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error,
                  max_len=default_max_len, rev_primer=False, skip_rc=False, 
-                 score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))):
+                 score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
 
@@ -162,7 +162,6 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
         
         # Determine alignment with lowest error rate
         for adpt, algn in this_align.iteritems():
-            #err = 1.0 - algn[2] / weightSeq(primers[adpt])
             err = 1.0 - algn[2] / len(primers[adpt])
             if best_err is None or err < best_err:
                 best_align = this_align
@@ -204,7 +203,7 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
 
 
 def scorePrimers(seq_record, primers, start=default_start, rev_primer=False, 
-                 score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))):
+                 score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))):
     """
     Performs simple alignment of primers with a fixed starting position, 
     no reverse complement alignment, and no tail alignment option
@@ -471,7 +470,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     
     # Define alignment arguments and compile primers for align mode
     align_args['primers'] = primers 
-    align_args['score_dict'] = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
+    align_args['score_dict'] = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
     if align_func is alignPrimers:
         align_args['max_error'] = max_error
         align_args['primers_regex'] = compilePrimers(primers)

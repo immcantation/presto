@@ -31,10 +31,9 @@ ClusterSets:
 
 MaskPrimers:
 
-+ Altering scoring behavior for N and gap characters such that Ns and 
-  gaps in the input sequence are always counted as a mismatch, while Ns and
-  gaps in the primer sequence are always counted as a match, with priority
-  given to the input sequence score.
++ Altering scoring behavior for N characters such that Ns in the input sequence 
+  are always counted as a mismatch, while Ns and in the primer sequence are 
+  counted as a match, with priority given to the input sequence score.
 
 PairSeq:
 

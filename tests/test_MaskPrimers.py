@@ -24,25 +24,63 @@ class TestMaskPrimers(unittest.TestCase):
                  Seq('CCNCGTTTTAGTAATTAATA'),
                  Seq('GGGCGTTTTAGTAATTAATA'),
                  Seq('GGNNGTTTTACTAATTAATA'),
-                 Seq('NNNNNNNNNACTAATTAATA')]
+                 Seq('NNNNNNNNNACTAATTAATA'),
+                 Seq('GGGATANNNACTAATTAATA'),
+                 Seq('NNNNNNNNNNNNNNNNNNNN')]
         self.records_n = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                           for i, s in enumerate(seq_n, start=1)]
-        self.primers_n =  {1:'ACGTTT', 2:'GCCGTT'}
+        self.primers_n =  {'PR1':'ACGTTT',
+                           'PR2':'GCCGTT',
+                           'PR3':'GGNATA'}
+
+        # (primer name, error rate)
+        self.align_n = [('PR1', 0.0/6),
+                        ('PR1', 1.0/6),
+                        ('PR1', 1.0/6),
+                        ('PR1', 2.0/6),
+                        ('PR3', 2.0/6),
+                        ('PR3', 0.0/6),
+                        (None, 1.0)]
+        # Score primers with start=2
+        self.score_n = [('PR1', 0.0/6),
+                        ('PR1', 1.0/6),
+                        ('PR1', 1.0/6),
+                        ('PR1', 2.0/6),
+                        ('PR1', 1.0),
+                        ('PR3', 3.0/6),
+                        ('PR1', 1.0)]
 
         #Test indels
         seq_indel = [Seq('CGGATCTTCTACTCCATACGTCCGTCAGTCGTGGATCTGATCTAGCTGCGCCTTTTTCTCAG'),
-                     Seq('CGGATCTTCTACTCAAAACCGTCCTCAGTCGTGGATGTGGTCTAGCTGGGGCTGTTTCCCTG'),
-                     Seq('GGTTTAAGTTAAGATAATACGTCCGTCAGTCGTGATGTGTTTTACATGGGGGCATCACCCAG'),
-                     Seq('CAACCACATCTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCT'),
+                     Seq('CGGATCTTCTACTCAAAACCGTCCTCAGTCGTGGATCTGGTCTAGCTGGGGCTGTTTCCCTG'),
+                     Seq('GGTTTAAGTTAAGATAATACGTCCGTCAGTCGTGATCTGTTTTACATGGGGGCATCACCCAG'),
                      Seq('CAACCACATGGGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCT'),
+                     Seq('CAACCACATGGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTG'),
+                     Seq('TCTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA'),
                      Seq('AGGTGAAGAAGCCTGGGGCCTCCGTGAAGGTCTCCTGCTCGGCTTCTGGATACGCCTTCACC'),
                      Seq('A--TGAAGAAGCCTGGGGCCTCCGTGAAGGTCTCCTGCTCGGCTTCTGGATACGCCTTCACC'),
-                     Seq('TCTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA'),
-                     Seq('-CTGTCCTCTAGAGAATCCCCTGAGAGCTCCGTTCCTCACCATGGACTGGACCTCAACCACA')]
+                     Seq('ANNTGAAGAAGNNTGGGGCCTCCGTGAAGGTCTCCTGCTCGGCTTCTGGATACGCCTTCACC'),
+                     Seq('--------------------------------------------------------------')]
         self.records_indel = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                               for i, s in enumerate(seq_indel, start=1)]
-        self.primers_indel =  {1:'AATACGTCCGTCAGTCGTGGATGT', 2:'CATCTGTCCTC', 3:'GTGAAGAGCCTGG'}
+        self.primers_indel =  {'PR1':'AATACGTCCGTCAGTCGTGGATGT',
+                               'PR2':'CATCTTCCTCTA',
+                               'PR3':'GTGAAGAGCCTG'}
 
+        # (primer name, error rate)
+        self.align_indel = [('PR1', (2.0 + 0)/24),
+                            ('PR1', (4.0 + 1)/24),
+                            ('PR1', (2.0 + 1)/24),
+
+                            ('PR2', (2.0 + 1)/12),
+                            ('PR2', (2.0 + 0)/12),
+                            ('PR2', (0.0 + 3)/12),
+
+                            ('PR3', (0.0 + 1)/12),
+                            ('PR3', (0.0 + 2)/12),
+                            ('PR3', (3.0 + 1)/12),
+
+                            (None, 1.0)]
         # Start clock
         self.start = time.time()
 
@@ -51,40 +89,61 @@ class TestMaskPrimers(unittest.TestCase):
         t = time.time() - self.start
         print '<- %s() %.3f' % (self._testMethodName, t)
 
-    @unittest.skip('-> scorePrimers() skipped\n')
+    #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
-        score_dict=getDNAScoreDict(n_score=1, gap_score=0)
-        align = [mod.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
+        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
+        align = [mod.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
-            print '%s>' % x.seq.id
-            print '   IN> %s' % x.seq.seq
-            print '  SEQ> %s' % x.align_seq
-            print '   PR> %s' % x.align_primer
-            print '  ERR> %f' % x.error
-        self.fail()
+            print '  %s>' % x.seq.id
+            print '      SEQ> %s' % x.seq.seq
+            print '   PRIMER> %s' % x.primer
+            print '  ALN-SEQ> %s' % x.align_seq
+            print '   ALN-PR> %s' % x.align_primer
+            print '    START> %s' % x.start
+            print '      END> %s' % x.end
+            print '     GAPS> %i' % x.gaps
+            print '    ERROR> %f\n' % x.error
+
+        self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.score_n],
+                                 [(x.primer, round(x.error, 4)) for x in align])
 
     #@unittest.skip('-> alignPrimers() skipped\n')
     def test_alignPrimers(self):
+        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
+
+        # N character tests
         print 'TEST Ns>'
-        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
-        align_n = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
-                   for x in self.records_n]
-        for x in align_n:
+        align = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
+                 for x in self.records_n]
+        for x in align:
             print '  %s>' % x.seq.id
-            print '   IN> %s' % x.seq.seq
-            print '  SEQ> %s' % x.align_seq
-            print '   PR> %s' % x.align_primer
-            print '  ERR> %f' % x.error
+            print '      SEQ> %s' % x.seq.seq
+            print '   PRIMER> %s' % x.primer
+            print '  ALN-SEQ> %s' % x.align_seq
+            print '   ALN-PR> %s' % x.align_primer
+            print '    START> %s' % x.start
+            print '      END> %s' % x.end
+            print '     GAPS> %i' % x.gaps
+            print '    ERROR> %f\n' % x.error
 
+        self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.align_n],
+                                 [(x.primer, round(x.error, 4)) for x in align])
+
+        # Indel tests
         print 'TEST INDELS>'
-        align_indel = [mod.alignPrimers(x, self.primers_indel, max_error=0.2)
-                       for x in self.records_indel]
-        for x in align_indel:
+        align = [mod.alignPrimers(x, self.primers_indel, max_error=0.2)
+                 for x in self.records_indel]
+        for x in align:
             print '  %s>' % x.seq.id
-            print '   IN> %s' % x.seq.seq
-            print '  SEQ> %s' % x.align_seq
-            print '   PR> %s' % x.align_primer
-            print '  ERR> %f' % x.error
+            print '      SEQ> %s' % x.seq.seq
+            print '   PRIMER> %s' % x.primer
+            print '  ALN-SEQ> %s' % x.align_seq
+            print '   ALN-PR> %s' % x.align_primer
+            print '    START> %s' % x.start
+            print '      END> %s' % x.end
+            print '     GAPS> %i' % x.gaps
+            print '    ERROR> %f\n' % x.error
 
-        self.fail()
+        self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.align_indel],
+                                 [(x.primer, round(x.error, 4)) for x in align])
