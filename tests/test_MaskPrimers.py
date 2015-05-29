@@ -71,15 +71,12 @@ class TestMaskPrimers(unittest.TestCase):
         self.align_indel = [('PR1', (2.0 + 0)/24),
                             ('PR1', (4.0 + 1)/24),
                             ('PR1', (2.0 + 1)/24),
-
                             ('PR2', (2.0 + 1)/12),
                             ('PR2', (2.0 + 0)/12),
                             ('PR2', (0.0 + 3)/12),
-
                             ('PR3', (0.0 + 1)/12),
                             ('PR3', (0.0 + 2)/12),
                             ('PR3', (3.0 + 1)/12),
-
                             (None, 1.0)]
         # Start clock
         self.start = time.time()

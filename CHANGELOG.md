@@ -1,4 +1,4 @@
-Version 0.4.7:  May 25, 2015
+Version 0.4.7:  May 29, 2015
 -------------------------------------------------------------------------------
 
 IgCore:
@@ -32,8 +32,8 @@ ClusterSets:
 MaskPrimers:
 
 + Altering scoring behavior for N characters such that Ns in the input sequence 
-  are always counted as a mismatch, while Ns and in the primer sequence are 
-  counted as a match, with priority given to the input sequence score.
+  are always counted as a mismatch, while Ns in the primer sequence are counted 
+  as a match, with priority given to the input sequence score.
 
 PairSeq:
 
