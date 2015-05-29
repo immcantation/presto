@@ -463,6 +463,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     if 'max_len' in align_args: log['MAX_LEN'] = align_args['max_len']
     if 'rev_primer' in align_args: log['REV_PRIMER'] = align_args['rev_primer']
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']
+    if 'gap_penalty' in align_args: log['GAP_PENALTY'] = align_args['gap_penalty']
     log['NPROC'] = nproc
     printLog(log)
 
@@ -576,8 +577,8 @@ def getArgParser():
                               help='Specify to prevent checking of sample reverse complement sequences.')
     parser_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
                               type=float, default=default_gap_penalty,
-                              help='''A list of two numbers defining the gap open and gap
-                                   extension penalties for aligning the primers.''')
+                              help='''A list of two positive numbers defining the gap open
+                                   and gap extension penalties for aligning the primers.''')
     #parser_align.set_defaults(start=None)
     parser_align.set_defaults(align_func=alignPrimers)
     
