@@ -102,18 +102,16 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
                    'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in iteritems(IUPAC_trans) for p in list(product(k, v))]
+    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
-    # Check gap condition
+    # Check gap and N-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
+    elif n_score is not None and a in 'nN':
+        return n_score[0]
     elif gap_score is not None and b in '-.':
         return gap_score[1]
-
-    # Check N-value condition
-    if n_score is not None and a == 'N':
-        return n_score[0]
-    elif n_score is not None and b == 'N':
+    elif n_score is not None and b in 'nN':
         return n_score[1]
 
     # Return symmetric and reflexive score for IUPAC match conditions
@@ -148,18 +146,16 @@ def scoreAA(a, b, x_score=None, gap_score=None):
     IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in iteritems(IUPAC_trans) for p in list(product(k, v))]
+    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
 
-    # Check gap condition
+    # Check gap and X-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
+    elif x_score is not None and a in 'xX':
+        return x_score[0]
     elif gap_score is not None and b in '-.':
         return gap_score[1]
-
-    # Check X-value condition
-    if x_score is not None and a == 'X':
-        return x_score[0]
-    elif x_score is not None and b == 'X':
+    elif x_score is not None and b in 'xX':
         return x_score[1]
 
     # Return symmetric and reflexive score for IUPAC match conditions
@@ -266,9 +262,10 @@ def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     return equal
 
 
-def weightDNA(seq, ignore_chars=default_missing_chars):
+# TODO:  can be removed I think.
+def weightSeq(seq, ignore_chars=set()):
     """
-    Returns a score for a single sequence excluding missing positions
+    Returns the length of a sequencing excluding ignored characters
 
     Arguments:
     seq = a SeqRecord or Seq object
@@ -277,45 +274,17 @@ def weightDNA(seq, ignore_chars=default_missing_chars):
     Returns:
     The sum of the character scores for the sequence
     """
-    score = sum(1 for x in seq if x not in ignore_chars)
-    #score = sum()
-    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    #gap_score = 0
-
-    return max(score, 1)
+    return sum(1 for x in seq if x not in ignore_chars)
 
 
-def weightAA(seq, ignore_residues=default_missing_residues):
-    """
-    Returns a score for a single sequence excluding missing positions
-
-    Arguments:
-    seq = a SeqRecord or Seq object
-    ignore_residues = set of characters to ignore when counting sequence length
-
-    Returns:
-    The sum of the character scores for the sequence
-    """
-    score = sum(1 for x in seq if x not in ignore_residues)
-    #score = sum()
-    #nuc_score = sum([c in 'ACGTRYSWKMBDHV' for c in seq.upper()])
-    #gap_score = 0
-
-    return max(score, 1)
-
-
-def scoreDNASeqPair(seq1, seq2, max_error=None, max_weight=None,
-                    score_dict=getDNAScoreDict()):
+def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
     Determine the error rate for a pair of sequences
 
     Arguments:
     seq1 = a SeqRecord object
     seq2 = a SeqRecord object
-    max_error = the maximum error rate; once reached return (0, 0, 1.0)
-                if None always return accurate score, weight and error
-    max_weight = the maximum weight to use when checking the max_error break condition;
-                 if None use the minimum length of seq1,seq2
+    ignore_chars = a set of characters to ignore when scoring and counting the weight
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
@@ -323,24 +292,12 @@ def scoreDNASeqPair(seq1, seq2, max_error=None, max_weight=None,
     """
     # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
-    if max_error is None:
-        # Return accurate values when max_error is undefined
-        chars = zip(seq1.upper(), seq2.upper())
-        score = sum([score_dict[(a, b)] for a, b in chars])
-        weight = min(weightDNA(seq1), weightDNA(seq2))
-        error = 1.0 - float(score) / weight
-    else:
-        # If max_error defined return when worst case reach
-        score = 0
-        if not max_weight:  max_weight = min(len(seq1), len(seq2))
-        for i, (a, b) in enumerate(zip(seq1, seq2)):
-            score += score_dict[(a, b)]
-            if (i - float(score)) / max_weight > max_error:
-                score, weight, error = 0, 0, 1.0
-                break
-        else:
-            weight = min(weightDNA(seq1), weightDNA(seq2))
-            error = 1.0 - float(score) / weight
+    chars = izip(seq1.upper(), seq2.upper())
+    score_list = [score_dict[(a, b)] for a, b in chars \
+                  if a not in ignore_chars and b not in ignore_chars]
+    score = sum(score_list)
+    weight = len(score_list)
+    error = 1.0 - float(score) / weight if weight > 0 else 1.0
 
     return (score, weight, error)
 
@@ -363,7 +320,7 @@ def calculateDiversity(seq_list, score_dict=getDNAScoreDict(n_score=(1, 1), gap_
     scores = []
     for i, seq1 in enumerate(seq_list):
         for seq2 in seq_list[(i + 1):]:
-            scores.append(scoreDNASeqPair(seq1, seq2, score_dict=score_dict)[2])
+            scores.append(scoreSeqPair(seq1, seq2, score_dict=score_dict)[2])
 
     return sum(scores) / len(scores)
 

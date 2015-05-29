@@ -35,7 +35,7 @@ from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotatio
                               getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
-from presto.Sequence import getDNAScoreDict, reverseComplement, scoreDNASeqPair
+from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
 from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
 # Defaults
@@ -379,7 +379,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     stitch.evalue = tuple(align_top[['evalue_head', 'evalue_tail']])
 
     # Calculate assembly error
-    score, weight, error = scoreDNASeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
+    score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
                                         ref_seq.seq[outer_start:outer_end],
                                         score_dict=score_dict)
     stitch.ident = 1 - error
@@ -534,7 +534,7 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
         b = head_len - max(0, i - tail_len)
         x = max(0, i - head_len)
         y = min(tail_len, i)
-        score, weight, error = scoreDNASeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
+        score, weight, error = scoreSeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
         z = assembly_stats.z[score, weight]
         # Save stitch as optimal if z-score improves
         if z > stitch.zscore:
