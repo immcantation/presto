@@ -34,6 +34,9 @@ MaskPrimers:
 + Altering scoring behavior for N characters such that Ns in the input sequence 
   are always counted as a mismatch, while Ns in the primer sequence are counted 
   as a match, with priority given to the input sequence score.
++ Added `--gap` argument to the align subcommand which allows users to specify
+  the gap open and gap extension penalties for aligning primers. Note:  gap
+  penalties reduce the match count for purposes of calculating ERROR.
 
 PairSeq:
 

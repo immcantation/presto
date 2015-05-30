@@ -582,7 +582,12 @@ def getArgParser():
     parser_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
                               type=float, default=default_gap_penalty,
                               help='''A list of two positive values defining the gap open
-                                   and gap extension penalties for aligning the primers.''')
+                                   and gap extension penalties for aligning the primers.
+                                   Note: the error rate is calculated as the percentage
+                                   of mismatches from the primer sequence with gap
+                                   penalties reducing the match count accordingly; this may
+                                   lead to error rates that differ from strict mismatch
+                                   percentage when gaps are present in the alignment.''')
     #parser_align.set_defaults(start=None)
     parser_align.set_defaults(align_func=alignPrimers)
     
