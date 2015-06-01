@@ -282,17 +282,15 @@ wait
 # Zip intermediate and log files
 if $ZIP_FILES; then
     LOG_FILES_ZIP=$(ls *LogR[1-2].log *Log.log)
-    tar -cf LogFiles.tar $LOG_FILES_ZIP
+    tar -zcf LogFiles.tar $LOG_FILES_ZIP
     rm $LOG_FILES_ZIP
-    gzip LogFiles.tar
 
     TEMP_FILES_ZIP=$(ls *.fastq | grep -v "FIN_reheader.fastq\|FIN_collapse-unique.fastq\|FIN_collapse-unique_atleast-2.fastq")
-    tar -cf TempFiles.tar $TEMP_FILES_ZIP
+    tar -zcf TempFiles.tar $TEMP_FILES_ZIP
     rm $TEMP_FILES_ZIP
-    gzip TempFiles.tar
 fi
 
 # End
-printf "DONE\n"
+printf "DONE\n\n"
 cd ../
 
