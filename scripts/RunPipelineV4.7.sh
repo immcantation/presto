@@ -3,16 +3,20 @@
 # 
 # Author:  Jason Anthony Vander Heiden
 # Date:    2015.05.31
+# Required arguments:
+#   $1 = run identifier (string to match in folder names within $DATA_DIR/raw)
 
 # Define run parameters
-RUN_ID=RQ2341_A79HP_2014-03-27
 DATA_DIR=/scratch2/kleinstein/oconnor_mg_memory
 SCRIPT=/scratch2/kleinstein/oconnor_mg_memory/scripts/PrestoPipelineV4.7_AbSeqV3.sh
 PRIMERS1=/scratch2/kleinstein/oconnor_mg_memory/primers/AbSeqV3_Human_R1CPrimers.fasta
 PRIMERS2=/scratch2/kleinstein/oconnor_mg_memory/primers/AbSeqV3_Human_R2TSPrimers.fasta
+NPROC=12
+
+# Determine folders
+RUN_ID=$(ls -d ${DATA_DIR}/raw/* | grep ${1} | xargs -n1 basename)
 LOG_FILE=${RUN_ID}_RunLog.out
-FOLDERS=$(ls -d $DATA_DIR/raw/$RUN_ID/*| xargs -n 1 basename)
-NPROC=16
+FOLDERS=$(ls -d $DATA_DIR/raw/$RUN_ID/*| xargs -n1 basename)
 
 echo "" > $LOG_FILE 
 for F in $FOLDERS
