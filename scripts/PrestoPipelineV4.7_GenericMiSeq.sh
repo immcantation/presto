@@ -1,5 +1,5 @@
 #!/bin/bash
-# Super script to run the pRESTO 0.4.6 pipeline on MiSeq data without UIDs
+# Super script to run the pRESTO 0.4.7 pipeline on MiSeq data without UIDs
 # 
 # Author:  Jason Anthony Vander Heiden
 # Date:    2015.05.19
@@ -23,7 +23,6 @@ OUTNAME=$6
 NPROC=$7
 
 # Define pipeline steps
-LOG_RUNTIMES=true
 ZIP_FILES=true
 FILTER_LOWQUAL=true
 REFERENCE_ASSEMBLY=true

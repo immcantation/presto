@@ -2,17 +2,17 @@
 # Wrapper script to run the pRESTO pipeline script on multiple inputs
 # 
 # Author:  Jason Anthony Vander Heiden
-# Date:    2014.11.20
+# Date:    2015.05.31
 
 # Define run parameters
-DATA_DIR=/scratch2/kleinstein/shlomchik_salmonella
-SCRIPT=/scratch2/kleinstein/shlomchik_salmonella/scripts/PrestoPipelineV4.6_AbSeqV3.sh
-PRIMERS1=/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R1CPrimers.fasta
-PRIMERS2=/scratch2/kleinstein/shlomchik_salmonella/primers/AbSeqV3_Mouse_R2TSPrimer.fasta
-RUN_ID=TG725
+RUN_ID=RQ2341_A79HP_2014-03-27
+DATA_DIR=/scratch2/kleinstein/oconnor_mg_memory
+SCRIPT=/scratch2/kleinstein/oconnor_mg_memory/scripts/PrestoPipelineV4.7_AbSeqV3.sh
+PRIMERS1=/scratch2/kleinstein/oconnor_mg_memory/primers/AbSeqV3_Human_R1CPrimers.fasta
+PRIMERS2=/scratch2/kleinstein/oconnor_mg_memory/primers/AbSeqV3_Human_R2TSPrimers.fasta
 LOG_FILE=${RUN_ID}_RunLog.out
-FOLDERS=$(ls -d $DATA_DIR/raw/$RUN_ID/TG725*HC| xargs -n 1 basename)
-NPROC=20
+FOLDERS=$(ls -d $DATA_DIR/raw/$RUN_ID/*| xargs -n 1 basename)
+NPROC=16
 
 echo "" > $LOG_FILE 
 for F in $FOLDERS

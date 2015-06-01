@@ -1,8 +1,8 @@
 #!/bin/bash
-# Super script to run the pRESTO 0.4.5 pipeline on AbVitro AbSeq (V3) data
+# Super script to run the pRESTO 0.4.7 pipeline on AbVitro AbSeq (V3) data
 # 
 # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-# Date:    2014.12.13
+# Date:    2015.05.31
 # 
 # Required Arguments:
 #   $1 = read 1 file (C-region start sequence)
@@ -23,7 +23,6 @@ OUTNAME=$6
 NPROC=$7
 
 # Define pipeline steps
-LOG_RUNTIMES=true
 ZIP_FILES=true
 FILTER_LOWQUAL=true
 ALIGN_UIDSETS=true
@@ -82,7 +81,9 @@ echo "VERSIONS:"
 echo "  $(AlignSets.py -v 2>&1)"
 echo "  $(AssemblePairs.py -v 2>&1)"
 echo "  $(BuildConsensus.py -v 2>&1)"
+echo "  $(ClusterSets.py -v 2>&1)"
 echo "  $(CollapseSeq.py -v 2>&1)"
+echo "  $(ConvertHeaders.py -v 2>&1)"
 echo "  $(FilterSeq.py -v 2>&1)"
 echo "  $(MaskPrimers.py -v 2>&1)"
 echo "  $(PairSeq.py -v 2>&1)"
@@ -215,30 +216,30 @@ else
     PH_FILE="${OUTNAME}-ALN_assemble-pass.fastq"
 fi
 
+# Mask low quality positions
+if $MASK_LOWQUAL; then
+    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
+    FilterSeq.py maskqual -s $PH_FILE -q $FS_MASK --nproc $NPROC \
+        --outname "${OUTNAME}-FIN" --log MaskqualLog.log \
+        >> $PIPELINE_LOG 2> $ERROR_LOG
+    PH_FILE="${OUTNAME}-FIN_maskqual-pass.fastq"
+fi
+
 # Rewrite header with minimum of CONSCOUNT
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
 ParseHeaders.py collapse -s $PH_FILE -f CONSCOUNT --act min \
     --outname "${OUTNAME}-FIN" > /dev/null 2> $ERROR_LOG
 
-# Mask low quality positions
-if $MASK_LOWQUAL; then
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
-    FilterSeq.py maskqual -s "${OUTNAME}-FIN_reheader.fastq" -q $FS_MASK \
-        --nproc $NPROC --outname "${OUTNAME}-FIN" --log MaskqualLog.log \
-        >> $PIPELINE_LOG 2> $ERROR_LOG
-    CS_FILE="${OUTNAME}-FIN_maskqual-pass.fastq"
-else
-    CS_FILE="${OUTNAME}-FIN_reheader.fastq"
-fi
-
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
 if $CS_KEEP; then
-    CollapseSeq.py -s $CS_FILE -n $CS_MISS --uf PRCONS --cf CONSCOUNT --act sum \
-    --outname "${OUTNAME}-FIN" --inner --keepmiss >> $PIPELINE_LOG 2> $ERROR_LOG
+    CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS \
+    --uf PRCONS --cf CONSCOUNT --act sum --inner --keepmiss \
+    --outname "${OUTNAME}-FIN" >> $PIPELINE_LOG 2> $ERROR_LOG
 else
-    CollapseSeq.py -s $CS_FILE -n $CS_MISS --uf PRCONS --cf CONSCOUNT --act sum \
-    --outname "${OUTNAME}-FIN" --inner >> $PIPELINE_LOG 2> $ERROR_LOG
+    CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS \
+    --uf PRCONS --cf CONSCOUNT --act sum --inner \
+    --outname "${OUTNAME}-FIN" >> $PIPELINE_LOG 2> $ERROR_LOG
 fi
 
 # Filter to sequences with at least 2 supporting sources
@@ -248,11 +249,14 @@ SplitSeq.py group -s "${OUTNAME}-FIN_collapse-unique.fastq" -f CONSCOUNT --num 2
 
 # Create table of final repertoire
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
+ParseHeaders.py table -s "${OUTNAME}-FIN_reheader.fastq" \
+    -f ID PRCONS CONSCOUNT --outname "Final" \
+    >> $PIPELINE_LOG 2> $ERROR_LOG
 ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique.fastq" \
-    -f ID PRCONS CONSCOUNT DUPCOUNT --outname "Unique" \
+    -f ID PRCONS CONSCOUNT DUPCOUNT --outname "Final-Unique" \
     >> $PIPELINE_LOG 2> $ERROR_LOG
 ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" \
-    -f ID PRCONS CONSCOUNT DUPCOUNT --outname "UniqueAtleast2" \
+    -f ID PRCONS CONSCOUNT DUPCOUNT --outname "Final-Unique-Atleast2" \
     >> $PIPELINE_LOG 2> $ERROR_LOG
 
 # Process log files
@@ -282,7 +286,7 @@ if $ZIP_FILES; then
     rm $LOG_FILES_ZIP
     gzip LogFiles.tar
 
-    TEMP_FILES_ZIP=$(ls *.fastq | grep -v "collapse-unique.fastq\|collapse-unique_atleast-2.fastq")
+    TEMP_FILES_ZIP=$(ls *.fastq | grep -v "FIN_reheader.fastq\|FIN_collapse-unique.fastq\|FIN_collapse-unique_atleast-2.fastq")
     tar -cf TempFiles.tar $TEMP_FILES_ZIP
     rm $TEMP_FILES_ZIP
     gzip TempFiles.tar
