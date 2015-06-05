@@ -47,6 +47,7 @@ BC_ERR_FLAG=true
 BC_MAXERR=0.1
 BC_PRCONS=0.6
 BC_QUAL=0
+BC_MAXGAP=0.5
 
 # AssemblePairs-align run parameters
 AP_ALN_SCANREV=true
@@ -145,30 +146,36 @@ printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
 if $BC_ERR_FLAG; then
     if $BC_PRCONS_FLAG; then
         BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-            -q $BC_QUAL --maxerror $BC_MAXERR --nproc $NPROC --log ConsensusLogR1.log \
+            -q $BC_QUAL --maxerror $BC_MAXERR --maxgap $BC_MAXGAP \
+            --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
     else
         BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
-            -q $BC_QUAL --maxerror $BC_MAXERR --nproc $NPROC --log ConsensusLogR1.log \
+            -q $BC_QUAL --maxerror $BC_MAXERR --maxgap $BC_MAXGAP \
+            --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
     fi
 
 	BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-	    -q $BC_QUAL --maxerror $BC_MAXERR --nproc $NPROC --log ConsensusLogR2.log \
+	    -q $BC_QUAL --maxerror $BC_MAXERR --maxgap $BC_MAXGAP \
+	    --nproc $NPROC --log ConsensusLogR2.log \
 	    --outname "${OUTNAME}-R2" >> $PIPELINE_LOG 2> $ERROR_LOG
 else
     if $BC_PRCONS_FLAG; then
         BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-            -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
+            -q $BC_QUAL --maxgap $BC_MAXGAP \
+            --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
     else
         BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
-            -q $BC_QUAL --nproc $NPROC --log ConsensusLogR1.log \
+            -q $BC_QUAL --maxgap $BC_MAXGAP \
+            --nproc $NPROC --log ConsensusLogR1.log \
             --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
     fi
 
 	BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-    	-q $BC_QUAL --nproc $NPROC --log ConsensusLogR2.log \
+    	-q $BC_QUAL --maxgap $BC_MAXGAP \
+    	--nproc $NPROC --log ConsensusLogR2.log \
     	--outname "${OUTNAME}-R2" >> $PIPELINE_LOG 2> $ERROR_LOG
 fi
 
