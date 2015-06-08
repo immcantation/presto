@@ -1,4 +1,4 @@
-Version 0.4.7:  June 5, 2015
+Version 0.5.0:  June 8, 2015
 ===============================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing 
@@ -21,6 +21,8 @@ Requirements
 Software        | Link
 --------------- | -----------------------------
 Python 2.7.5    | http://python.org
+setuptools 2.0  | http://bitbucket.org/pypa/setuptools
+pip 7.0.0       | http://pip.pypa.io/en/stable/
 NumPy 1.7       | http://numpy.org
 SciPy 0.12      | http://scipy.org
 pandas 0.12     | http://pandas.pydata.org
@@ -37,8 +39,7 @@ Installation - Linux
    install Biopython according to the 
    [instructions](http://biopython.org/DIST/docs/install/Installation.html).
 
-2. Unzip the pRESTO bundle into a directory of your choice and add that 
-   directory to your `$PATH`.
+2. Unzip the pRESTO bundle and run `python setup.py install --user`.
 
 
 Installation - Windows
@@ -46,20 +47,29 @@ Installation - Windows
 
 1. Install Python 2.7.5+ from [Python](http://python.org/download).
 
-2. Install NumPy, SciPy, pandas and Biopython using the packages available 
+2. Install pip and setuptools using these [installation instructions]
+   (https://pip.pypa.io/en/latest/installing.html).
+
+3. Install NumPy, SciPy, pandas and Biopython using the packages available 
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
    binary collection.
 
-3. Unzip the pRESTO bundle into a directory of your choice and add that 
-   directory to your `%Path%`.  On Windows 7 the `%Path%` setting is located under
-   'Control Panel' -> 'System and Security' -> 'System' -> 
-   'Advanced System Settings' -> 'Environment variables' -> 'System variables' 
-   -> 'Path'
+4. Unzip the pRESTO bundle, open a Command Prompt, and run
+   `python setup.py install` from the pRESTO folder.
+   
+5. For a default installation of Python 2.7, the pRESTO scripts will be 
+   installed into `C:\Python27\Scripts` and should be directly executable from 
+   the Command Prompt. If this is not the case, then follow steps 5-6 below.
+   
+6. Add the installation directory to your `%Path%`. On Windows 7 the %Path% 
+   setting is located under 'Control Panel' -> 'System and Security' -> 
+   'System' -> 'Advanced System Settings' -> 'Environment variables' -> 
+   'System variables' -> 'Path'.
 
-4. The pRESTO scripts should then be directly executable from the Command Prompt.
-   If not, correct the file association for `.py` files by right-clicking on a 
-   `.py` file, selecting 'Open with' -> 'Choose default program...', choosing the 
-   `python.exe` from Python 2.7, and checking 'Always use the selected program'.
+7. Set the file association for Python ('.py') files by right-clicking on a 
+   '.py' file, selecting 'Open with' -> 'Choose default program...', choosing the 
+   'python.exe' executable from the Python 2.7 folder, and checking 
+   'Always use the selected program'.
    
 
 Installation - Mac OS X
@@ -96,7 +106,5 @@ Installation - Mac OS X
    `> pip install pandas`  
    `> pip install biopython`  
    
-7. Add the pRESTO installation to your `PATH` setting. For example,
-   if you copy the pRESTO scripts into `/Users/Username/presto`, then set:  
-   `> echo 'export PATH=$HOME/presto:$PATH' >> ~/.profile`  
-   Exit and reopen the terminal application so the PATH setting takes effect
+7. Unzip the pRESTO bundle, open a terminal window, and run
+   `python setup.py install` from the pRESTO folder.

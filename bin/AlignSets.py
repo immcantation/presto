@@ -2,39 +2,35 @@
 """
 Multiple aligns input sequences by group
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, textwrap
+import csv
+import os
+import sys
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from cStringIO import StringIO
 from itertools import izip
 from subprocess import PIPE, Popen
+from textwrap import dedent
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import default_barcode_field, default_primer_field
-from IgCore import parseAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog
-from IgCore import indexSeqSets, calculateDiversity, readPrimerFile
-from IgCore import collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
-
-# Defaults
-default_muscle_exec = r'/usr/local/bin/muscle'
+# Presto imports
+from presto.Defaults import default_delimiter, default_barcode_field, \
+                            default_primer_field, default_out_args, default_muscle_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation
+from presto.Sequence import calculateDiversity, indexSeqSets
+from presto.IO import readPrimerFile, getOutputHandle, printLog
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   collectSeqQueue
 
 
 def runMuscle(seq_list, muscle_exec=default_muscle_exec):
@@ -385,7 +381,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
          '''
          output files:
            align-pass     multiple aligned reads.

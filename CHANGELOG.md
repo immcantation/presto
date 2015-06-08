@@ -1,3 +1,17 @@
+Version 0.5.0:  June 8, 2015
+-------------------------------------------------------------------------------
+
+Conversion to a proper Python package which uses pip and setuptools for 
+installation.
+
+IgCore:
+
++ Divided IgCore functionality into the separate modules: Annotation, 
+  Commandline, Defaults, IO, Multiprocessing and Sequence.
++ Made functionality that was previously in IgCore compatible with both 
+  Python 2.7 and Python 3.
+
+
 Version 0.4.7:  June 5, 2015
 -------------------------------------------------------------------------------
 

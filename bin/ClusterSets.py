@@ -2,32 +2,34 @@
 """
 Cluster sequences by group
 """
-
-__author__    = 'Christopher Bolen, Jason Vander Heiden'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Christopher Bolen, Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, tempfile, textwrap, time
+import csv
+import os
+import sys
+import tempfile
 from argparse import ArgumentParser
 from collections import OrderedDict
 from subprocess import CalledProcessError, check_output, STDOUT
+from textwrap import dedent
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import default_barcode_field
-from IgCore import parseAnnotation, mergeAnnotation, flattenAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs, printLog
-from IgCore import indexSeqSets, collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+# Presto imports
+from presto.Defaults import default_delimiter, default_barcode_field, \
+                            default_out_args, default_usearch_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.IO import printLog
+from presto.Sequence import indexSeqSets
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   collectSeqQueue
 
 # Defaults
-default_cluster_field = r'CLUSTER'
-default_usearch_exec = r'/usr/local/bin/usearch'
+default_cluster_field = 'CLUSTER'
 default_ident = 0.9
 
 
@@ -264,22 +266,22 @@ def getArgParser():
 
     Arguments:
     None
-
-    Returns:
+                      
+    Returns: 
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
-         '''
-         output files:
-           cluster-pass          clustered reads.
-           cluster-fail          raw reads failing clustering.
+    fields = dedent(
+             '''
+             output files:
+               cluster-pass          clustered reads.
+               cluster-fail          raw reads failing clustering.
 
-         output annotation fields:
-           CLUSTER               a numeric cluster identifier defining the within-group
-                                 cluster.
+             output annotation fields:
+               CLUSTER               a numeric cluster identifier defining the within-group
+                                     cluster.
 
-         ''')
+             ''')
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -336,4 +338,3 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         clusterSets(**args_dict)
-

@@ -1,20 +1,17 @@
 """
 Unit tests for AssemblePairs
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2014.12.11'
-
 # Imports
-import time, unittest
+import time
+import unittest
 import pandas as pd
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import readSeqFile
-import AssemblePairs as mod
+from presto.IO import readSeqFile
+from bin import AssemblePairs as script
+
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestAssemblePairs(unittest.TestCase):
@@ -26,7 +23,7 @@ class TestAssemblePairs(unittest.TestCase):
         pd.set_option('display.width', 120)
 
         #self.ref_file = 'IMGT_Human_IGV.fasta'
-        self.ref_file = 'IG_TR.V.human.F+ORF+infrP.ungapped.fasta'
+        self.ref_file = 'data/IG_TR.V.human.F+ORF+infrP.ungapped.fasta'
         self.ref_dict = {s.id:s.upper() for s in readSeqFile(self.ref_file)}
         # MISEQ:121:000000000-A7VDM:1:1101:10041:1280
         #self.head_seq = Seq("CCACGTTTTAGTAATTAATACGGGAGCAAAAACCAGGGAAAGCCCCTAAGCTCCTGCTCTATGCTGCATCCACTTTGCAAAGTGTGGTCCCATCACGGTTCAGCGGCAGTGGATCTGGGACAGAATTCACTCTCACAATCAGCAGCCTGCAGCCTGAAGATTTTGCAACTTATTACTGTCAACAGCTTACTCCTTACCCTCCTACGTTCGCCCCAGGCCCCACGGTCGACCTCCACCCCCCTCTCGCTGCCCCCTCTCTCCCCTCCGACCCGCCTC")
@@ -62,8 +59,8 @@ class TestAssemblePairs(unittest.TestCase):
 
     #@unittest.skip("-> getUBlastAlignment() skipped\n")
     def test_getUBlastAlignment(self):
-        head_df = mod.runUBlastAlignment(self.head_rec, self.ref_file)
-        tail_df = mod.runUBlastAlignment(self.tail_rec, self.ref_file)
+        head_df = script.runUBlastAlignment(self.head_rec, self.ref_file)
+        tail_df = script.runUBlastAlignment(self.tail_rec, self.ref_file)
         print 'HEAD SEQUENCE>'
         print head_df
         print 'TAIL SEQUENCE>'
@@ -72,8 +69,8 @@ class TestAssemblePairs(unittest.TestCase):
 
     @unittest.skip("-> getBlastnAlignment() skipped\n")
     def test_getBlastnAlignment(self):
-        head_df = mod.runBlastnAlignment(self.head_rec, self.ref_file)
-        tail_df = mod.runBlastnAlignment(self.tail_rec, self.ref_file)
+        head_df = script.runBlastnAlignment(self.head_rec, self.ref_file)
+        tail_df = script.runBlastnAlignment(self.tail_rec, self.ref_file)
         print 'HEAD SEQUENCE>'
         print head_df
         print 'TAIL SEQUENCE>'
@@ -82,7 +79,7 @@ class TestAssemblePairs(unittest.TestCase):
 
     #@unittest.skip("-> referenceAssembly() skipped\n")
     def test_referenceAssembly(self):
-        stitch = mod.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
+        stitch = script.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
 
         print '   REFID> %s' % stitch.ref_seq.id
         print '  REFSEQ> %s' % (' ' * stitch.ref_pos[0] + stitch.ref_seq.seq)
@@ -102,7 +99,7 @@ class TestAssemblePairs(unittest.TestCase):
         tail = SeqRecord(Seq("CTGGAAA"), id="TAIL",
                          letter_annotations={'phred_quality':[40,20,40,40,40,40,40]})
 
-        stitch = mod.alignAssembly(head, tail, alpha=0.1)
+        stitch = script.alignAssembly(head, tail, alpha=0.1)
         print '    HEAD> %s' % head.seq
         print '    TAIL>    %s\n' % tail.seq
         print 'ASSEMBLY>', stitch.seq.seq

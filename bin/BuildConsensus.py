@@ -2,32 +2,30 @@
 """
 Builds a consensus sequence for each set of input sequences
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import os, sys, textwrap
+import os
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
+from textwrap import dedent
 
-# IgPipeline imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import default_barcode_field, default_min_freq
-from IgCore import deleteSeqPositions, findGapPositions, calculateSetError
-from IgCore import annotationConsensus, getAnnotationValues
-from IgCore import flattenAnnotation, mergeAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs 
-from IgCore import getFileType, printLog 
-from IgCore import frequencyConsensus, qualityConsensus
-from IgCore import calculateDiversity, indexSeqSets, subsetSeqSet
-from IgCore import collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+# Presto imports
+from presto.Defaults import default_delimiter, default_barcode_field, \
+    default_min_freq, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
+                              annotationConsensus
+from presto.IO import getFileType, printLog
+from presto.Sequence import subsetSeqSet, calculateDiversity, \
+                            qualityConsensus, frequencyConsensus, indexSeqSets, \
+                            calculateSetError, deleteSeqPositions, findGapPositions
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   collectSeqQueue
 
 # Defaults
 default_min_count = 1
@@ -345,7 +343,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                consensus-pass        consensus reads.

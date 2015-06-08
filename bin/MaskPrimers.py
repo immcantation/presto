@@ -2,29 +2,27 @@
 """
 Removes primers and annotates sequences with primer and barcode identifiers
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import os, sys, textwrap
+import os
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
+from textwrap import dedent
 from Bio import pairwise2
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import flattenAnnotation, parseAnnotation, mergeAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getDNAScoreDict, reverseComplement
-from IgCore import compilePrimers, readPrimerFile, printLog
-from IgCore import collectSeqQueue, feedSeqQueue
-from IgCore import manageProcesses, SeqResult
+# Presto imports
+from presto.Defaults import default_delimiter, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.Sequence import compilePrimers, getDNAScoreDict, reverseComplement
+from presto.IO import readPrimerFile, printLog
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   collectSeqQueue
 
 # Defaults
 default_gap_penalty = (1, 1)
@@ -527,7 +525,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                mask-pass      processed reads with successful primer matches.

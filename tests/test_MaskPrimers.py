@@ -1,19 +1,15 @@
 """
 Unit tests for MaskPrimers
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2015.02.20'
-
 # Imports
 import time, unittest
-import MaskPrimers as mod
+import bin.MaskPrimers as script
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import getDNAScoreDict
+from presto.Sequence import getDNAScoreDict
+
+# Info
+__author__    = 'Jason Anthony Vander Heiden'
 
 class TestMaskPrimers(unittest.TestCase):
 
@@ -89,7 +85,7 @@ class TestMaskPrimers(unittest.TestCase):
     #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
         score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
-        align = [mod.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
+        align = [script.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print '  %s>' % x.seq.id
@@ -111,7 +107,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         # N character tests
         print 'TEST Ns>'
-        align = [mod.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
+        align = [script.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print '  %s>' % x.seq.id
@@ -129,7 +125,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         # Indel tests
         print 'TEST INDELS>'
-        align = [mod.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
+        align = [script.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
                  for x in self.records_indel]
         for x in align:
             print '  %s>' % x.seq.id

@@ -2,39 +2,41 @@
 """
 Assembles paired-end reads into a single sequence
 """
-
-__author__    = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden, Gur Yaari, Christopher Bolen'
+from presto import __version__, __date__
 
 # Imports
-import csv, os, sys, tempfile, textwrap
+import os
+import sys
+import tempfile
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from argparse import ArgumentParser
-from cStringIO import StringIO
 from collections import OrderedDict
-from itertools import chain, izip, repeat
+from cStringIO import StringIO
+from itertools import izip
 from subprocess import check_output, PIPE, Popen, STDOUT
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_missing_chars, default_coord_choices, default_coord_type
-from IgCore import default_delimiter, default_out_args
-from IgCore import flattenAnnotation, mergeAnnotation, parseAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getDNAScoreDict, reverseComplement, scoreSeqPair
-from IgCore import countSeqFile, getCoordKey, readSeqFile
-from IgCore import manageProcesses, processSeqQueue, SeqData, SeqResult
+# Presto imports
+from presto.Defaults import default_delimiter, default_coord_choices, \
+                            default_coord_type, default_missing_chars, \
+                            default_out_args, default_usearch_exec, \
+                            default_blastn_exec
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
+                              getCoordKey
+from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
+                      printLog, printProgress
+from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
+from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
 # Defaults
 default_alpha = 1e-5
@@ -43,8 +45,6 @@ default_min_ident = 0.5
 default_min_len = 1
 default_max_len = 1000
 default_gap = 0
-default_usearch_exec = r'/usr/local/bin/usearch'
-default_blastn_exec = r'/usr/bin/blastn'
 default_evalue = 1e-5
 default_max_hits = 100
 
@@ -207,13 +207,13 @@ def runBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
                        usearch_exec=default_usearch_exec):
     """
-    Aligns a sequence against a reference database using the UBLAST algorith of USEARCH
+    Aligns a sequence against a reference database using the UBLAST algorithm of USEARCH
 
     Arguments:
-    seq = a SeqRecord objects to align
+    seq = a SeqRecord object to align
     ref_file = the path to the reference database file
     evalue = the E-value cut-off for ublast
-    maxhits = the maxhits output limit for ublast
+    max_hits = the maxhits output limit for ublast
     usearch_exec = the path to the usearch executable
 
     Returns:
@@ -973,7 +973,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                assemble-pass  successfully assembled reads.

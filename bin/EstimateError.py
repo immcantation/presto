@@ -2,31 +2,29 @@
 """
 Calculates annotation set error rates
 """
-
-__author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
+from presto import __version__, __date__
 
 # Imports
-import os, sys, textwrap
+import os
+import sys
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import permutations
+from textwrap import dedent
 from time import time
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_missing_chars, default_barcode_field, default_out_args
-from IgCore import default_min_freq, default_min_qual
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress, getFileType
-from IgCore import getDNAScoreDict, calculateDiversity, countSeqSets, indexSeqSets
-from IgCore import frequencyConsensus, qualityConsensus
-from IgCore import feedSeqQueue, manageProcesses, SeqResult
+# Presto imports
+from presto.Defaults import default_barcode_field, default_missing_chars, \
+                            default_min_freq, default_min_qual, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
+from presto.Sequence import getScoreDict, calculateDiversity, qualityConsensus, \
+                            frequencyConsensus, indexSeqSets
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 
 # Defaults
 default_min_count = 10
@@ -447,7 +445,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                error-position        estimated error by read position.

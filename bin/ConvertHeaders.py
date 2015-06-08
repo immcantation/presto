@@ -2,27 +2,25 @@
 """
 Converts sequence headers to the pRESTO format
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import os, re, sys, textwrap
+import os
+import re
 from argparse import ArgumentParser
 from collections import OrderedDict
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import parseAnnotation, flattenAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile, getFileType
+# Presto imports
+from presto.Defaults import default_delimiter, default_out_args
+from presto.Annotation import parseAnnotation, flattenAnnotation
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
+                      printLog, printProgress
 
 
 def convertGenericHeader(desc, delimiter=default_delimiter):
@@ -249,8 +247,6 @@ def convertSRAHeader(desc):
     Header example from fastq-dum --split-files -I:
         @SRR1383326.1.1 1 length=250
         @<accession>.<spot>.<read number> <original sequence description> <length=#>
-
-
     """
     # Split description and assign field names
     try:
@@ -381,7 +377,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                convert-pass   reads passing header conversion.

@@ -2,30 +2,27 @@
 """
 Filters sequences in FASTA/FASTQ files
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
-
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import os, sys, textwrap
+import os
+import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import groupby
+from textwrap import dedent
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_min_qual, default_out_args, default_missing_chars
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, printLog
-from IgCore import collectSeqQueue, feedSeqQueue, processSeqQueue
-from IgCore import manageProcesses, SeqResult
+# Presto imports
+from presto.Defaults import default_missing_chars, default_min_qual, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.IO import getFileType, printLog
+from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+                                   processSeqQueue, collectSeqQueue
 
 # Defaults
 default_max_missing = 10
@@ -359,7 +356,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                <subcommand>-pass

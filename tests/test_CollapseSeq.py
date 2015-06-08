@@ -1,21 +1,15 @@
 """
 Unit tests for CollapseSeq
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.5'
-__date__      = '2014.12.12'
-
 # Imports
-import unittest
-import CollapseSeq as mod
 import time
-from timeit import timeit
+import unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from IgCore import testSeqEqual
+from presto.Sequence import testSeqEqual
+
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
 
 
 class TestCollapseSeq(unittest.TestCase):

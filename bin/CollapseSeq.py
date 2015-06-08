@@ -2,29 +2,27 @@
 """
 Removes duplicate sequences from FASTA/FASTQ files
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import os, re, sys, textwrap
+import os
+import re
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain, izip
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_out_args
-from IgCore import collapseAnnotation, flattenAnnotation 
-from IgCore import mergeAnnotation, parseAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import getFileType, readSeqFile, testSeqEqual
+# Presto imports
+from presto.Defaults import default_delimiter, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
+                              collapseAnnotation
+from presto.Sequence import testSeqEqual
+from presto.IO import getFileType, readSeqFile, getOutputHandle, printLog, printProgress
 
 # Default parameters
 default_max_missing = 0
@@ -320,7 +318,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                collapse-unique       unique sequences. Contains one representative from

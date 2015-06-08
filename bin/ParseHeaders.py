@@ -2,29 +2,27 @@
 """
 Parses pRESTO annotations in FASTA/FASTQ sequence headers
 """
-
-__author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+from presto import __version__, __date__
 
 # Imports
-import csv, os, re, sys, textwrap
+import csv
+import os
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import izip
+from textwrap import dedent
 from time import time
 from Bio import SeqIO
 
-# IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_delimiter, default_separator, default_out_args
-from IgCore import collapseAnnotation, flattenAnnotation, mergeAnnotation
-from IgCore import parseAnnotation, renameAnnotation
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getOutputHandle, printLog, printProgress
-from IgCore import countSeqFile, readSeqFile, getFileType
+# Presto imports
+from presto.Defaults import default_delimiter, default_separator, default_out_args
+from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
+                              renameAnnotation, collapseAnnotation
+from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
+                      printLog, printProgress
 
 
 def addHeader(header, fields, values, delimiter=default_delimiter):
@@ -271,7 +269,7 @@ def getArgParser():
     an ArgumentParser object
     """
     # Define output file names and header fields
-    fields = textwrap.dedent(
+    fields = dedent(
              '''
              output files:
                reheader-pass  reads passing annotation operation and modified accordingly.
