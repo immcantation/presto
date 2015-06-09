@@ -292,7 +292,7 @@ def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
     # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
-    chars = izip(seq1.upper(), seq2.upper())
+    chars = zip(seq1.upper(), seq2.upper())
     score_list = [score_dict[(a, b)] for a, b in chars \
                   if a not in ignore_chars and b not in ignore_chars]
     score = sum(score_list)

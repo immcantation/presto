@@ -18,6 +18,7 @@ try:
 except ImportError:
     sys.exit('Please install setuptools before installing presto.\n')
 
+# TODO: check pip version to avoid problem with parse_requirements(session=False)
 try:
     from pip.req import parse_requirements
 except ImportError:

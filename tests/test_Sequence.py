@@ -4,8 +4,8 @@ Unit tests for Sequence module
 
 # Imports
 import time
-import itertools
 import unittest
+from itertools import combinations
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import presto.Sequence
@@ -31,7 +31,7 @@ class TestIgCore(unittest.TestCase):
                             for i, s in enumerate(seq_dna, start=1)]
 
         # Make sequence pairs
-        self.seq_pairs = list(itertools.combinations(self.records_dna, 2))
+        self.seq_pairs = list(combinations(self.records_dna, 2))
 
         # Weights
         self.weight_dna_mask = [8, 6, 8, 6, 0, 2, 8, 8]
@@ -112,7 +112,7 @@ class TestIgCore(unittest.TestCase):
     def test_weightDNA(self):
         # DNA weights
         ignore_chars = set(['n', 'N'])
-        weights = [weightSeq(x, ignore_chars=ignore_chars) for x in self.records_dna]
+        weights = [presto.Sequence.weightSeq(x, ignore_chars=ignore_chars) for x in self.records_dna]
         print 'DNA Weight>'
         for x, s in zip(self.records_dna, weights):
             print '  %s> %s' % (x.id, s)
@@ -121,7 +121,7 @@ class TestIgCore(unittest.TestCase):
 
         # Amino acid weights
         ignore_chars = set(['x', 'X'])
-        weights = [weightSeq(x, ignore_chars=ignore_chars) for x in self.records_aa]
+        weights = [presto.Sequence.weightSeq(x, ignore_chars=ignore_chars) for x in self.records_aa]
         print 'AA Weight>'
         for x, s in zip(self.records_dna, weights):
             print '  %s> %s' % (x.id, s)
@@ -131,7 +131,7 @@ class TestIgCore(unittest.TestCase):
     #@unittest.skip('-> scoreSeqPair() skipped\n')
     def test_scoreSeqPair(self):
         # Default scoring
-        scores = [scoreSeqPair(x, y) for x, y in self.seq_pairs]
+        scores = [presto.Sequence.scoreSeqPair(x, y) for x, y in self.seq_pairs]
         print 'Default DNA Scores>'
         for (x, y), s in zip(self.seq_pairs, scores):
             print '    %s> %s' % (x.id, x.seq)
@@ -144,8 +144,9 @@ class TestIgCore(unittest.TestCase):
                                  [round(s, 4) for s in self.error_dna_def])
 
         # Asymmetric scoring without position masking
-        score_dict = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
-        scores = [scoreSeqPair(x, y, score_dict=score_dict) for x, y in self.seq_pairs]
+        score_dict = presto.Sequence.getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
+        scores = [presto.Sequence.scoreSeqPair(x, y, score_dict=score_dict) \
+                  for x, y in self.seq_pairs]
         print 'Asymmetric DNA Scores>'
         for (x, y), s in zip(self.seq_pairs, scores):
             print '    %s> %s' % (x.id, x.seq)
@@ -159,7 +160,8 @@ class TestIgCore(unittest.TestCase):
 
         # Symmetric scoring with N positions excluded
         ignore_chars = set(['n', 'N'])
-        scores = [scoreSeqPair(x, y, ignore_chars=ignore_chars) for x, y in self.seq_pairs]
+        scores = [presto.Sequence.scoreSeqPair(x, y, ignore_chars=ignore_chars) \
+                  for x, y in self.seq_pairs]
         print 'Masked DNA Scores>'
         for (x, y), s in zip(self.seq_pairs, scores):
             print '    %s> %s' % (x.id, x.seq)
