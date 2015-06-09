@@ -4,16 +4,18 @@ Unit tests for BuildConsensus
 # Future
 from __future__ import absolute_import, division, print_function
 
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+
 # Imports
 import time
 import unittest
-import presto.Sequence
-from bin import BuildConsensus as script
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
+# Presto imports
+from presto.Sequence import calculateSetError, deleteSeqPositions, findGapPositions, \
+                            frequencyConsensus, qualityConsensus
 
 
 class TestBuildConsensus(unittest.TestCase):
@@ -30,11 +32,17 @@ class TestBuildConsensus(unittest.TestCase):
                                       letter_annotations={'phred_quality':seq_qual})
                             for i, s in enumerate(seq_dna, start=1)]
         self.nonmiss_dna = 8 + 6 + 6 + 4 + 6
+
+        # Consensus sequences
         self.cons_loose = 'CGGCGTAA'
         self.cons_freq = 'CGGCGTNA'
         self.cons_qual = 'CGGCNNAA'
         self.cons_freqqual = 'CGGCNNNA'
         self.cons_gap = 'CGGCAA'
+
+        # Set error against cons_freq and cons_qual
+        self.freq_error = 1.0 - 27.0 / 36
+        self.qual_error = 1.0 - 23.0 / 30
 
         # Start clock
         self.start = time.time()
@@ -46,62 +54,66 @@ class TestBuildConsensus(unittest.TestCase):
 
     #@unittest.skip('-> qualityConsensus() skipped\n')
     def test_qualityConsensus(self):
-        result = presto.Sequence.qualityConsensus(self.records_dna, min_qual=0)
+        result = qualityConsensus(self.records_dna, min_qual=0)
         print('  MIN_QUAL=0> %s %s' % (result.seq, result.letter_annotations['phred_quality']))
         self.assertEqual(self.cons_loose, str(result.seq))
 
-        result = presto.Sequence.qualityConsensus(self.records_dna, min_qual=20)
+        result = qualityConsensus(self.records_dna, min_qual=20)
         print(' MIN_QUAL=20> %s %s' % (result.seq, result.letter_annotations['phred_quality']))
         self.assertEqual(self.cons_qual, str(result.seq))
 
-        result = presto.Sequence.qualityConsensus(self.records_dna, min_qual=20, min_freq=0.8)
+        result = qualityConsensus(self.records_dna, min_qual=20, min_freq=0.8)
         print('MIN_FREQ=0.8> %s %s' % (result.seq, result.letter_annotations['phred_quality']))
         self.assertEqual(self.cons_freqqual, str(result.seq))
 
     #@unittest.skip('-> frequencyConsensus() skipped\n')
     def test_frequencyConsensus(self):
-        result = presto.Sequence.frequencyConsensus(self.records_dna, min_freq=0.2)
+        result = frequencyConsensus(self.records_dna, min_freq=0.2)
         print('MIN_FREQ=0.2> %s' % result.seq)
         self.assertEqual(self.cons_loose, str(result.seq))
 
-        result = presto.Sequence.frequencyConsensus(self.records_dna, min_freq=0.8)
+        result = frequencyConsensus(self.records_dna, min_freq=0.8)
         print('MIN_FREQ=0.8> %s' % result.seq)
         self.assertEqual(self.cons_freq, str(result.seq))
 
     #@unittest.skip('-> calculateSetError() skipped\n')
     def test_calculateSetError(self):
-        cons = presto.Sequence.frequencyConsensus(self.records_dna)
-        error = presto.Sequence.calculateSetError(self.records_dna, cons)
+        cons = frequencyConsensus(self.records_dna)
+        error = calculateSetError(self.records_dna, cons)
+        print('Frequency consensus error>')
         print('  REF> %s' % cons.seq)
+        for x in self.records_dna:  print(' %s> %s' %(x.id, x.seq))
         print('ERROR> %f' % error)
-        self.assertAlmostEqual(1 - 27 / 30, error, places=4)
+        self.assertAlmostEqual(self.freq_error, error, places=4)
 
-        cons = presto.Sequence.qualityConsensus(self.records_dna)
-        error = presto.Sequence.calculateSetError(self.records_dna, cons)
+        print('Quality consensus error>')
+        cons = qualityConsensus(self.records_dna)
+        error = calculateSetError(self.records_dna, cons)
         print('  REF> %s' % cons.seq)
+        for x in self.records_dna:  print(' %s> %s' %(x.id, x.seq))
         print('ERROR> %f' % error)
-        self.assertAlmostEqual(1 - 23 / 28, error, places=4)
+        self.assertAlmostEqual(self.qual_error, error, places=4)
 
     #@unittest.skip('-> findGapPositions() skipped\n')
     def test_findGapPositions(self):
-        result = presto.Sequence.findGapPositions(self.records_dna, max_gap=0.4)
+        result = findGapPositions(self.records_dna, max_gap=0.4)
         print('MAX_GAP=0.4> %s' % result)
         self.assertEqual([4, 5], result)
 
-        result = presto.Sequence.findGapPositions(self.records_dna, max_gap=0.8)
+        result = findGapPositions(self.records_dna, max_gap=0.8)
         print('MAX_GAP=0.8> %s' % result)
         self.assertEqual([], result)
 
     #@unittest.skip('-> deleteSeqPositions() skipped\n')
     def test_deleteSeqPositions(self):
-        pos = presto.Sequence.findGapPositions(self.records_dna, max_gap=0.4)
-        cons = presto.Sequence.frequencyConsensus(self.records_dna)
-        result = presto.Sequence.deleteSeqPositions(cons, pos)
+        pos = findGapPositions(self.records_dna, max_gap=0.4)
+        cons = frequencyConsensus(self.records_dna)
+        result = deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.4> %s' % result.seq)
         self.assertEqual(self.cons_gap, str(result.seq))
 
-        pos = presto.Sequence.findGapPositions(self.records_dna, max_gap=0.8)
-        cons = presto.Sequence.frequencyConsensus(self.records_dna)
-        result = presto.Sequence.deleteSeqPositions(cons, pos)
+        pos = findGapPositions(self.records_dna, max_gap=0.8)
+        cons = frequencyConsensus(self.records_dna)
+        result = deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.8> %s' % result.seq)
         self.assertEqual(self.cons_loose, str(result.seq))
