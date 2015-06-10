@@ -13,9 +13,11 @@ import sys
 import time
 import unittest
 
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+
 # Import script
-test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import ConvertHeaders
 
 
@@ -109,3 +111,7 @@ class TestConvertHeaders(unittest.TestCase):
             print('%s' % x)
 
         self.assertTrue(all([x is not None for x in results]))
+
+
+if __name__ == '__main__':
+    unittest.main()

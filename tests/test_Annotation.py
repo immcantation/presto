@@ -5,12 +5,17 @@ Unit tests for Annotation module
 __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
+import os
+import sys
 import time
 import unittest
 from collections import OrderedDict
 
 # Presto imports
 from presto.Annotation import collapseAnnotation, mergeAnnotation, renameAnnotation
+
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class TestAnnotation(unittest.TestCase):
@@ -92,3 +97,7 @@ class TestAnnotation(unittest.TestCase):
         result = collapseAnnotation(self.ann_dict_1, 'sum', fields='TEST2')
         self.assertEqual('3', result['TEST2'])
         print result
+
+
+if __name__ == '__main__':
+    unittest.main()

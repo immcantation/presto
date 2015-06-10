@@ -5,6 +5,8 @@ Unit tests for Sequence module
 __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
+import os
+import sys
 import time
 import unittest
 from itertools import combinations
@@ -14,8 +16,11 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Sequence import getDNAScoreDict, scoreDNA, scoreSeqPair, weightSeq
 
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
 
-class TestIgCore(unittest.TestCase):
+
+class TestSequence(unittest.TestCase):
     def setUp(self):
         print '-> %s()' % self._testMethodName
 
@@ -198,3 +203,7 @@ class TestIgCore(unittest.TestCase):
             print '  %s==%s> %s' % (a, b, s)
 
         self.assertSequenceEqual(self.pairs_scores_asym, scores)
+
+
+if __name__ == '__main__':
+    unittest.main()

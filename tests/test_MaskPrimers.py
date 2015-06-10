@@ -15,10 +15,13 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Sequence import getDNAScoreDict
 
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+
 # Import script
-test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import MaskPrimers
+
 
 class TestMaskPrimers(unittest.TestCase):
 
@@ -149,3 +152,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.align_indel],
                                  [(x.primer, round(x.error, 4)) for x in align])
+
+
+if __name__ == '__main__':
+    unittest.main()

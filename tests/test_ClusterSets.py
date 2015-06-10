@@ -15,9 +15,11 @@ import unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+
 # Import script
-test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import ClusterSets
 
 
@@ -48,3 +50,7 @@ class TestBuildConsensus(unittest.TestCase):
         print(results)
 
         self.assertEqual(sorted(self.results_clust), sorted(results))
+
+
+if __name__ == '__main__':
+    unittest.main()

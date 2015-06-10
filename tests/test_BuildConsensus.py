@@ -8,6 +8,8 @@ from __future__ import absolute_import, division, print_function
 __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
+import os
+import sys
 import time
 import unittest
 from Bio.Seq import Seq
@@ -16,6 +18,13 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Sequence import calculateSetError, deleteSeqPositions, findGapPositions, \
                             frequencyConsensus, qualityConsensus
+
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import BuildConsensus
 
 
 class TestBuildConsensus(unittest.TestCase):
@@ -117,3 +126,7 @@ class TestBuildConsensus(unittest.TestCase):
         result = deleteSeqPositions(cons, pos)
         print('MAX_GAP=0.8> %s' % result.seq)
         self.assertEqual(self.cons_loose, str(result.seq))
+
+
+if __name__ == '__main__':
+    unittest.main()

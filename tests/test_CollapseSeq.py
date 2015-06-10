@@ -5,6 +5,8 @@ Unit tests for CollapseSeq
 __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
+import os
+import sys
 import time
 import unittest
 from itertools import combinations
@@ -13,6 +15,13 @@ from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Sequence import checkSeqEqual
+
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
+
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import CollapseSeq
 
 
 class TestCollapseSeq(unittest.TestCase):
@@ -52,3 +61,7 @@ class TestCollapseSeq(unittest.TestCase):
             print '         EQUAL> %s\n' % s
 
         self.assertSequenceEqual(self.equal_dna, results)
+
+
+if __name__ == '__main__':
+    unittest.main()

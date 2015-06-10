@@ -1,6 +1,9 @@
 """
 Unit tests for AssemblePairs
 """
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+
 # Imports
 import os
 import sys
@@ -13,13 +16,12 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.IO import readSeqFile
 
-# Import script
-test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(test_dir, os.pardir, 'bin'))
-import AssemblePairs
+# Paths
+test_path = os.path.dirname(os.path.realpath(__file__))
 
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
+# Import script
+sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
+import AssemblePairs
 
 
 class TestAssemblePairs(unittest.TestCase):
@@ -114,3 +116,7 @@ class TestAssemblePairs(unittest.TestCase):
         print '   ERROR>', stitch.error
         print '  PVALUE>', stitch.pvalue, '\n'
         self.fail()
+
+
+if __name__ == '__main__':
+    unittest.main()
