@@ -21,7 +21,7 @@ from presto.Defaults import default_delimiter, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               collapseAnnotation
-from presto.Sequence import testSeqEqual
+from presto.Sequence import checkSeqEqual
 from presto.IO import getFileType, readSeqFile, getOutputHandle, printLog, printProgress
 
 # Default parameters
@@ -47,7 +47,7 @@ def findUID(uid, search_dict, score=False):
     # Check for ambiguous matches
     else:
         for key in search_dict:
-            if uid[1:] == key[1:] and testSeqEqual(uid[0], key[0]):
+            if uid[1:] == key[1:] and checkSeqEqual(uid[0], key[0]):
                 match = key 
                 break
     

@@ -65,8 +65,8 @@ class TestAssemblePairs(unittest.TestCase):
         t = time.time() - self.start
         print "<- %s() %.3f" % (self._testMethodName, t)
 
-    #@unittest.skip("-> getUBlastAlignment() skipped\n")
-    def test_getUBlastAlignment(self):
+    @unittest.skip("-> runUBlastAlignment() skipped\n")
+    def test_runUBlastAlignment(self):
         head_df = AssemblePairs.runUBlastAlignment(self.head_rec, self.ref_file)
         tail_df = AssemblePairs.runUBlastAlignment(self.tail_rec, self.ref_file)
         print 'HEAD SEQUENCE>'
@@ -75,8 +75,8 @@ class TestAssemblePairs(unittest.TestCase):
         print tail_df
         self.fail()
 
-    @unittest.skip("-> getBlastnAlignment() skipped\n")
-    def test_getBlastnAlignment(self):
+    @unittest.skip("-> runBlastnAlignment() skipped\n")
+    def test_runBlastnAlignment(self):
         head_df = AssemblePairs.runBlastnAlignment(self.head_rec, self.ref_file)
         tail_df = AssemblePairs.runBlastnAlignment(self.tail_rec, self.ref_file)
         print 'HEAD SEQUENCE>'
@@ -85,7 +85,7 @@ class TestAssemblePairs(unittest.TestCase):
         print tail_df
         self.fail()
 
-    #@unittest.skip("-> referenceAssembly() skipped\n")
+    @unittest.skip("-> referenceAssembly() skipped\n")
     def test_referenceAssembly(self):
         stitch = AssemblePairs.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
 

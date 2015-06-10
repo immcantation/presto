@@ -13,7 +13,7 @@ from collections import OrderedDict
 from presto.Annotation import collapseAnnotation, mergeAnnotation, renameAnnotation
 
 
-class TestIgCore(unittest.TestCase):
+class TestAnnotation(unittest.TestCase):
     def setUp(self):
         print '-> %s()' % self._testMethodName
         # Annotation dictionaries

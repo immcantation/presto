@@ -12,7 +12,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Sequence import testSeqEqual
+from presto.Sequence import checkSeqEqual
 
 
 class TestCollapseSeq(unittest.TestCase):
@@ -42,9 +42,9 @@ class TestCollapseSeq(unittest.TestCase):
         t = time.time() - self.start
         print "<- %s() %.3f" % (self._testMethodName, t)
 
-    #@unittest.skip("-> testSeqEqual() skipped\n")
-    def test_testSeqEqual(self):
-        results = [testSeqEqual(x, y) for x, y in self.pairs_dna]
+    #@unittest.skip("-> checkSeqEqual() skipped\n")
+    def test_checkSeqEqual(self):
+        results = [checkSeqEqual(x, y) for x, y in self.pairs_dna]
         print 'DNA Equality>'
         for (x, y), s in zip(self.pairs_dna, results):
             print '  %s> %s' % (x.id, x.seq)

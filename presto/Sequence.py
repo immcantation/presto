@@ -240,7 +240,7 @@ def reverseComplement(seq):
     return new_record
 
 
-def testSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
+def checkSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     """
     Determine if two sequences are equal, excluding missing positions
 
