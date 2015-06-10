@@ -10,7 +10,6 @@ import unittest
 from itertools import combinations
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-import presto.Sequence
 
 # Presto imports
 from presto.Sequence import getDNAScoreDict, scoreDNA, scoreSeqPair, weightSeq
