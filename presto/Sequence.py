@@ -37,13 +37,13 @@ def compilePrimers(primers):
     dictionary of compiled regular expressions
     """
 
-    primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateIUPAC, v))
+    primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateAmbigDNA, v))
                      for k, v in iteritems(primers)}
 
     return primers_regex
 
 
-def translateIUPAC(key):
+def translateAmbigDNA(key):
     """
     Translates IUPAC Ambiguous Nucleotide characters to or from character sets
 
@@ -53,7 +53,6 @@ def translateIUPAC(key):
     Returns:
     character translation
     """
-
     # Define valid characters and character translations
     IUPAC_uniq = '-.ACGT'
     IUPAC_ambig = 'BDHKMNRSVWY'
@@ -80,7 +79,7 @@ def translateIUPAC(key):
         return 'N'
 
 
-def scoreDNA(a, b, n_score=None, gap_score=None):
+def scoreDNA(a, b, mask_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
 
@@ -90,7 +89,7 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
     n_score = a tuple of length two defining scores for all matches against an N
               character for (a, b), with the score for character (a) taking precedence;
               if None score symmetrically according to IUPAC character identity
-    gap_score = a tuple of length two defining score for all matches against a [-, .]
+    gap_score = a tuple of length two defining score for all matches against a gap (-, .)
                 character for (a, b), with the score for character (a) taking precedence;
                 if None score symmetrically according to IUPAC character identity
 
@@ -107,12 +106,12 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
     # Check gap and N-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
-    elif n_score is not None and a in 'nN':
-        return n_score[0]
+    elif mask_score is not None and a in 'nN':
+        return mask_score[0]
     elif gap_score is not None and b in '-.':
         return gap_score[1]
-    elif n_score is not None and b in 'nN':
-        return n_score[1]
+    elif mask_score is not None and b in 'nN':
+        return mask_score[1]
 
     # Return symmetric and reflexive score for IUPAC match conditions
     if a == b:
@@ -125,17 +124,17 @@ def scoreDNA(a, b, n_score=None, gap_score=None):
         return 0
 
 
-def scoreAA(a, b, x_score=None, gap_score=None):
+def scoreAA(a, b, mask_score=None, gap_score=None):
     """
     Returns the score for a pair of IUPAC Extended Protein characters
 
     Arguments:
     a = first character
     b = second character
-    n_score = a tuple of length two defining scores for all matches against an X
-              character for (a, b), with the score for character (a) taking precedence;
-              if None score symmetrically according to IUPAC character identity
-    gap_score = a tuple of length two defining score for all matches against a [-, .]
+    mask_score = a tuple of length two defining scores for all matches against an X
+                 character for (a, b), with the score for character (a) taking precedence;
+                 if None score symmetrically according to IUPAC character identity
+    gap_score = a tuple of length two defining score for all matches against a gap (-, .)
                 character for (a, b), with the score for character (a) taking precedence;
                 if None score symmetrically according to IUPAC character identity
 
@@ -151,12 +150,12 @@ def scoreAA(a, b, x_score=None, gap_score=None):
     # Check gap and X-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
-    elif x_score is not None and a in 'xX':
-        return x_score[0]
+    elif mask_score is not None and a in 'xX':
+        return mask_score[0]
     elif gap_score is not None and b in '-.':
         return gap_score[1]
-    elif x_score is not None and b in 'xX':
-        return x_score[1]
+    elif mask_score is not None and b in 'xX':
+        return mask_score[1]
 
     # Return symmetric and reflexive score for IUPAC match conditions
     if a == b:
@@ -169,14 +168,14 @@ def scoreAA(a, b, x_score=None, gap_score=None):
         return 0
 
 
-def getDNAScoreDict(n_score=None, gap_score=None):
+def getDNAScoreDict(mask_score=None, gap_score=None):
     """
     Generates a score dictionary
 
     Arguments:
-    n_score = a tuple of length two defining scores for all matches against an N
-              character for (a, b), with the score for character (a) taking precedence;
-              if None score symmetrically according to IUPAC character identity
+    mask_score = a tuple of length two defining scores for all matches against an N
+                 character for (a, b), with the score for character (a) taking precedence;
+                 if None score symmetrically according to IUPAC character identity
     gap_score = a tuple of length two defining score for all matches against a [-, .]
                 character for (a, b), with the score for character (a) taking precedence;
                 if None score symmetrically according to IUPAC character identity
@@ -185,20 +184,20 @@ def getDNAScoreDict(n_score=None, gap_score=None):
     a score dictionary of the form {(char1, char2) : score}
     """
     chars = '-.ACGTRYSWKMBDHVN'
-    score_dict = {k:scoreDNA(*k, n_score=n_score, gap_score=gap_score)
+    score_dict = {k:scoreDNA(*k, mask_score=mask_score, gap_score=gap_score)
                   for k in product(chars, repeat=2)}
 
     return score_dict
 
 
-def getAAScoreDict(x_score=None, gap_score=None):
+def getAAScoreDict(mask_score=None, gap_score=None):
     """
     Generates a score dictionary
 
     Arguments:
-    x_score = a tuple of length two defining scores for all matches against an X
-              character for (a, b), with the score for character (a) taking precedence;
-              if None score symmetrically according to IUPAC character identity
+    mask_score = a tuple of length two defining scores for all matches against an X
+                 character for (a, b), with the score for character (a) taking precedence;
+                 if None score symmetrically according to IUPAC character identity
     gap_score = a tuple of length two defining score for all matches against a [-, .]
                 character for (a, b), with the score for character (a) taking precedence;
                 if None score symmetrically according to IUPAC character identity
@@ -207,7 +206,7 @@ def getAAScoreDict(x_score=None, gap_score=None):
     a score dictionary of the form {(char1, char2) : score}
     """
     chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    score_dict = {k:scoreAA(*k, x_score=x_score, gap_score=gap_score)
+    score_dict = {k:scoreAA(*k, mask_score=mask_score, gap_score=gap_score)
                   for k in product(chars, repeat=2)}
 
     return score_dict

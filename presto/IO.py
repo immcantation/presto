@@ -21,7 +21,7 @@ from Bio.Alphabet import IUPAC
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field
 from presto.Annotation import parseAnnotation
-from presto.Sequence import translateIUPAC
+from presto.Sequence import translateAmbigDNA
 
 
 def readPrimerFile(primer_file):
@@ -45,7 +45,7 @@ def readPrimerFile(primer_file):
     elif ext_name == '.regex':
         with open(primer_file, 'rU') as primer_handle:
             primer_list = [a.split(':') for a in primer_handle]
-            primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateIUPAC, a[1].strip().upper())
+            primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateAmbigDNA, a[1].strip().upper())
                         for a in primer_list}
     else:
         sys.exit('ERROR:  The primer file %s is not a supported type' % ext_name.upper())

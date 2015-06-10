@@ -150,7 +150,7 @@ class TestSequence(unittest.TestCase):
                                  [round(s, 4) for s in self.error_dna_def])
 
         # Asymmetric scoring without position masking
-        score_dict = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
+        score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 1))
         scores = [scoreSeqPair(x, y, score_dict=score_dict) \
                   for x, y in self.seq_pairs]
         print 'Asymmetric DNA Scores>'
@@ -188,7 +188,7 @@ class TestSequence(unittest.TestCase):
 
         self.assertSequenceEqual(self.pairs_scores_def, scores)
 
-        scores = [scoreDNA(a, b, n_score=(1, 1), gap_score=(1, 1)) \
+        scores = [scoreDNA(a, b, mask_score=(1, 1), gap_score=(1, 1)) \
                   for a, b in self.pairs_dna_chars]
         print 'Symmetric DNA Scores>'
         for (a, b), s in zip(self.pairs_dna_chars, scores):
@@ -196,7 +196,7 @@ class TestSequence(unittest.TestCase):
 
         self.assertSequenceEqual(self.pairs_scores_sym, scores)
 
-        scores = [scoreDNA(a, b, n_score=(0, 1), gap_score=(0, 1)) \
+        scores = [scoreDNA(a, b, mask_score=(0, 1), gap_score=(0, 1)) \
                   for a, b in self.pairs_dna_chars]
         print 'Asymmetric DNA Scores>'
         for (a, b), s in zip(self.pairs_dna_chars, scores):

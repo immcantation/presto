@@ -96,7 +96,7 @@ class TestMaskPrimers(unittest.TestCase):
 
     #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
-        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
+        score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
         align = [MaskPrimers.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
@@ -115,7 +115,7 @@ class TestMaskPrimers(unittest.TestCase):
 
     #@unittest.skip('-> alignPrimers() skipped\n')
     def test_alignPrimers(self):
-        score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
+        score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 
         # N character tests
         print 'TEST Ns>'

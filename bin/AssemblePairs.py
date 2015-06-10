@@ -259,7 +259,7 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits,
                       usearch_exec=default_usearch_exec,
-                      score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
+                      score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning against a reference database
 
@@ -486,7 +486,7 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
 
 def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
                   min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                  assembly_stats=None, score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(0, 0))):
+                  assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning the ends
 
