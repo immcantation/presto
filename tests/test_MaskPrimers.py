@@ -17,7 +17,7 @@ from presto.Sequence import getDNAScoreDict
 
 # Import script
 test_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join([test_dir, '..', 'bin']))
+sys.path.append(os.path.join(test_dir, '..', 'bin'))
 import MaskPrimers
 
 class TestMaskPrimers(unittest.TestCase):
