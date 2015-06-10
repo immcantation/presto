@@ -1,6 +1,8 @@
 """
 Unit tests for Sequence module
 """
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
 import time
@@ -10,8 +12,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import presto.Sequence
 
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
+# Presto imports
+from presto.Sequence import getDNAScoreDict, scoreDNA, scoreSeqPair, weightSeq
 
 
 class TestIgCore(unittest.TestCase):
@@ -112,7 +114,7 @@ class TestIgCore(unittest.TestCase):
     def test_weightDNA(self):
         # DNA weights
         ignore_chars = set(['n', 'N'])
-        weights = [presto.Sequence.weightSeq(x, ignore_chars=ignore_chars) for x in self.records_dna]
+        weights = [weightSeq(x, ignore_chars=ignore_chars) for x in self.records_dna]
         print 'DNA Weight>'
         for x, s in zip(self.records_dna, weights):
             print '  %s> %s' % (x.id, s)
@@ -121,7 +123,7 @@ class TestIgCore(unittest.TestCase):
 
         # Amino acid weights
         ignore_chars = set(['x', 'X'])
-        weights = [presto.Sequence.weightSeq(x, ignore_chars=ignore_chars) for x in self.records_aa]
+        weights = [weightSeq(x, ignore_chars=ignore_chars) for x in self.records_aa]
         print 'AA Weight>'
         for x, s in zip(self.records_dna, weights):
             print '  %s> %s' % (x.id, s)
@@ -131,7 +133,7 @@ class TestIgCore(unittest.TestCase):
     #@unittest.skip('-> scoreSeqPair() skipped\n')
     def test_scoreSeqPair(self):
         # Default scoring
-        scores = [presto.Sequence.scoreSeqPair(x, y) for x, y in self.seq_pairs]
+        scores = [scoreSeqPair(x, y) for x, y in self.seq_pairs]
         print 'Default DNA Scores>'
         for (x, y), s in zip(self.seq_pairs, scores):
             print '    %s> %s' % (x.id, x.seq)
@@ -144,8 +146,8 @@ class TestIgCore(unittest.TestCase):
                                  [round(s, 4) for s in self.error_dna_def])
 
         # Asymmetric scoring without position masking
-        score_dict = presto.Sequence.getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
-        scores = [presto.Sequence.scoreSeqPair(x, y, score_dict=score_dict) \
+        score_dict = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
+        scores = [scoreSeqPair(x, y, score_dict=score_dict) \
                   for x, y in self.seq_pairs]
         print 'Asymmetric DNA Scores>'
         for (x, y), s in zip(self.seq_pairs, scores):
@@ -160,7 +162,7 @@ class TestIgCore(unittest.TestCase):
 
         # Symmetric scoring with N positions excluded
         ignore_chars = set(['n', 'N'])
-        scores = [presto.Sequence.scoreSeqPair(x, y, ignore_chars=ignore_chars) \
+        scores = [scoreSeqPair(x, y, ignore_chars=ignore_chars) \
                   for x, y in self.seq_pairs]
         print 'Masked DNA Scores>'
         for (x, y), s in zip(self.seq_pairs, scores):
@@ -175,14 +177,14 @@ class TestIgCore(unittest.TestCase):
 
     #@unittest.skip('-> scoreDNA() skipped\n')
     def test_scoreDNA(self):
-        scores = [presto.Sequence.scoreDNA(a, b) for a, b in self.pairs_dna_chars]
+        scores = [scoreDNA(a, b) for a, b in self.pairs_dna_chars]
         print 'Default DNA Scores>'
         for (a, b), s in zip(self.pairs_dna_chars, scores):
             print '  %s==%s> %s' % (a, b, s)
 
         self.assertSequenceEqual(self.pairs_scores_def, scores)
 
-        scores = [presto.Sequence.scoreDNA(a, b, n_score=(1, 1), gap_score=(1, 1)) \
+        scores = [scoreDNA(a, b, n_score=(1, 1), gap_score=(1, 1)) \
                   for a, b in self.pairs_dna_chars]
         print 'Symmetric DNA Scores>'
         for (a, b), s in zip(self.pairs_dna_chars, scores):
@@ -190,7 +192,7 @@ class TestIgCore(unittest.TestCase):
 
         self.assertSequenceEqual(self.pairs_scores_sym, scores)
 
-        scores = [presto.Sequence.scoreDNA(a, b, n_score=(0, 1), gap_score=(0, 1)) \
+        scores = [scoreDNA(a, b, n_score=(0, 1), gap_score=(0, 1)) \
                   for a, b in self.pairs_dna_chars]
         print 'Asymmetric DNA Scores>'
         for (a, b), s in zip(self.pairs_dna_chars, scores):

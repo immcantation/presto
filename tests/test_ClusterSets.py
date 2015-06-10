@@ -4,15 +4,22 @@ Unit tests for ClusterSets
 # Future
 from __future__ import absolute_import, division, print_function
 
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+
 # Imports
+import os
+import sys
 import time
 import unittest
-from bin import ClusterSets as script
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
+# Import script
+test_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join([test_dir, '..', 'bin']))
+import ClusterSets
+
 
 class TestBuildConsensus(unittest.TestCase):
     def setUp(self):
@@ -37,7 +44,7 @@ class TestBuildConsensus(unittest.TestCase):
 
     #@unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
-        results = script.runUClust(self.records_clust)
+        results = ClusterSets.runUClust(self.records_clust)
         print(results)
 
         self.assertEqual(sorted(self.results_clust), sorted(results))

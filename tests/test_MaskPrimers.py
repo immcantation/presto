@@ -1,15 +1,24 @@
 """
 Unit tests for MaskPrimers
 """
-# Imports
-import time, unittest
-import bin.MaskPrimers as script
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from presto.Sequence import getDNAScoreDict
-
 # Info
 __author__    = 'Jason Anthony Vander Heiden'
+
+# Imports
+import os
+import sys
+import time
+import unittest
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+
+# Presto imports
+from presto.Sequence import getDNAScoreDict
+
+# Import script
+test_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join([test_dir, '..', 'bin']))
+import MaskPrimers
 
 class TestMaskPrimers(unittest.TestCase):
 
@@ -85,7 +94,7 @@ class TestMaskPrimers(unittest.TestCase):
     #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
         score_dict=getDNAScoreDict(n_score=(0, 1), gap_score=(0, 0))
-        align = [script.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
+        align = [MaskPrimers.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print '  %s>' % x.seq.id
@@ -107,7 +116,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         # N character tests
         print 'TEST Ns>'
-        align = [script.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
+        align = [MaskPrimers.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print '  %s>' % x.seq.id
@@ -125,7 +134,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         # Indel tests
         print 'TEST INDELS>'
-        align = [script.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
+        align = [MaskPrimers.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
                  for x in self.records_indel]
         for x in align:
             print '  %s>' % x.seq.id

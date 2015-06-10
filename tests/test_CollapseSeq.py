@@ -1,16 +1,18 @@
 """
 Unit tests for CollapseSeq
 """
+# Info
+__author__ = 'Jason Anthony Vander Heiden'
+
 # Imports
 import time
 import unittest
 from itertools import combinations
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from presto.Sequence import testSeqEqual
 
-# Info
-__author__ = 'Jason Anthony Vander Heiden'
+# Presto imports
+from presto.Sequence import testSeqEqual
 
 
 class TestCollapseSeq(unittest.TestCase):
