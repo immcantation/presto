@@ -18,7 +18,6 @@ try:
 except ImportError:
     sys.exit('Please install setuptools before installing presto.\n')
 
-# TODO: check pip version to avoid problem with parse_requirements(session=False)
 try:
     from pip.req import parse_requirements
 except ImportError:
@@ -41,12 +40,12 @@ if __author__ is None:
 if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
+# TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
 try:
     requirements = parse_requirements("requirements.txt", session=False)
 except TypeError:
     requirements = parse_requirements("requirements.txt")
-
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
