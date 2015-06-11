@@ -25,7 +25,9 @@ except ImportError:
     sys.exit('Please install pip before installing presto.\n')
 
 # Get version, author and license information
-info_file = os.path.join('presto', 'Version.py')
+info_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         'presto',
+                         'Version.py')
 __version__, __author__, __license__ = None, None, None
 try:
     exec(open(info_file).read())
@@ -40,7 +42,11 @@ if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
 # Parse requirements
-requirements = parse_requirements("requirements.txt", session=False)
+try:
+    requirements = parse_requirements("requirements.txt", session=False)
+except TypeError:
+    requirements = parse_requirements("requirements.txt")
+
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
