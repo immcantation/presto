@@ -250,9 +250,9 @@ if $ALIGN_CREGION; then
         --outname "${OUTNAME}-CR" > /dev/null 2> $ERROR_LOG
 
     PH_FILE="${OUTNAME}-CR_reheader.fastq"
-    PARSE_FIELDS="ID PRCONS CREGION CONSCOUNT"
+    CREGION_FIELD="CREGION"
 else
-    PARSE_FIELDS="ID PRCONS CONSCOUNT"
+    CREGION_FIELD=""
 fi
 
 # Rewrite header with minimum of CONSCOUNT
@@ -264,11 +264,11 @@ ParseHeaders.py collapse -s $PH_FILE -f CONSCOUNT --act min \
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
 if $CS_KEEP; then
     CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS \
-    --uf PRCONS --cf CONSCOUNT --act sum --inner \
+    --uf PRCONS $CREGION_FIELD --cf CONSCOUNT --act sum --inner \
     --keepmiss --outname "${OUTNAME}-FIN" >> $PIPELINE_LOG 2> $ERROR_LOG
 else
     CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS \
-    --uf PRCONS --cf CONSCOUNT --act sum --inner \
+    --uf PRCONS $CREGION_FIELD --cf CONSCOUNT --act sum --inner \
     --outname "${OUTNAME}-FIN" >> $PIPELINE_LOG 2> $ERROR_LOG
 fi
 
@@ -280,13 +280,13 @@ SplitSeq.py group -s "${OUTNAME}-FIN_collapse-unique.fastq" -f CONSCOUNT --num 2
 # Create table of final repertoire
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
 ParseHeaders.py table -s "${OUTNAME}-FIN_reheader.fastq" \
-    -f "${PARSE_FIELDS}" --outname "Final" \
+    -f ID PRCONS $CREGION_FIELD CONSCOUNT --outname "Final" \
     >> $PIPELINE_LOG 2> $ERROR_LOG
 ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique.fastq" \
-    -f "${PARSE_FIELDS} DUPCOUNT" --outname "Final-Unique" \
+    -f ID PRCONS $CREGION_FIELD CONSCOUNT DUPCOUNT --outname "Final-Unique" \
     >> $PIPELINE_LOG 2> $ERROR_LOG
 ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" \
-    -f "${PARSE_FIELDS} DUPCOUNT" --outname "Final-Unique-Atleast2" \
+    -f ID PRCONS $CREGION_FIELD CONSCOUNT DUPCOUNT --outname "Final-Unique-Atleast2" \
     >> $PIPELINE_LOG 2> $ERROR_LOG
 
 # Process log files
@@ -306,6 +306,10 @@ if $REFERENCE_ASSEMBLY; then
 fi
 if $MASK_LOWQUAL; then
     ParseLog.py -l MaskqualLog.log -f ID MASKED > /dev/null  2> $ERROR_LOG &
+fi
+if $ALIGN_CREGION; then
+    ParseLog.py -l CRegionLog.log -f ID PRIMER ERROR \
+        > /dev/null  2> $ERROR_LOG &
 fi
 wait
 
