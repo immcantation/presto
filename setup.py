@@ -42,10 +42,12 @@ if __license__ is None:
 
 # TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
+require_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            'requirements.txt')
 try:
-    requirements = parse_requirements("requirements.txt", session=False)
+    requirements = parse_requirements(require_file, session=False)
 except TypeError:
-    requirements = parse_requirements("requirements.txt")
+    requirements = parse_requirements(require_file)
 install_requires = [str(r.req) for r in requirements]
 
 # Define installation path for commandline tools
