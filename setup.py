@@ -23,10 +23,11 @@ try:
 except ImportError:
     sys.exit('Please install pip before installing presto.\n')
 
+# Get absolute path of package files
+setup_path = os.path.dirname(os.path.realpath(__file__))
+
 # Get version, author and license information
-info_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                         'presto',
-                         'Version.py')
+info_file = os.path.join(setup_path, 'presto', 'Version.py')
 __version__, __author__, __license__ = None, None, None
 try:
     exec(open(info_file).read())
@@ -42,8 +43,7 @@ if __license__ is None:
 
 # TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
-require_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            'requirements.txt')
+require_file = os.path.join(setup_path, 'requirements.txt')
 try:
     requirements = parse_requirements(require_file, session=False)
 except TypeError:
@@ -64,10 +64,10 @@ scripts = ['AlignSets.py',
            'ParseHeaders.py',
            'ParseLog.py',
            'SplitSeq.py']
-install_scripts = [os.path.join('bin', s) for s in scripts]
+install_scripts = [os.path.join(setup_path, 'bin', s) for s in scripts]
 
 # Load long package description
-with open('README.md', 'r') as f:
+with open(os.path.join(setup_path, 'README.md'), 'r') as f:
     long_description = ''.join([x for x in f])
 
 # Setup
