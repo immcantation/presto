@@ -1,9 +1,6 @@
 """
 File I/O and logging functions
 """
-# Future
-
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__

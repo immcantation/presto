@@ -1,9 +1,6 @@
 """
 Unit tests for ClusterSets
 """
-# Future
-
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 

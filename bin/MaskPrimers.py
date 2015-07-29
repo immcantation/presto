@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Removes primers and annotates sequences with primer and barcode identifiers
 """

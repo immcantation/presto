@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Sorts and matches sequence records with matching coordinates across files
 """

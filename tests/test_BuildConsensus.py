@@ -1,9 +1,6 @@
 """
 Unit tests for BuildConsensus
 """
-# Future
-
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 

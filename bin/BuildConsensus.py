@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Builds a consensus sequence for each set of input sequences
 """

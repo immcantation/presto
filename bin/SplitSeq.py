@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Sorts, samples and splits FASTA/FASTQ sequence files
 """

@@ -1,10 +1,6 @@
 """
 Commandline interface functions
 """
-# Future
-
-from builtins import zip
-
 # Info
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 from presto import __version__, __date__

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Filters sequences in FASTA/FASTQ files
 """
