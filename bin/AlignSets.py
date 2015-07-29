@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Multiple aligns input sequences by group
 """
@@ -12,8 +12,8 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
-from cStringIO import StringIO
-from itertools import izip
+from io import StringIO
+
 from subprocess import PIPE, Popen
 from textwrap import dedent
 from Bio import AlignIO, SeqIO
@@ -59,7 +59,8 @@ def runMuscle(seq_list, muscle_exec=default_muscle_exec):
     stdin_handle.close()
     
     # Open MUSCLE process
-    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                  universal_newlines=True)
 
     # Send sequences to MUSCLE stdin and retrieve stdout, stderr
     stdout_str, __ = child.communicate(stdin_str)
@@ -94,8 +95,8 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     align_list = []
     if mode == 'pad':
         max_len = max([len(s) + offset_dict[t] 
-                  for s, t in izip(seq_list, tag_list)])
-        for rec, tag in izip(seq_list, tag_list):
+                  for s, t in zip(seq_list, tag_list)])
+        for rec, tag in zip(seq_list, tag_list):
             new_rec = rec[:]
             new_rec.letter_annotations = {}
             new_rec.seq = '-' * offset_dict[tag] + new_rec.seq
@@ -104,17 +105,17 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     # Cut sequences to common start position
     elif mode == 'cut':
         max_offset = max(offset_dict.values())
-        cut_dict = {k:(max_offset - v) for k, v in offset_dict.iteritems()}
+        cut_dict = {k:(max_offset - v) for k, v in offset_dict.items()}
         max_len = max([len(s) - cut_dict[t] 
-                  for s, t in izip(seq_list, tag_list)])
-        for rec, tag in izip(seq_list, tag_list):
+                  for s, t in zip(seq_list, tag_list)])
+        for rec, tag in zip(seq_list, tag_list):
             new_rec = rec[:]
             new_rec.letter_annotations = {}
             new_rec.seq = new_rec.seq[cut_dict[tag]:]
             new_rec.seq += '-' * (max_len - len(new_rec.seq))
             align_list.append(new_rec)
     else:
-        exit('offestSeqList error:  invalid offset mode')
+        exit('offsettSeqList error:  invalid offset mode')
 
     # Convert list to MultipleSeqAlignment object
     align = MultipleSeqAlignment(align_list)
@@ -197,7 +198,7 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
     primers = readPrimerFile(primer_file)
 
     # Get offset dictionary
-    seq_list = [SeqRecord(Seq(v, IUPAC.ambiguous_dna), id=k) for k, v in primers.iteritems()]
+    seq_list = [SeqRecord(Seq(v, IUPAC.ambiguous_dna), id=k) for k, v in primers.items()]
     offset_dict = getOffsets(seq_list, align_func, align_args, reverse)
 
     # Print log and write offsets to file
@@ -210,7 +211,7 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
     out_tag = 'reverse' if reverse else 'forward'
     with getOutputHandle(primer_file, 'offsets-%s' % out_tag, out_dir=out_args['out_dir'], 
                          out_name=out_args['out_name'], out_type='tab') as out_handle:
-        for k, v in offset_dict.iteritems():
+        for k, v in offset_dict.items():
             out_handle.write('%s\t%i\n' % (k, v))
     
     # Print final log
@@ -397,8 +398,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Alignment method')
     

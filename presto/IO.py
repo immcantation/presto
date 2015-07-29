@@ -2,7 +2,7 @@
 File I/O and logging functions
 """
 # Future
-from __future__ import division, absolute_import, print_function
+
 
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
@@ -202,9 +202,8 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
 
     # Open and return handle
     try:
-        return open(out_file, 'wb')
+        return open(out_file, 'w')
     except:
-        #raise
         sys.exit('ERROR:  File %s cannot be opened' % out_file)
 
 
@@ -227,13 +226,12 @@ def printLog(record, handle=sys.stdout, inset=None):
         return ''
 
     # Determine inset
-    max_len = max(map(len, record))
-    inset = max(max_len, inset)
+    if inset is None:  inset = max(map(len, record))
 
     # Assemble log string
     record_str = ''
     if isinstance(record, OrderedDict):
-        key_list = record.keys()
+        key_list = list(record.keys())
     else:
         key_list = sorted(record)
     for key in key_list:

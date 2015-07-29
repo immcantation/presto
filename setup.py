@@ -1,17 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Presto setup
 """
-# Future
-from __future__ import division, absolute_import, print_function
-
 # Imports
 import os
 import sys
 
 # Check setup requirements
-if sys.version_info < (2,7,5):
-    sys.exit('At least Python 2.7.5 is required.\n')
+if sys.version_info < (3,4,0):
+    sys.exit('At least Python 3.4.0 is required.\n')
 
 try:
     from setuptools import setup

@@ -15,8 +15,8 @@ import pandas as pd
 import scipy.stats as stats
 from argparse import ArgumentParser
 from collections import OrderedDict
-from cStringIO import StringIO
-from itertools import izip
+from io import StringIO
+
 from subprocess import check_output, PIPE, Popen, STDOUT
 from textwrap import dedent
 from time import time
@@ -69,7 +69,7 @@ class AssemblyRecord:
         self.valid = False
 
     # Set boolean evaluation to valid value
-    def __nonzero__(self):
+    def __bool__(self):
         return self.valid
 
     # Set length evaluation to length of SeqRecord
@@ -403,12 +403,12 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
     # Initialize empty overlap character and quality score list
     seq_cons, score_cons = [], []
     # Define character and quality tuple iterators
-    chars = zip(head_seq, tail_seq)
-    quals = zip(head_seq.letter_annotations['phred_quality'], 
-                 tail_seq.letter_annotations['phred_quality'])
+    chars = list(zip(head_seq, tail_seq))
+    quals = list(zip(head_seq.letter_annotations['phred_quality'], 
+                 tail_seq.letter_annotations['phred_quality']))
 
     # Iterate over character and quality tuples and build consensus
-    for c, q in izip(chars, quals):
+    for c, q in zip(chars, quals):
         # Equivalent character case
         if c[0] == c[1]:
             c_cons = c[0]
@@ -529,7 +529,7 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
 
     # Iterate and score overlap segments
     stitch = AssemblyRecord()
-    for i in xrange(min_len, scan_len + 1):
+    for i in range(min_len, scan_len + 1):
         a = max(0, head_len - i)
         b = head_len - max(0, i - tail_len)
         x = max(0, i - head_len)
@@ -608,7 +608,7 @@ def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
     def _read_pairs(seq_file_1, seq_file_2):
         iter_1 = readSeqFile(seq_file_1, index=False)
         iter_2 = readSeqFile(seq_file_2, index=False)
-        for seq_1, seq_2 in izip(iter_1, iter_2):
+        for seq_1, seq_2 in zip(iter_1, iter_2):
             key_1 = getCoordKey(seq_1.description, coord_type=coord_type,
                                 delimiter=delimiter)
             key_2 = getCoordKey(seq_2.description, coord_type=coord_type,
@@ -680,13 +680,13 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
                                    delimiter=delimiter)
         stitch_ann = mergeAnnotation(stitch_ann, head_ann, delimiter=delimiter)
         result.log['FIELDS1'] = '|'.join(['%s=%s' % (k, v)
-                                             for k, v in head_ann.iteritems()])
+                                             for k, v in head_ann.items()])
     if fields_2 is not None:
         tail_ann = parseAnnotation(tail_seq.description, fields_2,
                                    delimiter=delimiter)
         stitch_ann = mergeAnnotation(stitch_ann, tail_ann, delimiter=delimiter)
         result.log['FIELDS2'] = '|'.join(['%s=%s' % (k, v)
-                                             for k, v in tail_ann.iteritems()])
+                                             for k, v in tail_ann.items()])
 
     # Assemble sequences
     stitch = assemble_func(head_seq, tail_seq, **assemble_args)
@@ -955,7 +955,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
-    for k, v in result['log'].iteritems():  log[k] = v
+    for k, v in result['log'].items():  log[k] = v
     log['END'] = 'AssemblePairs'
     printLog(log)
     
@@ -986,8 +986,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Assembly method')
     
@@ -1067,8 +1068,8 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args, in_arg='ref_file')
     
     # Convert case of fields
-    if args_dict['head_fields']:  args_dict['head_fields'] = map(str.upper, args_dict['head_fields']) 
-    if args_dict['tail_fields']:  args_dict['tail_fields'] = map(str.upper, args_dict['tail_fields']) 
+    if args_dict['head_fields']:  args_dict['head_fields'] = list(map(str.upper, args_dict['head_fields'])) 
+    if args_dict['tail_fields']:  args_dict['tail_fields'] = list(map(str.upper, args_dict['tail_fields'])) 
     
     # Define assemble_args dictionary to pass to maskPrimers
     if args_dict['assemble_func'] is alignAssembly:

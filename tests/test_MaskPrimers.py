@@ -26,7 +26,7 @@ import MaskPrimers
 class TestMaskPrimers(unittest.TestCase):
 
     def setUp(self):
-        print '-> %s()' % self._testMethodName
+        print('-> %s()' % self._testMethodName)
         # Test Ns
         seq_n = [Seq('CCACGTTTTAGTAATTAATA'),
                  Seq('CCNCGTTTTAGTAATTAATA'),
@@ -92,7 +92,7 @@ class TestMaskPrimers(unittest.TestCase):
     def tearDown(self):
         # End clock
         t = time.time() - self.start
-        print '<- %s() %.3f' % (self._testMethodName, t)
+        print('<- %s() %.3f' % (self._testMethodName, t))
 
     #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
@@ -100,15 +100,15 @@ class TestMaskPrimers(unittest.TestCase):
         align = [MaskPrimers.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
-            print '  %s>' % x.seq.id
-            print '      SEQ> %s' % x.seq.seq
-            print '   PRIMER> %s' % x.primer
-            print '  ALN-SEQ> %s' % x.align_seq
-            print '   ALN-PR> %s' % x.align_primer
-            print '    START> %s' % x.start
-            print '      END> %s' % x.end
-            print '     GAPS> %i' % x.gaps
-            print '    ERROR> %f\n' % x.error
+            print('  %s>' % x.seq.id)
+            print('      SEQ> %s' % x.seq.seq)
+            print('   PRIMER> %s' % x.primer)
+            print('  ALN-SEQ> %s' % x.align_seq)
+            print('   ALN-PR> %s' % x.align_primer)
+            print('    START> %s' % x.start)
+            print('      END> %s' % x.end)
+            print('     GAPS> %i' % x.gaps)
+            print('    ERROR> %f\n' % x.error)
 
         self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.score_n],
                                  [(x.primer, round(x.error, 4)) for x in align])
@@ -118,37 +118,37 @@ class TestMaskPrimers(unittest.TestCase):
         score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 
         # N character tests
-        print 'TEST Ns>'
+        print('TEST Ns>')
         align = [MaskPrimers.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
-            print '  %s>' % x.seq.id
-            print '      SEQ> %s' % x.seq.seq
-            print '   PRIMER> %s' % x.primer
-            print '  ALN-SEQ> %s' % x.align_seq
-            print '   ALN-PR> %s' % x.align_primer
-            print '    START> %s' % x.start
-            print '      END> %s' % x.end
-            print '     GAPS> %i' % x.gaps
-            print '    ERROR> %f\n' % x.error
+            print('  %s>' % x.seq.id)
+            print('      SEQ> %s' % x.seq.seq)
+            print('   PRIMER> %s' % x.primer)
+            print('  ALN-SEQ> %s' % x.align_seq)
+            print('   ALN-PR> %s' % x.align_primer)
+            print('    START> %s' % x.start)
+            print('      END> %s' % x.end)
+            print('     GAPS> %i' % x.gaps)
+            print('    ERROR> %f\n' % x.error)
 
         self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.align_n],
                                  [(x.primer, round(x.error, 4)) for x in align])
 
         # Indel tests
-        print 'TEST INDELS>'
+        print('TEST INDELS>')
         align = [MaskPrimers.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
                  for x in self.records_indel]
         for x in align:
-            print '  %s>' % x.seq.id
-            print '      SEQ> %s' % x.seq.seq
-            print '   PRIMER> %s' % x.primer
-            print '  ALN-SEQ> %s' % x.align_seq
-            print '   ALN-PR> %s' % x.align_primer
-            print '    START> %s' % x.start
-            print '      END> %s' % x.end
-            print '     GAPS> %i' % x.gaps
-            print '    ERROR> %f\n' % x.error
+            print('  %s>' % x.seq.id)
+            print('      SEQ> %s' % x.seq.seq)
+            print('   PRIMER> %s' % x.primer)
+            print('  ALN-SEQ> %s' % x.align_seq)
+            print('   ALN-PR> %s' % x.align_primer)
+            print('    START> %s' % x.start)
+            print('      END> %s' % x.end)
+            print('     GAPS> %i' % x.gaps)
+            print('    ERROR> %f\n' % x.error)
 
         self.assertSequenceEqual([(x, round(y, 4)) for x, y in self.align_indel],
                                  [(x.primer, round(x.error, 4)) for x in align])

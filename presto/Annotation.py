@@ -1,10 +1,6 @@
 """
 Annotation functions
 """
-# Future
-from __future__ import division, absolute_import, print_function
-from future.utils import iteritems
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__
@@ -53,7 +49,7 @@ def flattenAnnotation(ann_dict, delimiter=default_delimiter):
     a formatted sequence description string
     """
     annotation = ann_dict.get('ID', 'NONE')
-    for k, v in iteritems(ann_dict):
+    for k, v in ann_dict.items():
         # Skip ID field
         if k.upper() == 'ID':
             continue
@@ -88,7 +84,7 @@ def mergeAnnotation(ann_dict_1, ann_dict_2, prepend=False,
         def _merge(x, y):  return '%s%s%s' % (x, delimiter[2], y)
 
     merged_dict = ann_dict_1.copy()
-    for k, v in iteritems(ann_dict_2):
+    for k, v in ann_dict_2.items():
         # Skip ID field
         if k.upper() == 'ID':
             continue
@@ -124,7 +120,7 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
         mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
     else:
         rename_dict = OrderedDict([(new_field, v) if k == old_field else (k, v) \
-                                   for k, v in iteritems(ann_dict)])
+                                   for k, v in ann_dict.items()])
 
     return rename_dict
 
@@ -165,7 +161,7 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
 
     # Collapse fields
     collapse_dict = ann_dict.copy()
-    for k, v in iteritems(collapse_dict):
+    for k, v in collapse_dict.items():
         if k.upper() == 'ID':
             continue
         if fields is None or k in fields:

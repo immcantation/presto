@@ -1,5 +1,4 @@
-numpy>=1.7.0
-scipy>=0.12
-pandas>=0.12
-biopython>=1.59
-future>=0.14.3
+numpy>=1.9
+scipy>=0.14
+pandas>=0.16
+biopython>=1.65

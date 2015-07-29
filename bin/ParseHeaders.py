@@ -11,7 +11,7 @@ import csv
 import os
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip
+
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -38,7 +38,7 @@ def addHeader(header, fields, values, delimiter=default_delimiter):
     Returns: 
     the modified header dictionary
     """
-    for f, v in izip(fields, values):
+    for f, v in zip(fields, values):
         header = mergeAnnotation(header, {f:v}, delimiter=delimiter)
         
     return header
@@ -58,7 +58,7 @@ def collapseHeader(header, fields, actions, delimiter=default_delimiter):
     Returns: 
     the output file name
     """
-    for f, a in izip(fields, actions):
+    for f, a in zip(fields, actions):
         header = collapseAnnotation(header, a, f, delimiter=delimiter)
         
     return header
@@ -98,7 +98,7 @@ def expandHeader(header, fields, separator=default_separator,
     for f in fields:
         values = header[f].split(separator)
         names = [f + str(i + 1) for i in range(len(values))]
-        ann = OrderedDict([(n, v) for n, v in izip(names, values)])
+        ann = OrderedDict([(n, v) for n, v in zip(names, values)])
         header = mergeAnnotation(header, ann, delimiter=delimiter)
         del header[f]
     
@@ -118,7 +118,7 @@ def renameHeader(header, fields, names, delimiter=default_delimiter):
     Returns: 
     the modified header dictionary
     """
-    for f, n in izip(fields, names):
+    for f, n in zip(fields, names):
         header = renameAnnotation(header, f, n, delimiter=delimiter)
         
     return header
@@ -283,8 +283,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Annotation operation')
 
@@ -373,16 +374,16 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
     # Convert case of fields
     if 'fields' in args_dict and args_dict['fields']:  
-        args_dict['fields'] = map(str.upper, args_dict['fields'])
+        args_dict['fields'] = list(map(str.upper, args_dict['fields']))
     # Built modify_args dictionary
     if args.func == modifyHeaders:
         modify_args = {}
         if 'fields' in args_dict:  
             modify_args['fields'] = args_dict.pop('fields')
         if 'actions' in args_dict:  
-            modify_args['actions'] = map(str.lower, args_dict.pop('actions')) 
+            modify_args['actions'] = list(map(str.lower, args_dict.pop('actions'))) 
         if 'names' in args_dict:  
-            modify_args['names'] = map(str.upper, args_dict.pop('names'))
+            modify_args['names'] = list(map(str.upper, args_dict.pop('names')))
         if 'values' in args_dict: 
             modify_args['values'] = args_dict.pop('values')
         if 'separator' in args_dict: 
