@@ -34,18 +34,18 @@ class TestMaskPrimers(unittest.TestCase):
                  Seq('GGNNGTTTTACTAATTAATA'),
                  Seq('NNGCNNNNNACTAATTAATA'),
                  Seq('GGGATANNNACTAATTAATA'),
-                 Seq('NNNCCNNNNNNNNNNNNNNN')]
+                 Seq('NNNNNNNNNNNNNNNNNNNN')]
         self.records_n = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                           for i, s in enumerate(seq_n, start=1)]
         self.primers_n =  OrderedDict([('PR1', 'ACGTTT'),
-                                       ('PR2', 'GCCGTT'),
+                                       ('PR2', 'GGCGTT'),
                                        ('PR3', 'GGNATA')])
 
         # (primer name, error rate)
         self.align_n = [('PR1', 0.0/6),
                         ('PR1', 1.0/6),
-                        ('PR1', 1.0/6),
-                        ('PR1', 2.0/6),
+                        ('PR2', 0.0/6),
+                        ('PR3', 2.0/6),
                         ('PR3', 2.0/6),
                         ('PR3', 0.0/6),
                         (None, 1.0)]
@@ -54,9 +54,9 @@ class TestMaskPrimers(unittest.TestCase):
                         ('PR1', 1.0/6),
                         ('PR1', 1.0/6),
                         ('PR1', 2.0/6),
-                        ('PR2', 4.0/6),
+                        ('PR3', 5.0/6),
                         ('PR3', 3.0/6),
-                        ('PR2', 4.0/6)]
+                        (None, 1.0)]
 
         #Test indels
         seq_indel = [Seq('CGGATCTTCTACTCCATACGTCCGTCAGTCGTGGATCTGATCTAGCTGCGCCTTTTTCTCAG'),
@@ -94,7 +94,7 @@ class TestMaskPrimers(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    @unittest.skip('-> scorePrimers() skipped\n')
+    #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
         align = [MaskPrimers.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
@@ -109,6 +109,9 @@ class TestMaskPrimers(unittest.TestCase):
             print('      END> %s' % x.end)
             print('     GAPS> %i' % x.gaps)
             print('    ERROR> %f\n' % x.error)
+
+        print([(x, round(y, 4)) for x, y in self.score_n])
+        print([(x.primer, round(x.error, 4)) for x in align])
 
         self.assertListEqual([(x, round(y, 4)) for x, y in self.score_n],
                              [(x.primer, round(x.error, 4)) for x in align])
@@ -132,8 +135,8 @@ class TestMaskPrimers(unittest.TestCase):
             print('     GAPS> %i' % x.gaps)
             print('    ERROR> %f\n' % x.error)
 
-        #print([(x, round(y, 4)) for x, y in self.align_n])
-        #print([(x.primer, round(x.error, 4)) for x in align])
+        print([(x, round(y, 4)) for x, y in self.align_n])
+        print([(x.primer, round(x.error, 4)) for x in align])
 
         self.assertListEqual([(x, round(y, 4)) for x, y in self.align_n],
                              [(x.primer, round(x.error, 4)) for x in align])
@@ -153,8 +156,11 @@ class TestMaskPrimers(unittest.TestCase):
             print('     GAPS> %i' % x.gaps)
             print('    ERROR> %f\n' % x.error)
 
+        print([(x, round(y, 4)) for x, y in self.align_indel])
+        print([(x.primer, round(x.error, 4)) for x in align])
+
         self.assertListEqual([(x, round(y, 4)) for x, y in self.align_indel],
-                                 [(x.primer, round(x.error, 4)) for x in align])
+                             [(x.primer, round(x.error, 4)) for x in align])
 
 
 if __name__ == '__main__':

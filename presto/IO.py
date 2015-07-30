@@ -35,12 +35,12 @@ def readPrimerFile(primer_file):
     # Parse primers from .fasta and .regex files
     ext_name = os.path.splitext(primer_file)[1]
     if ext_name == '.fasta':
-        with open(primer_file, 'rU') as primer_handle:
+        with open(primer_file, 'r') as primer_handle:
             primer_iter = SeqIO.parse(primer_handle, 'fasta', IUPAC.ambiguous_dna)
             primers = {p.description: str(p.seq).upper()
                         for p in primer_iter}
     elif ext_name == '.regex':
-        with open(primer_file, 'rU') as primer_handle:
+        with open(primer_file, 'r') as primer_handle:
             primer_list = [a.split(':') for a in primer_handle]
             primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateAmbigDNA, a[1].strip().upper())
                         for a in primer_list}
