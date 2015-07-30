@@ -143,7 +143,7 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
     """
     # Define _collapse action
     if action == 'set':
-        def _collapse(value):  return list(set(value))
+        def _collapse(value):  return sorted(set(value))
     elif action == 'first':
         def _collapse(value):  return value[0]
     elif action == 'last':

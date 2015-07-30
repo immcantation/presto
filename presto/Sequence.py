@@ -467,9 +467,11 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
         # TODO: write unit test and verify quality score calculation for sets with missing data
         # Calculate per character consensus quality scores
         if dependent:
-            qual_cons = {c:int(max(qual_set[c]) * qual_sum[c] / qual_total) for c in qual_set}
+            qual_cons = {c: int(max(qual_set[c]) * qual_sum[c] / qual_total)
+                         for c in qual_set}
         else:
-            qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
+            qual_cons = {c: int(qual_sum[c] * qual_sum[c] / qual_total)
+                         for c in qual_set}
 
         # Select character with highest consensus quality
         cons = [(c, min(q, 90)) for c, q in qual_cons.items() \

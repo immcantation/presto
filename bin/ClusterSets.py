@@ -63,8 +63,8 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
                                     description=rec.description))
 
     # Open temporary files
-    in_handle = tempfile.NamedTemporaryFile()
-    out_handle = tempfile.NamedTemporaryFile()
+    in_handle = tempfile.NamedTemporaryFile(mode='w+t')
+    out_handle = tempfile.NamedTemporaryFile(mode='w+t')
 
     # Define usearch command
     cmd = [usearch_exec,
@@ -79,7 +79,8 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
 
     # Run usearch uclust algorithm
     try:
-        stdout_str = check_output(cmd, stderr=STDOUT, shell=False)
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
         #check_call(cmd, stderr=STDOUT, shell=False)
     except CalledProcessError:
         group_dict = None

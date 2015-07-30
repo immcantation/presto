@@ -199,6 +199,7 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
 
     # Open and return handle
     try:
+        # TODO:  mode may need to be 'wt'. or need universal_newlines=True all over the place. check tab file parsing.
         return open(out_file, 'w')
     except:
         sys.exit('ERROR:  File %s cannot be opened' % out_file)

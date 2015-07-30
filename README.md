@@ -1,4 +1,4 @@
-Version 0.5.0.beta:  June 18, 2015
+Version 0.5.0.beta:  July 29, 2015
 ===============================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing 
@@ -20,13 +20,12 @@ Requirements
 
 Software        | Link
 --------------- | -----------------------------
-Python 2.7.5    | http://python.org
+Python 3.4.0    | http://python.org
 setuptools 2.0  | http://bitbucket.org/pypa/setuptools
-pip 1.5.6       | http://pip.pypa.io/en/stable/
-NumPy 1.7       | http://numpy.org
-SciPy 0.12      | http://scipy.org
-pandas 0.12     | http://pandas.pydata.org
-Biopython 1.59  | http://biopython.org
+NumPy 1.9       | http://numpy.org
+SciPy 0.14      | http://scipy.org
+pandas 0.16     | http://pandas.pydata.org
+Biopython 1.65  | http://biopython.org
 MUSCLE v3.8     | http://www.drive5.com/muscle
 USEARCH v7.0    | http://www.drive5.com/usearch
 

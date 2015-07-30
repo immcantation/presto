@@ -190,7 +190,8 @@ def runBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
                     '-num_threads 1'])
 
     # Run blastn
-    child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
+    child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                  shell=(sys.platform != 'win32'), universal_newlines=True)
     stdout_str, stderr_str = child.communicate(seq_fasta)
     out_handle = StringIO(stdout_str)
 
@@ -220,8 +221,8 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     a DataFrame of alignment results
     """
     # Open temporary files
-    in_handle = tempfile.NamedTemporaryFile()
-    out_handle = tempfile.NamedTemporaryFile()
+    in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
+    out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
 
     # Define usearch command
     cmd = [usearch_exec,
@@ -240,12 +241,13 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
 
     # Run usearch ublast algorithm
     in_handle.seek(0)
-    stdout_str = check_output(cmd, stderr=STDOUT, shell=False)
+    stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
 
     # Parse usearch output
-    field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
+    field_names = ['query', 'target', 'query_start', 'query_end',
+                   'target_start', 'target_end',
                    'length', 'evalue', 'identity']
-    align_df = pd.read_table(out_handle, header=None, names=field_names)
+    align_df = pd.read_table(out_handle, header=None, names=field_names, encoding='utf-8')
     # Convert to base-zero indices
     align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
 
@@ -426,7 +428,7 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
             q_max = max(q)
             c_cons = c[q.index(q_max)]
             try:
-                q_cons = q_max**2 / sum(q)
+                q_cons = int(q_max**2 / sum(q))
             except ZeroDivisionError:
                 q_cons = 0
         # Append sequence and quality lists with consensus values
