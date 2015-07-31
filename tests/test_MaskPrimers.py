@@ -37,25 +37,25 @@ class TestMaskPrimers(unittest.TestCase):
                  Seq('NNNNNNNNNNNNNNNNNNNN')]
         self.records_n = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                           for i, s in enumerate(seq_n, start=1)]
-        self.primers_n =  OrderedDict([('PR1', 'ACGTTT'),
-                                       ('PR2', 'GGCGTT'),
-                                       ('PR3', 'GGNATA')])
+        self.primers_n =  OrderedDict([('PR1', 'CACGTTTT'),
+                                       ('PR2', 'GGCGTTTT'),
+                                       ('PR3', 'GGANATAA')])
 
         # (primer name, error rate)
-        self.align_n = [('PR1', 0.0/6),
-                        ('PR1', 1.0/6),
-                        ('PR2', 0.0/6),
-                        ('PR3', 2.0/6),
-                        ('PR3', 2.0/6),
-                        ('PR3', 0.0/6),
+        self.align_n = [('PR1', 0.0/8),
+                        ('PR1', 1.0/8),
+                        ('PR2', 0.0/8),
+                        ('PR2', 2.0/8),
+                        ('PR3', 3.0/8),
+                        ('PR3', 3.0/8),
                         (None, 1.0)]
         # Score primers with start=2
-        self.score_n = [('PR1', 0.0/6),
-                        ('PR1', 1.0/6),
-                        ('PR1', 1.0/6),
-                        ('PR1', 2.0/6),
-                        ('PR3', 5.0/6),
-                        ('PR3', 3.0/6),
+        self.score_n = [('PR1', 0.0/8),
+                        ('PR1', 1.0/8),
+                        ('PR2', 0.0/8),
+                        ('PR2', 2.0/8),
+                        ('PR2', 6.0/8),
+                        ('PR3', 3.0/8),
                         (None, 1.0)]
 
         #Test indels
@@ -97,7 +97,7 @@ class TestMaskPrimers(unittest.TestCase):
     #@unittest.skip('-> scorePrimers() skipped\n')
     def test_scorePrimers(self):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
-        align = [MaskPrimers.scorePrimers(x, self.primers_n, start=2, score_dict=score_dict)
+        align = [MaskPrimers.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print('  %s>' % x.seq.id)
