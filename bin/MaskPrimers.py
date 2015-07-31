@@ -122,8 +122,8 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     
     # Attempt regular expression match first
     for rec in seq_list:
-        scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
-        scan_seq = str(scan_rec.seq)
+        scan_seq = str(rec.seq)
+        scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
         for adpt_id, adpt_regex in primers_regex.items():
             adpt_match = adpt_regex.search(scan_seq)
             # Parse matches
@@ -153,9 +153,9 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     # Perform local alignment if regular expression match fails
     best_align, best_rec, best_adpt, best_error = None, None, None, None
     for rec in seq_list:
-        scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
-        scan_seq = str(scan_rec.seq)
         this_align = dict()
+        scan_seq = str(rec.seq)
+        scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
         for adpt_id, adpt_seq in primers.items():
             pw2_align = pairwise2.align.localds(scan_seq, adpt_seq, score_dict,
                                                 -gap_penalty[0], -gap_penalty[1],
