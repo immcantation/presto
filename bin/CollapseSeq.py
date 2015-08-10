@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Removes duplicate sequences from FASTA/FASTQ files
 """
@@ -11,7 +11,7 @@ import os
 import re
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import chain, izip
+from itertools import chain
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -84,7 +84,7 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
     
     start_time = time()
     result_count = len(search_keys)
-    print 'MISSING>  %i' % max_missing
+    print('MISSING>  %i' % max_missing)
     # Iterate over search keys and update uniq_dict and dup_keys
     for idx, key in enumerate(search_keys):
         # Print progress of previous iteration
@@ -102,7 +102,7 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
         # Parse annotation and define unique identifiers (uid)
         if uniq_fields is not None:
             ann = parseAnnotation(seq_dict[key].description, uniq_fields, delimiter=delimiter)
-            uid = tuple(chain([seq_str], ann.values()))             
+            uid = tuple(chain([seq_str], list(ann.values())))             
         else:
             uid = (seq_str, None)
 
@@ -248,13 +248,13 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     with getOutputHandle(seq_file, 'collapse-unique', out_dir=out_args['out_dir'], 
                          out_name=out_args['out_name'], out_type=out_args['out_type']) \
             as uniq_handle:
-        for val in uniq_dict.itervalues():
+        for val in uniq_dict.values():
             # Define output sequence
             out_seq = val[0]
             out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
             out_app = OrderedDict()
             if copy_fields  is not None and copy_actions is not None:
-                for f, a, s in izip(copy_fields, copy_actions, val[3:]):
+                for f, a, s in zip(copy_fields, copy_actions, val[3:]):
                     out_app[f] = s
                     out_app = collapseAnnotation(out_app, a, f, delimiter=out_args['delimiter'])
                     out_ann.pop(f, None)
@@ -342,9 +342,10 @@ def getArgParser():
     # TODO: write better algorithm for ambiguous character mode
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser()], 
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
     parser.add_argument('-n', action='store', dest='max_missing', type=int, default=default_max_missing, 
                         help='Maximum number of missing nucleotides to consider for collapsing \
@@ -394,11 +395,11 @@ if __name__ == '__main__':
     
     # Convert case of fields
     if 'uniq_fields' in args_dict and args_dict['uniq_fields']:  
-        args_dict['uniq_fields'] = map(str.upper, args_dict['uniq_fields']) 
+        args_dict['uniq_fields'] = list(map(str.upper, args_dict['uniq_fields'])) 
     if 'copy_fields' in args_dict and args_dict['copy_fields']:
-        args_dict['copy_fields'] = map(str.upper, args_dict['copy_fields'])
+        args_dict['copy_fields'] = list(map(str.upper, args_dict['copy_fields']))
     if 'copy_actions' in args_dict and args_dict['copy_actions']:
-        args_dict['copy_actions'] = map(str.lower, args_dict['copy_actions'])
+        args_dict['copy_actions'] = list(map(str.lower, args_dict['copy_actions']))
     if 'max_field' in args_dict and args_dict['max_field']:  
         args_dict['max_field'] = args_dict['max_field'].upper() 
     if 'min_field' in args_dict and args_dict['min_field']:  

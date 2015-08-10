@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Sorts and matches sequence records with matching coordinates across files
 """
@@ -118,7 +118,7 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
 
                 # Prepend annotations from seq_1 to seq_2
                 if fields_1 is not None:
-                    copy_ann = OrderedDict([(k, v) for k, v in ann_1.iteritems() \
+                    copy_ann = OrderedDict([(k, v) for k, v in ann_1.items() \
                                             if k in fields_1])
                     merge_ann = mergeAnnotation(ann_2, copy_ann, prepend=True,
                                                 delimiter=out_args['delimiter'])
@@ -128,7 +128,7 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
 
                 # Append annotations from seq_2 to seq_1
                 if fields_2 is not None:
-                    copy_ann = OrderedDict([(k, v) for k, v in ann_2.iteritems() \
+                    copy_ann = OrderedDict([(k, v) for k, v in ann_2.items() \
                                             if k in fields_2])
                     merge_ann = mergeAnnotation(ann_1, copy_ann, prepend=False,
                                                 delimiter=out_args['delimiter'])
@@ -202,10 +202,11 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(paired=True, failed=True, log=False)],
                             formatter_class=CommonHelpFormatter)
-    
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+
     parser.add_argument('--1f', nargs='+', action='store', dest='fields_1', type=str, default=None,
                         help='''The annotation fields to copy from file 1 records into file
                              2 records. If a copied annotation already exists in a file 2
@@ -235,9 +236,9 @@ if __name__ == '__main__':
 
     # Convert case of fields
     if args_dict['fields_1'] is not None:
-        args_dict['fields_1'] = map(str.upper, args_dict['fields_1'])
+        args_dict['fields_1'] = list(map(str.upper, args_dict['fields_1']))
     if args_dict['fields_2'] is not None:
-        args_dict['fields_2'] = map(str.upper, args_dict['fields_2'])
+        args_dict['fields_2'] = list(map(str.upper, args_dict['fields_2']))
 
     # Call pairSeq
     del args_dict['seq_files_1']

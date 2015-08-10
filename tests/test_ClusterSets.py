@@ -1,9 +1,6 @@
 """
 Unit tests for ClusterSets
 """
-# Future
-from __future__ import absolute_import, division, print_function
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 

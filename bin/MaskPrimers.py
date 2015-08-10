@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Removes primers and annotates sequences with primer and barcode identifiers
 """
@@ -11,7 +11,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip
+
 from textwrap import dedent
 from Bio import pairwise2
 
@@ -65,7 +65,7 @@ class PrimerAlignment:
         self.valid = False
 
     # Set boolean evaluation to valid value
-    def __nonzero__(self):
+    def __bool__(self):
         return self.valid
 
     # Set length evaluation to length of alignment
@@ -122,15 +122,16 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     
     # Attempt regular expression match first
     for rec in seq_list:
-        scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
-        for adpt_id, adpt_regex in primers_regex.iteritems():
-            adpt_match = adpt_regex.search(str(scan_rec.seq))
+        scan_seq = str(rec.seq)
+        scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
+        for adpt_id, adpt_regex in primers_regex.items():
+            adpt_match = adpt_regex.search(scan_seq)
             # Parse matches
             if adpt_match:
                 align.seq = rec
                 align.seq.annotations['primer'] = adpt_id
                 align.primer = adpt_id
-                align.align_seq = str(scan_rec.seq)
+                align.align_seq = scan_seq
                 align.align_primer = '-' * adpt_match.start(0) + \
                                      primers[adpt_id] + \
                                      '-' * (max_len - adpt_match.end(0))
@@ -152,18 +153,19 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     # Perform local alignment if regular expression match fails
     best_align, best_rec, best_adpt, best_error = None, None, None, None
     for rec in seq_list:
-        scan_rec = rec[:max_len] if not rev_primer else rec[-max_len:]
-        this_align = {}
-        for adpt_id, adpt_seq in primers.iteritems():
-            pw2_align = pairwise2.align.localds(scan_rec.seq, adpt_seq,
-                                                score_dict,
+        this_align = dict()
+        scan_seq = str(rec.seq)
+        scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
+        for adpt_id, adpt_seq in primers.items():
+            pw2_align = pairwise2.align.localds(scan_seq, adpt_seq, score_dict,
                                                 -gap_penalty[0], -gap_penalty[1],
                                                 one_alignment_only=True)
-            if pw2_align:  this_align.update({adpt_id: pw2_align[0]})
+            if pw2_align:
+                this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
         
         # Determine alignment with lowest error rate
-        for x_adpt, x_align in this_align.iteritems():
+        for x_adpt, x_align in this_align.items():
             x_error = 1.0 - x_align[2] / len(primers[x_adpt])
             #x_gaps = len(x_align[1]) - max_len
             #x_error = 1.0 - (x_align[2] + x_gaps) / primers[x_adpt])
@@ -235,16 +237,16 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     this_align = {}
     rec_len = len(seq_record)
     if rev_primer:  end = rec_len - start
-    for adpt_id, adpt_seq in primers.iteritems():
+    for adpt_id, adpt_seq in primers.items():
         if rev_primer:  start = end - len(adpt_seq)
         else:  end = start + len(adpt_seq)
-        chars = izip(seq_record[start:end], adpt_seq)
+        chars = zip(seq_record[start:end], adpt_seq)
         score = sum([score_dict[(c1, c2)] for c1, c2 in chars])
         this_align.update({adpt_id: (score, start, end)})
 
     # Determine primer with lowest error rate
     best_align, best_adpt, best_err = None, None, None
-    for adpt, algn in this_align.iteritems():
+    for adpt, algn in this_align.items():
         #adpt_err = 1.0 - float(algn[0]) / weightSeq(primers[adpt])
         err = 1.0 - float(algn[0]) / len(primers[adpt])
         if best_err is None or err < best_err:
@@ -255,7 +257,7 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     # Set return dictionary to lowest error rate alignment
     if best_align:
         # Populate return object
-        align.primer = best_adpt
+        align.primer = best_adpt if best_err < 1.0 else None
         align.start = best_align[1]
         align.end = best_align[2]
         align.error = best_err
@@ -472,8 +474,8 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     # Create dictionary of primer sequences to pass to maskPrimers
     primers = readPrimerFile(primer_file)
     if 'rev_primer' in align_args and align_args['rev_primer']:
-        primers = {k: reverseComplement(v) for k, v in primers.iteritems()}
-    
+        primers = {k: reverseComplement(v) for k, v in primers.items()}
+
     # Define alignment arguments and compile primers for align mode
     align_args['primers'] = primers 
     align_args['score_dict'] = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
@@ -541,8 +543,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', metavar='',
                                        help='Alignment method')
     

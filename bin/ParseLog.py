@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Parses records in the console log of pRESTO modules
 """
@@ -143,11 +143,12 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(seq_in=False, seq_out=False,
                                                         failed=False, log=False)],
                             formatter_class=CommonHelpFormatter)
-    
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+
     parser.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
                         help='List of log files to parse.')
     parser.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='record_files')
     # Convert case of fields
-    if args_dict['fields']:  args_dict['fields'] = map(str.upper, args_dict['fields']) 
+    if args_dict['fields']:  args_dict['fields'] = list(map(str.upper, args_dict['fields'])) 
     
     # Call parseLog for each log file
     del args_dict['record_files']

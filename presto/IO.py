@@ -1,9 +1,6 @@
 """
 File I/O and logging functions
 """
-# Future
-from __future__ import division, absolute_import, print_function
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__
@@ -38,12 +35,12 @@ def readPrimerFile(primer_file):
     # Parse primers from .fasta and .regex files
     ext_name = os.path.splitext(primer_file)[1]
     if ext_name == '.fasta':
-        with open(primer_file, 'rU') as primer_handle:
+        with open(primer_file, 'r') as primer_handle:
             primer_iter = SeqIO.parse(primer_handle, 'fasta', IUPAC.ambiguous_dna)
             primers = {p.description: str(p.seq).upper()
                         for p in primer_iter}
     elif ext_name == '.regex':
-        with open(primer_file, 'rU') as primer_handle:
+        with open(primer_file, 'r') as primer_handle:
             primer_list = [a.split(':') for a in primer_handle]
             primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateAmbigDNA, a[1].strip().upper())
                         for a in primer_list}
@@ -202,9 +199,9 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
 
     # Open and return handle
     try:
-        return open(out_file, 'wb')
+        # TODO:  mode may need to be 'wt'. or need universal_newlines=True all over the place. check tab file parsing.
+        return open(out_file, 'w')
     except:
-        #raise
         sys.exit('ERROR:  File %s cannot be opened' % out_file)
 
 
@@ -227,13 +224,12 @@ def printLog(record, handle=sys.stdout, inset=None):
         return ''
 
     # Determine inset
-    max_len = max(map(len, record))
-    inset = max(max_len, inset)
+    if inset is None:  inset = max(map(len, record))
 
     # Assemble log string
     record_str = ''
     if isinstance(record, OrderedDict):
-        key_list = record.keys()
+        key_list = list(record.keys())
     else:
         key_list = sorted(record)
     for key in key_list:

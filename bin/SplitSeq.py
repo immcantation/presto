@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Sorts, samples and splits FASTA/FASTQ sequence files
 """
@@ -249,7 +249,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     out_files = []
     for i, c in enumerate(max_count):
         # Sample from records
-        r = random.sample(range(rec_count), c) if c < rec_count else range(rec_count)
+        r = random.sample(list(range(rec_count)), c) if c < rec_count else list(range(rec_count))
         sample_count = len(r)
         sample_keys = (key_list[x] for x in r)
         
@@ -429,7 +429,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     # Get annotations and sort seq_dict by annotation values
     tag_dict = {k:parseAnnotation(seq_dict[k].description, delimiter=out_args['delimiter'])[field]
                 for k in seq_dict}
-    if numeric:  tag_dict = {k:float(v or 0) for k, v in tag_dict.iteritems()}
+    if numeric:  tag_dict = {k:float(v or 0) for k, v in tag_dict.items()}
     sorted_keys = sorted(tag_dict, key=tag_dict.get)
                 
     # Determine total numbers of records
@@ -551,8 +551,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Sequence file operation')
 

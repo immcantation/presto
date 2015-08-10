@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Filters sequences in FASTA/FASTQ files
 """
@@ -213,7 +213,7 @@ def trimQuality(data, min_qual=default_min_qual, window=default_window, reverse=
     
     # Scan across quality scores for first quality drop-off
     end = len(quals)
-    for s in xrange(0, end, window):
+    for s in range(0, end, window):
         q_win = quals[s:s + window]
         q = sum(q_win) / len(q_win)
         if q < min_qual:
@@ -373,8 +373,9 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', metavar='',
                                        help='Filtering operation')
     

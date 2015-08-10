@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Builds a consensus sequence for each set of input sequences
 """
@@ -11,7 +11,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import izip
+
 from textwrap import dedent
 
 # Presto imports
@@ -171,7 +171,7 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             # Parse copy_field annotations and define consensus annotations
             if copy_fields is not None and copy_actions is not None:
                 copy_ann = OrderedDict()
-                for f, act in izip(copy_fields, copy_actions):
+                for f, act in zip(copy_fields, copy_actions):
                     # Numeric operations
                     if act == 'min':
                         vals = getAnnotationValues(seq_list, f, delimiter=delimiter)
@@ -364,9 +364,10 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(multiproc=True)], 
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     
     parser.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
                         help='The minimum number of sequences needed to define a valid consensus')

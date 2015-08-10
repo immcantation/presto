@@ -27,7 +27,7 @@ import CollapseSeq
 class TestCollapseSeq(unittest.TestCase):
 
     def setUp(self):
-        print '-> %s()' % self._testMethodName
+        print('-> %s()' % self._testMethodName)
         seq_dna = [Seq("CCACGTTTTAGTAATTAATA"),
                    Seq("CCACGTTTTAGTAATTAATA"),
                    Seq("CCACGTTTTACTAATTAATA"),
@@ -49,16 +49,16 @@ class TestCollapseSeq(unittest.TestCase):
 
     def tearDown(self):
         t = time.time() - self.start
-        print "<- %s() %.3f" % (self._testMethodName, t)
+        print("<- %s() %.3f" % (self._testMethodName, t))
 
     #@unittest.skip("-> checkSeqEqual() skipped\n")
     def test_checkSeqEqual(self):
         results = [checkSeqEqual(x, y) for x, y in self.pairs_dna]
-        print 'DNA Equality>'
+        print('DNA Equality>')
         for (x, y), s in zip(self.pairs_dna, results):
-            print '  %s> %s' % (x.id, x.seq)
-            print '  %s> %s' % (y.id, y.seq)
-            print '         EQUAL> %s\n' % s
+            print('  %s> %s' % (x.id, x.seq))
+            print('  %s> %s' % (y.id, y.seq))
+            print('         EQUAL> %s\n' % s)
 
         self.assertSequenceEqual(self.equal_dna, results)
 

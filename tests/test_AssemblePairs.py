@@ -27,7 +27,7 @@ import AssemblePairs
 class TestAssemblePairs(unittest.TestCase):
 
     def setUp(self):
-        print '-> %s()' % self._testMethodName
+        print('-> %s()' % self._testMethodName)
 
         # Set pandas options
         pd.set_option('display.width', 120)
@@ -65,39 +65,39 @@ class TestAssemblePairs(unittest.TestCase):
 
     def tearDown(self):
         t = time.time() - self.start
-        print "<- %s() %.3f" % (self._testMethodName, t)
+        print("<- %s() %.3f" % (self._testMethodName, t))
 
     @unittest.skip("-> runUBlastAlignment() skipped\n")
     def test_runUBlastAlignment(self):
         head_df = AssemblePairs.runUBlastAlignment(self.head_rec, self.ref_file)
         tail_df = AssemblePairs.runUBlastAlignment(self.tail_rec, self.ref_file)
-        print 'HEAD SEQUENCE>'
-        print head_df
-        print 'TAIL SEQUENCE>'
-        print tail_df
+        print('HEAD SEQUENCE>')
+        print(head_df)
+        print('TAIL SEQUENCE>')
+        print(tail_df)
         self.fail()
 
     @unittest.skip("-> runBlastnAlignment() skipped\n")
     def test_runBlastnAlignment(self):
         head_df = AssemblePairs.runBlastnAlignment(self.head_rec, self.ref_file)
         tail_df = AssemblePairs.runBlastnAlignment(self.tail_rec, self.ref_file)
-        print 'HEAD SEQUENCE>'
-        print head_df
-        print 'TAIL SEQUENCE>'
-        print tail_df
+        print('HEAD SEQUENCE>')
+        print(head_df)
+        print('TAIL SEQUENCE>')
+        print(tail_df)
         self.fail()
 
     @unittest.skip("-> referenceAssembly() skipped\n")
     def test_referenceAssembly(self):
         stitch = AssemblePairs.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
 
-        print '   REFID> %s' % stitch.ref_seq.id
-        print '  REFSEQ> %s' % (' ' * stitch.ref_pos[0] + stitch.ref_seq.seq)
-        print 'ASSEMBLY> %s' % stitch.seq.seq
-        print '     GAP> %s' % stitch.gap
-        print ' EVALUE1> %.4e' % stitch.evalue[0]
-        print ' EVALUE2> %.4e' % stitch.evalue[1]
-        print 'IDENTITY> %.4f' % stitch.ident
+        print('   REFID> %s' % stitch.ref_seq.id)
+        print('  REFSEQ> %s' % (' ' * stitch.ref_pos[0] + stitch.ref_seq.seq))
+        print('ASSEMBLY> %s' % stitch.seq.seq)
+        print('     GAP> %s' % stitch.gap)
+        print(' EVALUE1> %.4e' % stitch.evalue[0])
+        print(' EVALUE2> %.4e' % stitch.evalue[1])
+        print('IDENTITY> %.4f' % stitch.ident)
 
         #print tuple(stitch.evalue)
         self.fail()
@@ -110,11 +110,11 @@ class TestAssemblePairs(unittest.TestCase):
                          letter_annotations={'phred_quality':[40,20,40,40,40,40,40]})
 
         stitch = AssemblePairs.alignAssembly(head, tail, alpha=0.1)
-        print '    HEAD> %s' % head.seq
-        print '    TAIL>    %s\n' % tail.seq
-        print 'ASSEMBLY>', stitch.seq.seq
-        print '   ERROR>', stitch.error
-        print '  PVALUE>', stitch.pvalue, '\n'
+        print('    HEAD> %s' % head.seq)
+        print('    TAIL>    %s\n' % tail.seq)
+        print('ASSEMBLY>', stitch.seq.seq)
+        print('   ERROR>', stitch.error)
+        print('  PVALUE>', stitch.pvalue, '\n')
         self.fail()
 
 

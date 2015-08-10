@@ -1,11 +1,6 @@
 """
 Multiprocessing functions
 """
-# Future
-from __future__ import division, absolute_import, print_function
-from builtins import range
-from future.utils import iteritems
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__
@@ -40,7 +35,7 @@ class SeqData:
         self.valid = (key is not None and records is not None)
 
     # Set boolean evaluation to valid value
-    def __nonzero__(self):
+    def __bool__(self):
         return self.valid
 
     # Set length evaluation to number of data records
@@ -66,7 +61,7 @@ class SeqResult:
         self.log = OrderedDict([('ID', key)])
 
     # Set boolean evaluation to valid value
-    def __nonzero__(self):
+    def __bool__(self):
         return self.valid
 
     # Set length evaluation to number of results
@@ -142,7 +137,9 @@ def manageProcesses(feed_func, work_func, collect_func,
     # Define shared data queues
     data_queue = mp.Queue(queue_size)
     result_queue = mp.Queue(queue_size)
-    collect_queue = mp.queues.SimpleQueue()
+    # TODO:  find out what's up with this context shenanigans
+    ctx = mp.get_context()
+    collect_queue = ctx.SimpleQueue()
     # Initiate manager and define shared data objects
 
     try:
@@ -227,7 +224,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
             seq_dict = readSeqFile(seq_file, index=True)
             index_dict = index_func(seq_dict, **index_args)
             data_iter = ((k, [seq_dict[i] for i in v]) \
-                         for k, v in iteritems(index_dict))
+                         for k, v in index_dict.items())
     except:
         alive.value = False
         raise

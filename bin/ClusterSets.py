@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Cluster sequences by group
 """
@@ -63,8 +63,8 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
                                     description=rec.description))
 
     # Open temporary files
-    in_handle = tempfile.NamedTemporaryFile()
-    out_handle = tempfile.NamedTemporaryFile()
+    in_handle = tempfile.NamedTemporaryFile(mode='w+t')
+    out_handle = tempfile.NamedTemporaryFile(mode='w+t')
 
     # Define usearch command
     cmd = [usearch_exec,
@@ -79,7 +79,8 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
 
     # Run usearch uclust algorithm
     try:
-        stdout_str = check_output(cmd, stderr=STDOUT, shell=False)
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
         #check_call(cmd, stderr=STDOUT, shell=False)
     except CalledProcessError:
         group_dict = None
@@ -152,7 +153,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
             # Update sequence annotations with cluster assignments
             results = list()
             seq_dict = {s.id: s for s in data.data}
-            for clust, id_list in cluster_dict.iteritems():
+            for clust, id_list in cluster_dict.items():
                 for i, seq_id in enumerate(id_list, start=1):
                     # Add cluster annotation
                     seq = seq_dict[seq_id]
@@ -253,7 +254,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
-    for k, v in result['log'].iteritems():  log[k] = v
+    for k, v in result['log'].items():  log[k] = v
     log['END'] = 'ClusterSets'
     printLog(log)
 
@@ -285,9 +286,10 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(multiproc=True)],
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
 
     parser.add_argument('-f', action='store', dest='barcode_field', type=str,
                         default=default_barcode_field,

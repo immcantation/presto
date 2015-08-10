@@ -22,7 +22,7 @@ test_path = os.path.dirname(os.path.realpath(__file__))
 
 class TestSequence(unittest.TestCase):
     def setUp(self):
-        print '-> %s()' % self._testMethodName
+        print('-> %s()' % self._testMethodName)
 
         # Test DNA sequences
         seq_dna = [Seq('CGGCGTAA'),
@@ -112,25 +112,25 @@ class TestSequence(unittest.TestCase):
     def tearDown(self):
         # End clock
         t = time.time() - self.start
-        print '<- %s() %.3f' % (self._testMethodName, t)
+        print('<- %s() %.3f' % (self._testMethodName, t))
 
     #@unittest.skip('-> weightSeq() skipped\n')
     def test_weightDNA(self):
         # DNA weights
         ignore_chars = set(['n', 'N'])
         weights = [weightSeq(x, ignore_chars=ignore_chars) for x in self.records_dna]
-        print 'DNA Weight>'
+        print('DNA Weight>')
         for x, s in zip(self.records_dna, weights):
-            print '  %s> %s' % (x.id, s)
+            print('  %s> %s' % (x.id, s))
 
         self.assertSequenceEqual(weights, self.weight_dna_mask)
 
         # Amino acid weights
         ignore_chars = set(['x', 'X'])
         weights = [weightSeq(x, ignore_chars=ignore_chars) for x in self.records_aa]
-        print 'AA Weight>'
+        print('AA Weight>')
         for x, s in zip(self.records_dna, weights):
-            print '  %s> %s' % (x.id, s)
+            print('  %s> %s' % (x.id, s))
 
         self.assertSequenceEqual(weights, self.weight_aa_mask)
 
@@ -138,13 +138,13 @@ class TestSequence(unittest.TestCase):
     def test_scoreSeqPair(self):
         # Default scoring
         scores = [scoreSeqPair(x, y) for x, y in self.seq_pairs]
-        print 'Default DNA Scores>'
+        print('Default DNA Scores>')
         for (x, y), s in zip(self.seq_pairs, scores):
-            print '    %s> %s' % (x.id, x.seq)
-            print '    %s> %s' % (y.id, y.seq)
-            print '   SCORE> %i' % s[0]
-            print '  WEIGHT> %i' % s[1]
-            print '   ERROR> %f\n' % s[2]
+            print('    %s> %s' % (x.id, x.seq))
+            print('    %s> %s' % (y.id, y.seq))
+            print('   SCORE> %i' % s[0])
+            print('  WEIGHT> %i' % s[1])
+            print('   ERROR> %f\n' % s[2])
 
         self.assertSequenceEqual([round(s[2], 4) for s in scores],
                                  [round(s, 4) for s in self.error_dna_def])
@@ -153,13 +153,13 @@ class TestSequence(unittest.TestCase):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 1))
         scores = [scoreSeqPair(x, y, score_dict=score_dict) \
                   for x, y in self.seq_pairs]
-        print 'Asymmetric DNA Scores>'
+        print('Asymmetric DNA Scores>')
         for (x, y), s in zip(self.seq_pairs, scores):
-            print '    %s> %s' % (x.id, x.seq)
-            print '    %s> %s' % (y.id, y.seq)
-            print '   SCORE> %i' % s[0]
-            print '  WEIGHT> %i' % s[1]
-            print '   ERROR> %f\n' % s[2]
+            print('    %s> %s' % (x.id, x.seq))
+            print('    %s> %s' % (y.id, y.seq))
+            print('   SCORE> %i' % s[0])
+            print('  WEIGHT> %i' % s[1])
+            print('   ERROR> %f\n' % s[2])
 
         self.assertSequenceEqual([round(s[2], 4) for s in scores],
                                  [round(s, 4) for s in self.error_dna_asym])
@@ -168,13 +168,13 @@ class TestSequence(unittest.TestCase):
         ignore_chars = set(['n', 'N'])
         scores = [scoreSeqPair(x, y, ignore_chars=ignore_chars) \
                   for x, y in self.seq_pairs]
-        print 'Masked DNA Scores>'
+        print('Masked DNA Scores>')
         for (x, y), s in zip(self.seq_pairs, scores):
-            print '    %s> %s' % (x.id, x.seq)
-            print '    %s> %s' % (y.id, y.seq)
-            print '   SCORE> %i' % s[0]
-            print '  WEIGHT> %i' % s[1]
-            print '   ERROR> %f\n' % s[2]
+            print('    %s> %s' % (x.id, x.seq))
+            print('    %s> %s' % (y.id, y.seq))
+            print('   SCORE> %i' % s[0])
+            print('  WEIGHT> %i' % s[1])
+            print('   ERROR> %f\n' % s[2])
 
         self.assertSequenceEqual([round(s[2], 4) for s in scores],
                                  [round(s, 4) for s in self.error_dna_mask])
@@ -182,25 +182,25 @@ class TestSequence(unittest.TestCase):
     #@unittest.skip('-> scoreDNA() skipped\n')
     def test_scoreDNA(self):
         scores = [scoreDNA(a, b) for a, b in self.pairs_dna_chars]
-        print 'Default DNA Scores>'
+        print('Default DNA Scores>')
         for (a, b), s in zip(self.pairs_dna_chars, scores):
-            print '  %s==%s> %s' % (a, b, s)
+            print('  %s==%s> %s' % (a, b, s))
 
         self.assertSequenceEqual(self.pairs_scores_def, scores)
 
         scores = [scoreDNA(a, b, mask_score=(1, 1), gap_score=(1, 1)) \
                   for a, b in self.pairs_dna_chars]
-        print 'Symmetric DNA Scores>'
+        print('Symmetric DNA Scores>')
         for (a, b), s in zip(self.pairs_dna_chars, scores):
-            print '  %s==%s> %s' % (a, b, s)
+            print('  %s==%s> %s' % (a, b, s))
 
         self.assertSequenceEqual(self.pairs_scores_sym, scores)
 
         scores = [scoreDNA(a, b, mask_score=(0, 1), gap_score=(0, 1)) \
                   for a, b in self.pairs_dna_chars]
-        print 'Asymmetric DNA Scores>'
+        print('Asymmetric DNA Scores>')
         for (a, b), s in zip(self.pairs_dna_chars, scores):
-            print '  %s==%s> %s' % (a, b, s)
+            print('  %s==%s> %s' % (a, b, s))
 
         self.assertSequenceEqual(self.pairs_scores_asym, scores)
 

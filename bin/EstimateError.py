@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Calculates annotation set error rates
 """
@@ -47,14 +47,14 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     """
     # Define position mismatch DataFrame
     pos_max = max([len(s) for s in seq_list])
-    pos_df = pd.DataFrame(0, index=range(pos_max), 
+    pos_df = pd.DataFrame(0, index=list(range(pos_max)), 
                           columns=['mismatch', 'q_sum', 'total'], dtype=float)
     # Define nucleotide mismatch DataFrame
     nuc_pairs = list(permutations(['A', 'C', 'G', 'T'], 2))
     nuc_df = pd.DataFrame(0, index=pd.MultiIndex.from_tuples(nuc_pairs, names=['obs', 'ref']), 
                           columns=['mismatch', 'q_sum', 'total'], dtype=float)
     # Define quality mismatch DataFrame
-    qual_df = pd.DataFrame(0, index=range(94), 
+    qual_df = pd.DataFrame(0, index=list(range(94)), 
                            columns=['mismatch', 'q_sum', 'total'], dtype=float)    
 
     # Iterate over seq_list and count mismatches
@@ -253,7 +253,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         
         # Generate log
         log = OrderedDict()
-        for i in xrange(4): 
+        for i in range(4): 
             log['OUTPUT%i' % (i + 1)] = None
         log['SETS'] = set_count
         log['SEQUENCES'] = seq_count
@@ -475,11 +475,12 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            version='%(prog)s:' + ' v%s-%s' %(__version__, __date__),
                             parents=[getCommonArgParser(seq_out=False,
                                                         failed=False,
                                                         multiproc=True)],
                             formatter_class=CommonHelpFormatter)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     
     parser.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field, 
                         help='The name of the annotation field to group sequences by')

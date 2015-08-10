@@ -1,15 +1,18 @@
-Version 0.5.0.beta:  June 18, 2015
+Version 0.5.0.beta:  August 10, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
 installation.
 
+The package now requires Python 3.4. Python 2.7 is not longer supported.
+
+The required dependency versions have been bumped to numpy 1.9, scipy 0.14,
+pandas 0.16, biopython 1.65.
+
 IgCore:
 
 + Divided IgCore functionality into the separate modules: Annotation, 
   Commandline, Defaults, IO, Multiprocessing and Sequence.
-+ Made functionality that was previously in IgCore compatible with both 
-  Python 2.7 and Python 3.
 
 
 Version 0.4.7:  June 5, 2015

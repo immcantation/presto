@@ -1,12 +1,6 @@
 """
 Sequence processing functions
 """
-# Future
-from __future__ import division, absolute_import, print_function
-from builtins import zip
-from future.moves.itertools import zip_longest
-from future.utils import iteritems
-
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__, default_missing_chars
@@ -14,7 +8,7 @@ from presto import __version__, __date__, default_missing_chars
 # Imports
 import re
 import sys
-from itertools import product
+from itertools import product, zip_longest
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -38,7 +32,7 @@ def compilePrimers(primers):
     """
 
     primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateAmbigDNA, v))
-                     for k, v in iteritems(primers)}
+                     for k, v in primers.items()}
 
     return primers_regex
 
@@ -71,7 +65,7 @@ def translateAmbigDNA(key):
         return key
     # Return regular expression string for ambiguous single character
     elif len(key) == 1 and key in IUPAC_ambig:
-        return ['[' + k + ']' for k, v in iteritems(IUPAC_trans) if v == key][0]
+        return ['[' + k + ']' for k, v in IUPAC_trans.items() if v == key][0]
     # Return single ambiguous character for character set
     elif key in IUPAC_trans:
         return IUPAC_trans[key]
@@ -101,7 +95,7 @@ def scoreDNA(a, b, mask_score=None, gap_score=None):
                    'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
+    IUPAC_matches = [p for k, v in IUPAC_trans.items() for p in list(product(k, v))]
 
     # Check gap and N-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
@@ -145,7 +139,7 @@ def scoreAA(a, b, mask_score=None, gap_score=None):
     IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in IUPAC_trans.iteritems() for p in list(product(k, v))]
+    IUPAC_matches = [p for k, v in IUPAC_trans.items() for p in list(product(k, v))]
 
     # Check gap and X-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
@@ -291,7 +285,7 @@ def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
     # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
-    chars = zip(seq1.upper(), seq2.upper())
+    chars = list(zip(seq1.upper(), seq2.upper()))
     score_list = [score_dict[(a, b)] for a, b in chars \
                   if a not in ignore_chars and b not in ignore_chars]
     score = sum(score_list)
@@ -473,12 +467,14 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
         # TODO: write unit test and verify quality score calculation for sets with missing data
         # Calculate per character consensus quality scores
         if dependent:
-            qual_cons = {c:int(max(qual_set[c]) * qual_sum[c] / qual_total) for c in qual_set}
+            qual_cons = {c: int(max(qual_set[c]) * qual_sum[c] / qual_total)
+                         for c in qual_set}
         else:
-            qual_cons = {c:int(qual_sum[c] * qual_sum[c] / qual_total) for c in qual_set}
+            qual_cons = {c: int(qual_sum[c] * qual_sum[c] / qual_total)
+                         for c in qual_set}
 
         # Select character with highest consensus quality
-        cons = [(c, min(q, 90)) for c, q in iteritems(qual_cons) \
+        cons = [(c, min(q, 90)) for c, q in qual_cons.items() \
                 if q == max(qual_cons.values())][0]
         # Assign N if consensus quality or frequency threshold is failed
         if cons[1] < min_qual or char_freq[cons[0]] < min_freq:
@@ -560,7 +556,7 @@ def indexSeqSets(seq_dict, field=default_barcode_field, delimiter=default_delimi
     a dictionary of {set name:[record names]}
     """
     set_dict = {}
-    for key, rec in iteritems(seq_dict):
+    for key, rec in seq_dict.items():
         tag = parseAnnotation(rec.description, delimiter=delimiter)[field]
         set_dict.setdefault(tag, []).append(key)
 
