@@ -33,6 +33,7 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 
+# TODO:  can be moved into presto core functions. used by GapRecords in changeo.
 def runMuscle(seq_list, muscle_exec=default_muscle_exec):
     """
     Multiple aligns a set of sequences using MUSCLE
