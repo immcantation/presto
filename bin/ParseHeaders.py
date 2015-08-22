@@ -64,7 +64,7 @@ def collapseHeader(header, fields, actions, delimiter=default_delimiter):
     return header
 
 
-def copyHeader(header, fields, names, delimiter=default_delimiter):
+def copyHeader(header, fields, names, actions=None, delimiter=default_delimiter):
     """
     Copies fields in a sequence header
 
@@ -72,6 +72,8 @@ def copyHeader(header, fields, names, delimiter=default_delimiter):
     header = an annotation dictionary returned by parseAnnotation
     fields = a list of the field names to copy
     names = a list of the new field names
+    actions = the list of collapse action take after the copy;
+              one of (max, min, sum, first, last, set, cat) for each field
     delimiter = a tuple of delimiters for (fields, values, value lists)
 
     Returns:
@@ -80,6 +82,9 @@ def copyHeader(header, fields, names, delimiter=default_delimiter):
     old_header = header.copy()
     for f, n in zip(fields, names):
         header = mergeAnnotation(header, {n: old_header[f]}, delimiter=delimiter)
+
+    if actions is not None:
+        header = collapseHeader(header, names, actions, delimiter=delimiter)
 
     return header
 
@@ -125,7 +130,7 @@ def expandHeader(header, fields, separator=default_separator,
     return header
 
 
-def renameHeader(header, fields, names, delimiter=default_delimiter):
+def renameHeader(header, fields, names, actions=None, delimiter=default_delimiter):
     """
     Renames fields in a sequence header
 
@@ -133,6 +138,8 @@ def renameHeader(header, fields, names, delimiter=default_delimiter):
     header = an annotation dictionary returned by parseAnnotation
     fields = a list of the current field names
     names = a list of the new field names
+    actions = the list of collapse action take after the rename;
+              one of (max, min, sum, first, last, set, cat) for each field
     delimiter = a tuple of delimiters for (fields, values, value lists)
                             
     Returns: 
@@ -140,7 +147,10 @@ def renameHeader(header, fields, names, delimiter=default_delimiter):
     """
     for f, n in zip(fields, names):
         header = renameAnnotation(header, f, n, delimiter=delimiter)
-        
+
+    if actions is not None:
+        header = collapseHeader(header, names, actions, delimiter=delimiter)
+
     return header
 
 
@@ -354,6 +364,18 @@ def getArgParser():
                                help='''List of names for each copied field. If the new field
                                     is already present, the copied field will be merged into
                                     the existing field.''')
+    parser_copy.add_argument('--act', nargs='+', action='store', dest='actions', required=False,
+                                 choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
+                                 help='''List of collapse actions to take on each new field
+                                      following the copy operation defining how each annotation
+                                      will be combined into a single value. The actions
+                                      "min", "max", "sum" perform the corresponding
+                                      mathematical operation on numeric annotations. The
+                                      actions "first" and "last" choose the value from the
+                                      corresponding position in the annotation. The action
+                                      "set" collapses annotations into a comma delimited
+                                      list of unique values. The action "cat" concatenates
+                                      the values together into a single string.''')
     parser_copy.set_defaults(func=modifyHeaders)
     parser_copy.set_defaults(modify_func=copyHeader)
 
@@ -388,6 +410,18 @@ def getArgParser():
                                help='''List of new names for each field. If the new field is
                                     already present, the renamed field will be merged into
                                     the existing field and the old field will be deleted.''')
+    parser_rename.add_argument('--act', nargs='+', action='store', dest='actions', required=False,
+                               choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
+                               help='''List of collapse actions to take on each new field
+                                    following the rename operation defining how each annotation
+                                    will be combined into a single value. The actions
+                                    "min", "max", "sum" perform the corresponding
+                                    mathematical operation on numeric annotations. The
+                                    actions "first" and "last" choose the value from the
+                                    corresponding position in the annotation. The action
+                                    "set" collapses annotations into a comma delimited
+                                    list of unique values. The action "cat" concatenates
+                                    the values together into a single string.''')
     parser_rename.set_defaults(func=modifyHeaders)
     parser_rename.set_defaults(modify_func=renameHeader)
             
@@ -419,8 +453,9 @@ if __name__ == '__main__':
         modify_args = {}
         if 'fields' in args_dict:  
             modify_args['fields'] = args_dict.pop('fields')
-        if 'actions' in args_dict:  
-            modify_args['actions'] = list(map(str.lower, args_dict.pop('actions'))) 
+        if 'actions' in args_dict:
+            modify_args['actions'] = args_dict.pop('actions') if args_dict['actions'] is None \
+                                     else list(map(str.lower, args_dict.pop('actions')))
         if 'names' in args_dict:  
             modify_args['names'] = list(map(str.upper, args_dict.pop('names')))
         if 'values' in args_dict: 
@@ -434,9 +469,12 @@ if __name__ == '__main__':
         parser.error('You must specify exactly one value (-u) per field (-f)')
     if args.command == 'collapse' and len(modify_args['fields']) != len(modify_args['actions']):
         parser.error('You must specify exactly one action (-a) per field (-f)')
-    if args.command in ('copy', 'rename') and len(modify_args['fields']) != len(modify_args['names']):
-        parser.error('You must specify exactly one new name (-k) per field (-f)')
-    
+    if args.command in ('copy', 'rename'):
+        if len(modify_args['fields']) != len(modify_args['names']):
+            parser.error('You must specify exactly one new name (-k) per field (-f)')
+        if modify_args['actions'] is not None and len(modify_args['actions']) != len(modify_args['names']):
+            parser.error('You must specify exactly one action (--act) per new name (-k)')
+
     # Calls header processing function
     del args_dict['command']
     del args_dict['func']
