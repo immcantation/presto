@@ -8,6 +8,10 @@ ParseHeaders:
   the existing field.
 + Added the copy subcommand which will copy annotations into new field names
   or merge the annotations of existing fields.
++ Added the `--act` argument to the copy and rename subcommands allowing 
+  collapse following the copy or rename operation.
++ Added a commandline check to ensure that the `-f`, `-k` and `--act` arguments 
+  contain the same number of fields for both the rename and copy subcommands.
   
   
 Version 0.4.7:  June 5, 2015
