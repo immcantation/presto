@@ -117,7 +117,8 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
     if new_field in ann_dict:
         rename_dict = ann_dict.copy()
         del rename_dict[old_field]
-        mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
+        rename_dict = mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]},
+                                      delimiter=delimiter)
     else:
         rename_dict = OrderedDict([(new_field, v) if k == old_field else (k, v) \
                                    for k, v in ann_dict.items()])

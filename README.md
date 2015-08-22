@@ -1,4 +1,4 @@
-Version 0.5.0.beta:  August 10, 2015
+Version 0.5.0.beta:  August 22, 2015
 ===============================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing 
@@ -22,9 +22,9 @@ Software        | Link
 --------------- | -----------------------------
 Python 3.4.0    | http://python.org
 setuptools 2.0  | http://bitbucket.org/pypa/setuptools
-NumPy 1.9       | http://numpy.org
+NumPy 1.8       | http://numpy.org
 SciPy 0.14      | http://scipy.org
-pandas 0.16     | http://pandas.pydata.org
+pandas 0.15     | http://pandas.pydata.org
 Biopython 1.65  | http://biopython.org
 MUSCLE v3.8     | http://www.drive5.com/muscle
 USEARCH v7.0    | http://www.drive5.com/usearch
@@ -38,13 +38,13 @@ Installation - Linux
    install Biopython according to the 
    [instructions](http://biopython.org/DIST/docs/install/Installation.html).
 
-2. Unzip the pRESTO bundle and run `python setup.py install --user`.
+2. Extract the pRESTO bundle and run `python3 setup.py install --user`.
 
 
 Installation - Windows
 -------------------------------------------------------------------------------
 
-1. Install Python 2.7.5+ from [Python](http://python.org/download).
+1. Install Python 3.4.0+ from [Python](http://python.org/download).
 
 2. Install pip and setuptools using these [installation instructions]
    (https://pip.pypa.io/en/latest/installing.html).
@@ -54,10 +54,10 @@ Installation - Windows
    binary collection.
 
 4. Unzip the pRESTO bundle, open a Command Prompt, and run
-   `python setup.py install` from the pRESTO folder.
+   `python3 setup.py install` from the pRESTO folder.
    
-5. For a default installation of Python 2.7, the pRESTO scripts will be 
-   installed into `C:\Python27\Scripts` and should be directly executable from 
+5. For a default installation of Python 3.4, the pRESTO scripts will be 
+   installed into `C:\Python34\Scripts` and should be directly executable from 
    the Command Prompt. If this is not the case, then follow steps 5-6 below.
    
 6. Add the installation directory to your `%Path%`. On Windows 7 the %Path% 
@@ -67,7 +67,7 @@ Installation - Windows
 
 7. Set the file association for Python ('.py') files by right-clicking on a 
    '.py' file, selecting 'Open with' -> 'Choose default program...', choosing the 
-   'python.exe' executable from the Python 2.7 folder, and checking 
+   'python3.exe' executable from the Python 3.4 folder, and checking 
    'Always use the selected program'.
    
 
@@ -94,16 +94,16 @@ Installation - Mac OS X
    If the above fails run this instead:  
    `> brew install --env=std gfortran`
    
-5. Install Python 2.7.5+ and set it as the default python executable:  
-   `> brew install python`  
+5. Install Python 3.4.0+ and set the path to the python executable:  
+   `> brew install python3`  
    `> echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile`  
    Exit and reopen the terminal application so the PATH setting takes effect
 
 6. Install NumPy, SciPy, pandas and Biopyton using the Python package manager:  
-   `> pip install numpy`  
-   `> pip install scipy`  
-   `> pip install pandas`  
-   `> pip install biopython`  
+   `> pip3 install numpy`  
+   `> pip3 install scipy`  
+   `> pip3 install pandas`  
+   `> pip3 install biopython`  
    
-7. Unzip the pRESTO bundle, open a terminal window, and run
-   `python setup.py install` from the pRESTO folder.
+7. Extract the pRESTO bundle, open a terminal window, and run
+   `python3 setup.py install` from the pRESTO folder.

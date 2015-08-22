@@ -1,4 +1,4 @@
-Version 0.5.0.beta:  August 10, 2015
+Version 0.5.0.beta:  August 22, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -13,6 +13,20 @@ IgCore:
 
 + Divided IgCore functionality into the separate modules: Annotation, 
   Commandline, Defaults, IO, Multiprocessing and Sequence.
+
+
+Version 0.4.8.beta:  August 22, 2015
+-------------------------------------------------------------------------------
+
+ParseHeaders:
+
++ Fixed a bug in the rename subcommand wherein renaming to an existing field
+  deleted the old annotation, but did not merge the renamed annotation into
+  the existing field.
++ Added the copy subcommand which will copy annotations into new field names
+  or merge the annotations of existing fields.
++ Added a commandline check to ensure that the `-f` and `-k` arguments contain
+  the same number of fields for both the rename and copy subcommands.
 
 
 Version 0.4.7:  June 5, 2015

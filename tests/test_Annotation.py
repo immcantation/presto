@@ -22,8 +22,13 @@ class TestAnnotation(unittest.TestCase):
     def setUp(self):
         print('-> %s()' % self._testMethodName)
         # Annotation dictionaries
-        self.ann_dict_1 = OrderedDict([('ID', 'SEQ1'), ('TEST1', 'A,B'), ('TEST2', [1, 2])])
-        self.ann_dict_2 = OrderedDict([('ID', 'SEQ2'), ('TEST1', 'C,C'), ('TEST2', 3)])
+        self.ann_dict_1 = OrderedDict([('ID', 'SEQ1'),
+                                       ('TEST1', 'A,B'),
+                                       ('TEST2', [1, 2]),
+                                       ('TEST3', ['First','Second'])])
+        self.ann_dict_2 = OrderedDict([('ID', 'SEQ2'),
+                                       ('TEST1', 'C,C'),
+                                       ('TEST2', 3)])
 
         # Start clock
         self.start = time.time()
@@ -58,6 +63,18 @@ class TestAnnotation(unittest.TestCase):
         print(result)
         self.assertEqual('A,B', result['RENAMED2'])
         self.assertEqual(None, result.get('TEST1', None))
+
+        result = renameAnnotation(self.ann_dict_1, 'TEST2', 'TEST1')
+        print(result)
+        self.assertEqual('A,B,1,2', result['TEST1'])
+        self.assertEqual(None, result.get('TEST2', None))
+
+        result = renameAnnotation(self.ann_dict_1, 'TEST2', 'TEST1')
+        result = renameAnnotation(result, 'TEST3', 'TEST1')
+        print(result)
+        self.assertEqual('A,B,1,2,First,Second', result['TEST1'])
+        self.assertEqual(None, result.get('TEST2', None))
+        self.assertEqual(None, result.get('TEST3', None))
 
     #@unittest.skip('-> collapseAnnotation() skipped\n')
     def test_collapseAnnotation(self):
