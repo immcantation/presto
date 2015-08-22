@@ -6,8 +6,8 @@ Core functions shared by pRESTO modules
 __author__    = 'Jason Anthony Vander Heiden, Namita Gupta'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+__version__   = '0.4.8'
+__date__      = '2015.08.22'
 
 # Imports
 import ctypes, math, os, re, textwrap, signal, sys
@@ -246,12 +246,13 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
     if new_field in ann_dict:
         rename_dict = ann_dict.copy()
         del rename_dict[old_field]
-        mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
+        rename_dict = mergeAnnotation(rename_dict, {new_field:ann_dict[old_field]}, delimiter=delimiter)
     else:
         rename_dict = OrderedDict([(new_field, v) if k == old_field else (k, v) \
                                    for k, v in ann_dict.iteritems()])
 
     return rename_dict
+
 
 # TODO:  this converted min/max/sum collapse to strings instead of floats (for rounding purposes). which is odd.
 def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimiter):

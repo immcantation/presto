@@ -6,8 +6,8 @@ Parses pRESTO annotations in FASTA/FASTQ sequence headers
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+__version__   = '0.4.8'
+__date__      = '2015.08.22'
 
 # Imports
 import csv, os, re, sys, textwrap
@@ -63,6 +63,26 @@ def collapseHeader(header, fields, actions, delimiter=default_delimiter):
     for f, a in izip(fields, actions):
         header = collapseAnnotation(header, a, f, delimiter=delimiter)
         
+    return header
+
+
+def copyHeader(header, fields, names, delimiter=default_delimiter):
+    """
+    Copies fields in a sequence header
+
+    Arguments:
+    header = an annotation dictionary returned by parseAnnotation
+    fields = a list of the field names to copy
+    names = a list of the new field names
+    delimiter = a tuple of delimiters for (fields, values, value lists)
+
+    Returns:
+    the modified header dictionary
+    """
+    old_header = header.copy()
+    for f, n in izip(fields, names):
+        header = mergeAnnotation(header, {n: old_header[f]}, delimiter=delimiter)
+
     return header
 
 
@@ -140,8 +160,12 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
     the output file name
     """
     # Define subcommand label dictionary
-    cmd_dict = {addHeader:'add', collapseHeader:'collapse', deleteHeader:'delete', 
-                expandHeader:'expand', renameHeader:'rename'}
+    cmd_dict = {addHeader: 'add',
+                copyHeader: 'copy',
+                collapseHeader: 'collapse',
+                deleteHeader: 'delete',
+                expandHeader: 'expand',
+                renameHeader: 'rename'}
     
     # Print parameter info
     log = OrderedDict()
@@ -321,6 +345,19 @@ def getArgParser():
     parser_collapse.set_defaults(func=modifyHeaders)
     parser_collapse.set_defaults(modify_func=collapseHeader)
 
+    # Subparser to copy header fields
+    parser_copy = subparsers.add_parser('copy', parents=[getCommonArgParser(log=False)],
+                                        formatter_class=CommonHelpFormatter,
+                                        help='Copies header annotation fields')
+    parser_copy.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                               help='List of fields to copy.')
+    parser_copy.add_argument('-k', nargs='+', action='store', dest='names', required=True,
+                               help='''List of names for each copied field. If the new field
+                                    is already present, the copied field will be merged into
+                                    the existing field.''')
+    parser_copy.set_defaults(func=modifyHeaders)
+    parser_copy.set_defaults(modify_func=copyHeader)
+
     # Subparser to delete header fields
     parser_delete = subparsers.add_parser('delete', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter,
@@ -345,11 +382,13 @@ def getArgParser():
     # Subparser to rename header fields
     parser_rename = subparsers.add_parser('rename', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Renames headers annotation fields')    
+                                          help='Renames header annotation fields')
     parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to rename.')
     parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
-                               help='List of new names for each field.')
+                               help='''List of new names for each field. If the new field is
+                                    already present, the renamed field will be merged into
+                                    the existing field and the old field will be deleted.''')
     parser_rename.set_defaults(func=modifyHeaders)
     parser_rename.set_defaults(modify_func=renameHeader)
             
@@ -396,7 +435,9 @@ if __name__ == '__main__':
         parser.error('You must specify exactly one value (-u) per field (-f)')
     if args.command == 'collapse' and len(modify_args['fields']) != len(modify_args['actions']):
         parser.error('You must specify exactly one action (-a) per field (-f)')
-    
+    if args.command in ('copy', 'rename') and len(modify_args['fields']) != len(modify_args['names']):
+        parser.error('You must specify exactly one new name (-k) per field (-f)')
+
     # Calls header processing function
     del args_dict['command']
     del args_dict['func']

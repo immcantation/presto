@@ -6,8 +6,8 @@ Builds a consensus sequence for each set of input sequences
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2013 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-__version__   = '0.4.7'
-__date__      = '2015.06.05'
+__version__   = '0.4.8'
+__date__      = '2015.08.22'
 
 # Imports
 import os, sys, textwrap

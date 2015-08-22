@@ -1,3 +1,15 @@
+Version 0.4.8:  August 22, 2015
+-------------------------------------------------------------------------------
+
+ParseHeaders:
+
++ Fixed a bug in the rename subcommand wherein renaming to an existing field
+  deleted the old annotation, but did not merge the renamed annotation into
+  the existing field.
++ Added the copy subcommand which will copy annotations into new field names
+  or merge the annotations of existing fields.
+  
+  
 Version 0.4.7:  June 5, 2015
 -------------------------------------------------------------------------------
 
