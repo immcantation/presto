@@ -15,7 +15,7 @@ IgCore:
   Commandline, Defaults, IO, Multiprocessing and Sequence.
 
 
-Version 0.4.8.beta:  August 22, 2015
+Version 0.4.8:  August 22, 2015
 -------------------------------------------------------------------------------
 
 ParseHeaders:
