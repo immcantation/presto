@@ -64,13 +64,13 @@ def getFileType(filename):
     # Read and check file
     try:
         file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+        if file_type in ('fasta', 'fna', 'fa'):  file_type = 'fasta'
+        elif file_type in ('fastq', 'fq'):  file_type = 'fastq'
+        elif file_type in ('tab', 'tsv'):  file_type = 'tab'
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % filename)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (filename, e))
-    else:
-        if file_type not in ['fasta', 'fastq', 'embl', 'gb', 'tab']:
-            sys.exit('ERROR:  File %s has an unrecognized type' % filename)
 
     return file_type
 
@@ -92,6 +92,8 @@ def readSeqFile(seq_file, index=False, key_func=None):
     # Read and check file
     try:
         seq_type = getFileType(seq_file)
+        if seq_type not in ('fasta', 'fastq'):  raise ValueError
+
         if index:
             seq_records = SeqIO.index(seq_file, seq_type,
                                       alphabet=IUPAC.ambiguous_dna,
@@ -101,6 +103,8 @@ def readSeqFile(seq_file, index=False, key_func=None):
                                       alphabet=IUPAC.ambiguous_dna)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
+    except ValueError:
+        sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
 

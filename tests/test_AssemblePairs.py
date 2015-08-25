@@ -33,7 +33,7 @@ class TestAssemblePairs(unittest.TestCase):
         pd.set_option('display.width', 120)
 
         #self.ref_file = 'IMGT_Human_IGV.fasta'
-        self.ref_file = 'data/IG_TR.V.human.F+ORF+infrP.ungapped.fasta'
+        self.ref_file = 'data/Human_IGV_TRV.fasta'
         self.ref_dict = {s.id:s.upper() for s in readSeqFile(self.ref_file)}
         # MISEQ:121:000000000-A7VDM:1:1101:10041:1280
         #self.head_seq = Seq("CCACGTTTTAGTAATTAATACGGGAGCAAAAACCAGGGAAAGCCCCTAAGCTCCTGCTCTATGCTGCATCCACTTTGCAAAGTGTGGTCCCATCACGGTTCAGCGGCAGTGGATCTGGGACAGAATTCACTCTCACAATCAGCAGCCTGCAGCCTGAAGATTTTGCAACTTATTACTGTCAACAGCTTACTCCTTACCCTCCTACGTTCGCCCCAGGCCCCACGGTCGACCTCCACCCCCCTCTCGCTGCCCCCTCTCTCCCCTCCGACCCGCCTC")

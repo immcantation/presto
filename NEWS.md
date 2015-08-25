@@ -1,4 +1,4 @@
-Version 0.5.0.beta:  August 22, 2015
+Version 0.5.0.beta:  August 25, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -15,8 +15,11 @@ IgCore:
   Commandline, Defaults, IO, Multiprocessing and Sequence.
 
 
-Version 0.4.8:  August 22, 2015
+Version 0.4.8:  August 25, 2015
 -------------------------------------------------------------------------------
+
+Added support for additional input FASTA (.fna, .fa), FASTQ (.fq) and 
+  tab-delimited (.tsv) file extensions.
 
 ParseHeaders:
 
