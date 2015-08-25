@@ -1,6 +1,9 @@
-Version 0.4.8:  August 22, 2015
+Version 0.4.8:  August 25, 2015
 -------------------------------------------------------------------------------
 
+Added support for additional input FASTA (.fna, .fa), FASTQ (.fq) and 
+  tab-delimited (.tsv) file extensions.
+  
 ParseHeaders:
 
 + Fixed a bug in the rename subcommand wherein renaming to an existing field

@@ -463,14 +463,14 @@ def getFileType(filename):
     # Read and check file
     try:
         file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+        if file_type in ('fasta', 'fna', 'fa'):  file_type = 'fasta'
+        elif file_type in ('fastq', 'fq'):  file_type = 'fastq'
+        elif file_type in ('tab', 'tsv'):  file_type = 'tab'
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % filename)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (filename, e))
-    else:
-        if file_type not in ['fasta', 'fastq', 'embl', 'gb', 'tab']:
-            sys.exit('ERROR:  File %s has an unrecognized type' % filename)
-    
+
     return file_type
 
 
@@ -478,31 +478,35 @@ def readSeqFile(seq_file, index=False, key_func=None):
     """
     Reads FASTA/FASTQ files
 
-    Arguments: 
+    Arguments:
     seq_file = a FASTA or FASTQ file containing sample sequences
     index = if True return a dictionary from SeqIO.index();
             if False return an iterator from SeqIO.parse()
     key_func = the key_function argument to pass to SeqIO.index if
                index=True
 
-    Returns: 
+    Returns:
     a tuple of (input file type, sequence record object)
     """
     # Read and check file
     try:
         seq_type = getFileType(seq_file)
+        if seq_type not in ('fasta', 'fastq'):  raise ValueError
+
         if index:
             seq_records = SeqIO.index(seq_file, seq_type,
                                       alphabet=IUPAC.ambiguous_dna,
                                       key_function=key_func)
-        else:  
+        else:
             seq_records = SeqIO.parse(seq_file, seq_type,
                                       alphabet=IUPAC.ambiguous_dna)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
+    except ValueError:
+        sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
-    
+
     return seq_records
 
 
