@@ -556,6 +556,8 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Sequence file operation')
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
 
     # Subparser to downsize files to a maximum count
     parser_downsize = subparsers.add_parser('count',

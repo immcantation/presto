@@ -396,6 +396,8 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', metavar='',
                                        help='Conversion method')
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
 
     # Parent parser defining universal argument
     parser_parent = getCommonArgParser(log=False)

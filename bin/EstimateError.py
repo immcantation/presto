@@ -22,7 +22,7 @@ from presto.Defaults import default_barcode_field, default_missing_chars, \
                             default_min_freq, default_min_qual, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
-from presto.Sequence import getScoreDict, calculateDiversity, qualityConsensus, \
+from presto.Sequence import getDNAScoreDict, calculateDiversity, qualityConsensus, \
                             frequencyConsensus, indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 
@@ -31,7 +31,7 @@ default_min_count = 10
         
 
 def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars, 
-                    score_dict=getDNAScoreDict(n_score=(1, 1), gap_score=(1, 1))):
+                    score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(1, 1))):
     """
     Counts the occurrence of nucleotide mismatches in a set of sequences
 

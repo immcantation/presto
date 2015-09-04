@@ -88,4 +88,4 @@ setup(name='presto',
                    'Natural Language :: English',
                    'Operating System :: OS Independent',
                    'Programming Language :: Python :: 3.4',
-                   'Topic :: Scientific/Engineering :: Bio-Informatics'])
+                   'Topic :: Scientific/Engineering :: Bio-Informatic'])

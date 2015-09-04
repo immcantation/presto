@@ -404,7 +404,9 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Alignment method')
-    
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
+
     # Parent parser    
     parser_parent = getCommonArgParser(multiproc=True)
     parser_parent.add_argument('--bf', action='store', dest='barcode_field', type=str,

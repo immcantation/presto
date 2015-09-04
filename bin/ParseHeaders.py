@@ -322,6 +322,8 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Annotation operation')
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
 
     # Subparser to add header fields
     parser_add = subparsers.add_parser('add', parents=[getCommonArgParser(log=False)],

@@ -993,7 +993,9 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Assembly method')
-    
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
+
     # Parent parser    
     parser_parent = getCommonArgParser(paired=True, multiproc=True)
     parser_parent.add_argument('--coord', action='store', dest='coord_type', 

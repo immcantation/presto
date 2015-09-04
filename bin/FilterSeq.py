@@ -378,7 +378,9 @@ def getArgParser():
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     subparsers = parser.add_subparsers(title='subcommands', metavar='',
                                        help='Filtering operation')
-    
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
+
     # Parent parser
     parser_parent = getCommonArgParser(annotation=False, log=True, multiproc=True)
     

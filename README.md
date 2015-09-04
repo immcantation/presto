@@ -44,30 +44,28 @@ Installation - Linux
 Installation - Windows
 -------------------------------------------------------------------------------
 
-1. Install Python 3.4.0+ from [Python](http://python.org/download).
+1. Install Python 3.4.0+ from [Python](http://python.org/downloads), selecting
+   both the options 'pip' and 'Add python.exe to Path'.
 
-2. Install pip and setuptools using these [installation instructions]
-   (https://pip.pypa.io/en/latest/installing.html).
-
-3. Install NumPy, SciPy, pandas and Biopython using the packages available 
+2. Install NumPy, SciPy, pandas and Biopython using the packages available 
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
    binary collection.
 
 4. Unzip the pRESTO bundle, open a Command Prompt, and run
-   `python3 setup.py install` from the pRESTO folder.
+   `python setup.py install` from the pRESTO folder.
    
 5. For a default installation of Python 3.4, the pRESTO scripts will be 
    installed into `C:\Python34\Scripts` and should be directly executable from 
    the Command Prompt. If this is not the case, then follow steps 5-6 below.
    
-6. Add the installation directory to your `%Path%`. On Windows 7 the %Path% 
-   setting is located under 'Control Panel' -> 'System and Security' -> 
-   'System' -> 'Advanced System Settings' -> 'Environment variables' -> 
-   'System variables' -> 'Path'.
+6. Add both the 'C:\Python34' and 'C:\Python34\Scripts' directories to your 
+   `%Path%`. On Windows 7 the %Path% setting is located under 'Control Panel' 
+    -> 'System and Security' -> 'System' -> 'Advanced System Settings' -> 
+    'Environment variables' -> 'System variables' -> 'Path'.
 
 7. Set the file association for Python ('.py') files by right-clicking on a 
    '.py' file, selecting 'Open with' -> 'Choose default program...', choosing the 
-   'python3.exe' executable from the Python 3.4 folder, and checking 
+   'python.exe' executable from the Python 3.4 folder, and checking 
    'Always use the selected program'.
    
 
