@@ -51,14 +51,14 @@ Installation - Windows
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
    binary collection.
 
-4. Unzip the pRESTO bundle, open a Command Prompt, and run
+3. Unzip the pRESTO bundle, open a Command Prompt, and run
    `python setup.py install` from the pRESTO folder.
    
-5. For a default installation of Python 3.4, the pRESTO scripts will be 
+4. For a default installation of Python 3.4, the pRESTO scripts will be 
    installed into `C:\Python34\Scripts` and should be directly executable from 
-   the Command Prompt. If this is not the case, then follow step 6 below.
+   the Command Prompt. If this is not the case, then follow step 5 below.
    
-6. Add both the 'C:\Python34' and 'C:\Python34\Scripts' directories to your 
+5. Add both the 'C:\Python34' and 'C:\Python34\Scripts' directories to your 
    `%Path%`. On Windows 7 the %Path% setting is located under 'Control Panel' 
     -> 'System and Security' -> 'System' -> 'Advanced System Settings' -> 
     'Environment variables' -> 'System variables' -> 'Path'.
