@@ -44,7 +44,7 @@ Installation - Linux
 Installation - Windows
 -------------------------------------------------------------------------------
 
-1. Install Python 2.7.5+ from [Python](http://python.org/download).
+1. Install Python 2.7.5+ from [Python](http://python.org/downloads).
 
 2. Install NumPy, SciPy, pandas and Biopython using the packages available 
    from the [Unofficial Windows](http://www.lfd.uci.edu/~gohlke/pythonlibs)
