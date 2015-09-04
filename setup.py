@@ -64,8 +64,13 @@ scripts = ['AlignSets.py',
 install_scripts = [os.path.join(setup_path, 'bin', s) for s in scripts]
 
 # Load long package description
-with open(os.path.join(setup_path, 'README.md'), 'r') as f:
-    long_description = ''.join([x for x in f])
+readme_file = os.path.join(setup_path, 'README.md')
+try:
+   from pypandoc import convert
+   long_description = convert(readme_file, 'rst', format='md')
+except ImportError:
+    print('Warning: pypandoc was not found. Long description will not be converted to reST.')
+    long_description = open(readme_file, 'r').read()
 
 # Setup
 setup(name='presto',
@@ -88,4 +93,4 @@ setup(name='presto',
                    'Natural Language :: English',
                    'Operating System :: OS Independent',
                    'Programming Language :: Python :: 3.4',
-                   'Topic :: Scientific/Engineering :: Bio-Informatic'])
+                   'Topic :: Scientific/Engineering :: Bio-Informatics'])
