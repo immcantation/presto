@@ -32,11 +32,12 @@ Installation - Linux
 -------------------------------------------------------------------------------
 
 1. The simplest way to install all Python dependencies is to install the full 
-   SciPy stack using the instructions at http://scipy.org/install.html, then 
-   install Biopython according to the 
+   SciPy stack using the [instructions](http://scipy.org/install.html), then 
+   install Biopython according to its 
    [instructions](http://biopython.org/DIST/docs/install/Installation.html).
 
-2. Extract the pRESTO bundle and run `python3 setup.py install --user`.
+2. Extract the pRESTO bundle and run:  
+   `> python3 setup.py install --user`
 
 
 Installation - Windows
@@ -50,7 +51,8 @@ Installation - Windows
    collection.
 
 3. Unzip the pRESTO bundle, open a Command Prompt, change directories to the
-   pRESTO folder, and run `python setup.py install`.
+   pRESTO folder, and run:  
+   `> python setup.py install`.
    
 4. For a default installation of Python 3.4, the pRESTO scripts will be 
    installed into `C:\Python34\Scripts` and should be directly executable from 
