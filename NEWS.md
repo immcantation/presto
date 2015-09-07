@@ -1,4 +1,4 @@
-Version 0.5.0.beta:  August 25, 2015
+Version 0.5.0:  September 7, 2015
 -------------------------------------------------------------------------------
 
 Conversion to a proper Python package which uses pip and setuptools for 
@@ -6,8 +6,8 @@ installation.
 
 The package now requires Python 3.4. Python 2.7 is not longer supported.
 
-The required dependency versions have been bumped to numpy 1.9, scipy 0.14,
-pandas 0.16, and biopython 1.65.
+The required dependency versions have been bumped to numpy 1.8, scipy 0.14,
+pandas 0.15, and biopython 1.65.
 
 IgCore:
 
@@ -15,7 +15,7 @@ IgCore:
   Commandline, Defaults, IO, Multiprocessing and Sequence.
 
 
-Version 0.4.8:  August 25, 2015
+Version 0.4.8:  September 7, 2015
 -------------------------------------------------------------------------------
 
 Added support for additional input FASTA (.fna, .fa), FASTQ (.fq) and 
