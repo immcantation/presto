@@ -1,4 +1,4 @@
-Version 0.4.8:  August 25, 2015
+Version 0.4.8:  September 7, 2015
 -------------------------------------------------------------------------------
 
 Added support for additional input FASTA (.fna, .fa), FASTQ (.fq) and 
