@@ -26,10 +26,10 @@ def readPrimerFile(primer_file):
     Processes primer sequences from file
 
     Arguments:
-    primer_file = name of file containing primer sequences
+      primer_file : name of file containing primer sequences
 
     Returns:
-    dictionary of {primer id, primer sequence}
+      dict : Dictionary mapping primer id to primer sequence
     """
 
     # Parse primers from .fasta and .regex files
@@ -56,10 +56,10 @@ def getFileType(filename):
     Determines the type of a file by file extension
 
     Arguments:
-    filename = a filename
+      filename : Filename
 
     Returns:
-    a string defining the sequence type for SeqIO operations
+      str : String defining the sequence type for SeqIO operations
     """
     # Read and check file
     try:
@@ -80,14 +80,14 @@ def readSeqFile(seq_file, index=False, key_func=None):
     Reads FASTA/FASTQ files
 
     Arguments:
-    seq_file = a FASTA or FASTQ file containing sample sequences
-    index = if True return a dictionary from SeqIO.index();
-            if False return an iterator from SeqIO.parse()
-    key_func = the key_function argument to pass to SeqIO.index if
-               index=True
+      seq_file : FASTA or FASTQ file containing sample sequences
+      index : If True return a dictionary from SeqIO.index();
+              if False return an iterator from SeqIO.parse()
+      key_func : the key_function argument to pass to SeqIO.index if
+                 index=True
 
     Returns:
-    a tuple of (input file type, sequence record object)
+      tuple : Tuple of (input file type, sequence record object)
     """
     # Read and check file
     try:
@@ -116,10 +116,10 @@ def countSeqFile(seq_file):
     Counts the records in FASTA/FASTQ files
 
     Arguments:
-    seq_file = a FASTA or FASTQ file containing sample sequences
+      seq_file : FASTA or FASTQ file containing sample sequences
 
     Returns:
-    the count of records in the sequence file
+      int : Count of records in the sequence file
     """
     # Count records and check file
     try:
@@ -139,12 +139,12 @@ def countSeqSets(seq_file, field=default_barcode_field, delimiter=default_delimi
     Identifies sets of sequences with the same ID field
 
     Arguments:
-    seq_file = a FASTA or FASTQ file containing sample sequences
-    field = the annotation field containing set IDs
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      seq_file : FASTA or FASTQ file containing sample sequences
+      field : Annotation field containing set IDs
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    the count of unit set IDs in the sequence file
+      int : Count of unit set IDs in the sequence file
     """
     # Count records and check file
     try:
@@ -167,18 +167,18 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
     Opens an output file handle
 
     Arguments:
-    in_file = the input filename
-    out_label = text to be inserted before the file extension;
-                if None do not add a label
-    out_type = the file extension of the output file;
-               if None use input file extension
-    out_dir = the output directory;
-              if None use directory of input file
-    out_name = the short filename to use for the output file;
-               if None use input file short name
+      in_file : Input filename
+      out_label : Text to be inserted before the file extension;
+                  if None do not add a label
+      out_type : the file extension of the output file;
+                 if None use input file extension
+      out_dir : the output directory;
+                if None use directory of input file
+      out_name : the short filename to use for the output file;
+                 if None use input file short name
 
     Returns:
-    a file handle
+      file : File handle
     """
     # Get in_file components
     dir_name, file_name = os.path.split(in_file)
@@ -214,14 +214,14 @@ def printLog(record, handle=sys.stdout, inset=None):
     Formats a dictionary into an IgPipeline log string
 
     Arguments:
-    record = a dict or OrderedDict of {field names: values}
-    handle = the file handle to write the log to;
-             if None do not write to file
-    inset = minimum field name inset;
-            if None automatically space field names
+      record : a dict or OrderedDict of field names mapping to values
+      handle : the file handle to write the log to;
+               if None do not write to file
+      inset : minimum field name inset;
+              if None automatically space field names
 
     Returns:
-    a formatted multi-line string in IgPipeline log format
+      str : Formatted multi-line string in IgPipeline log format
     """
     # Return empty string if empty dictionary passed
     if not record:
@@ -254,14 +254,14 @@ def printMessage(message, start_time=None, end=False, width=20):
     Prints a progress message to standard out
 
     Arguments:
-    message = the current task message
-    start_time = task start time returned by time.time();
-                 if None do not add run time to progress
-    end = if True print final message (add newline)
-    width = maximum number of characters for messages
+      message : Current task message
+      start_time : task start time returned by time.time();
+                   if None do not add run time to progress
+      end : If True print final message (add newline)
+      width : Maximum number of characters for messages
 
     Returns:
-    None
+      None
     """
     # Define progress bar
     bar = 'PROGRESS> %s [%s]' % (strftime('%H:%M:%S'), message.ljust(width))
@@ -288,18 +288,17 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
     Prints a progress bar to standard out
 
     Arguments:
-    current = the count of completed tasks
-    total = the total task count;
-            if None do not print percentage
-    step = a float defining the fractional progress increment to print if total is defined;
-           an int defining the progress increment to print at if total is not defined;
-           if None always output the progress
-    start_time = task start time returned by time.time();
-                 if None do not add run time to progress
-    end = if True print final log (add newline)
+      current : Count of completed tasks
+      total : Total task count; if None do not print percentage
+      step : Float defining the fractional progress increment to print if total is defined;
+             an int defining the progress increment to print at if total is not defined;
+             if None always output the progress
+      start_time : Task start time returned by time.time();
+                   if None do not add run time to progress
+      end : if True print final log (add newline)
 
     Returns:
-    None
+      None
     """
     try:
         # Check update condition

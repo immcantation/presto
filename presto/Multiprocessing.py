@@ -91,19 +91,19 @@ def manageProcesses(feed_func, work_func, collect_func,
     Manages feeder, worker and collector processes
 
     Arguments:
-    feed_func = the data Queue feeder function
-    work_func = the worker function
-    collect_func = the result Queue collector function
-    feed_args = a dictionary of arguments to pass to feed_func
-    work_args = a dictionary of arguments to pass to work_func
-    collect_args = a dictionary of arguments to pass to collect_func
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
+      feed_func : Data Queue feeder function
+      work_func : Worker function
+      collect_func : Result Queue collector function
+      feed_args : Dictionary of arguments to pass to feed_func
+      work_args : Dictionary of arguments to pass to work_func
+      collect_args : Dictionary of arguments to pass to collect_func
+      nproc : Number of processQueue processes;
+              if None defaults to the number of CPUs
+      queue_size : Maximum size of the argument queue;
+                   if None defaults to 2*nproc
 
     Returns:
-    a dictionary of collector results
+      dict : Dictionary of collector results
     """
     # Define signal handler that raises KeyboardInterrupt
     def _signalHandler(s, f):
@@ -204,16 +204,16 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
     Feeds the data queue with SeqRecord objects
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing
-            continues; when False function returns
-    data_queue = a multiprocessing.Queue to hold data for processing
-    seq_file = the sequence file to read input from
-    index_func = the function to use to define sequence sets
-                 if None do not index sets and feed individual records
-    index_args = a dictionary of arguments to pass to index_func
+      alive : multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns
+      data_queue : multiprocessing.Queue to hold data for processing
+      seq_file : Sequence file to read input from
+      index_func : Function to use to define sequence sets
+                   if None do not index sets and feed individual records
+      index_args = Dictionary of arguments to pass to index_func
 
     Returns:
-    None
+      None
     """
     try:
         # Read input file and index sequence sets if required
@@ -256,15 +256,15 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing
-            continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    process_func = the function to use for filtering sequences
-    process_args = a dictionary of arguments to pass to process_func
+      alive : multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns
+      data_queue : multiprocessing.Queue holding data to process
+      result_queue : multiprocessing.Queue to hold processed results
+      process_func : function to use for filtering sequences
+      process_args : Dictionary of arguments to pass to process_func
 
     Returns:
-    None
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached
@@ -303,19 +303,20 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file,
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing
-            continues; when False function returns
-    result_queue = a multiprocessing.Queue holding worker results
-    collect_queue = a multiprocessing.Queue to store collector return values
-    seq_file = the sample sequence file name
-    task_label = the task label used to tag the output files
-    out_args = common output argument dictionary from parseCommonArgs
-    index_field = the field defining set membership for sequence sets
-                  if None data queue contained individual records
+      alive : a multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns
+      result_queue : Multiprocessing.Queue holding worker results
+      collect_queue : Multiprocessing.Queue to store collector return values
+      seq_file : Sample sequence file name
+      task_label : Task label used to tag the output files
+      out_args : Common output argument dictionary from parseCommonArgs
+      index_field : Field defining set membership for sequence sets
+                    if None data queue contained individual records
 
     Returns:
-    None
-    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
+      None : Adds a dictionary with key value pairs to collect_queue containing
+            'log' defining a log object,
+            'out_files' defining the output file names
     """
     try:
         # Count records

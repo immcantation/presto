@@ -25,10 +25,10 @@ def compilePrimers(primers):
     Translates IUPAC Ambiguous Nucleotide characters to regular expressions and compiles them
 
     Arguments:
-    key = a dictionary of sequences to translate
+      key : Dictionary of sequences to translate
 
     Returns:
-    dictionary of compiled regular expressions
+      dict : Dictionary of compiled regular expressions
     """
 
     primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateAmbigDNA, v))
@@ -42,10 +42,10 @@ def translateAmbigDNA(key):
     Translates IUPAC Ambiguous Nucleotide characters to or from character sets
 
     Arguments:
-    key = a string or re.search object containing the character set to translate
+      key : String or re.search object containing the character set to translate
 
     Returns:
-    character translation
+      str : Character translation
     """
     # Define valid characters and character translations
     IUPAC_uniq = '-.ACGT'
@@ -78,17 +78,17 @@ def scoreDNA(a, b, mask_score=None, gap_score=None):
     Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
 
     Arguments:
-    a = first characters
-    b = second character
-    n_score = a tuple of length two defining scores for all matches against an N
-              character for (a, b), with the score for character (a) taking precedence;
-              if None score symmetrically according to IUPAC character identity
-    gap_score = a tuple of length two defining score for all matches against a gap (-, .)
+      a : First characters
+      b : Second character
+      n_score : Tuple of length two defining scores for all matches against an N
                 character for (a, b), with the score for character (a) taking precedence;
                 if None score symmetrically according to IUPAC character identity
+      gap_score : Tuple of length two defining score for all matches against a gap (-, .)
+                  character for (a, b), with the score for character (a) taking precedence;
+                  if None score symmetrically according to IUPAC character identity
 
     Returns:
-    score for the character pair
+      int : Score for the character pair
     """
     # Define ambiguous character translations
     IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
@@ -123,17 +123,17 @@ def scoreAA(a, b, mask_score=None, gap_score=None):
     Returns the score for a pair of IUPAC Extended Protein characters
 
     Arguments:
-    a = first character
-    b = second character
-    mask_score = a tuple of length two defining scores for all matches against an X
-                 character for (a, b), with the score for character (a) taking precedence;
-                 if None score symmetrically according to IUPAC character identity
-    gap_score = a tuple of length two defining score for all matches against a gap (-, .)
-                character for (a, b), with the score for character (a) taking precedence;
-                if None score symmetrically according to IUPAC character identity
+      a : First character
+      b : Second character
+      mask_score : Tuple of length two defining scores for all matches against an X
+                   character for (a, b), with the score for character (a) taking precedence;
+                   if None score symmetrically according to IUPAC character identity
+      gap_score : Tuple of length two defining score for all matches against a gap (-, .)
+                  character for (a, b), with the score for character (a) taking precedence;
+                  if None score symmetrically according to IUPAC character identity
 
     Returns:
-    score for the character pair
+      int : Score for the character pair
     """
     # Define ambiguous character translations
     IUPAC_trans = {'RN':'B', 'EQ':'Z', 'LI':'J', 'ABCDEFGHIJKLMNOPQRSTUVWYZ':'X',
@@ -167,15 +167,15 @@ def getDNAScoreDict(mask_score=None, gap_score=None):
     Generates a score dictionary
 
     Arguments:
-    mask_score = a tuple of length two defining scores for all matches against an N
-                 character for (a, b), with the score for character (a) taking precedence;
-                 if None score symmetrically according to IUPAC character identity
-    gap_score = a tuple of length two defining score for all matches against a [-, .]
-                character for (a, b), with the score for character (a) taking precedence;
-                if None score symmetrically according to IUPAC character identity
+      mask_score : Tuple of length two defining scores for all matches against an N
+                   character for (a, b), with the score for character (a) taking precedence;
+                   if None score symmetrically according to IUPAC character identity
+      gap_score : Tuple of length two defining score for all matches against a [-, .]
+                  character for (a, b), with the score for character (a) taking precedence;
+                  if None score symmetrically according to IUPAC character identity
 
     Returns:
-    a score dictionary of the form {(char1, char2) : score}
+      dict : Score dictionary with keys (char1, char2) mapping to scores
     """
     chars = '-.ACGTRYSWKMBDHVN'
     score_dict = {k:scoreDNA(*k, mask_score=mask_score, gap_score=gap_score)
@@ -189,15 +189,15 @@ def getAAScoreDict(mask_score=None, gap_score=None):
     Generates a score dictionary
 
     Arguments:
-    mask_score = a tuple of length two defining scores for all matches against an X
-                 character for (a, b), with the score for character (a) taking precedence;
-                 if None score symmetrically according to IUPAC character identity
-    gap_score = a tuple of length two defining score for all matches against a [-, .]
-                character for (a, b), with the score for character (a) taking precedence;
-                if None score symmetrically according to IUPAC character identity
+      mask_score : Tuple of length two defining scores for all matches against an X
+                   character for (a, b), with the score for character (a) taking precedence;
+                   if None score symmetrically according to IUPAC character identity
+      gap_score : Tuple of length two defining score for all matches against a [-, .]
+                  character for (a, b), with the score for character (a) taking precedence;
+                  if None score symmetrically according to IUPAC character identity
 
     Returns:
-    a score dictionary of the form {(char1, char2) : score}
+      dict : Score dictionary with keys (char1, char2) mapping to scores
     """
     chars = '-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     score_dict = {k:scoreAA(*k, mask_score=mask_score, gap_score=gap_score)
@@ -211,10 +211,10 @@ def reverseComplement(seq):
     Takes the reverse complement of a sequence
 
     Arguments:
-    seq = a SeqRecord object, Seq object or string to reverse complement
+      seq : a SeqRecord object, Seq object or string to reverse complement
 
     Returns:
-    a object of the same type as the input with the reverse complement sequence
+      Seq : Object of the same type as the input with the reverse complement sequence
     """
 
     if isinstance(seq, SeqRecord):
@@ -238,12 +238,12 @@ def checkSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     Determine if two sequences are equal, excluding missing positions
 
     Arguments:
-    seq1 = a SeqRecord object
-    seq2 = a SeqRecord object
-    ignore_chars = a set of characters to ignore
+      seq1 : SeqRecord object
+      seq2 : SeqRecord object
+      ignore_chars : Set of characters to ignore
 
     Returns:
-    True if the sequences are equal
+      bool : True if the sequences are equal
     """
     equal = True
     #for a, b in zip(seq1.upper(), seq2.upper()):
@@ -261,11 +261,11 @@ def weightSeq(seq, ignore_chars=set()):
     Returns the length of a sequencing excluding ignored characters
 
     Arguments:
-    seq = a SeqRecord or Seq object
-    ignore_chars = set of characters to ignore when counting sequence length
+      seq : SeqRecord or Seq object
+      ignore_chars : Set of characters to ignore when counting sequence length
 
     Returns:
-    The sum of the character scores for the sequence
+      int : Sum of the character scores for the sequence
     """
     return sum(1 for x in seq if x not in ignore_chars)
 
@@ -275,13 +275,13 @@ def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     Determine the error rate for a pair of sequences
 
     Arguments:
-    seq1 = a SeqRecord object
-    seq2 = a SeqRecord object
-    ignore_chars = a set of characters to ignore when scoring and counting the weight
-    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+      seq1 : SeqRecord object
+      seq2 : SeqRecord object
+      ignore_chars : Set of characters to ignore when scoring and counting the weight
+      score_dict : Optional dictionary of alignment scores
 
     Returns:
-    A tuple of the (score, minimum weight, error rate) for the pair of sequences
+      Tuple : Tuple of the (score, minimum weight, error rate) for the pair of sequences
     """
     # TODO:  remove upper calls for speed. maybe by extending score dict with lowercase.
     # Determine score
@@ -300,11 +300,11 @@ def calculateDiversity(seq_list, score_dict=getDNAScoreDict()):
     Determine the average pairwise error rate for a list of sequences
 
     Arguments:
-    seq_list = a list of SeqRecord objects to score
-    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+      seq_list : List of SeqRecord objects to score
+      score_dict : Optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
-    The average pairwise error rate for the list of sequences
+      float : Average pairwise error rate for the list of sequences
     """
     # Return 0 if less than 2 sequences
     if len(seq_list) <= 1:
@@ -324,13 +324,13 @@ def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
     Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
 
     Arguments:
-    seq_list = a list of SeqRecord objects with aligned sequences
-    ref_seq = a SeqRecord object containing the reference sequence to match against
-    ignore_chars = list of characters to exclude from mismatch counts
-    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+      seq_list : List of SeqRecord objects with aligned sequences
+      ref_seq : SeqRecord object containing the reference sequence to match against
+      ignore_chars : List of characters to exclude from mismatch counts
+      score_dict : Optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns:
-    a float of the error rate for the set
+      float : Error rate for the set
     """
     # Count informative characters in reference sequence
     ref_bases = sum(1 for b in ref_seq if b not in ignore_chars)
@@ -355,11 +355,11 @@ def deleteSeqPositions(seq, positions):
     Deletes a list of positions from a SeqRecord
 
     Arguments:
-    seq = a SeqRecord objects
-    positions = a set of positions (indices) to delete
+      seq : SeqRecord objects
+      positions : Set of positions (indices) to delete
 
     Returns:
-    a modified SeqRecord with the specified positions removed
+      SeqRecord : Modified SeqRecord with the specified positions removed
     """
     seq_del = ''.join([x for i, x in enumerate(seq.seq) if i not in positions])
     record = SeqRecord(Seq(seq_del, IUPAC.ambiguous_dna),
@@ -378,12 +378,12 @@ def findGapPositions(seq_list, max_gap, gap_chars=default_gap_chars):
     Finds positions in a set of aligned sequences with a high number of gap characters.
 
     Arguments:
-    seq_list = a list of SeqRecord objects with aligned sequences
-    max_gap = a float of the maximum gap frequency to consider a position as non-gapped
-    gap_chars = set of characters to consider as gaps
+      seq_list : List of SeqRecord objects with aligned sequences
+      max_gap : Float of the maximum gap frequency to consider a position as non-gapped
+      gap_chars : Set of characters to consider as gaps
 
     Returns:
-    a list of positions (indices) with gap frequency greater than max_gap
+      list : Positions (indices) with gap frequency greater than max_gap
     """
     # Return an empty list in the singleton case
     seq_count = float(len(seq_list))
@@ -410,14 +410,14 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
     Builds a consensus sequence from a set of sequences
 
     Arguments:
-    seq_list = a list of SeqRecord objects
-    min_qual = the quality cutoff to assign a base
-    min_freq = the frequency cutoff to assign a base
-    dependent = if False assume sequences are independent for quality calculation
-    ignore_chars = a set of characters to exclude when building a consensus sequence
+      seq_list : List of SeqRecord objects
+      min_qual : Quality cutoff to assign a base
+      min_freq : Frequency cutoff to assign a base
+      dependent : If False assume sequences are independent for quality calculation
+      ignore_chars : Set of characters to exclude when building a consensus sequence
 
     Returns:
-    a consensus SeqRecord object
+      SeqRecord : Consensus SeqRecord object
     """
     # Return a copy of the input SeqRecord upon singleton
     if len(seq_list) == 1:
@@ -500,13 +500,13 @@ def frequencyConsensus(seq_list, min_freq=default_min_freq,
     Builds a consensus sequence from a set of sequences
 
     Arguments:
-    set_seq = a list of SeqRecord objects
-    min_freq = the frequency cutoff to assign a base
-    ignore_chars = a set of characters to exclude when building a consensus sequence
+      set_seq : List of SeqRecord objects
+      min_freq : Frequency cutoff to assign a base
+      ignore_chars : Set of characters to exclude when building a consensus sequence
 
 
     Returns:
-    a consensus SeqRecord object
+      SeqRecord : Consensus SeqRecord object
     """
     # Return a copy of the input SeqRecord upon singleton
     if len(seq_list) == 1:
@@ -548,12 +548,12 @@ def indexSeqSets(seq_dict, field=default_barcode_field, delimiter=default_delimi
     Identifies sets of sequences with the same ID field
 
     Arguments:
-    seq_dict = a dictionary index of sequences returned from SeqIO.index()
-    field = the annotation field containing set IDs
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      seq_dict : a dictionary index of sequences returned from SeqIO.index()
+      field : the annotation field containing set IDs
+      delimiter : a tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    a dictionary of {set name:[record names]}
+      dict : Dictionary mapping set name to a list of record names
     """
     set_dict = {}
     for key, rec in seq_dict.items():
@@ -568,13 +568,13 @@ def subsetSeqSet(seq_iter, field, values, delimiter=default_delimiter):
     Subsets a sequence set by annotation value
 
     Arguments:
-    seq_iter = an iterator or list of SeqRecord objects
-    field = the annotation field to select by
-    values = a list of annotation values that define the retained sequences
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+      seq_iter : Iterator or list of SeqRecord objects
+      field : Annotation field to select by
+      values : List of annotation values that define the retained sequences
+      delimiter : Tuple of delimiters for (annotations, field/values, value lists)
 
     Returns:
-    a modified list of SeqRecord objects
+      list : Modified list of SeqRecord objects
     """
     # Parse annotations from seq_list records
     ann_list = [parseAnnotation(s.description, delimiter=delimiter) for s in seq_iter]
@@ -591,13 +591,13 @@ def subsetSeqIndex(seq_dict, field, values, delimiter=default_delimiter):
     Subsets a sequence set by annotation value
 
     Arguments:
-    seq_dict = a dictionary index of sequences returned from SeqIO.index()
-    field = the annotation field to select keys by
-    values = a list of annotation values that define the retained keys
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+      seq_dict : Dictionary index of sequences returned from SeqIO.index()
+      field : Annotation field to select keys by
+      values : List of annotation values that define the retained keys
+      delimiter : Tuple of delimiters for (annotations, field/values, value lists)
 
     Returns:
-    a list of keys
+      list : List of keys
     """
     # Parse annotations from seq_dict and subset keys
     key_subset = [k for k in seq_dict \

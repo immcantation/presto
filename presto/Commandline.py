@@ -47,18 +47,18 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     Defines an ArgumentParser object with common pRESTO arguments
 
     Arguments: 
-    seq_in = if True include sequence input arguments
-    seq_out = if True include sequence output arguments
-    paired = if True defined paired-end sequence input and output arguments
-    db_in = if True include tab delimited database input arguments
-    db_out = if True include tab delimited database output arguments
-    failed = if True include arguments for output of failed results
-    log = if True include log arguments
-    annotation = if True include annotation arguments
-    multiproc = if True include multiprocessing arguments
+      seq_in : If True include sequence input arguments
+      seq_out = If True include sequence output arguments
+      paired = If True defined paired-end sequence input and output arguments
+      db_in = If True include tab delimited database input arguments
+      db_out = If True include tab delimited database output arguments
+      failed = If True include arguments for output of failed results
+      log = If True include log arguments
+      annotation = If True include annotation arguments
+      multiproc = If True include multiprocessing arguments
     
     Returns:
-    an ArgumentParser object
+      ArgumentParser : An ArgumentParser object
     """
     parser = ArgumentParser(add_help=False, formatter_class=CommonHelpFormatter)
 
@@ -128,15 +128,15 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     Checks common arguments from getCommonArgParser and transforms output options to a dictionary
 
     Arguments: 
-    args = argument Namespace defined by ArgumentParser.parse_args
-    in_arg = a string defining a non-standard input file argument to verify; by default
-             ['db_files', 'seq_files', 'seq_files_1', 'seq_files_2', 'primer_file'] 
-             are supported in that order
-    in_types = a list of types (file extensions as strings) to allow for files in file_arg
-               if None do not check type
+      args : Argument Namespace defined by ArgumentParser.parse_args
+      in_arg : String defining a non-standard input file argument to verify;
+               by default ['db_files', 'seq_files', 'seq_files_1', 'seq_files_2', 'primer_file']
+               are supported in that order
+      in_types : List of types (file extensions as strings) to allow for files in file_arg
+                 if None do not check type
                     
     Returns:
-    a dictionary copy of args with output arguments embedded in the dictionary out_args
+      dict : Dictionary copy of args with output arguments embedded in the dictionary out_args
     """ 
     db_types = ['.tab']
     seq_types = ['.fasta', '.fastq']

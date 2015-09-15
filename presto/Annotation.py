@@ -15,13 +15,13 @@ def parseAnnotation(record, fields=None, delimiter=default_delimiter):
     Extracts annotations from a FASTA/FASTQ sequence description
 
     Arguments:
-    record = description string to extract annotations from
-    fields = a list of fields to subset the return dictionary to
-             if None return all fields
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      record : Description string to extract annotations from
+      fields : List of fields to subset the return dictionary to;
+               if None return all fields
+      delimiter : a tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    a OrderedDict of {field:value}
+      OrderedDict : An OrderedDict of field/value pairs
     """
     annotation = record.split(delimiter[0])
     field_dict = OrderedDict([('ID', annotation.pop(0))])
@@ -42,11 +42,11 @@ def flattenAnnotation(ann_dict, delimiter=default_delimiter):
     Converts annotations from a dictionary to a FASTA/FASTQ sequence description
 
     Arguments:
-    ann_dict = a dictionary of field/value pairs
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      ann_dict : Dictionary of field/value pairs
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    a formatted sequence description string
+      str : Formatted sequence description string
     """
     annotation = ann_dict.get('ID', 'NONE')
     for k, v in ann_dict.items():
@@ -67,15 +67,15 @@ def mergeAnnotation(ann_dict_1, ann_dict_2, prepend=False,
     Merges non-ID field annotations from one field dictionary into another
 
     Arguments:
-    ann_dict_1 = a dictionary of field/value pairs to append to
-    ann_dict_2 = a dictionary of field/value pairs to merge with ann_dict_2
-    prepend = if True then add ann_dict_2 values to the front of any ann_dict_1
-              values that are already present, rather than the default behavior
-              of appending ann_dict_2 values.
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      ann_dict_1 : Dictionary of field/value pairs to append to
+      ann_dict_2 : Dictionary of field/value pairs to merge with ann_dict_2
+      prepend : If True then add ann_dict_2 values to the front of any ann_dict_1
+                values that are already present, rather than the default behavior
+                of appending ann_dict_2 values.
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    a modified ann_dict_1 dictonary of {field:values}
+      OrderedDict : Modified ann_dict_1 dictonary of field/value pairs
     """
     # Define merge order
     if prepend:
@@ -106,13 +106,13 @@ def renameAnnotation(ann_dict, old_field, new_field, delimiter=default_delimiter
     Renames an annotation and merges annotations if the new name already exists
 
     Arguments:
-    ann_dict = a dictionary of field/value pairs
-    old_field = the old field name
-    new_field = the new field name
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      ann_dict : Dictionary of field/value pairs
+      old_field : Old field name
+      new_field : New field name
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    a modified fields dictonary of {field:value}
+      OrderedDict : Modified fields dictonary
     """
     if new_field in ann_dict:
         rename_dict = ann_dict.copy()
@@ -132,15 +132,15 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
     Collapses multiple annotations into new single annotations for each field
 
     Arguments:
-    ann_dict = a dictionary of field/value pairs
-    action = the _collapse action to take;
-             one of {min, max, sum, first, last, set, cat}
-    fields = a subset of ann_dict to _collapse;
-             if None _collapse all but the ID field
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      ann_dict : Dictionary of field/value pairs
+      action : Collapse action to take;
+               one of {min, max, sum, first, last, set, cat}
+      fields : Subset of ann_dict to _collapse;
+               if None _collapse all but the ID field
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    a modified field dictionary of {field: value}
+      OrderedDict : Modified field dictionary
     """
     # Define _collapse action
     if action == 'set':
@@ -182,14 +182,14 @@ def getAnnotationValues(seq_iter, field, unique=False, delimiter=default_delimit
     Gets the set of unique annotation values in a sequence set
 
     Arguments:
-    seq_iter = an iterator or list of SeqRecord objects
-    field = the annotation field to retrieve values for
-    unique = if True return a list of only the unique values;
-             if False return a list of all values
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      seq_iter : Iterator or list of SeqRecord objects
+      field : Annotation field to retrieve values for
+      unique : If True return a list of only the unique values;
+               if False return a list of all values
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    the list of values for the field
+      list : List of values for the field
     """
     # Parse annotations from seq_list records
     ann_iter = (parseAnnotation(s.description, delimiter=delimiter) for s in seq_iter)
@@ -203,15 +203,16 @@ def annotationConsensus(seq_iter, field, delimiter=default_delimiter):
     Calculate a consensus annotation for a set of sequences
 
     Arguments:
-    seq_iter = an iterator or list of SeqRecord objects
-    field = the annotation field to take a consensus of
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+      seq_iter : an iterator or list of SeqRecord objects
+      field : the annotation field to take a consensus of
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists)
 
     Returns:
-    a dictionary {set: list of unique annotation values,
-                  count: annotation counts,
-                  cons: consensus annotation,
-                  freq: majority annotation frequency)
+      dict : Dictionary with keys
+             `set` containing a list of unique annotation values,
+             `count` containing annotation counts,
+             `cons` containing the consensus annotation,
+             `freq` containing the majority annotation frequency
     """
     # Define return dictionary
     cons_dict = {'set':None, 'count':None, 'cons':None, 'freq':None}
@@ -236,22 +237,14 @@ def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimit
     Return the coordinate identifier for a sequence description
 
     Arguments:
-    header = a sequence header string
-    coord_type = the sequence header format;
-                 one of ['illumina', 'solexa', 'sra', '454', 'presto'];
-                 if unrecognized type or None return sequence ID.
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      header : Sequence header string
+      coord_type : Sequence header format;
+                   one of ['illumina', 'solexa', 'sra', '454', 'presto'];
+                   if unrecognized type or None return sequence ID.
+      delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    the coordinate identifier as a string
-
-    Supported formats:
-        illumina  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
-                  @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
-        sra       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-                  @SRR001666.1.2 1 length=250
-        454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
-        pesto     @AATCGGATTTGC|COUNT=2|PRIMER=IGHJ_RT|PRFREQ=1.0
+      str : Coordinate identifier as a string
     """
     #header = seq.id
     if coord_type in ('illumina', 'solexa'):
