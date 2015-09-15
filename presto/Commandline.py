@@ -48,14 +48,14 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
 
     Arguments: 
       seq_in : If True include sequence input arguments
-      seq_out = If True include sequence output arguments
-      paired = If True defined paired-end sequence input and output arguments
-      db_in = If True include tab delimited database input arguments
-      db_out = If True include tab delimited database output arguments
-      failed = If True include arguments for output of failed results
-      log = If True include log arguments
-      annotation = If True include annotation arguments
-      multiproc = If True include multiprocessing arguments
+      seq_out : If True include sequence output arguments
+      paired : If True defined paired-end sequence input and output arguments
+      db_in : If True include tab delimited database input arguments
+      db_out : If True include tab delimited database output arguments
+      failed : If True include arguments for output of failed results
+      log : If True include log arguments
+      annotation : If True include annotation arguments
+      multiproc : If True include multiprocessing arguments
     
     Returns:
       ArgumentParser : An ArgumentParser object

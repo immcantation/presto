@@ -210,7 +210,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
       seq_file : Sequence file to read input from
       index_func : Function to use to define sequence sets
                    if None do not index sets and feed individual records
-      index_args = Dictionary of arguments to pass to index_func
+      index_args : Dictionary of arguments to pass to index_func
 
     Returns:
       None
