@@ -1,6 +1,6 @@
 .. presto documentation master file
 
-Presto documentation
+pRESTO Documentation
 ==================================
 
 Contents:
@@ -8,11 +8,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   introduction
-   workflows
    commandline
    modules
-
 
 Indices and tables
 ==================

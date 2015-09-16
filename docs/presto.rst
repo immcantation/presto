@@ -1,10 +1,7 @@
-presto package
+pRESTO API
 ==============
 
-Submodules
-----------
-
-presto.Annotation module
+presto.Annotation
 ------------------------
 
 .. automodule:: presto.Annotation
@@ -12,7 +9,7 @@ presto.Annotation module
     :undoc-members:
     :show-inheritance:
 
-presto.Commandline module
+presto.Commandline
 -------------------------
 
 .. automodule:: presto.Commandline
@@ -20,7 +17,7 @@ presto.Commandline module
     :undoc-members:
     :show-inheritance:
 
-presto.Defaults module
+presto.Defaults
 ----------------------
 
 .. automodule:: presto.Defaults
@@ -36,7 +33,7 @@ presto.IO module
     :undoc-members:
     :show-inheritance:
 
-presto.Multiprocessing module
+presto.Multiprocessing
 -----------------------------
 
 .. automodule:: presto.Multiprocessing
@@ -44,27 +41,10 @@ presto.Multiprocessing module
     :undoc-members:
     :show-inheritance:
 
-presto.Sequence module
+presto.Sequence
 ----------------------
 
 .. automodule:: presto.Sequence
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.Version module
----------------------
-
-.. automodule:: presto.Version
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: presto
     :members:
     :undoc-members:
     :show-inheritance:
