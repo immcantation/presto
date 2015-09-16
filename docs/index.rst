@@ -8,6 +8,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   introduction
+   workflows/workflows
    commandline
    modules
 
