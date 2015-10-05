@@ -140,7 +140,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
             if cluster_dict is None:
                 # Update log
                 result.log['CLUSTERS'] = 0
-                for seq in enumerate(data.data, start=1):
+                for i, seq in enumerate(data.data, start=1):
                     result.log['CLUST0-%i' % i] = str(seq.seq)
 
                 # Feed results queue and continue
