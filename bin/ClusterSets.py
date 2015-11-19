@@ -71,6 +71,7 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
            '-cluster_fast', in_handle.name,
            '-uc', out_handle.name,
            '-id', str(ident),
+           '-minseqlength', '1',
            '-threads', '1']
 
     # Write usearch input fasta file
