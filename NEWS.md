@@ -1,7 +1,9 @@
-Version 0.5.1.beta:  September 15, 2015
+Version 0.5.1.beta:  December 1, 2015
 -------------------------------------------------------------------------------
 
-Booyah!
+ClusterSets:
+
++ Fixed bug wherein `--failed` flag did not work.
 
 
 Version 0.5.0:  September 7, 2015
@@ -157,7 +159,7 @@ AssemblePairs:
   check that coordinate info matches and error if the files are not
   synchronized. Unpaired reads are no longer output.
 + Added support for cases where one mate pair is the subsequence of the other.
-+ Added `--scanrev` argument to allow for head sequence to overhand end of tail.
++ Added `--scanrev` argument to allow for head sequence to overhang end of tail.
 + Removed truncated (quick) error calculation in align subcommand.
 + Changed default values of the `--maxerror` and `--alpha` arguments of the align
   subcommand to better tuned parameters.
