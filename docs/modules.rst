@@ -9,6 +9,14 @@ presto.Annotation
     :undoc-members:
     :show-inheritance:
 
+presto.Applications
+------------------------
+
+.. automodule:: presto.Applications
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 presto.Commandline
 -------------------------
 

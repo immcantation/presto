@@ -7,101 +7,27 @@ __author__ = 'Christopher Bolen, Jason Anthony Vander Heiden'
 from presto import __version__, __date__
 
 # Imports
-import csv
 import os
 import sys
 import tempfile
 from argparse import ArgumentParser
 from collections import OrderedDict
-from subprocess import CalledProcessError, check_output, STDOUT
 from textwrap import dedent
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
-                            default_out_args, default_usearch_exec
+                            default_cluster_field, default_out_args, \
+                            default_usearch_exec
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.Applications import runUClust
 from presto.IO import printLog
 from presto.Sequence import indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 # Defaults
-default_cluster_field = 'CLUSTER'
 default_ident = 0.9
-
-
-def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
-              usearch_exec=default_usearch_exec):
-    """
-    Cluster a set of sequences using the UCLUST algorithm from USEARCH
-
-    Arguments:
-    seq_list = a list of SeqRecord objects to align
-    ident = the sequence identity cutoff to be passed to usearch
-    seq_start = the start position to trim sequences at before clustering
-    seq_end = the end position to trim sequences at before clustering
-    usearch_exec = the path to the usearch executable
-
-    Returns:
-    a dictionary object containing {sequence id: cluster id}
-    """
-    # Return sequence if only one sequence in seq_list
-    if len(seq_list) < 2:
-        #return {seq_list[0].id:0}
-        return {1:[seq_list[0].id]}
-
-    # Format sequences and make a copy so we don't mess up original sequences
-    short_list = list()
-    for rec in seq_list:
-        seq = rec.seq[seq_start:seq_end]
-        seq = seq.ungap('-')
-        seq = seq.ungap('.')
-        short_list.append(SeqRecord(seq, id=rec.id, name=rec.name,
-                                    description=rec.description))
-
-    # Open temporary files
-    in_handle = tempfile.NamedTemporaryFile(mode='w+t')
-    out_handle = tempfile.NamedTemporaryFile(mode='w+t')
-
-    # Define usearch command
-    cmd = [usearch_exec,
-           '-cluster_fast', in_handle.name,
-           '-uc', out_handle.name,
-           '-id', str(ident),
-           '-minseqlength', '1',
-           '-threads', '1']
-
-    # Write usearch input fasta file
-    SeqIO.write(short_list, in_handle, 'fasta')
-    in_handle.seek(0)
-
-    # Run usearch uclust algorithm
-    try:
-        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
-                                  universal_newlines=True)
-        #check_call(cmd, stderr=STDOUT, shell=False)
-    except CalledProcessError:
-        group_dict = None
-    else:
-        # TODO:  unsure about this return object.
-        # Parse the results of usearch
-        # Output columns for the usearch 'uc' output format
-        #   0 = entry type -- S: centroid seq, H: hit, C: cluster record (redundant with S)
-        #   1 = group the sequence is assigned to
-        #   8 = the id of the sequence
-        group_dict = {}
-        for row in csv.reader(out_handle, delimiter='\t'):
-            if row[0] in ('S', 'H'):
-                key = int(row[1]) + 1
-                group = group_dict.setdefault(key, [])
-                group.append(row[8])
-        #out_list = [r for r in csv.reader(out_handle, delimiter='\t')]
-        #group_dict = {r[8]: int(r[1]) + 1 for r in out_list if r[0] in ('S', 'H')}
-
-    return group_dict if group_dict else None
 
 
 def processCSQueue(alive, data_queue, result_queue, cluster_field,
@@ -188,11 +114,11 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
 
 
 def clusterSets(seq_file, barcode_field=default_barcode_field,
-                 cluster_field=default_cluster_field,
-                 ident=default_ident, seq_start=None, seq_end=None,
-                 usearch_exec=default_usearch_exec,
-                 out_args=default_out_args, nproc=None,
-                 queue_size=None):
+                cluster_field=default_cluster_field,
+                ident=default_ident, seq_start=None, seq_end=None,
+                usearch_exec=default_usearch_exec,
+                out_args=default_out_args, nproc=None,
+                queue_size=None):
     """
     Performs clustering on sets of sequences
 

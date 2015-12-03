@@ -12,11 +12,8 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
-from io import StringIO
 
-from subprocess import PIPE, Popen
 from textwrap import dedent
-from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
@@ -27,51 +24,11 @@ from presto.Defaults import default_delimiter, default_barcode_field, \
                             default_primer_field, default_out_args, default_muscle_exec
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation
+from presto.Applications import runMuscle
 from presto.Sequence import calculateDiversity, indexSeqSets
 from presto.IO import readPrimerFile, getOutputHandle, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
-
-
-# TODO:  can be moved into presto core functions. used by GapRecords in changeo.
-def runMuscle(seq_list, muscle_exec=default_muscle_exec):
-    """
-    Multiple aligns a set of sequences using MUSCLE
-
-    Arguments: 
-    seq_list = a list of SeqRecord objects to align
-    muscle_exec = the MUSCLE executable
-    
-    Returns: 
-    a MultipleSeqAlignment object containing the alignment
-    """
-    # Return sequence if only one sequence in seq_list
-    if len(seq_list) < 2:
-        align = MultipleSeqAlignment(seq_list)
-        return align
-    
-    # Set MUSCLE command
-    cmd = [muscle_exec, '-diags', '-maxiters', '2']
-
-    # Convert sequences to FASTA and write to string
-    stdin_handle = StringIO()
-    SeqIO.write(seq_list, stdin_handle, 'fasta')
-    stdin_str = stdin_handle.getvalue()
-    stdin_handle.close()
-    
-    # Open MUSCLE process
-    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  universal_newlines=True)
-
-    # Send sequences to MUSCLE stdin and retrieve stdout, stderr
-    stdout_str, __ = child.communicate(stdin_str)
-
-    # Capture sequences from MUSCLE stdout
-    stdout_handle = StringIO(stdout_str)
-    align = AlignIO.read(stdout_handle, 'fasta')
-    stdout_handle.close()
-
-    return align
 
 
 def offsetSeqSet(seq_list, offset_dict, field=default_primer_field, 

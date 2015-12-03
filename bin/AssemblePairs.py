@@ -9,15 +9,12 @@ from presto import __version__, __date__
 # Imports
 import os
 import sys
-import tempfile
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from argparse import ArgumentParser
 from collections import OrderedDict
 from io import StringIO
-
-from subprocess import check_output, PIPE, Popen, STDOUT
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -28,11 +25,11 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_delimiter, default_coord_choices, \
                             default_coord_type, default_missing_chars, \
-                            default_out_args, default_usearch_exec, \
-                            default_blastn_exec
+                            default_out_args, default_usearch_exec
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
+from presto.Applications import runUBlastAlignment
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
 from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
@@ -47,7 +44,6 @@ default_max_len = 1000
 default_gap = 0
 default_evalue = 1e-5
 default_max_hits = 100
-
 
 class AssemblyRecord:
     """
@@ -134,128 +130,6 @@ class AssemblyStats:
             j = i + 1 if i == 0 else i
             z_matrix[x, j:] = (x - k[j:]/4.0)/np.sqrt(3.0/16.0*k[j:])
         return z_matrix
-
-
-def makeUSearchDb(ref_file, usearch_exec=default_usearch_exec):
-    """
-    Makes a usearch database file for ublast
-
-    Arguments:
-    ref_file = the path to the reference database file
-    usearch_exec = the path to the usearch executable
-
-    Returns:
-    a handle to the named temporary file containing the database file
-    """
-    # Open temporary file
-    db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
-
-    # Define usearch command
-    cmd = ' '.join([usearch_exec,
-               '-makeudb_ublast', ref_file,
-               '-output', db_handle.name])
-
-    child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
-    stdout_str, stderr_str = child.communicate()
-
-    return db_handle
-
-
-def runBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-                       blastn_exec=default_blastn_exec):
-    """
-    Aligns a sequence against a reference database using BLASTN
-
-    Arguments:
-    seq = a SeqRecord objects to align
-    ref_dict = a dictionary of reference SeqRecord objects
-    evalue = the E-value cut-off for ublast
-    maxhits = the maxhits output limit for ublast
-    blastn_exec = the path to the usearch executable
-
-    Returns:
-    a DataFrame of alignment results
-    """
-    seq_fasta = seq.format('fasta')
-
-    # Define blastn command
-    cmd = ' '.join([blastn_exec,
-                    '-query -',
-                    #'-query', str(seq.seq),
-                    '-subject', ref_file,
-                    '-strand plus',
-                    '-evalue', str(evalue),
-                    '-max_target_seqs', str(max_hits),
-                    '-outfmt "6 qseqid sseqid qstart qend sstart send length evalue pident"',
-                    '-num_threads 1'])
-
-    # Run blastn
-    child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  shell=(sys.platform != 'win32'), universal_newlines=True)
-    stdout_str, stderr_str = child.communicate(seq_fasta)
-    out_handle = StringIO(stdout_str)
-
-    # Parse blastn output
-    field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
-                   'length', 'evalue', 'identity']
-    align_df = pd.read_table(out_handle, header=None, names=field_names)
-    # Convert to base-zero indices
-    align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
-
-    return align_df
-
-
-def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-                       usearch_exec=default_usearch_exec):
-    """
-    Aligns a sequence against a reference database using the UBLAST algorithm of USEARCH
-
-    Arguments:
-    seq = a SeqRecord object to align
-    ref_file = the path to the reference database file
-    evalue = the E-value cut-off for ublast
-    max_hits = the maxhits output limit for ublast
-    usearch_exec = the path to the usearch executable
-
-    Returns:
-    a DataFrame of alignment results
-    """
-    # Open temporary files
-    in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
-    out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
-
-    # Define usearch command
-    cmd = [usearch_exec,
-           '-ublast', in_handle.name,
-           '-db', ref_file,
-           '-strand', 'plus',
-           '-evalue', str(evalue),
-           '-maxhits', str(max_hits),
-           '-userout', out_handle.name,
-           '-userfields', 'query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
-           '-threads', '1']
-
-
-    # Write usearch input fasta file
-    SeqIO.write(seq, in_handle, 'fasta')
-
-    # Run usearch ublast algorithm
-    in_handle.seek(0)
-    stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
-
-    # Parse usearch output
-    field_names = ['query', 'target', 'query_start', 'query_end',
-                   'target_start', 'target_end',
-                   'length', 'evalue', 'identity']
-    align_df = pd.read_table(out_handle, header=None, names=field_names, encoding='utf-8')
-    # Convert to base-zero indices
-    align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
-
-    # Close temp file handles
-    in_handle.close()
-    out_handle.close()
-
-    return align_df
 
 
 def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,

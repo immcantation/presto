@@ -12,8 +12,6 @@ default_separator = default_delimiter[2]
 # Commandline argument defaults
 default_coord_choices = ['illumina', 'solexa', 'sra', '454', 'presto']
 default_coord_type = 'presto'
-default_barcode_field = 'BARCODE'
-default_primer_field = 'PRIMER'
 default_min_freq = 0.6
 default_min_qual = 20
 default_out_args = {'log_file':None,
@@ -23,6 +21,11 @@ default_out_args = {'log_file':None,
                     'out_name':None,
                     'out_type':None,
                     'failed':True}
+
+# Fields
+default_barcode_field = 'BARCODE'
+default_primer_field = 'PRIMER'
+default_cluster_field = 'CLUSTER'
 
 # External applications
 default_muscle_exec = r'/usr/local/bin/muscle'
