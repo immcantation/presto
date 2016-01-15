@@ -133,7 +133,7 @@ class AssemblyStats:
 
 
 def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
-                      evalue=default_evalue, max_hits=default_max_hits,
+                      evalue=default_evalue, max_hits=default_max_hits, fill=False,
                       usearch_exec=default_usearch_exec,
                       score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
     """
@@ -147,6 +147,8 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     min_ident = the minimum identity for a valid assembly
     evalue = the E-value cut-off for ublast
     max_hits = the maxhits output limit for ublast
+    fill = if False non-overlapping regions will be assigned Ns;
+           if True non-overlapping regions will be filled with the reference sequence.
     usearch_exec = the path to the usearch executable
     score_dict = optional dictionary of character scores in the
                  form {(char1, char2): score}
@@ -179,6 +181,8 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
 
     # Select top alignment
     align_top = align_df.ix[0, :]
+    ref_id = align_top['target']
+    ref_seq = ref_dict[ref_id]
 
     # Get offset of target and reference positions
     head_shift = align_top['target_start_head'] - align_top['query_start_head']
@@ -208,7 +212,12 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
 
     # Join sequences if head and tail do not overlap, otherwise assemble
     if a > b and x > y:
-        stitch = joinSeqPair(head_seq, tail_seq, gap=(a - b))
+        gap = a - b
+        if not fill:
+            stitch = joinSeqPair(head_seq, tail_seq, gap=gap, insert_seq=None)
+        else:
+            insert_seq = ref_seq.seq[(b + head_shift):(a + head_shift)]
+            stitch = joinSeqPair(head_seq, tail_seq, gap=gap, insert_seq=insert_seq)
     else:
         stitch = AssemblyRecord()
         stitch.gap = 0
@@ -248,8 +257,6 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     stitch.tail_pos = (x, y)
 
     # Assign reference info
-    ref_id = align_top['target']
-    ref_seq = ref_dict[ref_id]
     stitch.ref_seq = ref_seq[outer_start:outer_end]
     stitch.ref_pos = (max(a_outer, x_outer), max(b_outer, y_outer))
     stitch.evalue = tuple(align_top[['evalue_head', 'evalue_tail']])
@@ -319,7 +326,7 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
     return record
 
 
-def joinSeqPair(head_seq, tail_seq, gap=default_gap):
+def joinSeqPair(head_seq, tail_seq, gap=default_gap, insert_seq=None):
     """
     Concatenates two sequences 
 
@@ -327,14 +334,23 @@ def joinSeqPair(head_seq, tail_seq, gap=default_gap):
     head_seq = the head SeqRecord
     tail_seq = the tail SeqRecord
     gap = number of gap characters to insert between head and tail
-    
+          ignored if insert_seq is not None.
+    insert_seq = a string or Bio.Seq.Seq object, to insert between the head and tail;
+                 if None insert with N characters
+
     Returns: 
     an AssemblyRecord object
     """
     # Define joined ID
     join_id = head_seq.id if head_seq.id == tail_seq.id \
               else '+'.join([head_seq.id, tail_seq.id])
-    join_seq = str(head_seq.seq) + 'N' * gap + str(tail_seq.seq)
+
+    # Join sequences
+    if insert_seq is None:
+        join_seq = str(head_seq.seq) + 'N' * gap + str(tail_seq.seq)
+    else:
+        gap = len(insert_seq)
+        join_seq = str(head_seq.seq) + str(insert_seq) + str(tail_seq.seq)
     
     # Define return record
     record = SeqRecord(Seq(join_seq, IUPAC.ambiguous_dna), 
@@ -783,6 +799,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if 'min_ident' in assemble_args:  log['MIN_IDENT'] = assemble_args['min_ident']
     if 'evalue' in assemble_args:  log['EVALUE'] = assemble_args['evalue']
     if 'max_hits' in assemble_args:  log['MAX_HITS'] = assemble_args['max_hits']
+    if 'fill' in assemble_args:  log['FILL'] = assemble_args['fill']
     log['NPROC'] = nproc
     printLog(log)
 
@@ -927,6 +944,13 @@ def getArgParser():
                             default=default_max_hits,
                             help='''Maximum number of hits from ublast to check for matching
                                  head and tail sequence reference alignments.''')
+    parser_ref.add_argument('--fill', action='store_true', dest='fill',
+                            help='''Specify to insert change the behavior of inserted characters
+                                  when the head and tail sequences do not overlap. If specified
+                                  this will result in inserted of the V region reference sequence
+                                  instead of a sequence of Ns in the non-overlapping region.
+                                  Warning, you could end up making chimeric sequences by using
+                                  this option.''')
     parser_ref.add_argument('--exec', action='store', dest='usearch_exec',
                             default=default_usearch_exec,
                             help='''The path to the usearch executable file.''')
@@ -973,11 +997,13 @@ if __name__ == '__main__':
                                       'min_ident': args_dict['min_ident'],
                                       'evalue': args_dict['evalue'],
                                       'max_hits': args_dict['max_hits'],
+                                      'fill': args_dict['fill'],
                                       'usearch_exec': args_dict['usearch_exec']}
         del args_dict['ref_file']
         del args_dict['min_ident']
         del args_dict['evalue']
         del args_dict['max_hits']
+        del args_dict['fill']
         del args_dict['usearch_exec']
 
         # Check if a valid USEARCH executable was specified

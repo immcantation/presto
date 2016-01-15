@@ -1,3 +1,14 @@
+Version 0.5.1.999:  January 15, 2015
+-------------------------------------------------------------------------------
+
+AssemblePairs:
+
++ Added the flag `--fill` to the reference subcommand to allow insertion of 
+  the reference sequence into the non-overlapping region of assembled 
+  sequences. Use caution when using this flag, as this may lead to chimeric 
+  sequences.
+
+
 Version 0.5.1:  December 4, 2015
 -------------------------------------------------------------------------------
 

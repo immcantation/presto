@@ -44,16 +44,16 @@ class TestAssemblePairs(unittest.TestCase):
         #self.tail_seq = Seq("CTTGGGACAGACAGTCAGGATCACAGGCCAAGGAGACAGGCTCAGAAGCTAGTATGCAAGCGGGTACCAGCAGAAGCCAGGACAGGCCCCTGTACTTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
 
         # Non-Overlaping MISEQ:121:000000000-A7VDM:1:1101:13900:1538
-        #self.head_seq = Seq("GGAGCTTGCATTAGCATCGATACGGGGAGCTGTGGGCTCAGAAGCAGAGTTCTGGGGTGTCTCCACCATGGCCTGGACCCCTCTCTGGCTCACTCTCCTCACTCTTTGCATAGGTTCTGTGGTTTCTTCTGAGCTGACTCAGGACCCTGCTGTGTCTGTGGCCTTGGGACAGACAGTCAGGAC")
-        #self.tail_seq = Seq("TTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
+        self.head_seq = Seq("GGAGCTTGCATTAGCATCGATACGGGGAGCTGTGGGCTCAGAAGCAGAGTTCTGGGGTGTCTCCACCATGGCCTGGACCCCTCTCTGGCTCACTCTCCTCACTCTTTGCATAGGTTCTGTGGTTTCTTCTGAGCTGACTCAGGACCCTGCTGTGTCTGTGGCCTTGGGACAGACAGTCAGGAC")
+        self.tail_seq = Seq("TTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
 
         # MISEQ:121:000000000-A7VDM:1:1101:22042:1446
         #self.head_seq = Seq("GTCTCAACAAAATACCATCTACGGGATGTGTATTGGTACCAGCAACTCCCAGGATCGGCCCCCAAGCTCCTCATTTATAGTAGTAGCCAGCCGCCCTCAGGGGTCCCTGACCGATTCTCTGGCTCCAAGTCTGGCACCTCAGCCTCCCTGGCCCTCCGTGTGCTCCGTTCCGAAGATGACGCCGCTTATTCCTGTTCAGCCTGGGCTTACCCCCTGATTCGTCTTTCCTTGTTCGCCCCACCGTCCCCTCCCCCCCTCCTACCTCCGCCCCACGCC")
         #self.tail_seq = Seq("GAGAGGTGGGAGGAGCCGATCTGGGTCAACAAAATAGGATAGACGGGAAGGGTATTGGTACAAGCAACTCCCAGGAGCGGAGCCCAAGCTCGTCATTTATAGGAGAAGCCAGGGGCCCTCAGGGGTACCTGACCGATTCTCTGGCTCCAAGTCTGGAAGCTAAGCCTCCCTGGCCATCAGTGGGCTCCGGTACGAAGATGAGGCTGATTATTACTGTGCAGCATGGGATGACAGCCTGAGTGGTCTTTGGGTGTTCGGCGGAGGGACCAGGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
 
         # TATATTATGTGCAGT_GCCTTC|PRCONS=TRB
-        self.head_seq = Seq('gacacctctccccagagaaggtggtgtgagaccaccacggaagatgctgctgctactgctcctcctgtggataggctccgggcttggtgccgtcgtctctcaacatccgagccgggctatctgaaagtgtggaaccattgtcaaccacgagggccgttcaccggactttcggccccctacgaagttttggcaacctcagctcccgatacatggtcttttgctgctggcgacctccaaccggggctccac')
-        self.tail_seq = Seq('gtcgagtgtcgttccctggactttcaagccacatcgaagtactggtatcggcagttcccgaaacagagtctaaggctggtggcaacatccaacgagtactcaaaggccacatacgagcaaggcgtcgagaaggacaagtatctcatcaaccatgcaagcctgaccttgtcctctcttacagtgaccagtgcccagcctgaagacagcagcttctacatctacagtgctgcaacgggtcaggggacgatcgagacccagtatttcgggcctggcacgcggctcctggtgctcgaggacctgaaaaac')
+        #self.head_seq = Seq('gacacctctccccagagaaggtggtgtgagaccaccacggaagatgctgctgctactgctcctcctgtggataggctccgggcttggtgccgtcgtctctcaacatccgagccgggctatctgaaagtgtggaaccattgtcaaccacgagggccgttcaccggactttcggccccctacgaagttttggcaacctcagctcccgatacatggtcttttgctgctggcgacctccaaccggggctccac')
+        #self.tail_seq = Seq('gtcgagtgtcgttccctggactttcaagccacatcgaagtactggtatcggcagttcccgaaacagagtctaaggctggtggcaacatccaacgagtactcaaaggccacatacgagcaaggcgtcgagaaggacaagtatctcatcaaccatgcaagcctgaccttgtcctctcttacagtgaccagtgcccagcctgaagacagcagcttctacatctacagtgctgcaacgggtcaggggacgatcgagacccagtatttcgggcctggcacgcggctcctggtgctcgaggacctgaaaaac')
         #self.head_seq = self.head_seq.reverse_complement()
 
         self.head_rec = SeqRecord(self.head_seq, id='HEAD', name='HEAD', description='')
@@ -89,7 +89,7 @@ class TestAssemblePairs(unittest.TestCase):
 
     @unittest.skip("-> referenceAssembly() skipped\n")
     def test_referenceAssembly(self):
-        stitch = AssemblePairs.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file)
+        stitch = AssemblePairs.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file, fill=True)
 
         print('   REFID> %s' % stitch.ref_seq.id)
         print('  REFSEQ> %s' % (' ' * stitch.ref_pos[0] + stitch.ref_seq.seq))
