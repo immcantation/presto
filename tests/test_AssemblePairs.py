@@ -89,6 +89,16 @@ class TestAssemblePairs(unittest.TestCase):
 
     @unittest.skip("-> referenceAssembly() skipped\n")
     def test_referenceAssembly(self):
+        stitch = AssemblePairs.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file, fill=False)
+
+        print('   REFID> %s' % stitch.ref_seq.id)
+        print('  REFSEQ> %s' % (' ' * stitch.ref_pos[0] + stitch.ref_seq.seq))
+        print('ASSEMBLY> %s' % stitch.seq.seq)
+        print('     GAP> %s' % stitch.gap)
+        print(' EVALUE1> %.4e' % stitch.evalue[0])
+        print(' EVALUE2> %.4e' % stitch.evalue[1])
+        print('IDENTITY> %.4f' % stitch.ident)
+
         stitch = AssemblePairs.referenceAssembly(self.head_rec, self.tail_rec, self.ref_dict, self.ref_file, fill=True)
 
         print('   REFID> %s' % stitch.ref_seq.id)

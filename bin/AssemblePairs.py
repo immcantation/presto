@@ -212,12 +212,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
 
     # Join sequences if head and tail do not overlap, otherwise assemble
     if a > b and x > y:
-        gap = a - b
-        if not fill:
-            stitch = joinSeqPair(head_seq, tail_seq, gap=gap, insert_seq=None)
-        else:
-            insert_seq = ref_seq.seq[(b + head_shift):(a + head_shift)]
-            stitch = joinSeqPair(head_seq, tail_seq, gap=gap, insert_seq=insert_seq)
+        stitch = joinSeqPair(head_seq, tail_seq, gap=(a - b), insert_seq=None)
     else:
         stitch = AssemblyRecord()
         stitch.gap = 0
@@ -267,6 +262,12 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
                                         score_dict=score_dict)
     stitch.ident = 1 - error
     stitch.valid = bool(stitch.ident >= min_ident)
+
+    # Fill gap with reference if required
+    if a > b and x > y and fill:
+        insert_seq = ref_seq.seq[(b + head_shift):(a + head_shift)]
+        insert_rec = joinSeqPair(head_seq, tail_seq, gap=(a - b), insert_seq=insert_seq)
+        stitch.seq = insert_rec.seq
 
     return stitch
 
