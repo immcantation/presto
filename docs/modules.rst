@@ -1,58 +1,13 @@
 API
 ==============
 
-presto.Annotation
-------------------------
+.. toctree::
+   :maxdepth: 1
 
-.. automodule:: presto.Annotation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.Applications
-------------------------
-
-.. automodule:: presto.Applications
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.Commandline
--------------------------
-
-.. automodule:: presto.Commandline
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.Defaults
-----------------------
-
-.. automodule:: presto.Defaults
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.IO
-----------------
-
-.. automodule:: presto.IO
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.Multiprocessing
------------------------------
-
-.. automodule:: presto.Multiprocessing
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-presto.Sequence
-----------------------
-
-.. automodule:: presto.Sequence
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   api/Annotation
+   api/Applications
+   api/Commandline
+   api/Defaults
+   api/IO
+   api/Multiprocessing
+   api/Sequence
