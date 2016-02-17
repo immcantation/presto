@@ -1,8 +1,3 @@
-ParseLog
----------------
-
-.. argparse::
-   :module: ParseLog
-   :func: getArgParser
+.. autoprogram:: ParseLog:getArgParser()
    :prog: ParseLog
 

@@ -1,8 +1,3 @@
-EstimateError
----------------
-
-.. argparse::
-   :module: EstimateError
-   :func: getArgParser
+.. autoprogram:: EstimateError:getArgParser()
    :prog: EstimateError
 

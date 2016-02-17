@@ -1,8 +1,3 @@
-BuildConsensus
----------------
-
-.. argparse::
-   :module: BuildConsensus
-   :func: getArgParser
+.. autoprogram:: BuildConsensus:getArgParser()
    :prog: BuildConsensus
 

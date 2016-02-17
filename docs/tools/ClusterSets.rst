@@ -1,8 +1,3 @@
-ClusterSets
----------------
-
-.. argparse::
-   :module: ClusterSets
-   :func: getArgParser
+.. autoprogram:: ClusterSets:getArgParser()
    :prog: ClusterSets
 

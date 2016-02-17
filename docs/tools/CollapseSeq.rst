@@ -1,8 +1,3 @@
-CollapseSeq
----------------
-
-.. argparse::
-   :module: CollapseSeq
-   :func: getArgParser
+.. autoprogram:: CollapseSeq:getArgParser()
    :prog: CollapseSeq
 

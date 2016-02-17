@@ -1,9 +1,4 @@
-PairSeq
----------------
-
-.. argparse::
-   :module: PairSeq
-   :func: getArgParser
+.. autoprogram:: PairSeq:getArgParser()
    :prog: PairSeq
 
 
