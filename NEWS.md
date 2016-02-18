@@ -1,5 +1,7 @@
-Version 0.5.1.999:  January 26, 2015
+Version 0.5.1.999:  February 18, 2016
 -------------------------------------------------------------------------------
+
+Improvements to commandline usage help messages.
 
 AssemblePairs:
 

@@ -346,20 +346,26 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               consensus-pass        consensus reads.
-               consensus-fail        raw reads failing consensus filtering criteria.
+                 consensus-pass
+                     consensus reads.
+                 consensus-fail
+                     raw reads failing consensus filtering criteria.
 
              output annotation fields:
-                 PRIMER              a comma delimited list of unique primer annotations
-                                     found within the barcode read group.
-                 PRCOUNT             a comma delimited list of the corresponding counts of
-                                     unique primer annotations.
-                 PRCONS              the majority primer within the barcode read group.
-                 PRFREQ              the frequency of the majority primer.
-                 CONSCOUNT           the count of reads within the barcode read group which
-                                     contributed to the consensus sequence. This is the
-                                     total size of the read group, minus sequence excluded
-                                     due to user defined filtering criteria.
+                 PRIMER
+                     a comma delimited list of unique primer annotations found within the
+                     barcode read group.
+                 PRCOUNT
+                     a comma delimited list of the corresponding counts of unique primer
+                     annotations.
+                 PRCONS
+                     the majority primer within the barcode read group.
+                 PRFREQ
+                     the frequency of the majority primer.
+                 CONSCOUNT
+                     the count of reads within the barcode read group which contributed to
+                     the consensus sequence. This is the total size of the read group,
+                     minus sequence excluded due to user defined filtering criteria.
              ''')
 
     # Define ArgumentParser

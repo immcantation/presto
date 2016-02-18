@@ -380,13 +380,15 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               convert-pass   reads passing header conversion.
-               convert-fail   raw reads failing header conversion.
+                 convert-pass
+                     reads passing header conversion.
+                 convert-fail
+                     raw reads failing header conversion.
 
              output annotation fields:
-               <format defined>
-                              the annotation fields added are specific to the header format
-                              of the input file.
+                 <format defined>
+                     the annotation fields added are specific to the header format of the
+                     input file.
              ''')
 
     # Define ArgumentParser

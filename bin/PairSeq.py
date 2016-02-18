@@ -192,12 +192,14 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               pair-pass             successfully paired reads with modified annotations.
-               pair-fail             raw reads that could not be assigned to a mate-pair.
+                 pair-pass
+                     successfully paired reads with modified annotations.
+                 pair-fail
+                     raw reads that could not be assigned to a mate-pair.
 
              output annotation fields:
-               <user defined>        annotation fields specified by the --1f or --2f
-                                     parameters.
+                 <user defined>
+                     annotation fields specified by the --1f or --2f arguments.
              ''')
 
     # Define ArgumentParser

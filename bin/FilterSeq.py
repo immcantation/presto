@@ -359,16 +359,15 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               <subcommand>-pass
-                              reads passing filtering operation and modified accordingly,
-                              where <subcommand> is the name of the filtering operation
-                              that was run.
-               <subcommand>-fail
-                              raw reads failing filtering criteria, where <subcommand> is
-                              the name of the filtering operation.
+                 <command>-pass
+                     reads passing filtering operation and modified accordingly, where
+                     <command> is the name of the filtering operation that was run.
+                 <command>-fail
+                     raw reads failing filtering criteria, where <command> is the name of
+                     the filtering operation.
 
              output annotation fields:
-               None
+                 None
              ''')
 
     # Define ArgumentParser

@@ -870,12 +870,14 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               assemble-pass  successfully assembled reads.
-               assemble-fail  raw reads failing paired-end assembly.
+                 assemble-pass
+                     successfully assembled reads.
+                 assemble-fail
+                     raw reads failing paired-end assembly.
 
              output annotation fields:
-               <user defined>
-                              annotation fields specified by the --1f and --2f parameters.
+                 <user defined>
+                     annotation fields specified by the --1f or --2f arguments.
              ''')
 
     # Define ArgumentParser
@@ -930,7 +932,7 @@ def getArgParser():
     parser_ref = subparsers.add_parser('reference', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
                                         help='''Assembled pairs by aligning reads against a
-                                             reference database.''')
+                                             reference database''')
     parser_ref.add_argument('-r', action='store', dest='ref_file', required=True,
                             help='''A FASTA file containing the reference sequence database.''')
     parser_ref.add_argument('--minident', action='store', dest='min_ident', type=float,

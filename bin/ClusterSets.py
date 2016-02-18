@@ -202,13 +202,14 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               cluster-pass          clustered reads.
-               cluster-fail          raw reads failing clustering.
+                 cluster-pass
+                    clustered reads.
+                 cluster-fail
+                    raw reads failing clustering.
 
              output annotation fields:
-               CLUSTER               a numeric cluster identifier defining the within-group
-                                     cluster.
-
+                 CLUSTER
+                    a numeric cluster identifier defining the within-group cluster.
              ''')
 
     # Define ArgumentParser

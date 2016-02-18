@@ -530,15 +530,20 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               mask-pass      processed reads with successful primer matches.
-               mask-fail      raw reads failing primer identification.
+                 mask-pass
+                     processed reads with successful primer matches.
+                 mask-fail
+                     raw reads failing primer identification.
 
              output annotation fields:
-               SEQORIENT      the orientation of the output sequence. Either F (input)
-                              or RC (reverse complement of input).
-               PRIMER         name of the best primer match.
-               BARCODE        the sequence preceding the primer match. Only output when
-                              the --barcode flag is specified.
+                 SEQORIENT
+                     the orientation of the output sequence. Either F (input) or RC
+                     (reverse complement of input).
+                 PRIMER
+                     name of the best primer match.
+                 BARCODE
+                     the sequence preceding the primer match. Only output when the
+                     --barcode flag is specified.
              ''')
 
     # Define ArgumentParser

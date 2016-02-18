@@ -272,6 +272,8 @@ def weightSeq(seq, ignore_chars=set()):
 
 def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
+    scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict())
+
     Determine the error rate for a pair of sequences
 
     Arguments:
@@ -297,6 +299,8 @@ def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
 
 def calculateDiversity(seq_list, score_dict=getDNAScoreDict()):
     """
+    calculateDiversity(seq_list, score_dict=getDNAScoreDict())
+
     Determine the average pairwise error rate for a list of sequences
 
     Arguments:
@@ -321,6 +325,8 @@ def calculateDiversity(seq_list, score_dict=getDNAScoreDict()):
 def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
                       score_dict=getDNAScoreDict()):
     """
+    calculateSetError(seq_list, ref_seq, ignore_chars=['n', 'N'], score_dict=getDNAScoreDict())
+
     Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
 
     Arguments:

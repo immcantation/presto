@@ -525,28 +525,27 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               part<partition>
-                              reads partitioned by count, where <partition> is the
-                              partition number.
-               <field>-<value>
-                              reads partitioned by annotation <field> and <value>.
-               under-<number>
-                              reads partitioned by numeric threshold where the annotation
-                              value is strictly less than the threshold <number>.
-               atleast-<number>
-                              reads partitioned by numeric threshold where the annotation
-                              value is greater than or equal to the threshold <number>.
-               sorted         reads sorted by annotation value.
-               sorted-part<partition>
-                              reads sorted by annotation value and partitioned by count,
-                              where <partition> is the partition number.
-               sample<instance>-n<count>
-                              randomly sampled reads where <instance> is a number
-                              specifying the sampling instance and <count> is the number
-                              of sampled reads.
+                 part<part>
+                     reads partitioned by count, where <part> is the partition number.
+                 <field>-<value>
+                     reads partitioned by annotation <field> and <value>.
+                 under-<number>
+                     reads partitioned by numeric threshold where the annotation value is
+                     strictly less than the threshold <number>.
+                 atleast-<number>
+                     reads partitioned by numeric threshold where the annotation value is
+                     greater than or equal to the threshold <number>.
+                 sorted
+                     reads sorted by annotation value.
+                 sorted-part<part>
+                     reads sorted by annotation value and partitioned by count, where
+                     <part> is the partition number.
+                 sample<i>-n<count>
+                     randomly sampled reads where <i> is a number specifying the sampling
+                     instance and <count> is the number of sampled reads.
 
              output annotation fields:
-               None
+                 None
              ''')
 
     # Define ArgumentParser

@@ -1,2 +1,2 @@
 .. autoprogram:: AlignSets:getArgParser()
-   :prog: AlignSets
+    :prog: AlignSets

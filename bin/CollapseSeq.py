@@ -321,21 +321,24 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               collapse-unique       unique sequences. Contains one representative from
-                                     each set of duplicate sequences. The retained
-                                     representative is determined by user defined criteria.
-               collapse-duplicate    raw reads which are duplicates of the sequences
-                                     retained in the collapse-unique file.
-               collapse-undetermined
-                                     raw reads which were excluded from consideration due
-                                     to having too many N characters in the sequence.
-
+                 collapse-unique
+                     unique sequences. Contains one representative from each set of
+                     duplicate sequences. The retained representative is determined by
+                     user defined criteria.
+                 collapse-duplicate
+                     raw reads which are duplicates of the sequences retained in the
+                     collapse-unique file.
+                 collapse-undetermined
+                     raw reads which were excluded from consideration due to having too
+                     many N characters in the sequence.
 
              output annotation fields:
-               DUPCOUNT              total number of sequences within the set of duplicates
-                                     for each retained unique sequence. Meaning, the copy
-                                     number of each unique sequence within the data file.
-               <user defined>        annotation fields specified by the --cf parameter.
+                 DUPCOUNT
+                     total number of sequences within the set of duplicates for each
+                     retained unique sequence. Meaning, the copy number of each unique
+                     sequence within the data file.
+                 <user defined>
+                     annotation fields specified by the --cf parameter.
              ''')
 
     # TODO: add exact mode which does hash table search only

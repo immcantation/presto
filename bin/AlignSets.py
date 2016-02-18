@@ -343,15 +343,17 @@ def getArgParser():
     fields = dedent(
          '''
          output files:
-           align-pass     multiple aligned reads.
-           align-fail     raw reads failing multiple alignment.
-           offsets-forward
-                          5\' offset table for input into offset subcommand.
-           offsets-reverse
-                          3\' offset table for input into offset subcommand.
+             align-pass
+                 multiple aligned reads.
+             align-fail
+                 raw reads failing multiple alignment.
+             offsets-forward
+                 5\' offset table for input into offset subcommand.
+             offsets-reverse
+                 3\' offset table for input into offset subcommand.
 
          output annotation fields:
-           None
+             None
          ''')
 
     # Define ArgumentParser

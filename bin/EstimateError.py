@@ -448,29 +448,39 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               error-position        estimated error by read position.
-               error-quality         estimated error by the quality score assigned within
-                                     the input file.
-               error-nucleotide      estimated error by nucleotide.
-               error-set             estimated error by barcode read group size.
+                 error-position
+                     estimated error by read position.
+                 error-quality
+                     estimated error by the quality score assigned within the input file.
+                 error-nucleotide
+                     estimated error by nucleotide.
+                 error-set
+                     estimated error by barcode read group size.
 
              output fields:
-               POSITION              read position with base zero indexing.
-               Q                     Phred quality score.
-               OBSERVED              observed nucleotide value.
-               REFERENCE             consensus nucleotide for the barcode read group.
-               SET_COUNT             barcode read group size.
-               REPORTED_Q            mean Phred quality score reported within the input
-                                     file for the given position, quality score, nucleotide
-                                     or read group.
-               MISMATCHES            count of observed mismatches from consensus for the
-                                     given position, quality score, nucleotide or read
-                                     group.
-               OBSERVATIONS          total count of observed values for each position,
-                                     quality score, nucleotide or read group size.
-               ERROR                 estimated error rate.
-               EMPIRICAL_Q           estimated error rate converted to a Phred quality
-                                     score.
+                 POSITION
+                     read position with base zero indexing.
+                 Q
+                     Phred quality score.
+                 OBSERVED
+                     observed nucleotide value.
+                 REFERENCE
+                     consensus nucleotide for the barcode read group.
+                 SET_COUNT
+                     barcode read group size.
+                 REPORTED_Q
+                     mean Phred quality score reported within the input file for the given
+                     position, quality score, nucleotide or read group.
+                 MISMATCHES
+                     count of observed mismatches from consensus for the given position,
+                     quality score, nucleotide or read group.
+                 OBSERVATIONS
+                     total count of observed values for each position, quality score,
+                     nucleotide or read group size.
+                 ERROR
+                     estimated error rate.
+                 EMPIRICAL_Q
+                     estimated error rate converted to a Phred quality score.
              ''')
 
     # Define ArgumentParser

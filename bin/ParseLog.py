@@ -135,10 +135,12 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               table                 tab delimited table of the selected annotations.
+                 table
+                     tab delimited table of the selected annotations.
 
              output annotation fields:
-               <user defined>        annotation fields specified by the -f parameter.
+                 <user defined>
+                     annotation fields specified by the -f argument.
              ''')
 
     # Define ArgumentParser

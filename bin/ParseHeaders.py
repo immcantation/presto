@@ -306,13 +306,16 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-               reheader-pass  reads passing annotation operation and modified accordingly.
-               reheader-fail  raw reads failing annotation operation.
-               headers        tab delimited table of the selected annotations.
+                 reheader-pass
+                     reads passing annotation operation and modified accordingly.
+                 reheader-fail
+                     raw reads failing annotation operation.
+                 headers
+                     tab delimited table of the selected annotations.
 
              output annotation fields:
-               <user defined>
-                              annotation fields specified by the -f parameter.
+                 <user defined>
+                     annotation fields specified by the -f argument.
              ''')
 
     # Define ArgumentParser

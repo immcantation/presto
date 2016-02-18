@@ -1,8 +1,9 @@
-454, RT-PCR, Multiplexed Samples
+MiSeq 2x250, RT-PCR, Without UMIs, Unstranded
 ================================================================================
+
 
 .. highlight:: bash
 
 .. code-block:: bash
 
-   PrestoPipelineV4.7_Generic454.sh
+   PrestoPipelineV4.5_UnstrandedMiSeq.sh
