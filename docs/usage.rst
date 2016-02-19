@@ -1,12 +1,10 @@
-Usage
+.. _Usage:
+
+Commandline Usage
 ================================================================================
 
-TODO
-
-**Commandline Usage:**
-
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    tools/AlignSets
    tools/AssemblePairs

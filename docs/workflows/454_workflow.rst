@@ -1,8 +1,0 @@
-454, RT-PCR, Multiplexed Samples
-================================================================================
-
-.. highlight:: bash
-
-.. code-block:: bash
-
-   PrestoPipelineV4.7_Generic454.sh

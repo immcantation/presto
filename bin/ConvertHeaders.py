@@ -414,7 +414,7 @@ def getArgParser():
     # Subparser for conversion of 454 headers
     parser_454 = subparsers.add_parser('454', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='''Converts 454 sequence headers.''')
+                                       help='''Converts Roche 454 sequence headers.''')
     parser_454.set_defaults(convert_func=convert454Header)
 
     # Subparser for conversion of GenBank and RefSeq headers
@@ -444,7 +444,7 @@ def getArgParser():
     # Subparser for conversion of SRA headers
     parser_sra = subparsers.add_parser('sra', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='''Convert NCBI SRA sequence headers.''')
+                                       help='''Converts NCBI SRA sequence headers.''')
     parser_sra.set_defaults(convert_func=convertSRAHeader)
 
     return parser

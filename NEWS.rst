@@ -1,3 +1,6 @@
+Change Log
+================================================================================
+
 Version 0.5.1.999:  February 18, 2016
 -------------------------------------------------------------------------------
 
@@ -5,7 +8,7 @@ Improvements to commandline usage help messages.
 
 AssemblePairs:
 
-+ Added the flag `--fill` to the reference subcommand to allow insertion of 
++ Added the flag ``--fill`` to the reference subcommand to allow insertion of 
   the reference sequence into the non-overlapping region of assembled 
   sequences. Use caution when using this flag, as this may lead to chimeric 
   sequences.
@@ -16,7 +19,7 @@ Version 0.5.1:  December 4, 2015
 
 ClusterSets:
 
-+ Fixed bug wherein `--failed` flag did not work.
++ Fixed bug wherein ``--failed`` flag did not work.
 
 
 Version 0.5.0:  September 7, 2015
@@ -40,7 +43,7 @@ Version 0.4.8:  September 7, 2015
 -------------------------------------------------------------------------------
 
 Added support for additional input FASTA (.fna, .fa), FASTQ (.fq) and 
-  tab-delimited (.tsv) file extensions.
+tab-delimited (.tsv) file extensions.
 
 ParseHeaders:
 
@@ -49,10 +52,11 @@ ParseHeaders:
   the existing field.
 + Added the copy subcommand which will copy annotations into new field names
   or merge the annotations of existing fields.
-+ Added the `--act` argument to the copy and rename subcommands allowing 
++ Added the ``--act`` argument to the copy and rename subcommands allowing 
   collapse following the copy or rename operation.
-+ Added a commandline check to ensure that the `-f`, `-k` and `--act` arguments 
-  contain the same number of fields for both the rename and copy subcommands.
++ Added a commandline check to ensure that the ``-f``, ``-k`` and ``--act`` 
+  arguments contain the same number of fields for both the rename and copy 
+  subcommands.
 
 
 Version 0.4.7:  June 5, 2015
@@ -79,21 +83,21 @@ ConvertHeaders:
 
 + Added support for SRA style sequence headers where the read number has been 
   appended to the spot number; eg, output from 
-  `fastq-dump -I --split-files file.sra`.
+  ``fastq-dump -I --split-files file.sra``.
 
 ClusterSets:
 
 + Added missing OUTPUT console log field.
-+ Changed `--bf` and `--cf` arguments to `-f` and `-k`, respectively.
++ Changed ``--bf`` and ``--cf`` arguments to ``-f`` and ``-k``, respectively.
 
 MaskPrimers:
 
 + Altering scoring behavior for N characters such that Ns in the input sequence 
   are always counted as a mismatch, while Ns in the primer sequence are counted 
   as a match, with priority given to the input sequence score.
-+ Added `--gap` argument to the align subcommand which allows users to specify
-  the gap open and gap extension penalties for aligning primers. Note:  gap
-  penalties reduce the match count for purposes of calculating ERROR.
++ Added ``--gap`` argument to the align subcommand which allows users to 
+  specify the gap open and gap extension penalties for aligning primers. 
+  Note:  gap penalties reduce the match count for purposes of calculating ERROR.
 
 PairSeq:
 
@@ -106,18 +110,18 @@ Version 0.4.6:  May 13, 2015
 
 BuildConsensus:
 
-+ Changed `--maxmiss` argument to `--maxgap` and altered the behavior to only
-  perform deletion of positions based on gap characters (only "-" or "."
++ Changed ``--maxmiss`` argument to ``--maxgap`` and altered the behavior to 
+  only perform deletion of positions based on gap characters (only "-" or "."
   and not "N" characters).
-+ Added an error rate (`--maxerror`) calculation based on mismatches from 
-  consensus. The `--maxerror` argument is mutually exclusive with the 
-  `--maxdiv` argument and provides similar functionality. However, the 
-  calculations are not equivalent, and `--maxerror` should be considerably 
-  faster than `--maxdiv`.
++ Added an error rate (``--maxerror``) calculation based on mismatches from 
+  consensus. The ``--maxerror`` argument is mutually exclusive with the 
+  ``--maxdiv`` argument and provides similar functionality. However, the 
+  calculations are not equivalent, and ``--maxerror`` should be considerably 
+  faster than ``--maxdiv``.
 + Added exclusion of positions from the error rate calculation that are deleted
-  due to exceeding the `--maxgap` threshold .
+  due to exceeding the ``--maxgap`` threshold .
 + Fixed misalignment of consensus sequence against input sequences when
-  positions are deleted due to exceeding the `--maxgap` threshold.
+  positions are deleted due to exceeding the ``--maxgap`` threshold.
 
 ClusterSets:
 
@@ -126,8 +130,8 @@ ClusterSets:
 
 ConvertHeaders:
 
-+ New script to handle conversion of different sequence description formats to
-  the pRESTO format.
++ New script to handle conversion of different sequence description formats 
+  to the pRESTO format.
   
 FilterSeq:
 
@@ -136,8 +140,8 @@ FilterSeq:
 
 PairSeq:
 
-+ Changed `-f` argument to `--1f` argument.
-+ Added `--2f` argument to copy file 2 annotations to file 1.
++ Changed ``-f`` argument to ``--1f`` argument.
++ Added ``--2f`` argument to copy file 2 annotations to file 1.
 
 ParseHeaders:
 
@@ -151,8 +155,8 @@ Version 0.4.5:  March 20, 2015
 Added details to the usage documentation for each tool which describes both
 the output files and annotation fields.
 
-Renamed `--clean` argument to `--failed` argument with opposite behavior, such 
-that the default behavior of all scripts is now clean output.
+Renamed ``--clean`` argument to ``--failed`` argument with opposite behavior, 
+such that the default behavior of all scripts is now clean output.
 
 IgCore:
 
@@ -172,10 +176,11 @@ AssemblePairs:
   check that coordinate info matches and error if the files are not
   synchronized. Unpaired reads are no longer output.
 + Added support for cases where one mate pair is the subsequence of the other.
-+ Added `--scanrev` argument to allow for head sequence to overhang end of tail.
++ Added ``--scanrev`` argument to allow for head sequence to overhang end of 
+  tail.
 + Removed truncated (quick) error calculation in align subcommand.
-+ Changed default values of the `--maxerror` and `--alpha` arguments of the align
-  subcommand to better tuned parameters.
++ Changed default values of the ``--maxerror`` and ``--alpha`` arguments of 
+  the align subcommand to better tuned parameters.
 + Changed internal selection of top scoring alignment to use Z-score
   approximation rather than a combination of error rate and binomial
   mid-p value.
@@ -192,17 +197,18 @@ BuildConsensus:
 
 + Fixed bug where low quality positions where not being masked in single
   sequence barcode groups.
-+ Added copy field (`--cf`) and copy action (`--act`) arguments to generate
++ Added copy field (``--cf``) and copy action (``--act``) arguments to generate
   consensus annotations for barcode read groups.
 + Changed maximum consensus quality score from 93 to 90.
 
 CollapseSeq:
 
-+ Added `--keep` argument to allow retention of sequences with high missing character
-  counts in unique sequence output file.
-+ Removed case insensitivity for performance reasons. Now requires all sequences
-  to have matching case.
-+ Removed `first` and `last` from `--act` choices to avoid unexpected behavior.
++ Added ``--keep`` argument to allow retention of sequences with high missing 
+  character counts in unique sequence output file.
++ Removed case insensitivity for performance reasons. Now requires all 
+  sequences to have matching case.
++ Removed ``first`` and ``last`` from ``--act`` choices to avoid unexpected 
+  behavior.
 
 MaskPrimers:
 
@@ -218,17 +224,17 @@ PairSeq:
 
 + Performance improvements. The tool should now be considerably faster on very
   large files.
-+ Specifying the `--failed` argument to request output of sequences which do not
-  have a mate pair will increase run time and memory usage.
++ Specifying the ``--failed`` argument to request output of sequences which 
+  do not have a mate pair will increase run time and memory usage.
 
 ParseHeaders:
 
 + Add 'cat' action to collapse subcommand which concatenates strings into
   a single annotation.
 
-SplitSeq
+SplitSeq:
 
-+ Removed `--clean` (and `--failed`) flag from all subcommands.
++ Removed ``--clean`` (and ``--failed``) flag from all subcommands.
 + Added progress updates to sample and samplepair subcommands.
 + Performance improvements to samplepair subcommand.
 
@@ -238,7 +244,7 @@ Version 0.4.4:  June 10, 2014
 
 SplitSeq:
 
-+ Removed a *nix-specific dependency, allowing SplitSeq to work on Windows.
++ Removed a linux-specific dependency, allowing SplitSeq to work on Windows.
 
 Version 0.4.3:  April 7, 2014
 -------------------------------------------------------------------------------
@@ -267,16 +273,16 @@ AssemblePairs:
 
 BuildConsensus:
 
-+ Added support for `--freq value` parameter to quality consensus method
++ Added support for ``--freq value`` parameter to quality consensus method
   and set default value to 0.6.
 + Fixed a bug in the frequency consensus method where missing values were
   contributing to the total character count at each position.
-+ Added the parameter `--maxmiss value` which provides a cut-off for removal 
-  of positions with too many N or gap characters .
++ Added the parameter ``--maxmiss value`` which provides a cut-off for 
+  removal of positions with too many N or gap characters .
 
 MaskPrimers:
 
-+ Renamed the `--reverse` parameter to `--revpr`.
++ Renamed the ``--reverse`` parameter to ``--revpr``.
 
 SplitSeq:
 
@@ -292,7 +298,7 @@ multiprocessing in Windows environments.
 Changes to the internals of multiple tools to provide clean exit of
 child processes upon kill signal or exception in sibling process. 
 
-Fixed unexpected behavior of `--outname` and `--log` arguments with 
+Fixed unexpected behavior of ``--outname`` and ``--log`` arguments with 
 multiple input files.
 
 IgCore:
@@ -316,11 +322,11 @@ EstimateError:
 
 MaskPrimers:
 
-+ Added `trim` mode which will cut the region before primer alignment, but 
++ Added ``trim`` mode which will cut the region before primer alignment, but 
   leave primer region unmodified.
 + Fixed a bug with lowercase sequence data.
 + Fixed bug in the console and log output.
-+ Added support for primer matching when setting `--maxerr 1.0`.
++ Added support for primer matching when setting ``--maxerr 1.0``.
 
 ParseHeaders:
 
@@ -333,8 +339,8 @@ ParseLog:
 SplitSeq:
 
 + Fixed typo in console output of samplepair subcommand.
-+ Added increase of the open file limit to the group subcommand to allow for a 
-  large number of groups.
++ Added increase of the open file limit to the group subcommand to allow for 
+  a large number of groups.
 
 
 Version 0.4.0:  September 30, 2013
@@ -345,26 +351,26 @@ and output files.
 
 AlignSets, AssemblePairs, BuildConsensus, EstimateError, FilterSeq, and 
 MaskPrimers are now multithreaded.  The number of simultaneous processes
-may be specified using `--nproc value`. Note this means file ordering
+may be specified using ``--nproc value``. Note this means file ordering
 is no longer preserved between the input and output sequence files.
 
 Performance improvements were made to several tools.
 
-The universal `--verbose` parameter was replaced with `--log file_name`
+The universal ``--verbose`` parameter was replaced with ``--log file_name``
 which specifies a log file for verbose output, and disables verbose logging
 if not specified.  
 
-The report of input parameters and sequence counts is now separate from the log
-and is always printed to standard output.
+The report of input parameters and sequence counts is now separate from the 
+log and is always printed to standard output.
 
 Added a progress bar to the standard output of most tools.
   
-Added a universal `--outname file_prefix` parameter which changes the leading
+Added a universal ``--outname file_prefix`` parameter which changes the leading
 portion of the output file name.  If not specified, the current file name 
 is used (excluding the file extension, as per the previous behavior).
 
-Added a universal `--clean` parameter which if specified forces the tool not to
-create an output file of sequences which failed processing.
+Added a universal ``--clean`` parameter which if specified forces the tool 
+not to create an output file of sequences which failed processing.
   
 IgCore:
 
@@ -379,15 +385,15 @@ IgCore:
 AssemblePairs:
 
 + Coordinate information is now specified by a coordinate type, rather than a 
-  delimiter, using the `--coord header_type` parameter, where the header type
-  may be one of `illumina`, `solexa`, `sra`, `454`, `presto`.
+  delimiter, using the ``--coord header_type`` parameter, where the header type
+  may be one of ``illumina``, ``solexa``, ``sra``, ``454``, ``presto``.
 
 CollapseSeq:
 
 + Sequences with a missing character count exceeding the user limit defined
-  by `-n maximum_missing_count` are now exported to a separate 
-  `collapse-undetermined` output file, rather than included in the 
-  `collapse-unique` sequence output.
+  by ``-n maximum_missing_count`` are now exported to a separate 
+  ``collapse-undetermined`` output file, rather than included in the 
+  ``collapse-unique`` sequence output.
 
 EstimateError:
 
@@ -398,7 +404,7 @@ EstimateError:
 
 FilterSeq:
 
-+ Added `length` subcommand to filter sequences by minimum length.
++ Added ``length`` subcommand to filter sequences by minimum length.
 
 PairSeq:
 
@@ -406,9 +412,9 @@ PairSeq:
 
 ParseHeaders:
 
-+ Added new subcommand `convert` which attempts to reformat sequence headers 
++ Added new subcommand ``convert`` which attempts to reformat sequence headers 
   into the pRESTO format.
-+ The `rename` subcommand will now append entries if the new field name already
++ The ``rename`` subcommand will now append entries if the new field name already
   exists in the sequence header, rather than replace the entry.
 
 
@@ -419,13 +425,13 @@ Toolkit is now dependent upon pandas 0.12 for the estimateError tool.
 
 alignSets:
 
-+ Changed MUSCLE execution to faster settings (`-diags`, `-maxiters 2`).
++ Changed MUSCLE execution to faster settings (``-diags``, ``-maxiters 2``).
 
 filterQuality:
 
-+ Added `repeat` subcommand to filter sequences with `-n (value)` repetitions 
++ Added ``repeat`` subcommand to filter sequences with ``-n (value)`` repetitions 
   of a single character and. 
-+ Changed `-n` parameter of `ambig` subcommand from fractional value to a 
++ Changed ``-n`` parameter of ``ambig`` subcommand from fractional value to a 
   raw count.
 
 estimateError:
@@ -434,9 +440,9 @@ estimateError:
 
 maskPrimers:
 
-+ Bug fixes to alignment position calculation of `align` subcommand when primer
++ Bug fixes to alignment position calculation of ``align`` subcommand when primer
   alignment begins before start of sequence.
-+ Removed `--ann` parameter.
++ Removed ``--ann`` parameter.
 
 
 
@@ -455,23 +461,23 @@ IgPipeline Core:
 
 alignSets:
 
-+ Added `--mode` parameter with options of `pad` and `cut` to specify whether 
++ Added ``--mode`` parameter with options of ``pad`` and ``cut`` to specify whether 
   to extend or trim read groups to the same start position.
 + Fixed intermittent 'muscle' subcommand stdout pipe deadlock when 
   executing MUSCLE.
 
 assemblePairs:
 
-+ Added `join` subcommand to support library preps where paired-end reads 
++ Added ``join`` subcommand to support library preps where paired-end reads 
   do not overlap.
 + Speed improvements to p-value calculations.
 
 buildConsensus:
 
-+ `--div` parameter converted to `--maxdiv value` to allow filtering of read 
++ ``--div`` parameter converted to ``--maxdiv value`` to allow filtering of read 
   groups by diversity.
 + Bug fixes to nucleotide frequency consensus method.
-+ `-q` parameter renamed to `--qual`.
++ ``-q`` parameter renamed to ``--qual``.
 
 collapseSequences:
 
@@ -480,11 +486,10 @@ collapseSequences:
 
 splitSeqFile:
 
-+ `samplepair` subcommand added to allow random sampling from paired-end 
++ ``samplepair`` subcommand added to allow random sampling from paired-end 
   file sets.
-+ The behavior of the `-c` parameter of the `sample` and `samplepair` 
++ The behavior of the ``-c`` parameter of the ``sample`` and ``samplepair`` 
   subcommands changed to allow multiple samplings with the same command.
-
 
 
 Version 0.3 (prerelease 4):  May 18, 2013

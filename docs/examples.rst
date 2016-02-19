@@ -1,8 +1,6 @@
 Examples
 ================================================================================
 
-TODO
-
 Simple Tasks
 --------------------------------------------------------------------------------
 
@@ -11,13 +9,11 @@ TODO
 Workflows
 --------------------------------------------------------------------------------
 
-TODO
-
 .. toctree::
    :maxdepth: 2
 
-   workflows/454_workflow
-   workflows/miseq_unstranded_workflow
-   workflows/miseq_generic_workflow
-   workflows/abvitro_v2_workflow
-   workflows/abvitro_v3_workflow
+   workflows/454_Jiang2013
+   workflows/MiSeq_Stern2014
+   workflows/MiSeq_Unstranded
+   workflows/MiSeq_Generic
+   workflows/MiSeq_AbSeqV3

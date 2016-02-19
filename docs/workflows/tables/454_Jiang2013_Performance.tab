@@ -1,0 +1,10 @@
+Line	Tool	Reads	Cores	MB	Minutes
+01	FilterSeq.py length	1,346,039	10	669	12.2
+02	FilterSeq.py quality	1,184,905	10	619	11.5
+03	MaskPrimers.py score	1,184,219	10	621	18.5
+04	MaskPrimers.py align	1,177,245	10	618	263.1
+05	MaskPrimers.py align	959,920	10	563	122.9
+07	ParseHeaders.py expand	548,658	1	329	3.6
+08	ParseHeaders.py rename	548,658	1	329	4.1
+09	CollapseSeq.py	548,658	1	1,509	5.6
+

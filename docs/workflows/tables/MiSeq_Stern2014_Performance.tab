@@ -1,0 +1,14 @@
+Line	Tool	Reads	Cores	MB	Minutes
+01	R1:  FilterSeq.py quality	1,723,558	10	1,219	13.0
+02	R2:  FilterSeq.py quality	1,723,558	10	1,219	12.8
+03	R1:  MaskPrimers.py score	1,722,116	10	1,221	18.9
+04	R2:  MaskPrimers.py score	1,684,050	10	1,221	46.7
+06	PairSeq.py	1,665,584	1	4,734	25.5
+07	R1:  BuildConsensus.py	1,565,017	10	1,228	50.1
+08	R2:  BuildConsensus.py	1,565,017	10	1,229	58.6
+11	AssemblePairs.py align	66,285	10	358	3.0
+13	ParseHeaders.py collapse	56,104	1	88	0.4
+14	CollapseSeq.py	55,480	1	822	0.7
+15	SplitSeq.py group	51,047	1	88	0.2
+
+

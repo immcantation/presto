@@ -36,34 +36,32 @@ Linux
 Mac OS X
 --------------------------------------------------------------------------------
 
-1. Install Xcode 3.2.6 Available from the Apple store or
-   `developer downloads <http://developer.apple.com/downloads>`__. If you have a
-   newer version (eg, Xcode 4.6.3) that will work also, but Xcode 3 is
-   free of charge. If Xcode fails to install with an "Unknown Error",
-   change the date on your system to some time in 2011, install Xcode,
-   and then change the date back to the proper setting.
+1. Install Xcode. Available from the Apple store or
+   `developer downloads <http://developer.apple.com/downloads>`__.
 
-2. Install XQuartz 2.7.5 Available from the
-   `XQuartz project <http://xquartz.macosforge.org/landing>`__.
+2. Older versions Mac OS X will require you to install XQuartz 2.7.5. Available
+   from the `XQuartz project <http://xquartz.macosforge.org/landing>`__.
 
-3. Install Homebrew Follow the installation and post-installation
+3. Install Homebrew following the installation and post-installation
    `instructions <http://brew.sh>`__.
 
-4. Open a terminal and install gfortran (required for SciPy) using
-   Homebrew (this can take an hour to install)::
+4. Install Python 3.4.0+ and set the path to the python3 executable::
+
+   > brew install python3
+   > echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile
+
+5. Exit and reopen the terminal application so the PATH setting takes effect.
+
+6. You may, or may not, need to install gfortran (required for SciPy). Try
+   without first, as this can take an hour to install and is not needed on
+   newer releases. If you do need gfortran to install SciPy, you can install it
+   using Homebrew::
 
    > brew install gfortran
 
    If the above fails run this instead::
 
    > brew install --env=std gfortran
-
-5. Install Python 3.4.0+ and set the path to the python3 executable::
-
-   > brew install python3
-   > echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile
-
-6. Exit and reopen the terminal application so the PATH setting takes effect.
 
 7. Install NumPy, SciPy, pandas and Biopyton using the Python package
    manager::

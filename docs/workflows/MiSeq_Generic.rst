@@ -1,9 +1,9 @@
-MiSeq 2x300, RT-PCR, 5'RACE, UMIs
+Illumina MiSeq 2x250bp B cell receptor mRNA without UMI barcodes
 ================================================================================
 
+TODO
 
 .. highlight:: bash
-
 .. code-block:: bash
 
-   PrestoPipelineV4.7_AbSeqV3.sh
+   PrestoPipelineV4.7_GenericMiSeq.sh

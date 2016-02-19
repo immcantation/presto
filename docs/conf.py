@@ -18,6 +18,8 @@ import os
 import sphinx_rtd_theme
 #import sphinx_bootstrap_theme
 from unittest.mock import MagicMock
+
+# Presto imports
 import presto.Version
 
 # Mock modules for readthedocs
@@ -284,10 +286,8 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
-
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
-
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -300,3 +300,4 @@ napoleon_use_admonition_for_references = False
 napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
+

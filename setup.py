@@ -36,13 +36,8 @@ if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
 # Load long package description
-readme_file = 'README.md'
-try:
-   from pypandoc import convert
-   long_description = convert(readme_file, 'rst', format='md')
-except ImportError:
-    print('Warning: pypandoc was not found. Long description will not be converted to reST.')
-    long_description = open(readme_file, 'r').read()
+desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
+long_description = '\n\n'.join([open(f, 'r').read() for f in desc_files])
 
 # Define installation path for commandline tools
 scripts = ['AlignSets.py',
