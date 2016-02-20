@@ -13,8 +13,8 @@ The following example uses the publicly available data from:
 
 Which may be downloaded from the NCBI Sequence Read Archive under
 BioProject accession ID: PRJNA248475. Primers sequences are available
-online at the supplemental website for the publication:
-http://clip.med.yale.edu/papers/Stern2014STM.
+online at the `supplemental website <http://clip.med.yale.edu/papers/Stern2014STM>`__
+for the publication.
 
 Reads must first be converted to FASTQ format, using a tool such as the
 SRA Toolkit, before processing with pRESTO. A schematic of the read
@@ -58,34 +58,35 @@ sequence of pRESTO commands is shown below.
     the initial and final data files. The intermediate files output by each tool
     are not shown for the sake of brevity.
 
-.. highlight:: bash
-.. code-block:: bash
+.. code-block:: shell
+    :linenos:
+    :caption: Commands
 
-    01> FilterSeq.py quality -s MS12_R1.fastq -q 20
-    02> FilterSeq.py quality -s MS12_R2.fastq -q 20
-    03> MaskPrimers.py score -s MS12_R1_quality-pass.fastq -p Stern2014_CPrimers.fasta \
+    FilterSeq.py quality -s MS12_R1.fastq -q 20
+    FilterSeq.py quality -s MS12_R2.fastq -q 20
+    MaskPrimers.py score -s MS12_R1_quality-pass.fastq -p Stern2014_CPrimers.fasta \
         --start 15 --mode cut --barcode --log MP1.log
-    04> MaskPrimers.py score -s MS12_R2_quality-pass.fastq -p Stern2014_VPrimers.fasta \
+    MaskPrimers.py score -s MS12_R2_quality-pass.fastq -p Stern2014_VPrimers.fasta \
         --start 0 --mode mask --log MP2.log
-    05> ParseLog.py -l MP1.log MP2.log -f ID PRIMER BARCODE ERROR
-    06> PairSeq.py -1 MS12_R1*primers-pass.fastq -2 MS12_R2*primers-pass.fastq \
+    ParseLog.py -l MP1.log MP2.log -f ID PRIMER BARCODE ERROR
+    PairSeq.py -1 MS12_R1*primers-pass.fastq -2 MS12_R2*primers-pass.fastq \
         --coord illumina --1f BARCODE
-    07> BuildConsensus.py -s MS12_R1*pair-pass.fastq --bf BARCODE --pf PRIMER \
+    BuildConsensus.py -s MS12_R1*pair-pass.fastq --bf BARCODE --pf PRIMER \
         --prcons 0.6 --maxerror 0.1 --maxgap 0.5 --log BC1.log
-    08> BuildConsensus.py -s MS12_R2*pair-pass.fastq --bf BARCODE --pf PRIMER \
+    BuildConsensus.py -s MS12_R2*pair-pass.fastq --bf BARCODE --pf PRIMER \
         --maxerror 0.1 --maxgap 0.5 --log BC2.log
-    09> ParseLog.py -l BC1.log BC2.log -f BARCODE CONSCOUNT PRCONS ERROR
-    10> PairSeq.py -1 MS12_R1*consensus-pass.fastq -2 MS12_R2*consensus-pass.fastq \
+    ParseLog.py -l BC1.log BC2.log -f BARCODE CONSCOUNT PRCONS ERROR
+    PairSeq.py -1 MS12_R1*consensus-pass.fastq -2 MS12_R2*consensus-pass.fastq \
         --coord presto
-    11> AssemblePairs.py align -1 MS12_R2*consensus-pass_pair-pass.fastq \
+    AssemblePairs.py align -1 MS12_R2*consensus-pass_pair-pass.fastq \
         -2 MS12_R1*consensus-pass_pair-pass.fastq --coord presto --rc tail \
         --1f CONSCOUNT --2f CONSCOUNT PRCONS --outname MS12 --log AP.log
-    12> ParseLog.py -l AP.log -f ID OVERLAP ERROR PVALUE
-    13> ParseHeaders.py collapse -s MS12_assemble-pass.fastq -f CONSCOUNT --act min
-    14> CollapseSeq.py -s MS12*reheader.fastq -n 20 --inner --uf PRCONS \
+    ParseLog.py -l AP.log -f ID OVERLAP ERROR PVALUE
+    ParseHeaders.py collapse -s MS12_assemble-pass.fastq -f CONSCOUNT --act min
+    CollapseSeq.py -s MS12*reheader.fastq -n 20 --inner --uf PRCONS \
         --cf CONSCOUNT --act sum
-    15> SplitSeq.py group -s MS12*collapse-unique.fastq -f CONSCOUNT --num 2
-    16> ParseHeaders.py table -s MS12*atleast-2.fastq -f ID PRCONS CONSCOUNT DUPCOUNT
+    SplitSeq.py group -s MS12*collapse-unique.fastq -f CONSCOUNT --num 2
+    ParseHeaders.py table -s MS12*atleast-2.fastq -f ID PRCONS CONSCOUNT DUPCOUNT
 
 Quality control and annotation of raw reads
 --------------------------------------------------------------------------------
@@ -93,8 +94,8 @@ Quality control and annotation of raw reads
 Quality control begins with the identification and removal of
 low-quality reads using the ``quality`` subcommand of the FilterSeq tool.
 In this example, reads with mean Phred quality scores less than
-20 (Lines 01-02) are removed. Next, the``score`` subcommand of MaskPrimers is
-used to identify and remove the PCR primers for both reads (Lines 03-04). When
+20 (`Commands`_ 1-2) are removed. Next, the``score`` subcommand of MaskPrimers is
+used to identify and remove the PCR primers for both reads (`Commands`_ 3-6). When
 dealing with Ig sequences, it is important to cut or mask the primers,
 as B-cell receptors are subject to somatic hypermutation (the
 accumulation of point mutations in the DNA) and degenerate primer
@@ -106,7 +107,7 @@ with the 15 nucleotide UMI barcode that precedes the primer
 To summarize these steps, the ParseLog tool is used to build a table of
 sequence name (``ID``), primer identity (``PRIMER``), UMI barcode
 (``BARCODE``), and primer match error rate (``ERROR``) from the MaskPrimers
-log files (Line 05).
+log files (`Commands`_ 7).
 
 Generation of UMI consensus sequences
 --------------------------------------------------------------------------------
@@ -116,7 +117,7 @@ reads annotated with the same UMI barcode. As the UMI barcode is part of
 read 1, the ``BARCODE`` annotation identified by MaskPrimers must
 first be copied to the read 2 mate-pair of each read 1
 sequence. Propogation of annotations between mate pairs is performed
-using PairSeq (Line 06), which also removes
+using PairSeq (`Commands`_ 8-9), which also removes
 unpaired reads and ensures that paired reads are sorted in the same
 order across files.
 
@@ -132,10 +133,10 @@ be corrected using the AlignSets tool. In the example data used here,
 this step was not necessary due to the aligned primer design for the 45
 V-region primers, though this does require that the V-region primers be
 masked, rather than cut, during the MaskPrimers step (``--mode mask``
-argument) (Line 04).
+argument) (`Commands`_ 5-6).
 
 After alignment, a single consensus sequence is generated for each UMI
-barcode using BuildConsensus (Lines 07-08). To
+barcode using BuildConsensus (`Commands`_ 10-13). To
 correct for UMI chemistry and sequencing errors, UMI read groups having
 high error statistics (mismatch rate from consensus) are removed by
 specifiying the ``--maxerror 0.1`` threshold. As the accuracy of the
@@ -151,7 +152,7 @@ positions which occur in more than 50% of the reads using the ``--maxgap
 
 Finally, the ParseLog tool is used to build a table of UMIs (``BARCODE``),
 read counts (``CONSCOUNT``), read 1 consensus isotype primers
-(``PRCONS``), and error statistics (``ERROR``) (Line 09) from the
+(``PRCONS``), and error statistics (``ERROR``) (`Commands`_ 14) from the
 BuildConsensus log files.
 
 Assembly of paired-end UMI consensus sequences
@@ -160,11 +161,11 @@ Assembly of paired-end UMI consensus sequences
 Following UMI consensus generation, the read 1 and read 2 files may
 again be out of sync due to differences in UMI read group filtering by
 BuildConsensus. To synchronize the reads another instance of PairSeq
-must be run, but without any annotation manipulation (Line 10).
+must be run, but without any annotation manipulation (`Commands`_  15-16).
 
 Once the files have been synchronized, each paired-end UMI consensus
 sequence is assembled into a full length Ig sequence by the
-AssemblePairs tool (Line 11). During assembly, the consensus isotype
+AssemblePairs tool (`Commands`_ 17-19). During assembly, the consensus isotype
 annotation (``PRCONS``) from read 1 and the number of reads used to define
 the consensus sequence (``CONSCOUNT`` annotation) for both reads are propagated
 into the annotations of the full length Ig sequence.
@@ -172,7 +173,7 @@ into the annotations of the full length Ig sequence.
 The AssemblePairs log captures the overlap length (``OVERLAP``), error
 rates (``ERROR``), and p-values (``PVALUE``) of each assembly operation.
 These logs can be converted into a table using ParseLog to provide the
-overlap distribution and assembly error rates (Line 12).
+overlap distribution and assembly error rates (`Commands`_ 20).
 
 Obtaining the high-fidelity repertoire
 --------------------------------------------------------------------------------
@@ -181,21 +182,21 @@ In the final stage of the workflow, the high-fidelity Ig repertoire is
 obtained by a series of filtering steps. First, the annotation
 specifying the number of raw reads used to build each sequence is
 updated to be the minimum of the forward and reverse reads using
-ParseHeaders (Line 13).
+ParseHeaders (`Commands`_ 21).
 
 Second, duplicate nucleotide sequences are removed using the CollapseSeq
 tool with the requirement that duplicate sequences share the same
-isotype primer (``--uf PRCONS`` argument) (Line 14). The duplicate removal
+isotype primer (``--uf PRCONS`` argument) (`Commands`_ 22-23). The duplicate removal
 step also removes sequences with a high number of interior N-valued nucleotides
 (``-n 20 --inner`` arguments) and combines the read counts for each UMI read
 group (``--cf CONSCOUNT --act sum`` arguments).
 
 Finally, unique sequences are filtered to those with at least 2
-contributing sequences using the ``group`` subcommand of SplitSeq (Line 15),
+contributing sequences using the ``group`` subcommand of SplitSeq (`Commands`_ 24),
 by splitting the file on the CONSCOUNT annotation with a numeric threshold
 (``-f CONSCOUNT –num 2`` argument). For further analysis, the annotations of
 the final repertoire are then converted to into a table using the ``table``
-subcommand of ParseHeaders (Line 16).
+subcommand of ParseHeaders (`Commands`_ 25).
 
 Performance
 --------------------------------------------------------------------------------

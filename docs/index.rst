@@ -2,20 +2,33 @@
 
 .. include:: ../README.rst
 
-Contents
---------------------------------------------------------------------------------
+.. toctree::
+    :maxdepth: 2
+    :caption: Getting Started
+
+    overview
+    install
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
+    :caption: Examples
 
-   overview
-   install
-   examples
-   usage
-   api
-   news
-   projects
-   about
+    tasks
+    workflows
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Usage Documentation
+
+    usage
+    api
+
+.. toctree::
+    :maxdepth: 2
+    :caption: About
+ 
+    news
+    info
 
 Indices and tables
 --------------------------------------------------------------------------------
