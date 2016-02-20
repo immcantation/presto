@@ -14,10 +14,8 @@ The following example uses the publicly available data from:
 Which may be downloaded from the NCBI Sequence Read Archive under
 BioProject accession ID: PRJNA248475. Primers sequences are available
 online at the `supplemental website <http://clip.med.yale.edu/papers/Stern2014STM>`__
-for the publication.
-
-Reads must first be converted to FASTQ format, using a tool such as the
-SRA Toolkit, before processing with pRESTO. A schematic of the read
+for the publication. Reads must first be converted to FASTQ format, using a tool
+such as the SRA Toolkit, before processing with pRESTO. A schematic of the read
 configuration is shown below.
 
 .. figure:: figures/MiSeq_Stern2014_ReadConfiguration.svg
@@ -31,12 +29,19 @@ configuration is shown below.
     (reverse complement), and contains a 15 nucleotide UMI barcode preceding
     the C-region primer sequence.
 
+Example Data
+--------------------------------------------------------------------------------
+
 We have hosted a small subset of the data (Accession: SRR1383456) on the
-pRESTO website in FASTQ format with accompanying primer files. A larger
-dataset from the same study, containing approximately 1.4 million raw
-reads, was used to generate the example figures shown. In the following
-sections, we demonstrate each step of the workflow to move from raw
-sequence reads to a fully annotated repertoire of complete V(D)J
+pRESTO website in FASTQ format with accompanying primer files. The sample data
+set and workflow script may be downloaded from here:
+`Stern et al, 2014 example <http://clip.med.yale.edu/presto/examples/Example_Data_UID_Stern2014.zip>`__
+
+Overview of the Workflow
+--------------------------------------------------------------------------------
+
+In the following sections, we demonstrate each step of the workflow to move
+from raw sequence reads to a fully annotated repertoire of complete V(D)J
 sequences. The workflow is divided into four high-level tasks:
 
     1. Quality control and annotation of raw reads.

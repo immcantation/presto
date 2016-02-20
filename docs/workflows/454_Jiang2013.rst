@@ -30,9 +30,18 @@ configuration is shown below.
     proceeding 5' to 3' in the direction of the V(D)J reading frame, or the
     reverse complement orientation (bottom), proceeding in the opposite direction.
 
+Example Data
+--------------------------------------------------------------------------------
+
 We have hosted a small subset of the data (Accession: SRR765688) on the
 pRESTO website in FASTQ format, with accompanying primer and sample
-barcode files. The example that follows performs all processing steps to
+barcode files. The sample data set and workflow script may be downloaded from
+here: `Jiang et al, 2013 example <http://clip.med.yale.edu/presto/examples/Example_Data_454_Jiang2013.zip>`__
+
+Overview of the Workflow
+--------------------------------------------------------------------------------
+
+The example that follows performs all processing steps to
 arrive at high-quality unique sequences using this example data set. The
 workflow is derived into three high level tasks:
 
