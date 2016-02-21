@@ -1,15 +1,14 @@
-Illumina MiSeq VH:VL paired via extension PCR
-================================================================================
-
-TODO
-
-
 Illumina MiSeq VH:VL paired via matrix PCR
 ================================================================================
 
-TODO
+.. todo::
+
+Illumina MiSeq VH:VL paired via extension PCR
+================================================================================
+
+.. todo::
 
 Illumina MiSeq VH:VL paired via emulsion droplet barcoding
 ================================================================================
 
-TODO
+.. todo::

@@ -13,8 +13,9 @@
     :maxdepth: 2
     :caption: Examples
 
-    tasks
     workflows
+    annotations
+    tasks
 
 .. toctree::
     :maxdepth: 2
@@ -24,16 +25,25 @@
     api
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: About
  
     news
     info
 
-Indices and tables
+.. toctree::
+    :maxdepth: 1
+    :caption: Related Projects
+
+    Change-O <http://changeo.readthedocs.org>
+    Alakazam <http://kleinstein.bitbucket.org/alakazam>
+    Shazam <http://kleinstein.bitbucket.org/shazam>
+    TIgGER <http://clip.med.yale.edu/tigger>
+
+Indices
 --------------------------------------------------------------------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+
 

@@ -17,11 +17,15 @@ pRESTO is composed of a set of standalone tools to perform specific tasks, often
 with a series of subcommands providing different behaviors. A brief description
 of each tool is shown in the table below.
 
+.. _FeatureTable:
+
 .. csv-table::
    :file: tools/tool_summary.tab
    :delim: tab
    :header-rows: 1
    :widths: 15, 10, 75
+
+.. _InputOutput:
 
 Input and Output
 --------------------------------------------------------------------------------
@@ -36,6 +40,8 @@ output. For example, MaskPrimers will append ``_primers-pass`` to the output
 file containing successfully aligned sequences and ``_primers-fail`` to the file
 containing unaligned sequences. Details regarding the suffixes added by each
 tool can be found in the :ref:`Usage` documentation for the tool.
+
+.. _AnnotationScheme:
 
 Annotation Scheme
 --------------------------------------------------------------------------------

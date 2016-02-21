@@ -1,7 +1,7 @@
 Illumina MiSeq 3x300bp B cell receptor mRNA with UMI barcodes and 5'RACE
 ================================================================================
 
-TODO
+.. todo::
 
 .. code-block:: bash
 

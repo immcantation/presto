@@ -1,7 +1,7 @@
 Illumina MiSeq 2x250bp B cell receptor mRNA without UMI barcodes
 ================================================================================
 
-TODO
+.. todo::
 
 .. code-block:: bash
 
