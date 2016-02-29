@@ -34,7 +34,9 @@ class TestConvertHeaders(unittest.TestCase):
                          'SRR735691.1 GXGJ56Z01AE06X length=222',
                          'SRR1383326.1 1 length=250',
                          'SRR1383326.1.2 1 length=250']
-        
+
+        self.desc_ena = ['ERR346596.6 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:13220:1649/1']
+
         self.desc_454 = ['000034_0199_0169 length=437 uaccno=GNDG01201ARRCR',
                          'GXGJ56Z01AE06X length=222']
 
