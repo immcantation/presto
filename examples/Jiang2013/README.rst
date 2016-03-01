@@ -1,0 +1,1 @@
+~/apps/sratoolkit/bin/fastq-dump -X 10000 SRR765688

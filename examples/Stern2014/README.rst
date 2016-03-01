@@ -1,0 +1,1 @@
+~/apps/sratoolkit/bin/fastq-dump --split-files SRR1383456
