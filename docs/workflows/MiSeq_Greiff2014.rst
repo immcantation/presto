@@ -84,27 +84,27 @@ sequence using the ``align`` subcommand of the :ref:`AssemblePairs tool`:
 During assembly we have defined read 2 (V-region) as the head of the sequence
 (``--1`` argument) and read 2 as tail of the sequence (``--2`` argument). The
 ``--coord`` argument defines the format of the sequence header so that
-AssemblePairs can properly identify mate-pairs; in this case, we use
+:ref:`AssemblePairs` can properly identify mate-pairs; in this case, we use
 ``--coord sra`` as out headers are in the SRA/ENA format.
 
 .. note::
 
-    For both the AssemblePairs and PairSeq commands using the correct
-    ``--coord`` argument is critical for matching mate-pairs. The most
+    For both the :ref:`AssemblePairs` and :ref:`PairSeq` commands using the
+    correct ``--coord`` argument is critical for matching mate-pairs. The most
     common values to use are: ``sra``, ``illumina``, ``454`` and ``presto``.
 
-The ParseLog tool:
+The :ref:`ParseLog` tool:
 
  .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
    :lines: 14
 
-is used to build a tab-delimited table of results from the AssemblePairs
+is used to build a tab-delimited table of results from the :ref:`AssemblePairs`
 log file containing the following entries:
 
 ===================== ===============================
-Field                 Description
+AssemblePairs Field   Description
 ===================== ===============================
 ID                    Sequence name
 LENGTH                Length of the assembled sequence
@@ -143,7 +143,7 @@ start of each read before the primer sequence to increase sequence diversity
 and the reliability of cluster calling on the Illumina platform.
 As such, both primers begin at position 4 (``--start 4``), but the C-region
 primer beings 4 bases from the end of the assembled read. The addition of the
-``--revpr`` argument to the second MaskPrimers step instructs the
+``--revpr`` argument to the second :ref:`MaskPrimers step instructs the
 tool to reverse complement the primer sequences and check the tail of the
 read. The two primer regions have also been treated differently. The V-region
 primer has been masked (replaced by Ns) using the ``--mode mask`` argument
@@ -156,7 +156,7 @@ from the sequence using the ``--mode cut`` argument.
     orientation is constant for all reads; read 1 is always the C-region
     end of the amplicon and read 2 is always the V-region end.  If your
     data is unstranded (50% of the reads are forward, 50% are reversed),
-    then you must modify the first MaskPrimers step
+    then you must modify the first :ref:`MaskPrimers` step
     to account for this by using the ``align`` subcommand instead::
 
         MaskPrimers.py align -s M1*quality-pass.fastq -p Greiff2014_VPrimers.fasta \
@@ -166,15 +166,13 @@ from the sequence using the ``--mode cut`` argument.
     the reverse compliment of each read for matches, and correcting the
     the output sequences to the forward orientation (V to J).
 
-To summarize these steps, the ParseLog tool is used to build tab-delimited
-tables from the log files:
+To summarize these steps, the :ref:`ParseLog` tool is used to build tab-delimited
+tables from :ref:`FilterSeq` log:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 15-16
-
-Containing the following information:
+   :lines: 15
 
 ===================== ===============================
 FilterSeq Field       Description
@@ -182,6 +180,13 @@ FilterSeq Field       Description
 ID                    Sequence name
 QUALITY               Quality score
 ===================== ===============================
+
+and :ref:`MaskPrimers` logs:
+
+.. literalinclude:: scripts/Greiff2014_Commands.sh
+   :language: none
+   :lineno-match:
+   :lines: 16
 
 ===================== ===============================
 MaskPrimers Field     Description
