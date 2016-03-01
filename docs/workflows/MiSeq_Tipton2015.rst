@@ -32,12 +32,14 @@ set and workflow script may be downloaded from here:
 
     `Tipton et al, 2015 example <http://clip.med.yale.edu/presto/examples/Example_Data_Tipton2015.zip>`__
 
-You may also retrieve the example data using the
+You may also retrieve the example data, the first 10,000 sequences of SRR1964798,
+using the fastq-dump tool from the
 `SRA Toolkit <http://www.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software>`__:
+
 
 .. code-block:: bash
 
-    sratoolkit/bin/fastq-dump --split-files SRR1964798
+    fastq-dump --split-files -X 10000 SRR1964798
 
 Overview of the Workflow
 --------------------------------------------------------------------------------
