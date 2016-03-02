@@ -10,8 +10,10 @@ ParseHeaders.py expand -s M1*primers-pass_primers-pass.fastq -f PRIMER
 ParseHeaders.py rename -s M1*reheader.fastq -f PRIMER1 PRIMER2 \
     -k VPRIMER CPRIMER --outname M1-FINAL
 CollapseSeq.py -s M1-FINAL_reheader.fastq -n 20 --inner --uf CPRIMER \
-    --cf VPRIMER --act set
+    --cf VPRIMER --act set --outname FINAL
+SplitSeq.py group -s FINAL_collapse-unique.fastq -f DUPCOUNT --num 2
 ParseLog.py -l AP.log -f ID LENGTH OVERLAP ERROR PVALUE
 ParseLog.py -l FS.log -f ID QUALITY
 ParseLog.py -l MP[1-2].log -f ID PRIMER ERROR
-ParseHeaders.py table -s M1-FINAL*unique.fastq -f ID DUPCOUNT CPRIMER VPRIMER
+ParseHeaders.py table -s M1-FINAL*unique_atleast-2.fastq \
+    -f ID DUPCOUNT CPRIMER VPRIMER
