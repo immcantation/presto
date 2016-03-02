@@ -1,4 +1,4 @@
-Roche 454 B cell receptor mRNA with sample barcoding
+Roche 454 BCR mRNA with sample barcoding
 ================================================================================
 
 Overview of Experimental Data

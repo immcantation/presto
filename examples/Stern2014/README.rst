@@ -8,7 +8,7 @@ This example uses publicly available data from:
 Which may be downloaded from the NCBI Sequence Read Archive under
 BioProject accession ID: PRJNA248475. For this example, we will use the first
 50,000 sequences of sample M12 (accession: SRR1383456), which may downloaded
-using the ``fastq-dump`` tool from the
+downloaded using fastq-dump from the
 `SRA Toolkit <http://www.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software>`__::
 
     fastq-dump --split-files -X 50000 SRR1383456

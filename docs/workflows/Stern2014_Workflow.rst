@@ -1,4 +1,4 @@
-Illumina MiSeq 2x250 B cell receptor mRNA with UMI barcodes
+Illumina MiSeq 2x250 BCR mRNA with UMI barcodes
 ================================================================================
 
 Overview of Experimental Data

@@ -59,9 +59,14 @@ CollapseSeq.py -s M1-FINAL_reheader.fastq -n 20 \
 	--uf CPRIMER --cf VPRIMER --act set --inner \
 	--outname M1-FINAL >> $PIPELINE_LOG
 
+# Subset to sequences observed at least twice
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitSeq group"
+SplitSeq.py group -s M1-FINAL_collapse-unique.fastq -f DUPCOUNT --num 2 \
+	--outname M1-FINAL >> $PIPELINE_LOG
+
 # Create annotation table of final unique sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
-ParseHeaders.py table -s M1-FINAL_collapse-unique.fastq \
+ParseHeaders.py table -s M1-FINAL_atleast-2.fastq \
     -f ID CPRIMER DUPCOUNT >> $PIPELINE_LOG
 
 # Process log files
@@ -73,11 +78,11 @@ wait
 
 # Zip intermediate and log files
 if $ZIP_FILES; then
-    LOG_FILES_ZIP=$(ls AP.log FQ.log MP[1-2].log)
+    LOG_FILES_ZIP=$(ls AP.log FS.log MP[1-2].log)
     tar -zcf LogFiles.tar $LOG_FILES_ZIP
     rm $LOG_FILES_ZIP
 
-    TEMP_FILES_ZIP=$(ls *.fastq | grep -v "FINAL_reheader.fastq\|FINAL_collapse-unique.fastq")
+    TEMP_FILES_ZIP=$(ls *.fastq | grep -v "collapse-unique.fastq\|atleast-2.fastq")
     tar -zcf TempFiles.tar $TEMP_FILES_ZIP
     rm $TEMP_FILES_ZIP
 fi

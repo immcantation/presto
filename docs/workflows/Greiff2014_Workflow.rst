@@ -1,4 +1,4 @@
-Illumina MiSeq 2x250 Stranded B cell receptor mRNA without UMIs
+Illumina MiSeq 2x250 BCR mRNA
 ================================================================================
 
 Overview of Experimental Data
@@ -26,11 +26,7 @@ Example Data
 We have hosted a small subset of the data (Accession: ERR346600) on the
 pRESTO website in FASTQ format, with accompanying primer files and an example
 workflow script. The sample data set and workflow script may be downloaded from
-here:
-
-.. todo::
-
-    `Greiff et al, 2014 example <http://clip.med.yale.edu/presto/examples/Example_Data_Greiff2014.zip>`__
+here: `Greiff et al, 2014 example <http://clip.med.yale.edu/presto/examples/Example_Greiff2014.zip>`__
 
 
 Overview of the Workflow
@@ -40,9 +36,9 @@ In the following sections, we demonstrate each step of the workflow to move
 from raw sequence reads to a fully annotated repertoire of complete V(D)J
 sequences. The workflow is divided into four high-level tasks:
 
-    1. Assembly of paired-end reads.
-    2. Quality control and annotation of primers.
-    3. Removal of duplicate sequences and filtering.
+    1. `Paired-end assembly`_
+    2. `Quality control and primer annotation`_
+    3. `Deduplication and filtering`_
 
 A graphical representation of the workflow along with the corresponding
 sequence of pRESTO commands is shown below.
@@ -55,9 +51,9 @@ Flowchart
 
     **Flowchart of processing steps.**
     Each pRESTO tool is shown as a colored box. The workflow is divided into
-    three primary tasks: (orange) asssembly of paired-end reads, (green)
-    quality control and primer annotation, and removal of duplicate sequences
-    and filtering (blue). The intermediate files output by each tool are not
+    three primary tasks: (orange) paired-end assembly, (green)
+    quality control and primer annotation, and deduplication and
+    filtering (blue). The intermediate files output by each tool are not
     shown for the sake of brevity.
 
 Commands
@@ -70,11 +66,12 @@ Commands
 
 :download:`Download Commands <scripts/Greiff2014_Commands.sh>`
 
-Assembly of paired-end reads
+Paired-end assembly
 --------------------------------------------------------------------------------
 
-Each set of paired-ends mate-pairs is first assembled into a full length Ig
-sequence using the ``align`` subcommand of the :ref:`AssemblePairs` tool:
+Each set of paired-ends mate-pairs is first assembled into a full length
+Ig sequence using the :program:`align` subcommand of
+the :ref:`AssemblePairs` tool:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
@@ -82,23 +79,32 @@ sequence using the ``align`` subcommand of the :ref:`AssemblePairs` tool:
    :lines: 2-3
 
 During assembly we have defined read 2 (V-region) as the head of the sequence
-(``--1`` argument) and read 2 as tail of the sequence (``--2`` argument). The
-``--coord`` argument defines the format of the sequence header so that
-:ref:`AssemblePairs` can properly identify mate-pairs; in this case, we use
-``--coord sra`` as out headers are in the SRA/ENA format.
+(:option:`-1 <AssemblePairs align -1>`) and read 2 as tail of the sequence
+(:option:`-2 <AssemblePairs align -2>`). The
+:option:`--coord <AssemblePairs align --coord>` argument defines the format of
+the sequence header so that :ref:`AssemblePairs` can properly identify mate-pairs;
+in this case, we use :option:`--coord sra <AssemblePairs align --coord>`
+as our headers are in the SRA/ENA format.
 
-The :ref:`ParseLog` tool:
+.. note::
+
+    For both the :ref:`AssemblePairs` and :ref:`PairSeq` commands using the
+    correct :option:`--coord <AssemblePairs align --coord>` argument is critical
+    for matching mate-pairs. The most common values to use are:
+    ``sra``, ``illumina``, ``454`` and ``presto``.
+
+The :ref:`ParseLog` tool is then used to build a tab-delimited file of
+results from the :ref:`AssemblePairs` log file:
 
  .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 15
+   :lines: 17
 
-is used to build a tab-delimited table of results from the :ref:`AssemblePairs`
-log file containing the following entries:
+Which will containing the following columns:
 
 ===================== ===============================
-AssemblePairs Field   Description
+Field                 Description
 ===================== ===============================
 ID                    Sequence name
 LENGTH                Length of the assembled sequence
@@ -107,50 +113,44 @@ ERROR                 Mismatch rate of the overlapping region
 PVALUE                P-value for the assembly
 ===================== ===============================
 
-.. note::
-
-    For both the :ref:`AssemblePairs` and :ref:`PairSeq` commands using the
-    correct ``--coord`` argument is critical for matching mate-pairs. The most
-    common values to use are: ``sra``, ``illumina``, ``454`` and ``presto``.
-
 .. seealso::
 
     Depending on the amplicon length in your data, not all mate-pairs may overlap.
     For the sake of simplicity, we have excluded a demonstration of assembly
-    in such cases. pRESTO provides a couple approaches to deal with such reads,
-    including use of the V-region reference sequences to properly space
-    non-overlapping reads via the ``reference`` subcommand of :ref:`AssemblePairs`,
-    or, if all else fails, simplying sticking mate-pairs together end-to-end with
-    some intervening gap via the ``join`` subcommand.
+    in such cases. pRESTO provides a couple approaches to deal with such reads.
+    The :program:`reference` subcommand of :ref:`AssemblePairs` can use the
+    ungapped V-region reference sequences to properly space non-overlapping reads.
+    Or, if all else fails, the :program:`join` subcommand can be used to simply
+    stick mate-pairs together end-to-end with some intervening gap.
 
-Quality control and annotation of primers
+Quality control and primer annotation
 --------------------------------------------------------------------------------
 
 Removal of low quality reads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Quality control begins with the identification and removal of
-low-quality reads using the ``quality`` subcommand of the :ref:`FilterSeq` tool.
+low-quality reads using the :program:`quality` subcommand of the :ref:`FilterSeq` tool.
 In this example, reads with mean Phred quality scores less than
-20 are removed:
+20 (:option:`-q 20 <FilterSeq quality -q>`) are removed:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
    :lines: 4
 
-The :ref:`ParseLog` tool is used to build tab-delimited table from the
+The :ref:`ParseLog` tool is then used to build tab-delimited file from the
 :ref:`FilterSeq` log:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 16
+   :lines: 18
 
-capturing the following annotations:
+Capturing the following annotations:
 
 ===================== ===============================
-FilterSeq Field       Description
+Field                 Description
 ===================== ===============================
 ID                    Sequence name
 QUALITY               Quality score
@@ -160,9 +160,9 @@ Read annotation and masking of primer regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When dealing with Ig sequences, it is important to cut or mask the primers,
-as B-cell receptors are subject to somatic hypermutation (the
+as B cell receptors are subject to somatic hypermutation (the
 accumulation of point mutations in the DNA) and degenerate primer
-matches can look like mutations in downstream applications. The ``score``
+matches can look like mutations in downstream applications. The :program:`score`
 subcommand of :ref:`MaskPrimers` is used to identify and remove the V-region and
 C-region PCR primers for both reads:
 
@@ -174,48 +174,15 @@ C-region PCR primers for both reads:
 In this data set the authors have added a random sequence of 4 bp to the
 start of each read before the primer sequence to increase sequence diversity
 and the reliability of cluster calling on the Illumina platform.
-As such, both primers begin at position 4 (``--start 4``), but the C-region
-primer begins 4 bases from the end of the assembled read. The addition of the
-``--revpr`` argument to the second :ref:`MaskPrimers` step instructs the
-tool to reverse complement the primer sequences and check the tail of the
-read. The two primer regions have also been treated differently. The V-region
-primer has been masked (replaced by Ns) using the ``--mode mask`` argument
+As such, both primers begin at position 4 (:option:`--start 4 <MaskPrimers score --start>`),
+but the C-region primer begins 4 bases from the end of the assembled read.
+The addition of the :option:`--revpr <MaskPrimers score --revpr>` argument to the
+second :ref:`MaskPrimers` step instructs the tool to reverse complement the primer
+sequences and check the tail of the read. The two primer regions have also been treated
+differently. The V-region primer has been masked (replaced by Ns) using the
+:option:`--mode mask <MaskPrimers score --mode>` argument
 to preserve the V(D)J length, while the C-region primer has been removed
-from the sequence using the ``--mode cut`` argument.
-
-During each iteration of the :ref:`MaskPrimers` tool the *PRIMER*
-annotation field was updated with an additional value, such that after both
-iterations each sequences contains an annotation of the form::
-
-    PRIMER=V-region primer,C-region primer
-
-To simplify later analysis, the :ref:`ParseHeaders` tool is used to first
-expand this single annotation into two separate annotations using the
-``expand`` subcommand. Then, the expanded fiels are renamed to *VPRIMER*
-and *CPRIMER* using the ``rename`` subcommand:
-
-.. literalinclude:: scripts/Greiff2014_Commands.sh
-   :language: none
-   :lineno-match:
-   :lines: 9-10
-
-To summarize these steps, the :ref:`ParseLog` tool is used to build tab-delimited
-tables from the two :ref:`MaskPrimers` logs:
-
-.. literalinclude:: scripts/Greiff2014_Commands.sh
-   :language: none
-   :lineno-match:
-   :lines: 17
-
-capturing the following annotations:
-
-===================== ===============================
-MaskPrimers Field     Description
-===================== ===============================
-ID                    Sequence name
-PRIMER                Primer name
-ERROR                 Primer match error rate
-===================== ===============================
+from the sequence using the :option:`--mode cut <MaskPrimers score --mode>` argument.
 
 .. note::
 
@@ -224,16 +191,50 @@ ERROR                 Primer match error rate
     end of the amplicon and read 2 is always the V-region end.  If your
     data is unstranded (50% of the reads are forward, 50% are reversed),
     then you must modify the first :ref:`MaskPrimers` step
-    to account for this by using the ``align`` subcommand instead::
+    to account for this by using the :program:`align` subcommand instead::
 
         MaskPrimers.py align -s M1*quality-pass.fastq -p Greiff2014_VPrimers.fasta \
-            --mode mask --maxlen 30 --log MP1.log
+            --maxlen 30 --mode mask --log MP1.log
 
-    This will perform a slower process of aligning the primers, checking
+    This will perform a slower process of locally aligning the primers, checking
     the reverse compliment of each read for matches, and correcting the
     the output sequences to the forward orientation (V to J).
 
-Removal of duplicate sequences and filtering
+During each iteration of the :ref:`MaskPrimers` tool the ``PRIMER``
+annotation field was updated with an additional value, such that after both
+iterations each sequences contains an annotation of the form::
+
+    PRIMER=V-region primer,C-region primer
+
+To simplify later analysis, the :ref:`ParseHeaders` tool is used to first
+expand this single annotation into two separate annotations using the
+:program:`expand` subcommand. Then, the expanded fields are renamed to ``VPRIMER``
+and ``CPRIMER`` using the :program:`rename` subcommand:
+
+.. literalinclude:: scripts/Greiff2014_Commands.sh
+   :language: none
+   :lineno-match:
+   :lines: 9-10
+
+To summarize these steps, the :ref:`ParseLog` tool is used to build tab-delimited
+files from the two :ref:`MaskPrimers` logs:
+
+.. literalinclude:: scripts/Greiff2014_Commands.sh
+   :language: none
+   :lineno-match:
+   :lines: 19
+
+Capturing the following annotations:
+
+===================== ===============================
+Field                 Description
+===================== ===============================
+ID                    Sequence name
+PRIMER                Primer name
+ERROR                 Primer match error rate
+===================== ===============================
+
+Deduplication and filtering
 --------------------------------------------------------------------------------
 
 Removal of duplicate sequences
@@ -242,11 +243,12 @@ Removal of duplicate sequences
 The last stage of the workflow involves two filtering steps to yield
 the final repertoire. First, the set of unique sequences is identified using the
 :ref:`CollapseSeq` tool, allowing for up to 20 interior N-valued positions
-(``-n 20 --inner`` arguments), and requiring that all reads considered duplicated
-share the same C-region primer (isotype annotation). Additionally, the V-region
-primer annotations of the set of duplicate reads are propagated into the
-annotation of each retained unique sequence (``--cf VPRIMER --act set``
-arguments):
+(:option:`-n 20 <CollapseSeq -n>` and :option:`--inner <CollapseSeq --inner>`),
+and requiring that all reads considered duplicates share the same C-region primer
+annotation (:option:`--uf CPRIMER <CollapseSeq --uf>`). Additionally, the
+V-region primer annotations of the set of duplicate reads are propagated into the
+annotation of each retained unique sequence (:option:`--cf VPRIMER <CollapseSeq --cf>`
+and :option:`--act set <CollapseSeq --act>`):
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
@@ -257,26 +259,52 @@ Filtering to repeated sequences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 CollapseSeq stores the count of duplicate reads for each sequence in the
-*DUPCOUNT* annotation. Following duplicate removal, the data is subset
+``DUPCOUNT`` annotation. Following duplicate removal, the data is subset
 to only those unique sequence with at least two representative reads by
-using the ``group`` subcommand of :ref:`SplitSeq` on the count field (``-f
-DUPCOUNT`` argument) and specifying a numeric threshold (``--num 2``
-argument):
+using the :program:`group` subcommand of :ref:`SplitSeq` on the count field
+(:option:`-f DUPCOUNT <SplitSeq group -f>`) and specifying a numeric threshold
+(:option:`--num 2 <SplitSeq group --num>`):
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 12-14
+   :lines: 14-15
 
-Finally, the annotations, including duplicate read count (*DUPCOUNT*),
-isotype (*CPRIMER*) and V-region primer (*VPRIMER*), of the final
-repertoire are then extracted from the sequence file into a
-tab-delimited table using the ``table`` subcommand of :ref:`ParseHeaders`:
+Creating an annotation table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Finally, the annotations, including duplicate read count (``DUPCOUNT``), isotype
+(``CPRIMER``) and V-region primer (``VPRIMER``), of the final repertoire are then
+extracted from the :ref:`SplitSeq` output into a tab-delimited file using the
+:program:`table` subcommand of :ref:`ParseHeaders`:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 18-19
+   :lines: 16
+
+Output files
+--------------------------------------------------------------------------------
+
+The final set of sequences, which serve as input to a V(D)J reference aligner
+(Eg, IMGT/HighV-QUEST or IgBLAST), and tables that can be plotted for quality
+control are:
+
+=============================== ===============================
+File                            Description
+=============================== ===============================
+M1-FINAL_collapse-unique.fastq  Total unique sequences
+M1-FINAL_atleast-2.fastq        Unique sequences represented by at least 2 reads
+M1-FINAL_atleast-2_headers.tab  Annotation table of the atleast-2 file
+AP_table.tab                    Table of the AssemblePairs log
+FS_table.tab                    Table of the FilterSeq log
+MP1_table.tab                   Table of the V-region MaskPrimers log
+MP2_table.tab                   Table of the C-region MaskPrimers log
+=============================== ===============================
+
+A number of other intermediate and log files are generated during the workflow,
+which allows easy tracking/reversion of processing steps. These files are not
+listed in the table above.
 
 Performance
 --------------------------------------------------------------------------------
