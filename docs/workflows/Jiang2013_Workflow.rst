@@ -1,4 +1,4 @@
-Roche 454 BCR mRNA with sample barcoding
+Roche 454 BCR mRNA with Multiplexed Samples
 ================================================================================
 
 Overview of Experimental Data

@@ -3,7 +3,7 @@
 Miscellaneous Tasks
 ================================================================================
 
-Importing data from SRA or GenBank into pRESTO
+Importing data from SRA, ENA or GenBank into pRESTO
 --------------------------------------------------------------------------------
 
 .. todo::
@@ -23,6 +23,7 @@ Removing junk sequences
 
     FilterSeq missing
     FilterSeq repeats
+    FilterSeq quality
     FilterSeq trimqual
     FilterSeq maskqual
 
