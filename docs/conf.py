@@ -23,13 +23,14 @@ from unittest.mock import MagicMock
 import presto.Version
 
 # Mock modules for readthedocs
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):  return Mock()
+if os.environ.get('READTHEDOCS', None) == 'True':
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):  return Mock()
 
-mock_modules = ['numpy', 'scipy', 'scipy.stats', 'pandas',
-                'Bio', 'Bio.Align', 'Bio.Alphabet', 'Bio.Seq', 'Bio.SeqRecord']
-sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
+    mock_modules = ['numpy', 'scipy', 'scipy.stats', 'pandas',
+                    'Bio', 'Bio.Align', 'Bio.Alphabet', 'Bio.Seq', 'Bio.SeqRecord']
+    sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

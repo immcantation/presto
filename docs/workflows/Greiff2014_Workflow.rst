@@ -26,7 +26,9 @@ Example Data
 We have hosted a small subset of the data (Accession: ERR346600) on the
 pRESTO website in FASTQ format, with accompanying primer files and an example
 workflow script. The sample data set and workflow script may be downloaded from
-here: `Greiff et al, 2014 example <http://clip.med.yale.edu/presto/examples/Example_Greiff2014.zip>`__
+here:
+
+`Greiff et al, 2014 Example Files <http://clip.med.yale.edu/presto/examples/Example_Greiff2014.zip>`__
 
 
 Overview of the Workflow
