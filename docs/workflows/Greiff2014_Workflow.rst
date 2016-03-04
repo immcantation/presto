@@ -28,7 +28,7 @@ pRESTO website in FASTQ format, with accompanying primer files and an example
 workflow script. The sample data set and workflow script may be downloaded from
 here:
 
-`Greiff et al, 2014 Example Files <http://clip.med.yale.edu/presto/examples/Example_Greiff2014.zip>`__
+`Greiff et al, 2014 Example Files <http://clip.med.yale.edu/presto/rtd/Greiff2014_Example.tar.gz>`__
 
 
 Overview of the Workflow
@@ -92,8 +92,9 @@ as our headers are in the SRA/ENA format.
 
     For both the :ref:`AssemblePairs` and :ref:`PairSeq` commands using the
     correct :option:`--coord <AssemblePairs align --coord>` argument is critical
-    for matching mate-pairs. The most common values to use are:
-    ``sra``, ``illumina``, ``454`` and ``presto``.
+    for matching mate-pairs. If this was raw data from Illumina, rather than
+    data downloaded from SRA/ENA, then the appropriate argument would be
+    :option:`--coord illumina <AssemblePairs align --coord>`.
 
 The :ref:`ParseLog` tool is then used to build a tab-delimited file of
 results from the :ref:`AssemblePairs` log file:
@@ -101,7 +102,7 @@ results from the :ref:`AssemblePairs` log file:
  .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 17
+   :lines: 16
 
 Which will containing the following columns:
 
@@ -147,7 +148,7 @@ The :ref:`ParseLog` tool is then used to build tab-delimited file from the
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 18
+   :lines: 17
 
 Capturing the following annotations:
 
@@ -224,7 +225,7 @@ files from the two :ref:`MaskPrimers` logs:
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 19
+   :lines: 18
 
 Capturing the following annotations:
 
@@ -270,7 +271,7 @@ using the :program:`group` subcommand of :ref:`SplitSeq` on the count field
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 14-15
+   :lines: 14
 
 Creating an annotation table
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -283,7 +284,7 @@ extracted from the :ref:`SplitSeq` output into a tab-delimited file using the
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 16
+   :lines: 15
 
 Output files
 --------------------------------------------------------------------------------
@@ -295,13 +296,13 @@ control are:
 =============================== ===============================
 File                            Description
 =============================== ===============================
-M1-FINAL_collapse-unique.fastq  Total unique sequences
-M1-FINAL_atleast-2.fastq        Unique sequences represented by at least 2 reads
-M1-FINAL_atleast-2_headers.tab  Annotation table of the atleast-2 file
+M1_collapse-unique.fastq        Total unique sequences
+M1_atleast-2.fastq              Unique sequences represented by at least 2 reads
+M1_atleast-2_headers.tab        Annotation table of the atleast-2 file
 AP_table.tab                    Table of the AssemblePairs log
 FS_table.tab                    Table of the FilterSeq log
-MP1_table.tab                   Table of the V-region MaskPrimers log
-MP2_table.tab                   Table of the C-region MaskPrimers log
+MPV_table.tab                   Table of the V-region MaskPrimers log
+MPC_table.tab                   Table of the C-region MaskPrimers log
 =============================== ===============================
 
 A number of other intermediate and log files are generated during the workflow,

@@ -26,7 +26,7 @@ pRESTO website in FASTQ format, with accompanying primer and sample
 barcode (MID) files. The sample data set and workflow script may be downloaded
 from here:
 
-`Jiang et al, 2013 Example Files <http://clip.med.yale.edu/presto/examples/Example_Data_454_Jiang2013.zip>`__
+`Jiang, He and Weinstein et al, 2013 Example Files <http://clip.med.yale.edu/presto/rtd/Jiang2013_Example.tar.gz>`__
 
 Overview of the Workflow
 --------------------------------------------------------------------------------
@@ -118,7 +118,8 @@ with three iterations of the :ref:`MaskPrimers` tool based upon the presence of
 recognized sample barcode (MID), forward primer, and reverse primer sequences.
 As the orientation and position of the sample barcode is known, the
 first pass through MaskPrimers uses the faster :program:`score` subcommand which
-requires a fixed start position (:option:`--start 0 <MaskPrimers score --start>`:
+requires a fixed start position (:option:`--start 0 <MaskPrimers score --start>`)
+and a low allowable error rate (:option:`--maxerror 0.1 <MaskPrimers score --maxerror>`):
 
 .. literalinclude:: scripts/Jiang2013_Commands.sh
    :language: none
@@ -248,6 +249,20 @@ tab-delimited file using the :program:`table` subcommand of :ref:`ParseHeaders`:
    :linenos:
    :lineno-match:
    :lines: 17
+
+.. note::
+
+   Optionally, you may split each sample into separate files using the ``MID``
+   annotation and an alternate invocation of :ref:`SplitSeq`.  The :program:`group`
+   subcommand may be used to split files on a categorical field, rather than a
+   numerical field, by skipping the :option:`--num <SplitSeq group --num>` argument::
+
+      SplitSeq.py group -s M1_collapse-unique.fastq -f MID
+
+   Will split the unique sequence file into a set of separate files according the
+   the valud in the ``MID`` field (:option:`-f MID <SplitSeq group -f>`), such that
+   each file will contain sequences from only one sample.
+
 
 Output files
 --------------------------------------------------------------------------------

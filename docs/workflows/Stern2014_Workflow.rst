@@ -27,7 +27,7 @@ We have hosted a small subset of the data (Accession: SRR1383456) on the
 pRESTO website in FASTQ format with accompanying primer files. The sample data
 set and workflow script may be downloaded from here:
 
-`Stern, Yaari and Vander Heiden et al, 2014 Example Files <http://clip.med.yale.edu/presto/examples/Example_Data_UID_Stern2014.zip>`__
+`Stern, Yaari and Vander Heiden et al, 2014 Example Files <http://clip.med.yale.edu/presto/rtd/Stern2014_Example.tar.gz>`__
 
 Overview of the Workflow
 --------------------------------------------------------------------------------
@@ -142,6 +142,29 @@ BARCODE               UMI sequence
 ERROR                 Primer match error rate
 ===================== ===============================
 
+.. note::
+
+    For this data set the UMI is immediately upstream of the C-region primer.
+    Another common approach for UMI barcoding involves placing the UMI
+    immediately upstream of a 5'RACE template switch site. Modifying the
+    workflow is simple for this case. You just need to replace the V-region
+    primers with a fasta file containing the TS sequences and move the
+    :option:`--barcode <MaskPrimers score --barcode>` argument to the
+    appropriate read::
+
+        MaskPrimers.py score -s R1_quality-pass.fastq -p CPrimers.fasta \
+            --start 0 --mode cut --outname R1 --log MP1.log
+        MaskPrimers.py score -s R2_quality-pass.fastq -p TSSites.fasta \
+            --start 17 --barcode --mode cut --maxerror 0.5 \
+            --outname R2 --log MP2.log
+
+    In the above we have moved the UMI annotation to read 2, increased
+    the allowable error rate for matching the TS site
+    (:option:`--maxerror 0.5 <MaskPrimers score --maxerror>`),
+    cut the TS site (:option:`--mode cut <MaskPrimers score --mode>`),
+    and increased the size of the UMI from 15 to 17 nucleotides
+    (:option:`--start 17 <MaskPrimers score --start>`).
+
 Generation of UMI consensus sequences
 --------------------------------------------------------------------------------
 
@@ -150,7 +173,7 @@ Copying the UMI annotation across paired-end files
 
 In this task, a single consensus sequence is constructed for each set of
 reads annotated with the same UMI barcode. As the UMI barcode is part of
-read 1, the `BARCODE` annotation identified by :ref:`MaskPrimers` must
+read 1, the ``BARCODE`` annotation identified by :ref:`MaskPrimers` must
 first be copied to the read 2 mate-pair of each read 1
 sequence. Propogation of annotations between mate pairs is performed
 using :ref:`PairSeq` which also removes
@@ -162,6 +185,23 @@ order across files:
    :linenos:
    :lineno-match:
    :lines: 8-9
+
+.. note::
+
+    For both the :ref:`PairSeq` and :ref:`AssemblePairs` commands using the
+    correct :option:`--coord <PairSeq --coord>` argument is critical
+    for matching mate-pairs. If this was raw data from Illumina, rather than
+    data downloaded from SRA/ENA, then the appropriate argument would be
+    :option:`--coord illumina <PairSeq --coord>`.
+
+.. note::
+
+    If you have followed the 5'RACE modification above, then you must also
+    modify the first :ref:`PairSeq` step to copy the UMI from read 2 to read 1,
+    instead of vice versa (:option:`--2f BARCODE <PairSeq --2f>`)::
+
+        PairSeq.py -1 R1_primers-pass.fastq -2 R2_primers-pass.fastq \
+            --coord sra --2f BARCODE
 
 Multiple alignment of UMI read groups
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -179,6 +219,20 @@ this step was not necessary due to the aligned primer design for the 45
 V-region primers, though this does require that the V-region primers be
 masked, rather than cut, during the :ref:`MaskPrimers` step
 (:option:`--mode mask <MaskPrimers score --mode>`).
+
+.. note::
+
+    If your data requires alignment, then you can create multiple aligned UMI read
+    groups as follows::
+
+        AlignSets.py muscle -s R1_primers-pass_pair-pass.fastq --bf BARCODE \
+            --exec ~/bin/muscle --outname R1 --log AS1.log
+        AlignSets.py muscle -s R2_primers-pass_pair-pass.fastq --bf BARCODE \
+            --exec ~/bin/muscle --outname R2 --log AS2.log
+
+    Where the :option:`--bf BARCODE <AlignSets muscle --bf>` defines the field
+    containing the UMI and :option:`--exec ~/bin/muscle <AlignSets muscle -exec>`
+    is the location of the :program:`MUSCLE` executable.
 
 Generating UMI consensus reads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,9 +255,17 @@ during this step. Specifying the :option:`--prcons 0.6 <BuildConsensus --prcons>
 threshold: (a) removes individual sequences that do not share a common primer annotation with
 the majority of the set, (b) removes entire read groups which have
 ambiguous primer assignments, and (c) constructs a consensus primer
-assignment for each UMI. A majority rule is used to delete any gap
-positions which occur in more than 50% of the reads using the :option:`--maxgap
-0.5 <BuildConsensus --maxgap>` argument.
+assignment for each UMI.
+
+.. note::
+
+    The :option:`--maxgap 0.5 <BuildConsensus --maxgap>` argument tells
+    :ref:`BuildConsensus` to use a majority rule to delete any gap positions
+    which occur in more than 50% of the reads. The :option:`--maxgap <BuildConsensus --maxgap>`
+    argument is not really necessary for this example data set as we did not perform
+    a multiple alignment of the UMI read groups. However, if you have performed an
+    alignment, then use of :option:`--maxgap <BuildConsensus --maxgap>` during consensus
+    generation is highly recommended.
 
 The :ref:`ParseLog` tool is then used to build a tab-delimited file contain
 the consensus results:
@@ -220,8 +282,12 @@ With the following annotations:
 Field                 Description
 ===================== ===============================
 BARCODE               UMI sequence
-CONSCOUNT             Number of reads in the UMI group
+SEQCOUNT              Number of total reads in the UMI group
+CONSCOUNT             Number of reads used for the UMI consensus
+PRIMER                Set of primer names in the UMI group
 PRCONS                Consensus primer name
+PRCOUNT               Count of primers in the UMI group
+PRFREQ                Frequency of primers in the UMI group
 ERROR                 Average mismatch rate from consensus
 ===================== ===============================
 
@@ -255,8 +321,8 @@ sequence is assembled into a full length Ig sequence using the
    :lineno-match:
    :lines: 16-18
 
-During assembly, the consensus isotype annotation (`PRCONS`) from read 1
-and the number of reads used to define the consensus sequence (`CONSCOUNT`)
+During assembly, the consensus isotype annotation (``PRCONS``) from read 1
+and the number of reads used to define the consensus sequence (``CONSCOUNT``)
 for both reads are propagated into the annotations of the full length Ig sequence
 (:option:`--1f CONSCOUNT --2f CONSCOUNT PRCONS <AssemblePairs align --1f>`.
 
@@ -279,7 +345,19 @@ LENGTH                Length of the assembled sequence
 OVERLAP               Length of the overlap between mate-pairs
 ERROR                 Mismatch rate of the overlapping region
 PVALUE                P-value for the assembly
+FIELDS1               Annotations copied from read 2 into the assembled sequence
+FIELDS2               Annotations copied from read 1 into the assembled sequence
 ===================== ===============================
+
+.. seealso::
+
+    Depending on the amplicon length in your data, not all mate-pairs may overlap.
+    For the sake of simplicity, we have excluded a demonstration of assembly
+    in such cases. pRESTO provides a couple approaches to deal with such reads.
+    The :program:`reference` subcommand of :ref:`AssemblePairs` can use the
+    ungapped V-region reference sequences to properly space non-overlapping reads.
+    Or, if all else fails, the :program:`join` subcommand can be used to simply
+    stick mate-pairs together end-to-end with some intervening gap.
 
 Deduplication and filtering
 --------------------------------------------------------------------------------
@@ -289,8 +367,10 @@ Combining UMI read group size annotations
 
 In the final stage of the workflow, the high-fidelity Ig repertoire is
 obtained by a series of filtering steps. First, the annotation
-specifying the number of raw reads used to build each sequence (`CONSCOUNT`) is
-updated to be the minimum of the forward and reverse reads using the
+specifying the number of raw reads used to build each sequence
+(:option:`-f CONSCOUNT <ParseHeaders collapse -f>`) is updated to be the
+minimum (:option:`--act min <ParseHeaders collapse --act>`) of the
+forward and reverse reads using the
 :program:`collapse` subcommand of :ref:`ParseHeaders`:
 
 .. literalinclude:: scripts/Stern2014_Commands.sh

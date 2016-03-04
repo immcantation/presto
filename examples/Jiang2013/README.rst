@@ -7,13 +7,13 @@ This example uses publicly available data from:
 
 Which may be downloaded from the NCBI Sequence Read Archive under
 accession ID: SRX190717. For this example, we will use the first
-30,000 sequences of sample 43 (accession: SRR765688), which may downloaded
+50,000 sequences of sample 43 (accession: SRR765688), which may downloaded
 downloaded using fastq-dump from the
 `SRA Toolkit <http://www.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software>`__::
 
-    fastq-dump -X 30000 SRR765688
+    fastq-dump -X 50000 SRR765688
 
-Primer and sample barcode (referred to as MID in Jiang et al, 2013) sequences
-are available in the published manuscript. This example assumes that the sample
+Primer and sample barcode (referred to as MID in Jiang, He and Weinstein et al, 2013)
+sequences are available in the published manuscript. This example assumes that the sample
 barcodes, forward primers (V-region), and reverse primers (C-region) have been
 extracted from the manuscript and placed into three corresponding FASTA files.
