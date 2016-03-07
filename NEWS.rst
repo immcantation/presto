@@ -12,6 +12,7 @@ AssemblePairs:
   the reference sequence into the non-overlapping region of assembled 
   sequences. Use caution when using this flag, as this may lead to chimeric 
   sequences.
++ Changed default ``--minlen`` to 8 in align subcommand.
 
 
 Version 0.5.1:  December 4, 2015

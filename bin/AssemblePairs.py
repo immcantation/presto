@@ -39,7 +39,7 @@ from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processS
 default_alpha = 1e-5
 default_max_error = 0.3
 default_min_ident = 0.5
-default_min_len = 1
+default_min_len = 8
 default_max_len = 1000
 default_gap = 0
 default_evalue = 1e-5
