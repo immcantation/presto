@@ -4,6 +4,9 @@ Release Notes
 Version 0.5.1.999:  February 20, 2016
 -------------------------------------------------------------------------------
 
+Fixed a bug with installation on Windows due to old file paths lingering in
+presto.egg-info/SOURCES.txt.
+
 Improvements to commandline usage help messages.
 
 AssemblePairs:
