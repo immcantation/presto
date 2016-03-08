@@ -1,13 +1,15 @@
 Release Notes
 ================================================================================
 
-Version 0.5.1.999:  February 20, 2016
+Version 0.5.2:  March 8, 2016
 -------------------------------------------------------------------------------
 
 Fixed a bug with installation on Windows due to old file paths lingering in
 presto.egg-info/SOURCES.txt.
 
 Improvements to commandline usage help messages.
+
+Updated license from CC BY-NC-SA 3.0 to CC BY-NC-SA 4.0.
 
 AssemblePairs:
 
