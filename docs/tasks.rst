@@ -12,7 +12,7 @@ format. As such, they may or may not be compatible with pRESTO, depending on
 how the headers have been modified by the sequence archive. The
 :ref:`ConvertHeaders` allow you to change incompatible header formats into
 the pRESTO format. For example, to convert from SRA or ENA headers the
-:option:`sra` subcommand would be used:
+:program:`sra` subcommand would be used:
 
 .. code-block:: none
 
@@ -34,16 +34,28 @@ sra           NCBI SRA or EBI ENA
 Removing junk sequences
 --------------------------------------------------------------------------------
 
-.. todo::
+Data sets can be cleaned using one or more invocations of :ref:`FilterSeq`,
+which provides multiple sequence quality control operations.  Four subcommands
+remove sequences from the data that fail to meet some threshold: including length,
+(:program:`length`), number of N or gap characters (:program:`missing`),
+homopolymeric tract length (:program:`repeats`), or mean Phred quality score
+(:program:`quality`). Two subcommands modify sequences
+without removing them: :program:`trimqual` truncates the sequences when the mean
+Phred quality scores decays under a threshold, and :program:`maskqual` replaces
+positions with low Phred quality scores with N characters.
 
-.. code-block:: bash
-    :linenos:
+:ref:`FilterSeq` provides the following quality control subcommands:
 
-    FilterSeq missing
-    FilterSeq repeats
-    FilterSeq quality
-    FilterSeq trimqual
-    FilterSeq maskqual
+============ =================
+Subcommand   Operation
+============ =================
+length       Removes short sequences
+missing      Removes sequences with too many Ns or gaps
+repeats      Removes sequences with long homopolymeric tracts
+quality      Removes sequences with low mean quality scores
+trimqual     Truncates sequences where quality scores decay
+maskqual     Masks low quality positions
+============ =================
 
 Reducing file size for submission to IMGT/HighV-QUEST
 --------------------------------------------------------------------------------
@@ -78,38 +90,45 @@ Sampling and subsetting FASTA and FASTQ files
     SplitSeq sample
     SplitSeq samplepair
 
-Dealing with insufficient UMI diversity
---------------------------------------------------------------------------------
-
-.. todo::
-
-.. code-block:: bash
-    :linenos:
-
-    ClusterSets
-    ParseHeaders
-    BuildConsensus
-
-Dealing with misaligned V-segment primers and indels in UMI groups
---------------------------------------------------------------------------------
-
-.. todo::
-
-.. code-block:: bash
-    :linenos:
-
-    AlignSets
-    BuildConsensus
-
 Assembling paired-end reads that do not overlap
 --------------------------------------------------------------------------------
 
-.. todo::
+The typical way to assemble paired-end reads is via *de novo* assembly using
+the :program:`align` subcommand of :ref:`AssemblePairs`. However, some sequences
+with long CDR3 regions may fail to assemble due to insufficient, or completely
+absent, overlap between the mate-pairs. The :program:`reference` subcommand can
+be used to assemble mate-pairs that do not overlap using the ungapped V-segment
+references sequences as a guide.
 
-.. code-block:: bash
-    :linenos:
+First, a normal :program:`align` command would be performed. The
+:option:`--failed <AssemblePairs align --failed>` argument is added so that
+the reads failing *de novo* alignment are output to separate files::
 
-    AssemblePairs
+    AssemblePairs.py align -1 read1.fastq -2 read1.fastq --rc tail \
+        --coord illumina --failed -outname align
+
+Then, the files labeled ``assemble-fail``, along with the ungapped V-segment
+reference sequences (:option:`-r vref.fasta <AssemblePairs reference -r>`),
+would be input into the :program:`reference` subcommand of :ref:`AssemblePairs`::
+
+    AssemblePairs.py reference -1 align-1_assemble-fail.fastq -2 align-2_assemble-fail.fastq \
+        -r vref.fasta --coord illumina --outname ref
+
+Note, we have skipped the argument to reverse complement the tail sequence this
+time (:option:`--rc tail <AssemblePairs reference --rc>`) as this was
+done in the first invocation of :ref:`AssemblePairs`. You may then process the
+two ``assemble-pass`` files separately or concatenate them together into a single file::
+
+    cat align_assemble-pass.fastq ref_assemble-pass.fastq > merged_assemble-pass.fastq
+
+.. note::
+
+    The sequences output by the :program:`reference` subcommand will contain
+    an appropriate length spacer of Ns between any mate-pairs that do not overlap.
+    The `AssemblePairs reference --fill` argument can be specified to force
+    :ref:`AssemblePairs` to insert the germline sequence into the missing positions,
+    but this should be used with caution as the inserted sequence may not be
+    biologically correct.
 
 Assigning isotype annotations from the constant region sequence
 --------------------------------------------------------------------------------
@@ -122,6 +141,46 @@ Assigning isotype annotations from the constant region sequence
     ConvertHeaders
     MaskPrimers
     ParseHeaders
+
+
+.. _FixingUMIs:
+
+Fixing UMI Problems
+================================================================================
+
+Dealing with misaligned V-segment primers and indels in UMI groups
+--------------------------------------------------------------------------------
+
+.. todo::
+
+.. code-block:: bash
+    :linenos:
+
+    AlignSets
+    BuildConsensus
+
+Dealing with insufficient UMI diversity
+--------------------------------------------------------------------------------
+
+.. todo::
+
+.. code-block:: bash
+    :linenos:
+
+    ClusterSets
+    ParseHeaders
+    BuildConsensus
+
+Dealing with split UMIs
+--------------------------------------------------------------------------------
+
+.. todo::
+
+.. code-block:: bash
+    :linenos:
+
+    ParseHeaders
+    PairSeq
 
 Estimating sequencing and PCR error rates with UMI data
 --------------------------------------------------------------------------------

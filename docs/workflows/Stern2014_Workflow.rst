@@ -231,7 +231,7 @@ masked, rather than cut, during the :ref:`MaskPrimers` step
             --exec ~/bin/muscle --outname R2 --log AS2.log
 
     Where the :option:`--bf BARCODE <AlignSets muscle --bf>` defines the field
-    containing the UMI and :option:`--exec ~/bin/muscle <AlignSets muscle -exec>`
+    containing the UMI and :option:`--exec ~/bin/muscle <AlignSets muscle --exec>`
     is the location of the :program:`MUSCLE` executable.
 
 Generating UMI consensus reads

@@ -1,12 +1,9 @@
 Installation
 ================================================================================
 
-The latest stable release of pRESTO may be downloaded from
-`PyPI <https://pypi.python.org/pypi/presto>`__ or
-`Bitbucket <https://bitbucket.org/kleinstein/presto/downloads>`__.
 The simplest way to install the latest stable release of pRESTO is via pip::
 
-    > pip3 install presto
+    > pip3 install presto --user
 
 Requirements
 --------------------------------------------------------------------------------
