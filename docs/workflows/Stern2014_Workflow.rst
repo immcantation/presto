@@ -77,7 +77,7 @@ Removal of low quality reads
 Quality control begins with the identification and removal of
 low-quality reads using the :program:`quality` subcommand of the
 :ref:`FilterSeq` tool. In this example, reads with mean Phred quality scores
-less than 20 (:option:`-q 20 <FilterSeq quality -q>` are removed:
+less than 20 (:option:`-q 20 <FilterSeq quality -q>`) are removed:
 
 .. literalinclude:: scripts/Stern2014_Commands.sh
    :language: none

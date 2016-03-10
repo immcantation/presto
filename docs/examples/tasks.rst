@@ -78,17 +78,56 @@ tells the tool to output a FASTA, rather than FASTQ, formatted file.
     You can usually avoid the necessity of reducing file sizes by removing
     duplicate sequences first using the :ref:`CollapseSeq` tool.
 
-Sampling and subsetting FASTA and FASTQ files
+Sampling and subsetting sequence files
 --------------------------------------------------------------------------------
 
-.. todo::
+In addition to
+`splitting files into smaller pieces <Reducing file size for submission to IMGT/HighV-QUEST>`_,
+the :ref:`SplitSeq` tool provides several other methods for subsetting and sampling from sequence
+files.
 
-.. code-block:: bash
-    :linenos:
+Subsetting by annotation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    SplitSeq group
-    SplitSeq sample
-    SplitSeq samplepair
+The :program:`group` subcommand allows you to split one file into multiple files based on
+the values in a sequence annotation. For example, splitting one file with multiple ``SAMPLE``
+annotations into separate files (one for each sample) would be accomplished by::
+
+    SplitSeq.py group -s file.fastq -f SAMPLE
+
+Which will create a set of files labelled ``SAMPLE-M1`` and ``SAMPLE-M2``, if samples are
+named ``M1`` and ``M2``.
+
+If you wanted to split based on a numeric value, rather than a set of categorical values,
+then you would add the :option:`--num <SplitSeq group --num>` argument. :ref:`SplitSeq`
+would then create two files: one containing sequences with values less than the threshold
+specified by the :option:`--num <SplitSeq group --num>` argument and one file containing
+sequences with values greater than or equal to the threshold::
+
+    SplitSeq.py group -s file.fastq -f DUPCOUNT --num 2
+
+Which will create two files with the labels ``atleast-2`` and ``under-2``.
+
+Random sampling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To generate a random sample from a sequence file, the :program:`sample` subcommand can be
+used. The example below will select a random sample of 1,000 sequences
+(:option:`-n 1000 <SplitSeq sample -n>`) which all contain the annotation
+``SAMPLE=M1`` (:option:`-f SAMPLE <SplitSeq sample -f>` and :option:`-u M1 <SplitSeq sample -u>`)::
+
+    SplitSeq.py sample -s file.fastq -f SAMPLE -u M1 -n 1000
+
+Performing an analagous sampling of Illumina pair-end reads would be accomplished using
+the :program:`samplepair` subcommand::
+
+    SplitSeq.py samplepair -s file.fastq -f SAMPLE -u M1 -n 1000 --coord illumina
+
+.. note::
+
+    Both the :option:`-f <SplitSeq sample -f>` and :option:`-n <SplitSeq sample -n>`
+    arguments will accept a list of values (eg, ``-n 1000 100 10``), allowing you to
+    sample multiple times from multiple files in one command.
 
 Assembling paired-end reads that do not overlap
 --------------------------------------------------------------------------------
@@ -143,51 +182,3 @@ Assigning isotype annotations from the constant region sequence
     ParseHeaders
 
 
-.. _FixingUMIs:
-
-Fixing UMI Problems
-================================================================================
-
-Dealing with misaligned V-segment primers and indels in UMI groups
---------------------------------------------------------------------------------
-
-.. todo::
-
-.. code-block:: bash
-    :linenos:
-
-    AlignSets
-    BuildConsensus
-
-Dealing with insufficient UMI diversity
---------------------------------------------------------------------------------
-
-.. todo::
-
-.. code-block:: bash
-    :linenos:
-
-    ClusterSets
-    ParseHeaders
-    BuildConsensus
-
-Dealing with split UMIs
---------------------------------------------------------------------------------
-
-.. todo::
-
-.. code-block:: bash
-    :linenos:
-
-    ParseHeaders
-    PairSeq
-
-Estimating sequencing and PCR error rates with UMI data
---------------------------------------------------------------------------------
-
-.. todo::
-
-.. code-block:: bash
-    :linenos:
-
-    EstimateError

@@ -13,9 +13,10 @@
     :maxdepth: 2
     :caption: Examples
 
-    workflows
-    annotations
-    tasks
+    examples/workflows
+    examples/tasks
+    examples/umi
+    examples/annotations
 
 .. toctree::
     :maxdepth: 2
