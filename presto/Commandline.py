@@ -14,6 +14,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, \
 
 # Presto imports
 from presto.Defaults import default_delimiter
+from presto.IO import getFileType
 
 
 class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpFormatter):
@@ -138,9 +139,9 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     Returns:
       dict : Dictionary copy of args with output arguments embedded in the dictionary out_args
     """ 
-    db_types = ['.tab']
-    seq_types = ['.fasta', '.fastq']
-    primer_types = ['.fasta', '.regex']
+    db_types = ['tab']
+    seq_types = ['fasta', 'fastq']
+    primer_types = ['fasta', 'regex']
     if in_types is not None:  in_types = [f.lower for f in in_types]
     args_dict = args.__dict__.copy()
     
@@ -169,7 +170,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         for f in args_dict['db_files']:
             if not os.path.isfile(f):
                 sys.exit('ERROR:  Database file %s does not exist' % f)
-            if os.path.splitext(f)[-1].lower() not in db_types:
+            if getFileType(f) not in db_types:
                 sys.exit('ERROR:  Database file %s is not a supported type. Must be one: %s' \
                          % (f, ', '.join(db_types)))
     
@@ -178,7 +179,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         for f in args_dict['seq_files']:
             if not os.path.isfile(f):
                 sys.exit('ERROR:  Sequence file %s does not exist' % f)
-            if os.path.splitext(f)[-1].lower() not in seq_types:
+            if getFileType(f) not in seq_types:
                 sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
                          % (f, ', '.join(seq_types)))
     
@@ -187,12 +188,12 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         if len(args_dict['seq_files_1']) != len(args_dict['seq_files_2']):
             sys.exit('ERROR:  The -1 and -2 arguments must contain the same number of files')
         for f1, f2 in zip(args_dict['seq_files_1'], args_dict['seq_files_2']):
-            if os.path.splitext(f1)[-1].lower() != os.path.splitext(f2)[-1].lower():
+            if getFileType(f1) != getFileType(f2):
                 sys.exit('ERROR:  Each pair of files in the -1 and -2 arguments must be the same file type')
         for f in (args_dict['seq_files_1'] + args_dict['seq_files_2']):
             if not os.path.isfile(f):
                 sys.exit('ERROR:  Sequence file %s does not exist' % f)
-            if os.path.splitext(f)[-1].lower() not in seq_types:
+            if getFileType(f) not in seq_types:
                 sys.exit('ERROR:  Sequence file %s is not a supported type. Must be one: %s' \
                          % (f, ', '.join(seq_types)))
                     
@@ -201,7 +202,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         primer_file = args_dict['primer_file']
         if not os.path.isfile(primer_file):
             sys.exit('ERROR:  Primer file %s does not exist' % primer_file)
-        if os.path.splitext(primer_file)[-1].lower() not in primer_types:
+        if getFileType(primer_file) not in primer_types:
             sys.exit('ERROR:  Primer file %s is not a supported type. Must be one: %s' \
                      % (primer_file, ', '.join(primer_types)))
     
@@ -212,7 +213,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         for f in files:
             if not os.path.exists(f):
                 sys.exit('ERROR:  Input %s does not exist' % f)
-            if in_types is not None and os.path.splitext(f)[-1].lower() not in in_types:
+            if in_types is not None and getFileType(f) not in in_types:
                 sys.exit('ERROR:  Input %s is not a supported type. Must be one: %s' \
                          % (f, ', '.join(in_types)))
     

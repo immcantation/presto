@@ -71,7 +71,6 @@ def getFileType(filename):
         sys.exit('ERROR:  File %s cannot be read' % filename)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (filename, e))
-
     return file_type
 
 
@@ -92,7 +91,8 @@ def readSeqFile(seq_file, index=False, key_func=None):
     # Read and check file
     try:
         seq_type = getFileType(seq_file)
-        if seq_type not in ('fasta', 'fastq'):  raise ValueError
+        if seq_type not in ('fasta', 'fastq'):
+           sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
 
         if index:
             seq_records = SeqIO.index(seq_file, seq_type,
@@ -103,8 +103,6 @@ def readSeqFile(seq_file, index=False, key_func=None):
                                       alphabet=IUPAC.ambiguous_dna)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % seq_file)
-    except ValueError:
-        sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
     except Exception as e:
         sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
 
