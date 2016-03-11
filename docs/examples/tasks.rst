@@ -31,7 +31,73 @@ imgt          IMGT/GENE-DB
 sra           NCBI SRA or EBI ENA
 ============  =================
 
-Removing junk sequences
+Reducing file size for submission to IMGT/HighV-QUEST
+--------------------------------------------------------------------------------
+
+`IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__ currently limits the size of
+uploaded files to 500,000 sequences. To accomodate this limit, you can use
+the :program:`count` subcommand of :ref:`SplitSeq` to divide your files into
+small pieces.
+
+.. code-block:: none
+
+    SplitSeq.py count -s file.fastq -n 500000 --fasta
+
+The :option:`-n 500000 <SplitSeq count -n>` argument sets the maximum number of
+sequences in each file and the :option:`--fasta <SplitSeq count --fasta>`
+tells the tool to output a FASTA, rather than FASTQ, formatted file.
+
+.. note::
+
+    You can usually avoid the necessity of reducing file sizes by removing
+    duplicate sequences first using the :ref:`CollapseSeq` tool.
+
+Subsetting sequence files by annotation
+--------------------------------------------------------------------------------
+
+The :program:`group` subcommand of :ref:`SplitSeq` allows you to split one file
+into multiple files based on the values in a sequence annotation. For example,
+splitting one file with multiple ``SAMPLE`` annotations into separate files
+(one for each sample) would be accomplished by::
+
+    SplitSeq.py group -s file.fastq -f SAMPLE
+
+Which will create a set of files labelled ``SAMPLE-M1`` and ``SAMPLE-M2``, if samples are
+named ``M1`` and ``M2``.
+
+If you wanted to split based on a numeric value, rather than a set of categorical values,
+then you would add the :option:`--num <SplitSeq group --num>` argument. :ref:`SplitSeq`
+would then create two files: one containing sequences with values less than the threshold
+specified by the :option:`--num <SplitSeq group --num>` argument and one file containing
+sequences with values greater than or equal to the threshold::
+
+    SplitSeq.py group -s file.fastq -f DUPCOUNT --num 2
+
+Which will create two files with the labels ``atleast-2`` and ``under-2``.
+
+Random sampling from sequence files
+--------------------------------------------------------------------------------
+
+The :program:`sample` subcommand of :ref:`SplitSeq` may be used to generate a
+random sample from a sequence file or set of pair-end files. The example below
+will select a random sample of 1,000 sequences (:option:`-n 1000 <SplitSeq sample -n>`)
+which all contain the annotation ``SAMPLE=M1``
+(:option:`-f SAMPLE <SplitSeq sample -f>` and :option:`-u M1 <SplitSeq sample -u>`)::
+
+    SplitSeq.py sample -s file.fastq -f SAMPLE -u M1 -n 1000
+
+Performing an analogous sampling of Illumina paired-end reads would be accomplished using
+the :program:`samplepair` subcommand::
+
+    SplitSeq.py samplepair -s file.fastq -f SAMPLE -u M1 -n 1000 --coord illumina
+
+.. note::
+
+    Both the :option:`-f <SplitSeq sample -f>` and :option:`-n <SplitSeq sample -n>`
+    arguments will accept a list of values (eg, ``-n 1000 100 10``), allowing you to
+    sample multiple times from multiple files in one command.
+
+Cleaning or removing poor quality sequences
 --------------------------------------------------------------------------------
 
 Data sets can be cleaned using one or more invocations of :ref:`FilterSeq`,
@@ -56,78 +122,6 @@ quality      Removes sequences with low mean quality scores
 trimqual     Truncates sequences where quality scores decay
 maskqual     Masks low quality positions
 ============ =================
-
-Reducing file size for submission to IMGT/HighV-QUEST
---------------------------------------------------------------------------------
-
-`IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__ currently limits the size of
-uploaded files to 500,000 sequences. To accomodate this limit, you can use
-the :program:`count` subcommand of :ref:`SplitSeq` to divide your files into
-small pieces.
-
-.. code-block:: none
-
-    SplitSeq.py count -s file.fastq -n 500,000 --fasta
-
-The :option:`-n 500,000 <SplitSeq count -n>` argument sets the maximum number of
-sequences in each file and the :option:`--fasta <SplitSeq count --fasta>`
-tells the tool to output a FASTA, rather than FASTQ, formatted file.
-
-.. note::
-
-    You can usually avoid the necessity of reducing file sizes by removing
-    duplicate sequences first using the :ref:`CollapseSeq` tool.
-
-Sampling and subsetting sequence files
---------------------------------------------------------------------------------
-
-In addition to
-`splitting files into smaller pieces <Reducing file size for submission to IMGT/HighV-QUEST>`_,
-the :ref:`SplitSeq` tool provides several other methods for subsetting and sampling from sequence
-files.
-
-Subsetting by annotation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :program:`group` subcommand allows you to split one file into multiple files based on
-the values in a sequence annotation. For example, splitting one file with multiple ``SAMPLE``
-annotations into separate files (one for each sample) would be accomplished by::
-
-    SplitSeq.py group -s file.fastq -f SAMPLE
-
-Which will create a set of files labelled ``SAMPLE-M1`` and ``SAMPLE-M2``, if samples are
-named ``M1`` and ``M2``.
-
-If you wanted to split based on a numeric value, rather than a set of categorical values,
-then you would add the :option:`--num <SplitSeq group --num>` argument. :ref:`SplitSeq`
-would then create two files: one containing sequences with values less than the threshold
-specified by the :option:`--num <SplitSeq group --num>` argument and one file containing
-sequences with values greater than or equal to the threshold::
-
-    SplitSeq.py group -s file.fastq -f DUPCOUNT --num 2
-
-Which will create two files with the labels ``atleast-2`` and ``under-2``.
-
-Random sampling
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To generate a random sample from a sequence file, the :program:`sample` subcommand can be
-used. The example below will select a random sample of 1,000 sequences
-(:option:`-n 1000 <SplitSeq sample -n>`) which all contain the annotation
-``SAMPLE=M1`` (:option:`-f SAMPLE <SplitSeq sample -f>` and :option:`-u M1 <SplitSeq sample -u>`)::
-
-    SplitSeq.py sample -s file.fastq -f SAMPLE -u M1 -n 1000
-
-Performing an analagous sampling of Illumina pair-end reads would be accomplished using
-the :program:`samplepair` subcommand::
-
-    SplitSeq.py samplepair -s file.fastq -f SAMPLE -u M1 -n 1000 --coord illumina
-
-.. note::
-
-    Both the :option:`-f <SplitSeq sample -f>` and :option:`-n <SplitSeq sample -n>`
-    arguments will accept a list of values (eg, ``-n 1000 100 10``), allowing you to
-    sample multiple times from multiple files in one command.
 
 Assembling paired-end reads that do not overlap
 --------------------------------------------------------------------------------
@@ -172,13 +166,38 @@ two ``assemble-pass`` files separately or concatenate them together into a singl
 Assigning isotype annotations from the constant region sequence
 --------------------------------------------------------------------------------
 
-.. todo::
+:ref:`MaskPrimers` is usually used to remove primer regions and annotate
+sequences with primer identifiers. However, it can be used for any other case
+where you need to align a set of short sequences against the reads. One example
+alternate use is where you either do not know the C-region primer sequences
+or do not trust the primer region to provide an accurate isotype assignment.
 
-.. code-block:: bash
-    :linenos:
+If you build a FASTA file containing the reverse-complement of short sequences
+from the front of CH-1, then you can annotate the reads with these sequence in the same
+way you would C-region specific primers::
 
-    ConvertHeaders
-    MaskPrimers
-    ParseHeaders
+    MaskPrimers.py align -s file.fastq -p IGHC.fasta --maxlen 100 --maxerror 0.3 \
+        --mode cut --revpr
 
+Where :option:`--revpr <MaskPrimers align --revpr>` tells :ref:`MaskPrimers` to
+reverse-complement the "primer" sequences and look for them at the end of the reads,
+:option:`--maxlen 100 <MaskPrimers align --maxlen>` restricts the search to the last
+100 bp, :option:`--maxerror 0.3 <MaskPrimers align --maxerror>` allows for up to
+30% mismatches, and :option:`-p IGHC.fasta <MaskPrimers align -p>` specifies the file
+containing the CH-1 sequences.  An example CH-1 sequence file would look like:
 
+.. literalinclude:: ../workflows/data/IGHC.fasta
+   :language: none
+
+:download:`Download IGHC.fasta <../workflows/data/IGHC.fasta>`
+
+.. seealso::
+
+    Constant region reference sequences may be downloaded from
+    `IMGT <http://imgt.org/vquest/refseqh.html>`__ and the sequence headers can be
+    reformated using the :program:`imgt` subcommand of :ref:`ConvertHeaders`.
+    Note, you may need to clean-up the reference sequences a bit
+    before running :ref:`ConvertHeaders` if you receive an error about duplicate sequence names
+    (eg, remove duplicate allele with different artificial splicing). To cut and
+    reverse-complement the constant region sequences use something like
+    `seqmagick <http://seqmagick.readthedocs.org>`__.
