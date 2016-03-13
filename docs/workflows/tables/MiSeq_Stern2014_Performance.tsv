@@ -10,5 +10,3 @@ Line	Tool	Reads	Cores	MB	Minutes
 13	ParseHeaders.py collapse	56,104	1	88	0.4
 14	CollapseSeq.py	55,480	1	822	0.7
 15	SplitSeq.py group	51,047	1	88	0.2
-
-

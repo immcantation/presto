@@ -408,32 +408,40 @@ def getArgParser():
     parser_generic = subparsers.add_parser('generic', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
                                        help='''Converts sequence headers without a known
+                                            annotation system.''',
+                                       description='''Converts sequence headers without a known
                                             annotation system.''')
     parser_generic.set_defaults(convert_func=convertGenericHeader)
 
     # Subparser for conversion of 454 headers
     parser_454 = subparsers.add_parser('454', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='''Converts Roche 454 sequence headers.''')
+                                       help='''Converts Roche 454 sequence headers.''',
+                                       description='''Converts Roche 454 sequence headers.''')
     parser_454.set_defaults(convert_func=convert454Header)
 
     # Subparser for conversion of GenBank and RefSeq headers
     parser_genbank = subparsers.add_parser('genbank', parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter,
                                            help='''Converts NCBI GenBank and RefSeq
+                                                sequence headers.''',
+                                           description='''Converts NCBI GenBank and RefSeq
                                                 sequence headers.''')
     parser_genbank.set_defaults(convert_func=convertGenbankHeader)
 
     # Subparser for conversion of Illumina headers
     parser_illumina = subparsers.add_parser('illumina', parents=[parser_parent],
                                             formatter_class=CommonHelpFormatter,
-                                            help='''Converts Illumina sequence headers.''')
+                                            help='''Converts Illumina sequence headers.''',
+                                            description='''Converts Illumina sequence headers.''')
     parser_illumina.set_defaults(convert_func=convertIlluminaHeader)
 
     # Subparser for conversion of IMGT germline headers
     parser_imgt = subparsers.add_parser('imgt', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
                                         help='''Converts sequence headers output by
+                                             IMGT/GENE-DB.''',
+                                        description='''Converts sequence headers output by
                                              IMGT/GENE-DB.''')
     parser_imgt.add_argument('--simple', action='store_true', dest='simple',
                              help='''If specified, only the allele name, and no other
@@ -444,7 +452,8 @@ def getArgParser():
     # Subparser for conversion of SRA headers
     parser_sra = subparsers.add_parser('sra', parents=[parser_parent],
                                        formatter_class=CommonHelpFormatter,
-                                       help='''Converts NCBI SRA sequence headers.''')
+                                       help='''Converts NCBI SRA sequence headers.''',
+                                       description='''Converts NCBI SRA sequence headers.''')
     parser_sra.set_defaults(convert_func=convertSRAHeader)
 
     return parser

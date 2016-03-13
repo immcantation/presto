@@ -504,7 +504,7 @@ def getArgParser():
                              quality scores to determine the consensus nucleotide at
                              each position.''')
     parser.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
-                        help='''Consensus quality score cut-off under which an ambiguous '
+                        help='''Consensus quality score cut-off under which an ambiguous
                              character is assigned.''')
     parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
                         help='''Fraction of character occurrences under which an ambiguous

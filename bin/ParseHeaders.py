@@ -331,7 +331,8 @@ def getArgParser():
     # Subparser to add header fields
     parser_add = subparsers.add_parser('add', parents=[getCommonArgParser(log=False)],
                                        formatter_class=CommonHelpFormatter,
-                                       help='Adds field/value pairs to header annotations')    
+                                       help='Adds field/value pairs to header annotations',
+                                       description='Adds field/value pairs to header annotations')
     parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                             help='List of fields to add.')
     parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
@@ -342,7 +343,8 @@ def getArgParser():
     # Subparser to collapse header fields
     parser_collapse = subparsers.add_parser('collapse', parents=[getCommonArgParser(log=False)],
                                             formatter_class=CommonHelpFormatter,
-                                            help='Collapses header annotations with multiple entries')    
+                                            help='Collapses header annotations with multiple entries',
+                                            description='Collapses header annotations with multiple entries')
     parser_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                  help='List of fields to collapse.')
     parser_collapse.add_argument('--act', nargs='+', action='store', dest='actions', required=True,
@@ -362,7 +364,8 @@ def getArgParser():
     # Subparser to copy header fields
     parser_copy = subparsers.add_parser('copy', parents=[getCommonArgParser(log=False)],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Copies header annotation fields')
+                                        help='Copies header annotation fields',
+                                        description='Copies header annotation fields')
     parser_copy.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to copy.')
     parser_copy.add_argument('-k', nargs='+', action='store', dest='names', required=True,
@@ -387,7 +390,8 @@ def getArgParser():
     # Subparser to delete header fields
     parser_delete = subparsers.add_parser('delete', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Deletes fields from header annotations')
+                                          help='Deletes fields from header annotations',
+                                          description='Deletes fields from header annotations')
     parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to delete.')
     parser_delete.set_defaults(func=modifyHeaders)
@@ -396,7 +400,8 @@ def getArgParser():
     # Subparser to expand header fields
     parser_expand = subparsers.add_parser('expand', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Expands annotation fields with multiple values')    
+                                          help='Expands annotation fields with multiple values',
+                                          description='Expands annotation fields with multiple values')
     parser_expand.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to expand.')
     parser_expand.add_argument('--sep', action='store', dest='separator', 
@@ -408,7 +413,8 @@ def getArgParser():
     # Subparser to rename header fields
     parser_rename = subparsers.add_parser('rename', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Renames header annotation fields')
+                                          help='Renames header annotation fields',
+                                          description='Renames header annotation fields')
     parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                                help='List of fields to rename.')
     parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
@@ -433,7 +439,8 @@ def getArgParser():
     # Subparser to create a header table
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_out=False, log=False)],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Writes sequence headers to a table')
+                                         help='Writes sequence headers to a table',
+                                         description='Writes sequence headers to a table')
     parser_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                               help='''List of fields to collect. The sequence identifier may
                                    be specified using the hidden field name "ID".''')

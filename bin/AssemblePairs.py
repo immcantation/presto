@@ -906,7 +906,8 @@ def getArgParser():
     # Paired end overlap alignment mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Assembled pairs by aligning ends')
+                                         help='Assemble pairs by aligning ends',
+                                         description='Assemble pairs by aligning ends')
     parser_align.add_argument('--alpha', action='store', dest='alpha', type=float,
                               default=default_alpha, help='Significance threshold for sequence assemble')
     parser_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
@@ -923,7 +924,8 @@ def getArgParser():
     # Paired end concatenation mode argument parser
     parser_join = subparsers.add_parser('join', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Assembled pairs by concatenating ends')
+                                         help='Assemble pairs by concatenating ends',
+                                         description='Assemble pairs by concatenating ends')
     parser_join.add_argument('--gap', action='store', dest='gap', type=int, default=default_gap, 
                              help='Number of N characters to place between ends')
     parser_join.set_defaults(assemble_func=joinSeqPair)    
@@ -931,8 +933,8 @@ def getArgParser():
     # Reference alignment mode argument parser
     parser_ref = subparsers.add_parser('reference', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter,
-                                        help='''Assembled pairs by aligning reads against a
-                                             reference database''')
+                                        help='Assemble pairs by aligning reads against a reference database',
+                                        description='Assemble pairs by aligning reads against a reference database')
     parser_ref.add_argument('-r', action='store', dest='ref_file', required=True,
                             help='''A FASTA file containing the reference sequence database.''')
     parser_ref.add_argument('--minident', action='store', dest='min_ident', type=float,

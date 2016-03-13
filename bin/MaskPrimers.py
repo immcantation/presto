@@ -582,7 +582,8 @@ def getArgParser():
     # Align mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parser_parent],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Find primer matches using pairwise local alignment')
+                                         help='Find primer matches using pairwise local alignment.',
+                                         description='Find primer matches using pairwise local alignment.')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len, help='Maximum sequence length to scan for primers.')
     parser_align.add_argument('--skiprc', action='store_true', dest='skip_rc', 
@@ -603,7 +604,8 @@ def getArgParser():
     # Score mode argument parser
     parser_score = subparsers.add_parser('score', parents=[parser_parent], 
                                          formatter_class=CommonHelpFormatter,
-                                         help='Find primer matches by scoring primers at a fixed position')
+                                         help='Find primer matches by scoring primers at a fixed position.',
+                                         description='Find primer matches by scoring primers at a fixed position.')
     parser_score.add_argument('--start', action='store', dest='start', type=int, default=default_start, 
                               help='The starting position of the primer')
 

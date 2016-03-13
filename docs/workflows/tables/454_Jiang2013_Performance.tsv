@@ -7,4 +7,3 @@ Line	Tool	Reads	Cores	MB	Minutes
 07	ParseHeaders.py expand	548,658	1	329	3.6
 08	ParseHeaders.py rename	548,658	1	329	4.1
 09	CollapseSeq.py	548,658	1	1,509	5.6
-

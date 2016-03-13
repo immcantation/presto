@@ -377,7 +377,8 @@ def getArgParser():
     # MUSCLE mode argument parser
     parser_muscle = subparsers.add_parser('muscle', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Align sequence sets using MUSCLE')
+                                          help='Align sequence sets using MUSCLE',
+                                          description='Align sequence sets using MUSCLE')
     parser_muscle.add_argument('--exec', action='store', dest='muscle_exec', default=default_muscle_exec,
                                help='The location of the MUSCLE executable')
     parser_muscle.set_defaults(align_func=runMuscle)
@@ -385,7 +386,8 @@ def getArgParser():
     # Primer offset mode argument parser
     parser_offset = subparsers.add_parser('offset', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Align sequence sets using predefined 5\' offset')
+                                          help='Align sequence sets using predefined 5\' offset',
+                                          description='Align sequence sets using predefined 5\' offset')
     parser_offset.add_argument('-d', action='store', dest='offset_table', default=None,
                                help='The tab delimited file of offset tags and values')
     parser_offset.add_argument('--pf', action='store', dest='primer_field', type=str, 
@@ -400,7 +402,8 @@ def getArgParser():
     # Offset table generation argument parser
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Create a 5\' offset table by primer multiple alignment')
+                                         help='Create a 5\' offset table by primer multiple alignment',
+                                         description='Create a 5\' offset table by primer multiple alignment')
     parser_table.add_argument('-p', action='store', dest='primer_file', required=True, 
                                help='A FASTA or REGEX file containing primer sequences')
     parser_table.add_argument('--reverse', action='store_true', dest='reverse',  

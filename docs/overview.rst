@@ -20,7 +20,7 @@ of each tool is shown in the table below.
 .. _FeatureTable:
 
 .. csv-table::
-   :file: tools/tool_summary.tab
+   :file: tools/tool_summary.tsv
    :delim: tab
    :header-rows: 1
    :widths: 15, 10, 75
@@ -60,18 +60,25 @@ annotation fields when they exist, and will not overwrite or delete annotations
 unless explicitly performed using the ParseHeaders tool. All reserved characters
 can be redefined using the command line options.
 
-**FASTA Annotation**::
+.. code-block:: none
+    :caption: **FASTA Annotation**
 
     >SEQUENCE_ID|PRIMER=IgHV-6,IgHC-M|BARCODE=DAY7|DUPCOUNT=8
     NNNNCCACGATTGGTGAAGCCCTCGCAGACCCTCTCACTCACCTGTGCCATCTCCGGGGACAGTGTTTCTACCAAAA
 
-**FASTQ Annotation**::
+.. code-block:: none
+    :caption: **FASTQ Annotation**
 
     @SEQUENCE_ID|PRIMER=IgHV-6,IgHC-M|BARCODE=DAY7|DUPCOUNT=8
     NNNNCCACGATTGGTGAAGCCCTCGCAGACCCTCTCACTCACCTGTGCCATCTCCGGGGACAGTGTTTCTACCAAAA
     +
     !!!!nmoomllmlooj\Xlnngookkikloommononnoonnomnnlomononoojlmmkiklonooooooooomoo
 
-Details regarding the annotations added by each tool can be found in the
-:ref:`Usage` documentation for the tool.
+.. seealso::
 
+   * Details regarding the annotations added by each tool can be found in the
+     :ref:`Usage` documentation for the tool.
+   * The :ref:`ParseHeaders` tool provides a number of options for manipulating annotations
+     in the pRESTO format.
+   * The :ref:`ConvertHeaders` tool allows you :ref:`convert <Tasks-ImportingData>` several
+     common annotation schemes into the pRESTO annotation format.

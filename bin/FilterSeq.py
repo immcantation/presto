@@ -386,7 +386,8 @@ def getArgParser():
     # Length filter mode argument parser
     parser_length = subparsers.add_parser('length', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter, 
-                                          help='Sequence length filtering mode')
+                                          help='Filters reads by length.',
+                                          description='Filters reads by length.')
     parser_length.add_argument('-n', action='store', dest='min_length', type=int, 
                                default=default_min_length, 
                                help='Minimum sequence length to retain.')
@@ -398,7 +399,8 @@ def getArgParser():
     # Missing character filter mode argument parser
     parser_missing = subparsers.add_parser('missing', parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter, 
-                                           help='Missing nucleotide filtering mode')
+                                           help='Filters reads by N or gap character count.',
+                                           description='Filters reads by N or gap character count.')
     parser_missing.add_argument('-n', action='store', dest='max_missing', type=int, 
                                 default=default_max_missing, 
                                 help='Threshold for fraction of gap or N nucleotides.')
@@ -410,7 +412,8 @@ def getArgParser():
     # Continuous repeating character filter mode argument parser
     parser_repeats = subparsers.add_parser('repeats', parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter, 
-                                           help='Consecutive nucleotide repeating filtering mode')
+                                           help='Filters reads by consecutive nucleotide repeats.',
+                                           description='Filters reads by consecutive nucleotide repeats.')
     parser_repeats.add_argument('-n', action='store', dest='max_repeat', type=int, 
                                 default=default_max_repeat, 
                                 help='Threshold for fraction of repeating nucleotides.')
@@ -425,7 +428,8 @@ def getArgParser():
     # Quality filter mode argument parser
     parser_quality = subparsers.add_parser('quality', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter, 
-                                          help='Quality filtering mode')
+                                          help='Filters reads by quality score.',
+                                          description='Filters reads by quality score.')
     parser_quality.add_argument('-q', action='store', dest='min_qual', type=float, 
                                 default=default_min_qual, help='Quality score threshold.')
     parser_quality.add_argument('--inner', action='store_true', dest='inner',
@@ -436,7 +440,8 @@ def getArgParser():
     # Mask mode argument parser
     parser_maskqual = subparsers.add_parser('maskqual', parents=[parser_parent], 
                                         formatter_class=CommonHelpFormatter,
-                                        help='Character masking mode')
+                                        help='Masks low quality positions.',
+                                        description='Masks low quality positions.')
     parser_maskqual.add_argument('-q', action='store', dest='min_qual', type=float, 
                              default=default_min_qual, help='Quality score threshold.')
     parser_maskqual.set_defaults(filter_func=maskQuality)
@@ -444,7 +449,8 @@ def getArgParser():
     # Trim mode argument parser
     parser_trimqual = subparsers.add_parser('trimqual', parents=[parser_parent], 
                                             formatter_class=CommonHelpFormatter,
-                                            help='Sequence trimming mode')
+                                            help='Trims sequences by quality score decay.',
+                                            description='Trims sequences by quality score decay.')
     parser_trimqual.add_argument('-q', action='store', dest='min_qual', type=float, 
                                  default=default_min_qual, help='Quality score threshold.')
     parser_trimqual.add_argument('--win', action='store', dest='window', type=int, 

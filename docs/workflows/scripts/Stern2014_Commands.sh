@@ -6,7 +6,7 @@ MaskPrimers.py score -s MS12_R1_quality-pass.fastq -p Stern2014_CPrimers.fasta \
 MaskPrimers.py score -s MS12_R2_quality-pass.fastq -p Stern2014_VPrimers.fasta \
     --start 0 --mode mask --outname MS12_R2 --log MP2.log
 PairSeq.py -1 MS12_R1_primers-pass.fastq -2 MS12_R2_primers-pass.fastq \
-    --coord sra --1f BARCODE
+    --1f BARCODE --coord sra
 BuildConsensus.py -s MS12_R1_primers-pass_pair-pass.fastq --bf BARCODE --pf PRIMER \
     --prcons 0.6 --maxerror 0.1 --maxgap 0.5 --outname MS12_R1 --log BC1.log
 BuildConsensus.py -s MS12_R2_primers-pass_pair-pass.fastq --bf BARCODE --pf PRIMER \

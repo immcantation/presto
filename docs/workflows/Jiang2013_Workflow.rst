@@ -299,7 +299,7 @@ set contained 1,346,039 raw reads, and required matching of 11 sample
 barcodes, 11 V-segment primers, and 5 constant region primers.
 
 .. csv-table::
-   :file: tables/454_Jiang2013_Performance.tab
+   :file: tables/454_Jiang2013_Performance.tsv
    :delim: tab
    :header-rows: 1
    :widths: 10, 40, 20, 10, 10, 10

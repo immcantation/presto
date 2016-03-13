@@ -168,6 +168,8 @@ ERROR                 Primer match error rate
 Generation of UMI consensus sequences
 --------------------------------------------------------------------------------
 
+.. _Stern2014-PairSeq-1:
+
 Copying the UMI annotation across paired-end files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -201,7 +203,7 @@ order across files:
     instead of vice versa (:option:`--2f BARCODE <PairSeq --2f>`)::
 
         PairSeq.py -1 R1_primers-pass.fastq -2 R2_primers-pass.fastq \
-            --coord sra --2f BARCODE
+            --2f BARCODE --coord sra
 
 Multiple alignment of UMI read groups
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -220,7 +222,7 @@ V-region primers, though this does require that the V-region primers be
 masked, rather than cut, during the :ref:`MaskPrimers` step
 (:option:`--mode mask <MaskPrimers score --mode>`).
 
-.. note::
+.. seealso::
 
     If your data requires alignment, then you can create multiple aligned UMI read
     groups as follows::
@@ -233,6 +235,8 @@ masked, rather than cut, during the :ref:`MaskPrimers` step
     Where the :option:`--bf BARCODE <AlignSets muscle --bf>` defines the field
     containing the UMI and :option:`--exec ~/bin/muscle <AlignSets muscle --exec>`
     is the location of the :program:`MUSCLE` executable.
+
+    For additional details see the section on :ref:`fixing UMI alignments <UMI-Alignment>`.
 
 Generating UMI consensus reads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -460,7 +464,7 @@ matching of 1 constant region primer, 45 V-segment
 primers, and averaged 24.3 reads per UMI.
 
 .. csv-table::
-   :file: tables/MiSeq_Stern2014_Performance.tab
+   :file: tables/MiSeq_Stern2014_Performance.tsv
    :delim: tab
    :header-rows: 1
    :widths: 10, 40, 20, 10, 10, 10

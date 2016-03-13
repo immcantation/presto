@@ -564,7 +564,8 @@ def getArgParser():
                                                                         annotation=False,
                                                                         log=False)],
                                             formatter_class=CommonHelpFormatter,
-                                            help='Splits sequences files by number of records')
+                                            help='Splits sequences files by number of records.',
+                                            description='Splits sequences files by number of records.')
     parser_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
                                  help='Maximum number of sequences in each new file')
     parser_downsize.set_defaults(func=downsizeSeqFile)
@@ -573,7 +574,8 @@ def getArgParser():
     parser_group = subparsers.add_parser('group',
                                          parents=[getCommonArgParser(failed=False, log=False)],
                                          formatter_class=CommonHelpFormatter,
-                                         help='Splits sequences files by annotation')
+                                         help='Splits sequences files by annotation.',
+                                         description='Splits sequences files by annotation.')
     parser_group.add_argument('-f', action='store', dest='field', type=str, required=True,
                               help='Annotation field to split sequence files by')
     parser_group.add_argument('--num', action='store', dest='threshold', type=float, default=None, 
@@ -585,7 +587,8 @@ def getArgParser():
     parser_sample = subparsers.add_parser('sample',
                                           parents=[getCommonArgParser(failed=False, log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Randomly samples from unpaired sequences files')
+                                          help='Randomly samples from unpaired sequences files.',
+                                          description='Randomly samples from unpaired sequences files.')
     parser_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True, 
                                help='Maximum number of sequences to sample from each file')
     parser_sample.add_argument('-f', action='store', dest='field', type=str,
@@ -600,8 +603,9 @@ def getArgParser():
                                               parents=[getCommonArgParser(failed=False,
                                                                           paired=True,
                                                                           log=False)],
-                                          formatter_class=CommonHelpFormatter,
-                                          help='Randomly samples from paired-end sequences files')
+                                              formatter_class=CommonHelpFormatter,
+                                              help='Randomly samples from paired-end sequences files.',
+                                              description='Randomly samples from paired-end sequences files.')
     parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, 
                                    required=True, 
                                    help='A list of the number of sequences to sample from each file')
@@ -620,7 +624,8 @@ def getArgParser():
     parser_sort = subparsers.add_parser('sort',
                                         parents=[getCommonArgParser(failed=False, log=False)],
                                         formatter_class=CommonHelpFormatter,
-                                        help='Sorts sequences files by annotation')
+                                        help='Sorts sequences files by annotation.',
+                                        description='Sorts sequences files by annotation.')
     parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
                              help='The annotation field to sort sequences by')
     parser_sort.add_argument('-n', action='store', dest='max_count', type=int,

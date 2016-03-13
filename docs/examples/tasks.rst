@@ -3,6 +3,8 @@
 Miscellaneous Tasks
 ================================================================================
 
+.. _Tasks-ImportingData:
+
 Importing data from SRA, ENA or GenBank into pRESTO
 --------------------------------------------------------------------------------
 
@@ -16,7 +18,7 @@ the pRESTO format. For example, to convert from SRA or ENA headers the
 
 .. code-block:: none
 
-    ConvertHeaders.py sra -s file.fastq
+    ConvertHeaders.py sra -s reads.fastq
 
 :ref:`ConvertHeaders` provides the following conversion subcommands:
 
@@ -41,7 +43,7 @@ small pieces.
 
 .. code-block:: none
 
-    SplitSeq.py count -s file.fastq -n 500000 --fasta
+    SplitSeq.py count -s reads.fastq -n 500000 --fasta
 
 The :option:`-n 500000 <SplitSeq count -n>` argument sets the maximum number of
 sequences in each file and the :option:`--fasta <SplitSeq count --fasta>`
@@ -60,7 +62,7 @@ into multiple files based on the values in a sequence annotation. For example,
 splitting one file with multiple ``SAMPLE`` annotations into separate files
 (one for each sample) would be accomplished by::
 
-    SplitSeq.py group -s file.fastq -f SAMPLE
+    SplitSeq.py group -s reads.fastq -f SAMPLE
 
 Which will create a set of files labelled ``SAMPLE-M1`` and ``SAMPLE-M2``, if samples are
 named ``M1`` and ``M2``.
@@ -71,7 +73,7 @@ would then create two files: one containing sequences with values less than the 
 specified by the :option:`--num <SplitSeq group --num>` argument and one file containing
 sequences with values greater than or equal to the threshold::
 
-    SplitSeq.py group -s file.fastq -f DUPCOUNT --num 2
+    SplitSeq.py group -s reads.fastq -f DUPCOUNT --num 2
 
 Which will create two files with the labels ``atleast-2`` and ``under-2``.
 
@@ -84,12 +86,12 @@ will select a random sample of 1,000 sequences (:option:`-n 1000 <SplitSeq sampl
 which all contain the annotation ``SAMPLE=M1``
 (:option:`-f SAMPLE <SplitSeq sample -f>` and :option:`-u M1 <SplitSeq sample -u>`)::
 
-    SplitSeq.py sample -s file.fastq -f SAMPLE -u M1 -n 1000
+    SplitSeq.py sample -s reads.fastq -f SAMPLE -u M1 -n 1000
 
 Performing an analogous sampling of Illumina paired-end reads would be accomplished using
 the :program:`samplepair` subcommand::
 
-    SplitSeq.py samplepair -s file.fastq -f SAMPLE -u M1 -n 1000 --coord illumina
+    SplitSeq.py samplepair -s reads.fastq -f SAMPLE -u M1 -n 1000 --coord illumina
 
 .. note::
 
@@ -137,7 +139,7 @@ First, a normal :program:`align` command would be performed. The
 :option:`--failed <AssemblePairs align --failed>` argument is added so that
 the reads failing *de novo* alignment are output to separate files::
 
-    AssemblePairs.py align -1 read1.fastq -2 read1.fastq --rc tail \
+    AssemblePairs.py align -1 reads-1.fastq -2 reads-2.fastq --rc tail \
         --coord illumina --failed -outname align
 
 Then, the files labeled ``assemble-fail``, along with the ungapped V-segment
@@ -176,7 +178,7 @@ If you build a FASTA file containing the reverse-complement of short sequences
 from the front of CH-1, then you can annotate the reads with these sequence in the same
 way you would C-region specific primers::
 
-    MaskPrimers.py align -s file.fastq -p IGHC.fasta --maxlen 100 --maxerror 0.3 \
+    MaskPrimers.py align -s reads.fastq -p IGHC.fasta --maxlen 100 --maxerror 0.3 \
         --mode cut --revpr
 
 Where :option:`--revpr <MaskPrimers align --revpr>` tells :ref:`MaskPrimers` to

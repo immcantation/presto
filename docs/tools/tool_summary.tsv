@@ -1,32 +1,32 @@
 Tool	Subcommand	Description
 :ref:`AlignSets`		Multiple aligns sets of sequences sharing the same annotation
 	muscle	Uses the program MUSCLE to align reads
-	offset	Uses a table of primer alignments to pad or cleave the 5' unaligned region
-	table	Creates a table for use by the offset subcommand via alignment of the primers
+	offset	Uses a table of primer alignments to align the 5' region
+	table	Creates a table of primer alignments for the offset subcommand
 :ref:`AssemblePairs`		Assembles paired-end reads into a complete sequence
-	align	Assembles a single full length sequence by aligning the ends of paired-end sequences
-	join	Concatenates reads with intervening gaps for paired-end reads that do not overlap
-	reference	Assembles non-overlapping paired-ends by aligning against the V-region references
-:ref:`BuildConsensus`		Constructs a consensus sequence from sets sharing the same annotation (UMI)
-:ref:`ClusterSets`		Clusters sequences by annotation (UMI) into smaller sub-groups
+	align	Assembles paired-end reads by aligning the sequence ends
+	join	Concatenates pair-end reads with intervening gaps
+	reference	Assembles paired-end reads using V-segment references
+:ref:`BuildConsensus`		Constructs UMI consensus sequences
+:ref:`ClusterSets`		Clusters UMI read groups into smaller sub-groups
 :ref:`CollapseSeq`		Removes duplicate sequences
 :ref:`ConvertHeaders`		Converts sequence headers to the pRESTO format
-	generic	Converts sequence headers without a known annotation system
+	generic	Converts sequence headers with an unknown annotation system
 	454	Converts Roche 454 sequence headers
 	genbank	Converts NCBI GenBank and RefSeq sequence headers
 	illumina	Converts Illumina sequence headers
 	imgt	Converts sequence headers output by IMGT/GENE-DB.
 	sra	Converts NCBI SRA sequence headers
-:ref:`EstimateError`		Estimates error rates for sets of reads sharing the same annotation
-:ref:`FilterSeq`		Filters sequences to high quality reads according to user-defined thresholds
+:ref:`EstimateError`		Estimates error rates for UMI data
+:ref:`FilterSeq`		Removes or modifies low quality reads
 	length	Removes sequences under a defined length
 	maskqual	Masks low Phred quality score positions with Ns
 	missing	Removes sequences with a high number of Ns
 	repeats	Removes sequences with long repeats of a single nucleotide
 	quality	Removes sequences with low Phred quality scores
 	trimqual	Trims sequences to segments with high Phred quality scores
-:ref:`MaskPrimers`		Trims or masks primer/barcode sequences and annotates reads accordingly
-	align	Identifies primer regions by local alignment and reorients sequences
+:ref:`MaskPrimers`		Identifies and removes primer regions, MIDs and UMI barcodes
+	align	Matches primers by local alignment and reorients sequences
 	score	Matches primers at a fixed user-defined start position
 :ref:`PairSeq`		Sorts paired-end reads and copies annotations between them
 :ref:`ParseHeaders`		Manipulates sequence annotations
@@ -34,13 +34,13 @@ Tool	Subcommand	Description
 	collapse	Compresses a set of annotation fields into a single field
 	copy	Copies values between annotations fields
 	delete	Deletes an annotation from all reads
-	expand	Expands an annotation with multiple values into multiple different annotations
+	expand	Expands an field with multiple values into separate annotations
 	rename	Rename annotation fields
 	table	Outputs sequence annotations as a data table
 :ref:`ParseLog`		Converts the log output of pRESTO scripts into data tables
 :ref:`SplitSeq`		Performs conversion, sorting, and subsetting of sequence files
-	count	Splits files into separate files containing a maximum number of reads
-	group	Splits files based on the values in either a textual or numeric annotation field
+	count	Splits files into smaller files
+	group	Splits files based on numerical or categorical annotation
 	sample	Randomly samples sequences from a file
 	samplepair	Randomly samples paired-end reads from two files
-	sort	Sorts sequences within a file based on the values in an annotation field
+	sort	Sorts sequences based on annotations
