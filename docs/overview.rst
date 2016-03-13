@@ -38,8 +38,12 @@ pRESTO workflow can be exchanged for an alternate tool, if desired.
 Each tool appends a specific suffix to its output files describing the step and
 output. For example, MaskPrimers will append ``_primers-pass`` to the output
 file containing successfully aligned sequences and ``_primers-fail`` to the file
-containing unaligned sequences. Details regarding the suffixes added by each
-tool can be found in the :ref:`Usage` documentation for the tool.
+containing unaligned sequences.
+
+.. seealso::
+
+    Details regarding the suffixes used by pRESTO tools can be found in the
+    :ref:`Usage` documentation for each tool.
 
 .. _AnnotationScheme:
 
@@ -76,8 +80,8 @@ can be redefined using the command line options.
 
 .. seealso::
 
-   * Details regarding the annotations added by each tool can be found in the
-     :ref:`Usage` documentation for the tool.
+   * Details regarding the annotations added by pRESTO tools can be found in the
+     :ref:`Usage` documentation for each tool.
    * The :ref:`ParseHeaders` tool provides a number of options for manipulating annotations
      in the pRESTO format.
    * The :ref:`ConvertHeaders` tool allows you :ref:`convert <Tasks-ImportingData>` several
