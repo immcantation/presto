@@ -28,7 +28,7 @@ pRESTO website in FASTQ format, with accompanying primer files and an example
 workflow script. The sample data set and workflow script may be downloaded from
 here:
 
-`Greiff et al, 2014 Example Files <http://clip.med.yale.edu/presto/rtd/Greiff2014_Example.tar.gz>`__
+`Greiff et al, 2014 Example Files <http://clip.med.yale.edu/immcantation/examples/Greiff2014_Example.tar.gz>`__
 
 
 Overview of the Workflow
