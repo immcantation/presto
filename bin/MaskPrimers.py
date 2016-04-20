@@ -572,8 +572,10 @@ def getArgParser():
     parser_parent.add_argument('--maxerror', action='store', dest='max_error', type=float,
                                default=default_max_error, help='Maximum allowable error rate.')
     parser_parent.add_argument('--revpr', action='store_true', dest='rev_primer', 
-                              help='Specify to match the tail-end of the sequence against the \
-                                    reverse complement of the primers.')
+                              help='''Specify to match the tail-end of the sequence against the
+                                   reverse complement of the primers. This also reverses the
+                                   behavior of the --maxlen argument, such that the search
+                                   window begins at the tail-end of the sequence.''')
     parser_parent.add_argument('--barcode', action='store_true', dest='barcode', 
                                help='''Specify to encode sequences with barcode sequences
                                     (unique molecular identifiers) found preceding the primer
@@ -585,7 +587,8 @@ def getArgParser():
                                          help='Find primer matches using pairwise local alignment.',
                                          description='Find primer matches using pairwise local alignment.')
     parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
-                              default=default_max_len, help='Maximum sequence length to scan for primers.')
+                              default=default_max_len,
+                              help='''Length of the sequence window to scan for primers.''')
     parser_align.add_argument('--skiprc', action='store_true', dest='skip_rc', 
                               help='Specify to prevent checking of sample reverse complement sequences.')
     parser_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
