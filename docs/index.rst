@@ -35,7 +35,7 @@
     :maxdepth: 1
     :caption: Related Projects
 
-    Change-O <http://changeo.readthedocs.org>
+    Change-O <http://changeo.readthedocs.io>
     Alakazam <http://kleinstein.bitbucket.org/alakazam>
     Shazam <http://kleinstein.bitbucket.org/shazam>
     TIgGER <http://kleinstein.bitbucket.org/tigger>

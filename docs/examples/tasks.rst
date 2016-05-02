@@ -202,4 +202,4 @@ containing the CH-1 sequences.  An example CH-1 sequence file would look like:
     before running :ref:`ConvertHeaders` if you receive an error about duplicate sequence names
     (eg, remove duplicate allele with different artificial splicing). To cut and
     reverse-complement the constant region sequences use something like
-    `seqmagick <http://seqmagick.readthedocs.org>`__.
+    `seqmagick <http://seqmagick.readthedocs.io>`__.
