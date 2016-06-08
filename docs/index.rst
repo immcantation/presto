@@ -36,9 +36,9 @@
     :caption: Related Projects
 
     Change-O <http://changeo.readthedocs.io>
-    Alakazam <http://kleinstein.bitbucket.org/alakazam>
-    Shazam <http://kleinstein.bitbucket.org/shazam>
-    TIgGER <http://kleinstein.bitbucket.org/tigger>
+    Alakazam <http://alakazam.readthedocs.io>
+    Shazam <http://shazam.readthedocs.io>
+    TIgGER <http://tigger.readthedocs.io>
 
 Indices
 --------------------------------------------------------------------------------
