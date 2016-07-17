@@ -26,9 +26,9 @@ Linux
    Biopython according to its
    `instructions <http://biopython.org/DIST/docs/install/Installation.html>`__.
 
-2. Extract the pRESTO bundle and run::
+2. Download the pRESTO bundle and run::
 
-   > python3 setup.py install --user
+   > pip3 install presto-x.y.z.tar.gz --user
 
 Mac OS X
 --------------------------------------------------------------------------------
@@ -65,10 +65,10 @@ Mac OS X
 
    > pip3 install numpy scipy pandas biopython
 
-8. Extract the pRESTO bundle, open a terminal window, change directories
-   to the pRESTO folder, and run::
+8. Download pRESTO bundle, open a terminal window, change directories
+   to download location, and run::
 
-   > python3 setup.py install
+   > pip3 install presto-x.y.z.tar.gz
 
 Windows
 --------------------------------------------------------------------------------
@@ -81,10 +81,10 @@ Windows
    `Unofficial Windows binary <http://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Unzip the pRESTO bundle, open a Command Prompt, change directories to
-   the pRESTO folder, and run::
+3. Download pRESTO bundle, open a Command Prompt, change directories to
+   the download folder, and run::
 
-   > python setup.py install
+   > pip install presto-x.y.z.tar.gz
 
 4. For a default installation of Python 3.4, the pRESTO scripts will be
    installed into ``C:\Python34\Scripts`` and should be directly
