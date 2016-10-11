@@ -199,11 +199,19 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         result_count = countSeqSets(seq_file, set_field, out_args['delimiter'])
         
         # Define empty DataFrames to store assembled results
-        pos_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
-        qual_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
-        nuc_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
-        set_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'], dtype=float)
-        
+        pos_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'],
+                              dtype=float)
+        qual_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'],
+                               dtype=float)
+        set_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'],
+                              dtype=float)
+        #nuc_pairs = list(permutations(['A', 'C', 'G', 'T'], 2))
+        #nuc_index = pd.MultiIndex.from_tuples(nuc_pairs, names=['obs', 'ref'])
+        nuc_index = pd.MultiIndex(levels=[[], []], labels=[[], []], names=['obs', 'ref'])
+        nuc_df = pd.DataFrame(None, index=nuc_index,
+                              columns=['mismatch', 'q_sum', 'total'],
+                              dtype=float)
+
         # Open log file
         if out_args['log_file'] is None:
             log_handle = None
@@ -234,10 +242,10 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             # Sum results
             if result:
                 pass_count += 1
-                pos_df = pos_df.add(result.results['pos'], level=0, fill_value=0)
-                qual_df = qual_df.add(result.results['qual'], level=0, fill_value=0)
-                nuc_df = nuc_df.add(result.results['nuc'], level=0, fill_value=0)
-                set_df = set_df.add(result.results['set'], level=0, fill_value=0)
+                pos_df = pos_df.add(result.results['pos'], fill_value=0)
+                qual_df = qual_df.add(result.results['qual'], fill_value=0)
+                nuc_df = nuc_df.add(result.results['nuc'], fill_value=0)
+                set_df = set_df.add(result.results['set'], fill_value=0)
             else:
                 fail_count += 1
                 
@@ -347,18 +355,27 @@ def writeResults(results, seq_file, out_args):
             getOutputHandle(seq_file, 'error-quality', **file_args) as qual_handle, \
             getOutputHandle(seq_file, 'error-nucleotide', **file_args) as nuc_handle, \
             getOutputHandle(seq_file, 'error-set', **file_args) as set_handle:
-        pos_df.to_csv(pos_handle, sep='\t', na_rep='NA', index_label='POSITION', 
-                      cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
-                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
-        nuc_df.to_csv(nuc_handle, sep='\t', na_rep='NA', index_label=['OBSERVED', 'REFERENCE'], 
-                      cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
-                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
-        qual_df.to_csv(qual_handle, sep='\t', na_rep='NA', index_label='Q',
-                       cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'], 
-                       header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
-        set_df.to_csv(set_handle, sep='\t', na_rep='NA', index_label='SET_COUNT', 
-                      cols=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
-                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'], float_format='%.6f')
+
+        pos_df.to_csv(pos_handle, sep='\t', na_rep='NA', index=True,
+                      index_label='POSITION',
+                      columns=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
+                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'],
+                      float_format='%.6f')
+        nuc_df.to_csv(nuc_handle, sep='\t', na_rep='NA', index=True,
+                      index_label=['OBSERVED', 'REFERENCE'],
+                      columns=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
+                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'],
+                      float_format='%.6f')
+        qual_df.to_csv(qual_handle, sep='\t', na_rep='NA', index=True,
+                       index_label='Q',
+                       columns=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
+                       header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'],
+                       float_format='%.6f')
+        set_df.to_csv(set_handle, sep='\t', na_rep='NA', index=True,
+                      index_label='SET_COUNT',
+                      columns=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
+                      header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'],
+                      float_format='%.6f')
 
     return (pos_handle.name, qual_handle.name, nuc_handle.name, set_handle.name)
 
