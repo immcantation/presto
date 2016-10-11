@@ -234,10 +234,10 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             # Sum results
             if result:
                 pass_count += 1
-                pos_df = pos_df.add(result.results['pos'], fill_value=0)
-                qual_df = qual_df.add(result.results['qual'], fill_value=0)
-                nuc_df = nuc_df.add(result.results['nuc'], fill_value=0)
-                set_df = set_df.add(result.results['set'], fill_value=0)
+                pos_df = pos_df.add(result.results['pos'], level=0, fill_value=0)
+                qual_df = qual_df.add(result.results['qual'], level=0, fill_value=0)
+                nuc_df = nuc_df.add(result.results['nuc'], level=0, fill_value=0)
+                set_df = set_df.add(result.results['set'], level=0, fill_value=0)
             else:
                 fail_count += 1
                 
