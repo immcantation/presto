@@ -23,5 +23,6 @@ SplitSeq.py group -s MS12_collapse-unique.fastq -f CONSCOUNT --num 2 --outname M
 ParseHeaders.py table -s MS12_atleast-2.fastq -f ID PRCONS CONSCOUNT DUPCOUNT
 ParseLog.py -l FS1.log FS2.log -f ID QUALITY
 ParseLog.py -l MP1.log MP2.log -f ID PRIMER BARCODE ERROR
-ParseLog.py -l BC1.log BC2.log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT PRFREQ ERROR
+ParseLog.py -l BC1.log BC2.log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT \
+    PRFREQ ERROR
 ParseLog.py -l AP.log -f ID LENGTH OVERLAP ERROR PVALUE FIELDS1 FIELDS2
