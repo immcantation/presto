@@ -15,4 +15,4 @@ SplitSeq.py group -s M1_collapse-unique.fastq -f DUPCOUNT --num 2 --outname M1
 ParseHeaders.py table -s M1_atleast-2.fastq -f ID DUPCOUNT CPRIMER VPRIMER
 ParseLog.py -l AP.log -f ID LENGTH OVERLAP ERROR PVALUE
 ParseLog.py -l FS.log -f ID QUALITY
-ParseLog.py -l MP[VC].log -f ID PRIMER ERROR
+ParseLog.py -l MPV.log MPC.log -f ID PRIMER ERROR

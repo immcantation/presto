@@ -17,4 +17,4 @@ SplitSeq.py group -s S43_collapse-unique.fastq -f DUPCOUNT --num 2 --outname S43
 ParseHeaders.py table -s S43_atleast-2.fastq -f ID DUPCOUNT MID CPRIMER VPRIMER
 ParseLog.py -l FSL.log -f ID LENGTH
 ParseLog.py -l FSQ.log -f ID QUALITY
-ParseLog.py -l MP[MVC].log -f ID PRSTART PRIMER ERROR
+ParseLog.py -l MPM.log MPV.log MPC.log -f ID PRSTART PRIMER ERROR
