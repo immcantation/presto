@@ -20,7 +20,7 @@ sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import ClusterSets
 
 
-class TestBuildConsensus(unittest.TestCase):
+class TestClusterSets(unittest.TestCase):
     def setUp(self):
         print('-> %s()' % self._testMethodName)
         # Test DNA
@@ -41,7 +41,7 @@ class TestBuildConsensus(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    #@unittest.skip('-> runUClust() skipped\n')
+    @unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
         results = ClusterSets.runUClust(self.records_clust)
         print(results)
