@@ -1,8 +1,5 @@
-image: 
+image:
   name: javh/immcantation:test-python
-  username: $USERNAME
-  password: $PASSWORD
-  email: $EMAIL
 
 pipelines:
   default:
@@ -10,4 +7,3 @@ pipelines:
         script:
           - python3 setup.py install
           - python3 -m unittest
-          
