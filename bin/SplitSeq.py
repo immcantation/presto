@@ -247,7 +247,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
 
     # Read input files and open output files
     start_time = time()
-    printMessage("Reading files", start_time=start_time, width=25)
+    printMessage('Reading files', start_time=start_time, width=25)
 
     in_type = getFileType(seq_file)
     seq_dict = readSeqFile(seq_file, index=True)
@@ -256,24 +256,23 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     # Generate subset of records
     if field is not None and values is not None:
         _sample = _sample_list
-        printMessage("Subsetting by annotation", start_time=start_time, width=25)
+        printMessage('Subsetting by annotation', start_time=start_time, width=25)
         seq_index = subsetSeqIndex(seq_dict, field, values, delimiter=out_args['delimiter'])
     elif field is not None and values is None:
         _sample = _sample_dict
-        printMessage("Indexing by annotation", start_time=start_time, width=25)
+        printMessage('Indexing by annotation', start_time=start_time, width=25)
         seq_index = indexSeqSets(seq_dict, field, delimiter=out_args['delimiter'])
-        printMessage("Done", start_time=start_time, end=True, width=25)
     else:
         _sample = _sample_list
         seq_index = [k for k in seq_dict]
 
-    printMessage("Done", start_time=start_time, end=True, width=25)
+    printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Generate sample set for each value in max_count
     out_files = []
     for i, n in enumerate(max_count):
         start_time = time()
-        printMessage("Sampling", start_time=start_time, width=25)
+        printMessage('Sampling n=%i' % n, start_time=start_time, width=25)
         # Sample from records
         sample_keys = _sample(n, seq_index)
         sample_count = len(sample_keys)
@@ -288,7 +287,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
                 SeqIO.write(seq_dict[k], out_handle, out_args['out_type'])
             out_files.append(out_handle.name)
 
-        printMessage("Done", start_time=start_time, end=True, width=25)
+        printMessage('Done', start_time=start_time, end=True, width=25)
 
         # Print log for iteration
         log = OrderedDict()
@@ -373,7 +372,7 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
 
     # Index input files
     start_time = time()
-    printMessage("Reading files", start_time=start_time, width=25)
+    printMessage('Reading files', start_time=start_time, width=25)
 
     seq_dict_1 = readSeqFile(seq_file_1, index=True, key_func=_key_func)
     seq_dict_2 = readSeqFile(seq_file_2, index=True, key_func=_key_func)
@@ -381,14 +380,14 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     # Subset keys to those meeting field/value criteria
     if field is not None and values is not None:
         _sample = _sample_list
-        printMessage("Subsetting by annotation", start_time=start_time, width=25)
+        printMessage('Subsetting by annotation', start_time=start_time, width=25)
         seq_index_1 = subsetSeqIndex(seq_dict_1, field, values,
                                      delimiter=out_args['delimiter'])
         seq_index_2 = subsetSeqIndex(seq_dict_2, field, values,
                                      delimiter=out_args['delimiter'])
     elif field is not None and values is None:
         _sample = _sample_dict
-        printMessage("Indexing by annotation", start_time=start_time, width=25)
+        printMessage('Indexing by annotation', start_time=start_time, width=25)
         seq_index_1 = indexSeqSets(seq_dict_1, field, delimiter=out_args['delimiter'])
         seq_index_2 = indexSeqSets(seq_dict_2, field, delimiter=out_args['delimiter'])
     else:
@@ -396,13 +395,13 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         seq_index_1 = list(seq_dict_1.keys())
         seq_index_2 = list(seq_dict_2.keys())
 
-    printMessage("Done", start_time=start_time, end=True, width=25)
+    printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Generate sample set for each value in max_count
     out_files = []
     for i, n in enumerate(max_count):
         start_time = time()
-        printMessage("Sampling", start_time=start_time, width=25)
+        printMessage('Sampling n=%i' % n, start_time=start_time, width=25)
         # Sample
         sample_keys = _sample(n, seq_index_1, seq_index_2)
         sample_count = len(sample_keys)
@@ -424,7 +423,7 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
             SeqIO.write(seq_dict_1[k], out_handle_1, out_type_1)
             SeqIO.write(seq_dict_2[k], out_handle_2, out_type_2)
 
-        printMessage("Done", start_time=start_time, end=True, width=25)
+        printMessage('Done', start_time=start_time, end=True, width=25)
 
         # Print log for iteration
         log = OrderedDict()
