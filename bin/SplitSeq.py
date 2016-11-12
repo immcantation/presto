@@ -19,7 +19,7 @@ from Bio import SeqIO
 # Presto imports
 from presto.Defaults import default_coord_choices, default_coord_type, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.Sequence import subsetSeqIndex
+from presto.Sequence import indexSeqSets, subsetSeqIndex
 from presto.Annotation import parseAnnotation, getAnnotationValues, getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printMessage, printProgress
@@ -220,6 +220,22 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     Returns: 
     the output file name
     """
+    # Function to sample from a list of sequence indices
+    def _sample_list(n, index_list):
+        max_n = len(index_list)
+        r = random.sample(range(max_n), n) if n < max_n else range(max_n)
+        return [index_list[x] for x in r]
+
+    # Function to sample from a dictionary of grouped sequence indices
+    def _sample_dict(n, index_dict):
+        sample_list = []
+        for v in index_dict.values():
+            max_n = len(v)
+            r = random.sample(range(max_n), n) if n < max_n else range(max_n)
+            sample_list.extend([v[x] for x in r])
+        return sample_list
+
+    # Print console log
     log = OrderedDict()
     log['START'] = 'SplitSeq'
     log['COMMAND'] = 'sample'
@@ -228,30 +244,39 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     log['FIELD'] = field
     log['VALUES'] = ','.join(values) if values else None
     printLog(log)
-    
+
     # Read input files and open output files
+    start_time = time()
+    printMessage("Reading files", start_time=start_time, width=25)
+
     in_type = getFileType(seq_file)
     seq_dict = readSeqFile(seq_file, index=True)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
-    
+
     # Generate subset of records
     if field is not None and values is not None:
-        start_time = time()
+        _sample = _sample_list
         printMessage("Subsetting by annotation", start_time=start_time, width=25)
-        key_list = subsetSeqIndex(seq_dict, field, values, delimiter=out_args['delimiter'])
+        seq_index = subsetSeqIndex(seq_dict, field, values, delimiter=out_args['delimiter'])
+    elif field is not None and values is None:
+        _sample = _sample_dict
+        printMessage("Indexing by annotation", start_time=start_time, width=25)
+        seq_index = indexSeqSets(seq_dict, field, delimiter=out_args['delimiter'])
         printMessage("Done", start_time=start_time, end=True, width=25)
     else:
-        key_list = [k for k in seq_dict]
-    # Determine total numbers of sampling records
-    rec_count = len(key_list)
+        _sample = _sample_list
+        seq_index = [k for k in seq_dict]
+
+    printMessage("Done", start_time=start_time, end=True, width=25)
 
     # Generate sample set for each value in max_count
     out_files = []
-    for i, c in enumerate(max_count):
+    for i, n in enumerate(max_count):
+        start_time = time()
+        printMessage("Sampling", start_time=start_time, width=25)
         # Sample from records
-        r = random.sample(list(range(rec_count)), c) if c < rec_count else list(range(rec_count))
-        sample_count = len(r)
-        sample_keys = (key_list[x] for x in r)
+        sample_keys = _sample(n, seq_index)
+        sample_count = len(sample_keys)
         
         # Write sampled sequences to files
         with getOutputHandle(seq_file, 
@@ -262,14 +287,18 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
             for k in sample_keys:
                 SeqIO.write(seq_dict[k], out_handle, out_args['out_type'])
             out_files.append(out_handle.name)
-    
+
+        printMessage("Done", start_time=start_time, end=True, width=25)
+
         # Print log for iteration
         log = OrderedDict()
-        log['MAX_COUNT'] = c
+        log['MAX_COUNT'] = n
         log['SAMPLED'] = sample_count
         log['OUTPUT'] = os.path.basename(out_files[i])
         printLog(log)
-    
+
+
+
     # Print log
     log = OrderedDict()
     log['END'] = 'SplitSeq'
@@ -295,9 +324,25 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     Returns: 
     a list of [seq_file_1, seq_file_2] output file names
     """
-    # Define private functions
+    # Sequence index key function
     def _key_func(x):
         return getCoordKey(x, coord_type=coord_type, delimiter=out_args['delimiter'])
+
+    # Function to sample from two lists of sequence indices
+    def _sample_list(n, index_1, index_2):
+        key_set = set(index_1).intersection(index_2)
+        max_n = len(key_set)
+        return random.sample(key_set, min(n, max_n))
+
+    # Function to sample from two dictionaries of grouped sequence indices
+    def _sample_dict(n, index_1, index_2):
+        group_set = set(index_1.keys()).intersection(index_2.keys())
+        sample_list = []
+        for k in group_set:
+            key_set = set(index_1[k]).intersection(index_2[k])
+            max_n = len(key_set)
+            sample_list.extend(random.sample(key_set, min(n, max_n)))
+        return sample_list
 
     # Print console log
     log = OrderedDict()
@@ -328,34 +373,39 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
 
     # Index input files
     start_time = time()
-    printMessage("Indexing files", start_time=start_time, width=25)
+    printMessage("Reading files", start_time=start_time, width=25)
 
     seq_dict_1 = readSeqFile(seq_file_1, index=True, key_func=_key_func)
     seq_dict_2 = readSeqFile(seq_file_2, index=True, key_func=_key_func)
 
     # Subset keys to those meeting field/value criteria
     if field is not None and values is not None:
+        _sample = _sample_list
         printMessage("Subsetting by annotation", start_time=start_time, width=25)
-        key_set_1 = set(subsetSeqIndex(seq_dict_1, field, values,
-                                       delimiter=out_args['delimiter']))
-        key_set_2 = set(subsetSeqIndex(seq_dict_2, field, values,
-                                       delimiter=out_args['delimiter']))
+        seq_index_1 = subsetSeqIndex(seq_dict_1, field, values,
+                                     delimiter=out_args['delimiter'])
+        seq_index_2 = subsetSeqIndex(seq_dict_2, field, values,
+                                     delimiter=out_args['delimiter'])
+    elif field is not None and values is None:
+        _sample = _sample_dict
+        printMessage("Indexing by annotation", start_time=start_time, width=25)
+        seq_index_1 = indexSeqSets(seq_dict_1, field, delimiter=out_args['delimiter'])
+        seq_index_2 = indexSeqSets(seq_dict_2, field, delimiter=out_args['delimiter'])
     else:
-        key_set_1 = set(seq_dict_1.keys())
-        key_set_2 = set(seq_dict_2.keys())
+        _sample = _sample_list
+        seq_index_1 = list(seq_dict_1.keys())
+        seq_index_2 = list(seq_dict_2.keys())
 
-    # Find matching entries in key sets
-    printMessage("Pairing sequences", start_time=start_time, width=25)
-    pair_keys = key_set_1.intersection(key_set_2)
-    pair_count = len(pair_keys)
     printMessage("Done", start_time=start_time, end=True, width=25)
 
     # Generate sample set for each value in max_count
     out_files = []
-    for i, c in enumerate(max_count):
-        # Sample from paired set
-        sample_count = min(c, pair_count)
-        sample_keys = random.sample(pair_keys, sample_count)
+    for i, n in enumerate(max_count):
+        start_time = time()
+        printMessage("Sampling", start_time=start_time, width=25)
+        # Sample
+        sample_keys = _sample(n, seq_index_1, seq_index_2)
+        sample_count = len(sample_keys)
 
         # Open file handles
         out_handle_1 = getOutputHandle(seq_file_1, 
@@ -371,13 +421,14 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         out_files.append((out_handle_1.name, out_handle_2.name))
 
         for k in sample_keys:
-            #key_1, key_2 = index_dict[k]
             SeqIO.write(seq_dict_1[k], out_handle_1, out_type_1)
             SeqIO.write(seq_dict_2[k], out_handle_2, out_type_2)
-        
+
+        printMessage("Done", start_time=start_time, end=True, width=25)
+
         # Print log for iteration
         log = OrderedDict()
-        log['MAX_COUNT'] = c
+        log['MAX_COUNT'] = n
         log['SAMPLED'] = sample_count
         log['OUTPUT1'] = os.path.basename(out_files[i][0])
         log['OUTPUT2'] = os.path.basename(out_files[i][1])
@@ -386,12 +437,11 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         # Close file handles
         out_handle_1.close()
         out_handle_2.close()
-        
+
     # Print log
     log = OrderedDict()
     log['END'] = 'SplitSeq'
     printLog(log)
-
 
     return out_files
 
@@ -590,12 +640,17 @@ def getArgParser():
                                           help='Randomly samples from unpaired sequences files.',
                                           description='Randomly samples from unpaired sequences files.')
     parser_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True, 
-                               help='Maximum number of sequences to sample from each file')
-    parser_sample.add_argument('-f', action='store', dest='field', type=str,
-                               default=None, help='The annotation field for sampling criteria')
+                               help='''Maximum number of sequences to sample from each file, field or
+                                    annotation set. The default behavior, without the -f argument, is to
+                                    sample from the complete set of sequences in the input file.''')
+    parser_sample.add_argument('-f', action='store', dest='field', type=str, default=None,
+                               help='''The annotation field for sampling criteria. If the -u argument
+                                    is not also specified, then sampling will be performed for each unique
+                                    annotation value in the declared field separately.''')
     parser_sample.add_argument('-u', nargs='+', action='store', dest='values', type=str, default=None, 
-                               help='A list of annotation values that sequences must contain one of; \
-                                     requires the -f argument')
+                               help='''If specified, sampling will be restricted to sequences that contain
+                                    one of the declared annotation values in the specified field.
+                                    Requires the -f argument.''')
     parser_sample.set_defaults(func=sampleSeqFile)
     
     # Subparser to randomly sample from paired files
@@ -606,18 +661,23 @@ def getArgParser():
                                               formatter_class=CommonHelpFormatter,
                                               help='Randomly samples from paired-end sequences files.',
                                               description='Randomly samples from paired-end sequences files.')
-    parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, 
-                                   required=True, 
-                                   help='A list of the number of sequences to sample from each file')
-    parser_samplepair.add_argument('-f', action='store', dest='field', type=str,
-                                   default=None, help='The annotation field for sampling criteria')
+    parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int,  required=True,
+                                   help='''Maximum number of paired sequences to sample from each
+                                        set of files, fields or annotations. The default behavior,
+                                        without the -f argument, is to sample from the complete
+                                        set of paired sequences in the input files.''')
+    parser_samplepair.add_argument('-f', action='store', dest='field', type=str, default=None,
+                                   help='''The annotation field for sampling criteria. If the -u argument
+                                        is not also specified, then sampling will be performed for each unique
+                                        annotation value in the declared field separately.''')
     parser_samplepair.add_argument('-u', nargs='+', action='store', dest='values', type=str, default=None, 
-                                   help='A list of annotation values that both paired sequences must \
-                                         contain one of; requires the -f argument')
+                                   help='''If specified, sampling will be restricted to sequences that contain
+                                        one of the declared annotation values in the specified field.
+                                        Requires the -f argument.''')
     parser_samplepair.add_argument('--coord', action='store', dest='coord_type', 
                                    choices=default_coord_choices, default=default_coord_type,
-                                   help='The format of the sequence identifier which defines shared \
-                                         coordinate information across paired ends')
+                                   help='''The format of the sequence identifier which defines shared
+                                        coordinate information across paired read files.''')
     parser_samplepair.set_defaults(func=samplePairSeqFile)
     
     # Subparser to sort files
@@ -652,7 +712,7 @@ if __name__ == '__main__':
     # Check if a valid option was specific for sample mode
     if (args.command == 'sample' or args.command == 'samplepair') and \
        (args.values and not args.field):
-            parser.error('Samplings modes requires -f to be specified with -u')
+            parser.error('Sampling modes requires -f to be specified with -u')
     
     # Call appropriate function for each sample file
     del args_dict['command']

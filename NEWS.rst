@@ -1,12 +1,22 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  October 11, 2016
+Version 0.5.2.999:  November 12, 2016
 -------------------------------------------------------------------------------
 
 EstimateError:
 
 + Fixed a fatal error with newer versions of pandas.
+
+SplitSeq:
+
++ Altered the behavior of the ``-u`` argument for both the sample and
+  samplepair subcommands. If ``-u`` is specified, sampling is performed as in
+  previous versions wherein samples will be drawn from only fields with the
+  specified annotation values up to ``n`` total reads. However, if ``-u``
+  is not specified with ``-f`` repeated sampling will now be performed for
+  each unique annotation value in the specified field, generating output
+  with up to ``n`` reads per unique annotation value.
 
 
 Version 0.5.2:  March 8, 2016
