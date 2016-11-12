@@ -687,11 +687,11 @@ def getArgParser():
                                         help='Sorts sequences files by annotation.',
                                         description='Sorts sequences files by annotation.')
     parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
-                             help='The annotation field to sort sequences by')
+                             help='The annotation field to sort sequences by.')
     parser_sort.add_argument('-n', action='store', dest='max_count', type=int,
-                             default=None, help='Maximum number of sequences in each new file')
+                             default=None, help='Maximum number of sequences in each new file.')
     parser_sort.add_argument('--num', action='store_true', dest='numeric',
-                             help='Specify to define the sort field as numeric rather than textual')
+                             help='Specify to define the sort field as numeric rather than textual.')
     parser_sort.set_defaults(func=sortSeqFile)
     
     return parser
@@ -712,7 +712,7 @@ if __name__ == '__main__':
     # Check if a valid option was specific for sample mode
     if (args.command == 'sample' or args.command == 'samplepair') and \
        (args.values and not args.field):
-            parser.error('Sampling modes requires -f to be specified with -u')
+            parser.error('Sampling modes requires -f to be specified with -u.')
     
     # Call appropriate function for each sample file
     del args_dict['command']
