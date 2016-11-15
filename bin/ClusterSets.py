@@ -96,7 +96,6 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
             # Check results
             result.results = results
             result.valid = (len(results) == len(seq_dict))
-
             # Feed results to result queue
             result_queue.put(result)
         else:
@@ -261,6 +260,12 @@ if __name__ == '__main__':
     # Check if a valid usearch executable was specified
     if not os.path.isfile(args.usearch_exec):
         parser.error('%s does not exist' % args.usearch_exec)
+
+    # Check for valid start and end input
+    if ('seq_start' in args_dict and 'seq_end' in args_dict) and \
+            args_dict['seq_start'] is not None and args_dict['seq_end'] is not None and \
+            args_dict['seq_start'] >= args_dict['seq_end']:
+        parser.error('--start must be less than --end')
     
         
     # Call cluster for each input file

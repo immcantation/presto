@@ -1,8 +1,16 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  November 12, 2016
+Version 0.5.2.999:  November 15, 2016
 -------------------------------------------------------------------------------
+
+ClusterSets:
+
++ Fixed a bug wherein sets containing empty sequences were being fed to
+  usearch, rather than automatically failed, which would cause usearch v8 to
+  hang indefinitely.
++ Fixed an incompatibility with usearch v9 due to changes in the way usearch
+  outputs sequence labels.
 
 EstimateError:
 

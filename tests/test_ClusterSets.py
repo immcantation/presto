@@ -14,6 +14,7 @@ from Bio.SeqRecord import SeqRecord
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
+usearch_exec = '/usr/local/bin/usearch9'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -43,7 +44,7 @@ class TestClusterSets(unittest.TestCase):
 
     @unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
-        results = ClusterSets.runUClust(self.records_clust)
+        results = ClusterSets.runUClust(self.records_clust, usearch_exec=usearch_exec)
         print(results)
 
         self.assertEqual(sorted(self.results_clust), sorted(results))

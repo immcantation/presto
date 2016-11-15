@@ -7,6 +7,7 @@ from presto import __version__, __date__
 
 # Imports
 import csv
+import sys
 import tempfile
 import pandas as pd
 from io import StringIO
@@ -79,23 +80,32 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
     Returns:
     a dictionary object containing {sequence id: cluster id}
     """
+    #from presto.Annotation import parseAnnotation
+    #print('\nBARCODE>', parseAnnotation(seq_list[0].description)['BARCODE'])
+
+    # Function to trim and ungap sequences
+    def _trim(rec, i, j):
+        seq = rec.seq[i:j]
+        seq = seq.ungap('.').ungap('-')
+        if len(seq) > 0:
+            return SeqRecord(seq, id=rec.id, name=rec.name, description=rec.description)
+        else:
+            return None
+
     # Return sequence if only one sequence in seq_list
     if len(seq_list) < 2:
-        #return {seq_list[0].id:0}
         return {1:[seq_list[0].id]}
 
-    # Format sequences and make a copy so we don't mess up original sequences
-    short_list = list()
-    for rec in seq_list:
-        seq = rec.seq[seq_start:seq_end]
-        seq = seq.ungap('-')
-        seq = seq.ungap('.')
-        short_list.append(SeqRecord(seq, id=rec.id, name=rec.name,
-                                    description=rec.description))
+    # Make a trimmed and ungapped copy of reach sequence so we don't mess up originals
+    seq_trimmed = [_trim(x, seq_start, seq_end) for x in seq_list]
+
+    # If there are any empty sequences after trimming return None
+    if None in seq_trimmed:
+        return None
 
     # Open temporary files
-    in_handle = tempfile.NamedTemporaryFile(mode='w+t')
-    out_handle = tempfile.NamedTemporaryFile(mode='w+t')
+    in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
+    out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
 
     # Define usearch command
     cmd = [usearch_exec,
@@ -106,14 +116,24 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
            '-threads', '1']
 
     # Write usearch input fasta file
-    SeqIO.write(short_list, in_handle, 'fasta')
+    SeqIO.write(seq_trimmed, in_handle, 'fasta')
     in_handle.seek(0)
 
     # Run usearch uclust algorithm
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
-        #check_call(cmd, stderr=STDOUT, shell=False)
+
+        # Open process
+        #child = Popen(cmd, bufsize=1, stdout=PIPE, stderr=STDOUT, shell=False,
+        #              universal_newlines=True)
+        # Write output
+        #while child.poll() is None:
+        #    out = child.stdout.readline()
+        #    sys.stdout.write(out)
+        #    sys.stdout.flush()
+        # Wait for process to finish
+        # child.wait()
     except CalledProcessError:
         group_dict = None
     else:
@@ -128,7 +148,8 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
             if row[0] in ('S', 'H'):
                 key = int(row[1]) + 1
                 group = group_dict.setdefault(key, [])
-                group.append(row[8])
+                # Trim sequence label to portion before space for usearch v9 compatibility with SeqRecord
+                group.append(row[8].split()[0])
         #out_list = [r for r in csv.reader(out_handle, delimiter='\t')]
         #group_dict = {r[8]: int(r[1]) + 1 for r in out_list if r[0] in ('S', 'H')}
 
@@ -190,12 +211,11 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
            '-userfields', 'query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
            '-threads', '1']
 
-
     # Write usearch input fasta file
     SeqIO.write(seq, in_handle, 'fasta')
+    in_handle.seek(0)
 
     # Run usearch ublast algorithm
-    in_handle.seek(0)
     stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
 
     # Parse usearch output
