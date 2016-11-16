@@ -1,8 +1,13 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  November 15, 2016
+Version 0.5.2.999:  November 16, 2016
 -------------------------------------------------------------------------------
+
+
+AssemblePairs:
+
++ Changed masking behavior of usearch to ``none`` in reference subcommand.
 
 ClusterSets:
 
@@ -11,6 +16,10 @@ ClusterSets:
   hang indefinitely.
 + Fixed an incompatibility with usearch v9 due to changes in the way usearch
   outputs sequence labels.
++ Changed masking behavior of usearch to ``none``.
++ Changed how gaps are handling before passing sequences to usearch. Gaps are
+  now masked (with Ns) for clustering, instead of removed.
++ Internal changes for vsearch compatibility.
 
 EstimateError:
 

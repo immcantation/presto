@@ -14,6 +14,7 @@ from io import StringIO
 from subprocess import CalledProcessError, check_output, PIPE, Popen, STDOUT
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
+from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
@@ -83,12 +84,15 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
     #from presto.Annotation import parseAnnotation
     #print('\nBARCODE>', parseAnnotation(seq_list[0].description)['BARCODE'])
 
-    # Function to trim and ungap sequences
-    def _trim(rec, i, j):
-        seq = rec.seq[i:j]
-        seq = seq.ungap('.').ungap('-')
+    # Function to trim and mask sequences
+    gap_trans = str.maketrans({'-': 'N', '.': 'N'})
+    def _clean(rec, i, j):
+        seq = str(rec.seq[i:j])
+        seq = seq.translate(gap_trans)
+        #seq = seq.replace('-', 'N').replace('.', 'N')
+        #seq = seq.ungap('.').ungap('-')
         if len(seq) > 0:
-            return SeqRecord(seq, id=rec.id, name=rec.name, description=rec.description)
+            return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
         else:
             return None
 
@@ -96,8 +100,8 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
     if len(seq_list) < 2:
         return {1:[seq_list[0].id]}
 
-    # Make a trimmed and ungapped copy of reach sequence so we don't mess up originals
-    seq_trimmed = [_trim(x, seq_start, seq_end) for x in seq_list]
+    # Make a trimmed and masked copy of each sequence so we don't mess up originals
+    seq_trimmed = [_clean(x, seq_start, seq_end) for x in seq_list]
 
     # If there are any empty sequences after trimming return None
     if None in seq_trimmed:
@@ -112,6 +116,7 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
            '-cluster_fast', in_handle.name,
            '-uc', out_handle.name,
            '-id', str(ident),
+           '-qmask', 'none',
            '-minseqlength', '1',
            '-threads', '1']
 
@@ -173,7 +178,8 @@ def makeUSearchDb(ref_file, usearch_exec=default_usearch_exec):
     # Define usearch command
     cmd = ' '.join([usearch_exec,
                '-makeudb_ublast', ref_file,
-               '-output', db_handle.name])
+               '-output', db_handle.name,
+               '-dbmask', 'none'])
 
     child = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=(sys.platform != 'win32'))
     stdout_str, stderr_str = child.communicate()
@@ -209,6 +215,8 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
            '-maxhits', str(max_hits),
            '-userout', out_handle.name,
            '-userfields', 'query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+           '-qmask', 'none',
+           '-dbmask', 'none',
            '-threads', '1']
 
     # Write usearch input fasta file
