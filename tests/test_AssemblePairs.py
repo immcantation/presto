@@ -18,10 +18,12 @@ from presto.IO import readSeqFile
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
+usearch_exec = '/usr/local/bin/usearch'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import AssemblePairs
+import presto.Applications as Applications
 
 
 class TestAssemblePairs(unittest.TestCase):
@@ -67,10 +69,24 @@ class TestAssemblePairs(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
+    @unittest.skip("-> runUSearchLocal() skipped\n")
+    def test_runUSearchLocal(self):
+        head_df = Applications.runUSearchLocal(self.head_rec, self.ref_file,
+                                               usearch_exec=usearch_exec)
+        tail_df = Applications.runUSearchLocal(self.tail_rec, self.ref_file,
+                                               usearch_exec=usearch_exec)
+        print('HEAD SEQUENCE>')
+        print(head_df)
+        print('TAIL SEQUENCE>')
+        print(tail_df)
+        self.fail()
+
     @unittest.skip("-> runUBlastAlignment() skipped\n")
     def test_runUBlastAlignment(self):
-        head_df = AssemblePairs.runUBlastAlignment(self.head_rec, self.ref_file)
-        tail_df = AssemblePairs.runUBlastAlignment(self.tail_rec, self.ref_file)
+        head_df = Applications.runUBlastAlignment(self.head_rec, self.ref_file,
+                                                   usearch_exec=usearch_exec)
+        tail_df = Applications.runUBlastAlignment(self.tail_rec, self.ref_file,
+                                                   usearch_exec=usearch_exec)
         print('HEAD SEQUENCE>')
         print(head_df)
         print('TAIL SEQUENCE>')
@@ -79,8 +95,8 @@ class TestAssemblePairs(unittest.TestCase):
 
     @unittest.skip("-> runBlastnAlignment() skipped\n")
     def test_runBlastnAlignment(self):
-        head_df = AssemblePairs.runBlastnAlignment(self.head_rec, self.ref_file)
-        tail_df = AssemblePairs.runBlastnAlignment(self.tail_rec, self.ref_file)
+        head_df = Applications.runBlastnAlignment(self.head_rec, self.ref_file)
+        tail_df = Applications.runBlastnAlignment(self.tail_rec, self.ref_file)
         print('HEAD SEQUENCE>')
         print(head_df)
         print('TAIL SEQUENCE>')

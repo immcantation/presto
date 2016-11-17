@@ -14,7 +14,7 @@ from Bio.SeqRecord import SeqRecord
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
-usearch_exec = '/usr/local/bin/usearch'
+usearch_exec = '/usr/local/bin/vsearch'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -32,7 +32,7 @@ class TestClusterSets(unittest.TestCase):
                      Seq('CGGC--AACGGCGTAACCCCCCCCCCCGGCGTAACGGCGTAACGGCGTAACGGCGTAA')]
         self.records_clust = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                               for i, s in enumerate(seq_clust, start=1)]
-        self.results_clust = {1:['SEQ1', 'SEQ2', 'SEQ3'], 2:['SEQ4','SEQ5']}
+        self.results_clust = {1:['SEQ1', 'SEQ2', 'SEQ3'], 2:['SEQ4', 'SEQ5']}
 
         # Start clock
         self.start = time.time()
@@ -42,7 +42,7 @@ class TestClusterSets(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    @unittest.skip('-> runUClust() skipped\n')
+    #@unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
         results = ClusterSets.runUClust(self.records_clust, usearch_exec=usearch_exec)
         print(results)

@@ -85,7 +85,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
                     # Add cluster annotation
                     seq = seq_dict[seq_id]
                     header = parseAnnotation(seq.description, delimiter=delimiter)
-                    header = mergeAnnotation(header, {cluster_field:clust}, delimiter=delimiter)
+                    header = mergeAnnotation(header, {cluster_field: clust}, delimiter=delimiter)
                     seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
                     seq.description = ''
 

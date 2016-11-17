@@ -10,6 +10,7 @@ import csv
 import sys
 import tempfile
 import pandas as pd
+from itertools import chain
 from io import StringIO
 from subprocess import CalledProcessError, check_output, PIPE, Popen, STDOUT
 from Bio import AlignIO, SeqIO
@@ -140,7 +141,7 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
         # Wait for process to finish
         # child.wait()
     except CalledProcessError:
-        group_dict = None
+        cluster_dict = None
     else:
         # TODO:  unsure about this return object.
         # Parse the results of usearch
@@ -148,17 +149,33 @@ def runUClust(seq_list, ident=default_ident, seq_start=0, seq_end=None,
         #   0 = entry type -- S: centroid seq, H: hit, C: cluster record (redundant with S)
         #   1 = group the sequence is assigned to
         #   8 = the id of the sequence
-        group_dict = {}
+        #   9 = id of the centroid for cluster
+        cluster_dict = {}
+        #print('\nNEW>')
         for row in csv.reader(out_handle, delimiter='\t'):
-            if row[0] in ('S', 'H'):
+            #print(row)
+            if row[0] in ('H', 'S'):
+                # Trim sequence label to portion before space for usearch v9 compatibility
                 key = int(row[1]) + 1
-                group = group_dict.setdefault(key, [])
-                # Trim sequence label to portion before space for usearch v9 compatibility with SeqRecord
-                group.append(row[8].split()[0])
-        #out_list = [r for r in csv.reader(out_handle, delimiter='\t')]
-        #group_dict = {r[8]: int(r[1]) + 1 for r in out_list if r[0] in ('S', 'H')}
+                # Trim sequence label to portion before space for usearch v9 compatibility
+                hit = row[8].split()[0]
+                # Update cluster dictionary
+                cluster = cluster_dict.setdefault(key, [])
+                cluster.append(hit)
+                #centroid = row[9].split()[0]
+                # Update list of sequence identifiers for the cluster
+                #uc_dict.setdefault(key, []).append(hit)
+                #cluster = uc_dict.setdefault(centroid, [])
+                #cluster.append(hit)
 
-    return group_dict if group_dict else None
+        # Parse clusters
+        #cluster_dict = {i: list(chain([k], v)) for i, (k, v) in \
+        #              enumerate(uc_dict.items(), start=1)}
+        #cluster_dict = uc_dict
+        #print('\n   UC>', uc_dict)
+        #print('CLUSTERS>', cluster_dict)
+
+    return cluster_dict if cluster_dict else None
 
 
 def makeUSearchDb(ref_file, usearch_exec=default_usearch_exec):
@@ -187,8 +204,63 @@ def makeUSearchDb(ref_file, usearch_exec=default_usearch_exec):
     return db_handle
 
 
-def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-                       usearch_exec=default_usearch_exec):
+def runUSearchLocal(seq, ref_file, ident=default_ident, evalue=default_evalue,
+                    max_hits=default_max_hits, usearch_exec=default_usearch_exec):
+    """
+    Aligns a sequence against a reference database using the usearch_local algorithm of USEARCH
+
+    Arguments:
+    seq = a SeqRecord object to align
+    ref_file = the path to the reference database file
+    ident = the identity cut-off for usearch_local
+    evalue = the E-value cut-off for usearch_local
+    max_hits = the maxhits output limit for usearch_local
+    usearch_exec = the path to the usearch executable
+
+    Returns:
+    a DataFrame of alignment results
+    """
+    # Open temporary files
+    in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
+    out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
+
+    # Define usearch command
+    cmd = [usearch_exec,
+           '-usearch_local', in_handle.name,
+           '-db', ref_file,
+           '-strand', 'plus',
+           '-id', str(ident),
+           '-evalue', str(evalue),
+           '-maxhits', str(max_hits),
+           '-userout', out_handle.name,
+           '-userfields', 'query+target+qlo+qhi+tlo+thi+alnlen+evalue+id',
+           '-qmask', 'none',
+           '-dbmask', 'none',
+           '-threads', '1']
+
+    # Write usearch input fasta file
+    SeqIO.write(seq, in_handle, 'fasta')
+    in_handle.seek(0)
+
+    # Run usearch ublast algorithm
+    stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
+
+    # Parse usearch output
+    field_names = ['query', 'target', 'query_start', 'query_end',
+                   'target_start', 'target_end',
+                   'length', 'evalue', 'identity']
+    align_df = pd.read_table(out_handle, header=None, names=field_names, encoding='utf-8')
+    # Convert to base-zero indices
+    align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
+
+    # Close temp file handles
+    in_handle.close()
+    out_handle.close()
+
+    return align_df
+
+def runUBlastAlignment(seq, ref_file, evalue=default_evalue,
+                       max_hits=default_max_hits, usearch_exec=default_usearch_exec):
     """
     Aligns a sequence against a reference database using the UBLAST algorithm of USEARCH
 
@@ -239,7 +311,6 @@ def runUBlastAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_ma
     out_handle.close()
 
     return align_df
-
 
 
 def runBlastnAlignment(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
