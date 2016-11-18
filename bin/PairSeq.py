@@ -15,7 +15,7 @@ from time import time
 from Bio import SeqIO
 
 # Presto imports
-from presto.Defaults import default_coord_choices, default_coord_type, default_out_args
+from presto.Defaults import choices_coord, default_coord, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
@@ -24,7 +24,7 @@ from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
 
 
 def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
-            coord_type=default_coord_type,
+            coord_type=default_coord,
             out_args=default_out_args):
     """
     Generates consensus sequences
@@ -219,8 +219,8 @@ def getArgParser():
                              1 records. If a copied annotation already exists in a file 1
                              record, then the annotations copied from file 2 will be added
                              to the end of the existing annotation.''')
-    parser.add_argument('--coord', action='store', dest='coord_type', 
-                        choices=default_coord_choices, default=default_coord_type,
+    parser.add_argument('--coord', action='store', dest='coord_type',
+                        choices=choices_coord, default=default_coord,
                         help='''The format of the sequence identifier which defines shared
                              coordinate information across mate pairs.''')
     

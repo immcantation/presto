@@ -228,7 +228,7 @@ def getArgParser():
                              cluster information for each sequence.''')
     parser.add_argument('--id', action='store', dest='ident', type=float,
                         default=default_ident,
-                        help='The sequence identity threshold for the usearch algorithm.')
+                        help='The sequence identity threshold for the uclust algorithm.')
     parser.add_argument('--start', action='store', dest='seq_start', type=int,
                         help='''The start of the region to be used for clustering.
                              Together with --end, this parameter can be used to specify a
@@ -237,7 +237,7 @@ def getArgParser():
                         help='The end of the region to be used for clustering.')
     parser.add_argument('--exec', action='store', dest='usearch_exec',
                         default=default_usearch_exec,
-                        help='The location of the USEARCH executable.')
+                        help='The location of the usearch or vsearch executable.')
 
     return parser
 

@@ -17,7 +17,7 @@ from time import time
 from Bio import SeqIO
 
 # Presto imports
-from presto.Defaults import default_coord_choices, default_coord_type, default_out_args
+from presto.Defaults import choices_coord, default_coord, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Sequence import indexSeqSets, subsetSeqIndex
 from presto.Annotation import parseAnnotation, getAnnotationValues, getCoordKey
@@ -142,13 +142,11 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                 #print file_limit, file_count
                 resource.setrlimit(resource.RLIMIT_NOFILE, (file_count, file_count))
             elif file_count > 8192:
-                e = '''
-                    ERROR: OS file limit would need to be set to %i.
+                e = '''ERROR: OS file limit would need to be set to %i.
                     If you are sure you want to do this, then increase the 
                     file limit in the OS (via ulimit) and rerun this tool.
                     ''' % file_count
-                sys.stderr.write(dedent(e))
-                sys.exit()
+                sys.exit(dedent(e))
             
         # Create output handles
         # out_label = '%s=%s' % (field, tag)
@@ -306,8 +304,8 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     return out_files
 
 
-def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None, 
-                      coord_type=default_coord_type, out_args=default_out_args):
+def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None,
+                      coord_type=default_coord, out_args=default_out_args):
     """
     Samples from paired-end sequence files
 
@@ -673,8 +671,8 @@ def getArgParser():
                                    help='''If specified, sampling will be restricted to sequences that contain
                                         one of the declared annotation values in the specified field.
                                         Requires the -f argument.''')
-    parser_samplepair.add_argument('--coord', action='store', dest='coord_type', 
-                                   choices=default_coord_choices, default=default_coord_type,
+    parser_samplepair.add_argument('--coord', action='store', dest='coord_type',
+                                   choices=choices_coord, default=default_coord,
                                    help='''The format of the sequence identifier which defines shared
                                         coordinate information across paired read files.''')
     parser_samplepair.set_defaults(func=samplePairSeqFile)

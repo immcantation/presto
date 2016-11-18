@@ -23,13 +23,13 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Defaults import default_delimiter, default_coord_choices, \
-                            default_coord_type, default_missing_chars, \
+from presto.Defaults import default_delimiter, choices_coord, \
+                            default_coord, default_missing_chars, \
                             default_out_args, default_usearch_exec
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
-from presto.Applications import runUBlastAlignment
+from presto.Applications import choices_usearch_method, default_usearch_method, runUSearch
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
 from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
@@ -132,7 +132,8 @@ class AssemblyStats:
         return z_matrix
 
 
-def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
+def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
+                      method=default_usearch_method, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits, fill=False,
                       usearch_exec=default_usearch_exec,
                       score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
@@ -144,6 +145,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     head_seq = the tail SeqRecord
     ref_dict = a dictionary of reference SeqRecord objects
     ref_file = the path to the reference database file
+    method = the alignment method to use; one of 'usearch' or 'ublast'
     min_ident = the minimum identity for a valid assembly
     evalue = the E-value cut-off for ublast
     max_hits = the maxhits output limit for ublast
@@ -167,10 +169,10 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
                   'phred_quality' in tail_seq.letter_annotations
 
     # Align against reference
-    head_df = runUBlastAlignment(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
-                                 usearch_exec=usearch_exec)
-    tail_df = runUBlastAlignment(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
-                                 usearch_exec=usearch_exec)
+    head_df = runUSearch(head_seq, ref_file, method=method, evalue=evalue,
+                         max_hits=max_hits, usearch_exec=usearch_exec)
+    tail_df = runUSearch(tail_seq, ref_file, method=method, evalue=evalue,
+                         max_hits=max_hits, usearch_exec=usearch_exec)
 
     # Subset results to matching reference assignments
     align_df = pd.merge(head_df, tail_df, on='target', how='inner', suffixes=('_head', '_tail'))
@@ -477,7 +479,7 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
 
 
 def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
-                  coord_type=default_coord_type, delimiter=default_delimiter):
+                  coord_type=default_coord, delimiter=default_delimiter):
     """
     Feeds the data queue with sequence pairs for processQueue processes
 
@@ -752,9 +754,9 @@ def collectPairQueue(alive, result_queue, collect_queue, result_count,
     return None
 
 
-def assemblePairs(head_file, tail_file, assemble_func, assemble_args={}, 
-                  coord_type=default_coord_type, rc=None, 
-                  head_fields=None, tail_fields=None,  
+def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
+                  coord_type=default_coord, rc=None,
+                  head_fields=None, tail_fields=None,
                   out_args=default_out_args, nproc=None, queue_size=None):
     """
     Generates consensus sequences
@@ -892,8 +894,8 @@ def getArgParser():
 
     # Parent parser    
     parser_parent = getCommonArgParser(paired=True, multiproc=True)
-    parser_parent.add_argument('--coord', action='store', dest='coord_type', 
-                               choices=default_coord_choices, default=default_coord_type,
+    parser_parent.add_argument('--coord', action='store', dest='coord_type',
+                               choices=choices_coord, default=default_coord,
                                help='The format of the sequence identifier which defines shared coordinate \
                                      information across paired ends')
     parser_parent.add_argument('--rc', action='store', dest='rc', choices=('head', 'tail', 'both'),
@@ -956,6 +958,10 @@ def getArgParser():
                                   instead of a sequence of Ns in the non-overlapping region.
                                   Warning, you could end up making chimeric sequences by using
                                   this option.''')
+    parser_ref.add_argument('--method', action='store', dest='method',
+                            choices=choices_usearch_method, default=default_usearch_method,
+                            help='''The usearch algorithm to use for alignment. Must be one
+                                 of ublast or usearch (usearch local alignment).''')
     parser_ref.add_argument('--exec', action='store', dest='usearch_exec',
                             default=default_usearch_exec,
                             help='''The path to the usearch executable file.''')
@@ -1003,12 +1009,14 @@ if __name__ == '__main__':
                                       'evalue': args_dict['evalue'],
                                       'max_hits': args_dict['max_hits'],
                                       'fill': args_dict['fill'],
+                                      'method': args_dict['method'],
                                       'usearch_exec': args_dict['usearch_exec']}
         del args_dict['ref_file']
         del args_dict['min_ident']
         del args_dict['evalue']
         del args_dict['max_hits']
         del args_dict['fill']
+        del args_dict['method']
         del args_dict['usearch_exec']
 
         # Check if a valid USEARCH executable was specified

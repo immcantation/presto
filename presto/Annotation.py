@@ -7,7 +7,7 @@ from presto import __version__, __date__
 
 # Imports
 from collections import OrderedDict
-from presto.Defaults import default_delimiter, default_coord_type
+from presto.Defaults import default_delimiter, default_coord
 
 
 def parseAnnotation(record, fields=None, delimiter=default_delimiter):
@@ -232,7 +232,7 @@ def annotationConsensus(seq_iter, field, delimiter=default_delimiter):
     return cons_dict
 
 
-def getCoordKey(header, coord_type=default_coord_type, delimiter=default_delimiter):
+def getCoordKey(header, coord_type=default_coord, delimiter=default_delimiter):
     """
     Return the coordinate identifier for a sequence description
 

@@ -81,22 +81,35 @@ class TestAssemblePairs(unittest.TestCase):
         print(tail_df)
         self.fail()
 
-    @unittest.skip("-> runUBlastAlignment() skipped\n")
-    def test_runUBlastAlignment(self):
-        head_df = Applications.runUBlastAlignment(self.head_rec, self.ref_file,
-                                                   usearch_exec=usearch_exec)
-        tail_df = Applications.runUBlastAlignment(self.tail_rec, self.ref_file,
-                                                   usearch_exec=usearch_exec)
+    @unittest.skip("-> runUSearch() skipped\n")
+    def test_runUSearch(self):
+        print('USEARCH>')
+        head_df = Applications.runUSearch(self.head_rec, self.ref_file, method='usearch',
+                                          usearch_exec=usearch_exec)
+        tail_df = Applications.runUSearch(self.tail_rec, self.ref_file, method='usearch',
+                                          usearch_exec=usearch_exec)
         print('HEAD SEQUENCE>')
         print(head_df)
         print('TAIL SEQUENCE>')
         print(tail_df)
+
+        print('UBLAST>')
+        head_df = Applications.runUSearch(self.head_rec, self.ref_file, method='ublast',
+                                          usearch_exec=usearch_exec)
+        tail_df = Applications.runUSearch(self.tail_rec, self.ref_file, method='ublast',
+                                          usearch_exec=usearch_exec)
+        print('HEAD SEQUENCE>')
+        print(head_df)
+        print('TAIL SEQUENCE>')
+        print(tail_df)
+
+
         self.fail()
 
-    @unittest.skip("-> runBlastnAlignment() skipped\n")
-    def test_runBlastnAlignment(self):
-        head_df = Applications.runBlastnAlignment(self.head_rec, self.ref_file)
-        tail_df = Applications.runBlastnAlignment(self.tail_rec, self.ref_file)
+    @unittest.skip("-> runBlastn() skipped\n")
+    def test_runBlastn(self):
+        head_df = Applications.runBlastn(self.head_rec, self.ref_file)
+        tail_df = Applications.runBlastn(self.tail_rec, self.ref_file)
         print('HEAD SEQUENCE>')
         print(head_df)
         print('TAIL SEQUENCE>')
