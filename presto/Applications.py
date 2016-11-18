@@ -90,10 +90,7 @@ def runUClust(seq_list, ident=default_uclust_ident, seq_start=0, seq_end=None,
     def _clean(rec, i, j):
         seq = str(rec.seq[i:j])
         seq = seq.translate(gap_trans)
-        if len(seq) > 0:
-            return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
-        else:
-            return None
+        return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
 
     # Return sequence if only one sequence in seq_list
     if len(seq_list) < 2:
@@ -103,7 +100,7 @@ def runUClust(seq_list, ident=default_uclust_ident, seq_start=0, seq_end=None,
     seq_trimmed = [_clean(x, seq_start, seq_end) for x in seq_list]
 
     # If there are any empty sequences after trimming return None
-    if None in seq_trimmed:
+    if any([len(x.seq) == 0 for x in seq_trimmed]):
         return None
 
     # Open temporary files

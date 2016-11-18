@@ -1,13 +1,16 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  November 16, 2016
+Version 0.5.2.999:  November 18, 2016
 -------------------------------------------------------------------------------
 
 
 AssemblePairs:
 
 + Changed masking behavior of usearch to ``none`` in reference subcommand.
++ Added the option ``--method`` to the reference subcommand to allow toggling
+  of the usearch local alignment method used. Defaults to the ublast algorithm
+  used in previous releases.
 
 ClusterSets:
 
@@ -19,7 +22,7 @@ ClusterSets:
 + Changed masking behavior of usearch to ``none``.
 + Changed how gaps are handling before passing sequences to usearch. Gaps are
   now masked (with Ns) for clustering, instead of removed.
-+ Internal changes for vsearch compatibility.
++ Added vsearch compatibility.
 
 EstimateError:
 

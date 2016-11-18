@@ -44,10 +44,22 @@ class TestClusterSets(unittest.TestCase):
 
     #@unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
+        print('FULL_LENGTH>')
         results = ClusterSets.runUClust(self.records_clust, usearch_exec=usearch_exec)
         print(results)
-
         self.assertEqual(sorted(self.results_clust), sorted(results))
+
+        print('TRIMMED>')
+        results = ClusterSets.runUClust(self.records_clust, seq_start=10, seq_end=50,
+                                        usearch_exec=usearch_exec)
+        print(results)
+        self.assertEqual(sorted(self.results_clust), sorted(results))
+
+        print('ZERO_LENGTH>')
+        results = ClusterSets.runUClust(self.records_clust, seq_start=75, seq_end=150,
+                                        usearch_exec=usearch_exec)
+        print(results)
+        self.assertEqual(None, results)
 
 
 if __name__ == '__main__':
