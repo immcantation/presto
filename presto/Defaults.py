@@ -31,6 +31,7 @@ default_cluster_field = 'CLUSTER'
 default_muscle_exec = 'muscle'
 default_usearch_exec = 'usearch'
 default_blastn_exec = 'blastn'
+default_blastdb_exec = 'makeblastdb'
 
 # Sequence sets
 default_gap_chars = set(['-', '.'])

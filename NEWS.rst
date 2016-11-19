@@ -1,18 +1,22 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  November 18, 2016
+Version 0.5.2.999:  November 19, 2016
 -------------------------------------------------------------------------------
 
 
 AssemblePairs:
 
-+ Added blastn compatibility.
-+ Changed masking behavior of usearch to ``none`` in reference subcommand.
++ Added blastn compatibility to reference subcommand.
 + Added the option ``--aligner`` to the reference subcommand to allow use of
   either blastn or usearch for performing the local alignment. Defaults to
   the usearch algorithm used in previous releases.
-
++ Added the option ``--dbexec`` to the reference subcommand to allow
+  specification of the reference database build tool (eg, makeblastdb).
++ Changed masking behavior to ``none`` and word length to ``9`` in reference
+  subcommand when using usearch as the aligner.
++ Internal modifications to the reference subcommand to rebuild the database
+  before alignments for performance reasons.
 
 ClusterSets:
 

@@ -21,6 +21,7 @@ test_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(test_path, 'data')
 usearch_exec = 'usearch'
 blastn_exec = 'blastn'
+blastdb_exec = 'makeblastdb'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -29,8 +30,8 @@ import presto.Applications as Applications
 
 # Test files
 ref_file = os.path.join(data_path, 'human_igv_trv.fasta')
-head_file = os.path.join(data_path, 'data/head.fasta')
-tail_file = os.path.join(data_path, 'data/tail.fasta')
+head_file = os.path.join(data_path, 'head.fasta')
+tail_file = os.path.join(data_path, 'tail.fasta')
 
 class TestAssemblePairs(unittest.TestCase):
 
@@ -51,34 +52,60 @@ class TestAssemblePairs(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
+    @unittest.skip("-> makeUSearchDb() skipped\n")
+    def test_makeUSearchDb(self):
+        database, db_handle = Applications.makeUBlastDb(ref_file, db_exec=usearch_exec)
+        print('DATABASE>', database)
+        print('  HANDLE>', db_handle.name)
+
+        self.assertIsNotNone(db_handle)
+
+    @unittest.skip("-> makeBlastnDb() skipped\n")
+    def test_makeBlastnDb(self):
+        database, db_handle = Applications.makeBlastnDb(ref_file, db_exec=blastdb_exec)
+        print('DATABASE>', database)
+        print('  HANDLE>', db_handle.name)
+        print('  DIR>', os.listdir(db_handle.name))
+
+        self.assertIsNotNone(db_handle)
+
     @unittest.skip("-> runUSearch() skipped\n")
     def test_runUSearch(self):
-        print('USEARCH>')
+        # Build reference database
+        database, db_handle = Applications.makeUBlastDb(ref_file, db_exec=usearch_exec)
+        print('DB>', database)
+
+        # Run alignment
         for head_seq, tail_seq in zip(self.head_list, self.tail_list):
-            head_df = Applications.runUSearch(head_seq, ref_file, evalue=1e-5,
-                                              aligner_exec=usearch_exec)
-            tail_df = Applications.runUSearch(tail_seq, ref_file, evalue=1e-5,
-                                              aligner_exec=usearch_exec)
+            head_df = Applications.runUBlast(head_seq, database, evalue=1e-5,
+                                             aligner_exec=usearch_exec)
+            tail_df = Applications.runUBlast(tail_seq, database, evalue=1e-5,
+                                             aligner_exec=usearch_exec)
             print('HEAD> %s' % head_seq.id)
             print(head_df)
             print('TAIL> %s' % tail_seq.id)
             print(tail_df)
 
-        self.fail()
+        self.fail('TODO')
 
     @unittest.skip("-> runBlastn() skipped\n")
     def test_runBlastn(self):
+        # Build reference database
+        database, db_handle = Applications.makeBlastnDb(ref_file, db_exec=blastdb_exec)
+        print('      DB>', database)
+
+        # Run alignment
         for head_seq, tail_seq in zip(self.head_list, self.tail_list):
-            head_df = Applications.runBlastn(head_seq, ref_file, evalue=1e-5,
+            head_df = Applications.runBlastn(head_seq, database, evalue=1e-5,
                                              aligner_exec=blastn_exec)
-            tail_df = Applications.runBlastn(tail_seq, ref_file, evalue=1e-5,
+            tail_df = Applications.runBlastn(tail_seq, database, evalue=1e-5,
                                              aligner_exec=blastn_exec)
             print('HEAD> %s' % head_seq.id)
             print(head_df)
             print('TAIL> %s' % tail_seq.id)
             print(tail_df)
 
-        self.fail()
+            self.fail('TODO')
 
     @unittest.skip("-> referenceAssembly() skipped\n")
     def test_referenceAssembly(self):

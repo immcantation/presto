@@ -8,6 +8,7 @@ from presto import __version__, __date__
 
 # Imports
 import os
+import tempfile
 import shutil
 import sys
 import numpy as np
@@ -26,12 +27,12 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_delimiter, choices_coord, \
                             default_coord, default_missing_chars, \
-                            default_blastn_exec, default_usearch_exec, \
-                            default_out_args
+                            default_blastn_exec, default_blastdb_exec, \
+                            default_usearch_exec, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
-from presto.Applications import runUSearch, runBlastn
+from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
 from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
@@ -137,7 +138,7 @@ class AssemblyStats:
         return z_matrix
 
 
-def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
+def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits, fill=False,
                       aligner=default_aligner, aligner_exec=default_aligner_exec,
                       score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
@@ -148,7 +149,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     head_seq = the head SeqRecord
     head_seq = the tail SeqRecord
     ref_dict = a dictionary of reference SeqRecord objects
-    ref_file = the path to the reference database file
+    ref_db = the path and name of the reference database
     min_ident = the minimum identity for a valid assembly
     evalue = the E-value cut-off for ublast
     max_hits = the maxhits output limit for ublast
@@ -163,7 +164,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
     an AssemblyRecord object
     """
     try:
-        align_func = {'blastn': runBlastn, 'usearch': runUSearch}[aligner]
+        align_func = {'blastn': runBlastn, 'usearch': runUBlast}[aligner]
     except:
         sys.exit('ERROR: Invalid alignment tool %s' % aligner)
 
@@ -178,9 +179,9 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_
                   'phred_quality' in tail_seq.letter_annotations
 
     # Align against reference
-    head_df = align_func(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
+    head_df = align_func(head_seq, database=ref_db, evalue=evalue, max_hits=max_hits,
                          aligner_exec=aligner_exec)
-    tail_df = align_func(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
+    tail_df = align_func(tail_seq, database=ref_db, evalue=evalue, max_hits=max_hits,
                          aligner_exec=aligner_exec)
 
     # Subset results to matching reference assignments
@@ -793,11 +794,12 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     """
     # Define subcommand label dictionary
     cmd_dict = {alignAssembly:'align', joinSeqPair:'join', referenceAssembly:'reference'}
+    cmd_name = cmd_dict.get(assemble_func, assemble_func.__name__)
 
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AssemblePairs'
-    log['COMMAND'] = cmd_dict.get(assemble_func, assemble_func.__name__)
+    log['COMMAND'] = cmd_name
     log['FILE1'] = os.path.basename(head_file) 
     log['FILE2'] = os.path.basename(tail_file)
     log['COORD_TYPE'] = coord_type
@@ -822,6 +824,23 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if head_count != tail_count:
         sys.exit('Error: FILE1 (n=%i) and FILE2 (n=%i) must have the same number of records' \
                  % (head_count, tail_count))
+
+    # Setup for reference alignment
+    if cmd_name == 'reference':
+        ref_file = assemble_args.pop('ref_file')
+        db_exec = assemble_args.pop('db_exec')
+
+        # Build reference sequence dictionary
+        assemble_args['ref_dict'] = {s.id: s.upper() for s in readSeqFile(ref_file)}
+
+        # Build reference database files
+        try:
+            db_func = {'blastn': makeBlastnDb, 'usearch': makeUBlastDb}[assemble_args['aligner']]
+            ref_db, db_handle = db_func(ref_file, db_exec)
+            assemble_args['ref_db'] = ref_db
+        except:
+            sys.exit('Error: Error building reference database for aligner %s with executable' \
+                     % (assemble_args['aligner'], db_exec))
 
     # Define feeder function and arguments
     feed_func = feedPairQueue
@@ -857,7 +876,16 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     result = manageProcesses(feed_func, work_func, collect_func, 
                              feed_args, work_args, collect_args, 
                              nproc, queue_size)
-        
+
+    # Close reference database handle
+    if cmd_name == 'reference':
+        try:
+            db_handle.close()
+        except AttributeError:
+            db_handle.cleanup()
+        except:
+            sys.exit('Error: Cannot close reference database file')
+
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = result['log'].pop('OUTPUT')
@@ -976,6 +1004,11 @@ def getArgParser():
                             help='''The  name or location of the aligner executable file
                                  (blastn or usearch). Defaults to the name specified by the
                                  --aligner argument.''')
+    parser_ref.add_argument('--dbexec', action='store', dest='db_exec', default=None,
+                            help='''The  name or location of the executable file that builds
+                                 the reference database. This defaults to makeblastdb when
+                                 blastn is specified to the --aligner argument, and usearch
+                                 when usearch is specified.''')
     parser_ref.set_defaults(assemble_func=referenceAssembly)
 
 
@@ -1012,10 +1045,7 @@ if __name__ == '__main__':
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']
     elif args_dict['assemble_func'] is referenceAssembly:
-        ref_dict = {s.id:s.upper() for s in readSeqFile(args_dict['ref_file'])}
-        #ref_file = makeUsearchDb(args_dict['ref_file'], args_dict['aligner_exec'])
         args_dict['assemble_args'] = {'ref_file': args_dict['ref_file'],
-                                      'ref_dict': ref_dict,
                                       'min_ident': args_dict['min_ident'],
                                       'evalue': args_dict['evalue'],
                                       'max_hits': args_dict['max_hits'],
@@ -1026,6 +1056,12 @@ if __name__ == '__main__':
         else:
             args_dict['assemble_args']['aligner_exec'] = args_dict['aligner_exec']
 
+        if args_dict['db_exec'] is None:
+            exec_map = {'blastn': default_blastdb_exec, 'usearch': default_usearch_exec}
+            args_dict['assemble_args']['db_exec'] = exec_map[args_dict['aligner']]
+        else:
+            args_dict['assemble_args']['db_exec'] = args_dict['db_exec']
+
         del args_dict['ref_file']
         del args_dict['min_ident']
         del args_dict['evalue']
@@ -1033,6 +1069,7 @@ if __name__ == '__main__':
         del args_dict['fill']
         del args_dict['aligner']
         del args_dict['aligner_exec']
+        del args_dict['db_exec']
 
         # Check if a valid USEARCH executable was specified
         if not shutil.which(args_dict['assemble_args']['aligner_exec']):

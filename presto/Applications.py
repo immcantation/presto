@@ -7,6 +7,7 @@ from presto import __version__, __date__
 
 # Imports
 import csv
+import os
 import sys
 import tempfile
 import pandas as pd
@@ -19,7 +20,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Defaults import default_muscle_exec, default_usearch_exec, default_blastn_exec
+from presto.Defaults import default_muscle_exec, default_usearch_exec, \
+                            default_blastn_exec, default_blastdb_exec
 
 # Defaults
 default_cluster_ident = 0.9
@@ -154,40 +156,74 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
     return cluster_dict if cluster_dict else None
 
 
-def runMakeUSearchDb(ref_file, aligner_exec=default_usearch_exec):
+def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
     """
-    Makes a usearch database file
+    Makes a ublast database file
 
     Arguments:
     ref_file = the path to the reference database file
-    aligner_exec = the path to the usearch executable
+    db_exec = the path to the usearch executable
 
     Returns:
-    A handle to the named temporary file containing the database file
+    A tuple containing the
+    (location of the database, handle of the tempfile.NamedTemporaryFile)
     """
     # Open temporary file
     db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
 
     # Define usearch command
-    cmd = [aligner_exec,
+    cmd = [db_exec,
            '-makeudb_ublast', ref_file,
+           '-wordlength', '9',
            '-output', db_handle.name,
            '-dbmask', 'none']
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
+    except:
+        sys.exit('Error: failed to make usearch database')
 
-    stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
-                              universal_newlines=True)
-
-    return db_handle
+    return (db_handle.name, db_handle)
 
 
-def runUSearch(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-               aligner_exec=default_usearch_exec):
+def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
+    """
+    Makes a ublast database file
+
+    Arguments:
+    ref_file = the path to the reference database file
+    db_exec = the path to the makeblastdb executable
+
+    Returns:
+    A tuple defining the database named 'reference' containing the
+    (name and location of the database, handle of the tempfile.TemporaryDirectory)
+    """
+    # Open temporary file
+    db_handle = tempfile.TemporaryDirectory()
+
+    # Define usearch command
+    cmd = [db_exec,
+           '-in', ref_file,
+           '-out', os.path.join(db_handle.name, 'reference'),
+           '-dbtype', 'nucl',
+           '-title', 'reference']
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
+    except:
+        sys.exit('Error: failed to make blastn database')
+
+    return (os.path.join(db_handle.name, 'reference'), db_handle)
+
+
+def runUBlast(seq, database, evalue=default_evalue, max_hits=default_max_hits,
+              aligner_exec=default_usearch_exec):
     """
     Aligns a sequence against a reference database using the usearch_local algorithm of USEARCH
 
     Arguments:
     seq = a list of SeqRecord objects to align
-    ref_dict = a dictionary of reference SeqRecord objects
+    database = the path to the ublast database or a fasta file
     evalue = the E-value cut-off
     maxhits = the maximum number of hits returned
     aligner_exec = the path to the usearch executable
@@ -202,10 +238,11 @@ def runUSearch(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
     # Define usearch command
     cmd = [aligner_exec,
            '-ublast', in_handle.name,
-           '-db', ref_file,
+           '-db', database,
            '-strand', 'plus',
            '-evalue', str(evalue),
            '-maxhits', str(max_hits),
+           '-wordlength', '9',
            '-maxaccepts', '0',
            '-maxrejects', '0',
            '-userout', out_handle.name,
@@ -247,14 +284,14 @@ def runUSearch(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
     return align_df
 
 
-def runBlastn(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+def runBlastn(seq, database, evalue=default_evalue, max_hits=default_max_hits,
               aligner_exec=default_blastn_exec):
     """
     Aligns a sequence against a reference database using BLASTN
 
     Arguments:
     seq = a list of SeqRecord objects to align
-    ref_dict = a dictionary of reference SeqRecord objects
+    database = the path and name of the blastn database
     evalue = the E-value cut-off
     maxhits = the maximum number of hits returned
     aligner_exec = the path to the blastn executable
@@ -267,10 +304,14 @@ def runBlastn(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
     # Define blastn command
     cmd = [aligner_exec,
            '-query',  '-',
-           '-subject', ref_file,
+           '-db', database,
            '-strand', 'plus',
            '-evalue', str(evalue),
            '-max_target_seqs', str(max_hits),
+           '-word_size', '9',
+           '-dust', 'no',
+           # '-reward', '2',
+           # '-penalty', '-1',
            #'-num_descriptions', str(max_hits),
            #'-num_alignments', str(max_hits),
            #'-max_hsps', str(max_hits),
@@ -279,7 +320,7 @@ def runBlastn(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
 
     # Run blastn
     child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  shell=False, universal_newlines=True)
+                 shell=False, universal_newlines=True)
     stdout_str, stderr_str = child.communicate(seq_fasta)
     out_handle = StringIO(stdout_str)
 
