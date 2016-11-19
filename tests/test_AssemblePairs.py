@@ -18,6 +18,7 @@ from presto.IO import readSeqFile
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
+data_path = os.path.join(test_path, 'data')
 usearch_exec = 'usearch'
 blastn_exec = 'blastn'
 
@@ -26,6 +27,10 @@ sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
 import AssemblePairs
 import presto.Applications as Applications
 
+# Test files
+ref_file = os.path.join(data_path, 'human_igv_trv.fasta')
+head_file = os.path.join(data_path, 'data/head.fasta')
+tail_file = os.path.join(data_path, 'data/tail.fasta')
 
 class TestAssemblePairs(unittest.TestCase):
 
@@ -33,36 +38,12 @@ class TestAssemblePairs(unittest.TestCase):
         print('-> %s()' % self._testMethodName)
 
         # Set pandas options
-        pd.set_option('display.width', 120)
+        pd.set_option('display.width', 200)
 
-        #self.ref_file = 'IMGT_Human_IGV.fasta'
-        self.ref_file = 'data/Human_IGV_TRV.fasta'
-        self.ref_dict = {s.id:s.upper() for s in readSeqFile(self.ref_file)}
-        # MISEQ:121:000000000-A7VDM:1:1101:10041:1280
-        #self.head_seq = Seq("CCACGTTTTAGTAATTAATACGGGAGCAAAAACCAGGGAAAGCCCCTAAGCTCCTGCTCTATGCTGCATCCACTTTGCAAAGTGTGGTCCCATCACGGTTCAGCGGCAGTGGATCTGGGACAGAATTCACTCTCACAATCAGCAGCCTGCAGCCTGAAGATTTTGCAACTTATTACTGTCAACAGCTTACTCCTTACCCTCCTACGTTCGCCCCAGGCCCCACGGTCGACCTCCACCCCCCTCTCGCTGCCCCCTCTCTCCCCTCCGACCCGCCTC")
-        #self.tail_seq = Seq("GGCAAGAAGAAGAGGGGATACGAGAGCCAAGGGGGAGTGGAGTGGAGAGGTGTGCGCTTACGATCTACAAGTGTGAGTAATGAATACGGGAGCAAAAACGAGGGAAAGCCCCGAAGCTCCTGATCTATGCTGAATCCACTTTGCAAAGTGGGGTCCCATCAAGGTTCAGCGGCAGTGGATCTGGGACAGAATTCACTCTCACAATCAGCAGCCTGCAGCCTGAAGATTTTGCAACTTATTACTGTCAACAGCTTAATACTTACCCTCGGACGTTCGGCCAAGGGACCAAGGTGGAAATCAAACGAACTGTGGCTGCACCATCTGTC")
-
-        # MISEQ:121:000000000-A7VDM:1:1101:13900:1538
-        #self.head_seq = Seq("GGAGCTTGCATTAGCATCGATACGGGGAGCTGTGGGCTCAGAAGCAGAGTTCTGGGGTGTCTCCACCATGGCCTGGACCCCTCTCTGGCTCACTCTCCTCACTCTTTGCATAGGTTCTGTGGTTTCTTCTGAGCTGACTCAGGACCCTGCTGTGTCTGTGGCCTTGGGACAGACAGTCAGGATCACATGCCAAGGAGACCGCCTCAGAAGCTATTATGCAAGCTGGTCCCCGCAGAATCCAGGACAGGCCCCCCTCCTTCTCATCTATGGTATAAC")
-        #self.tail_seq = Seq("CTTGGGACAGACAGTCAGGATCACAGGCCAAGGAGACAGGCTCAGAAGCTAGTATGCAAGCGGGTACCAGCAGAAGCCAGGACAGGCCCCTGTACTTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
-
-        # Non-Overlaping MISEQ:121:000000000-A7VDM:1:1101:13900:1538
-        self.head_seq = Seq("GGAGCTTGCATTAGCATCGATACGGGGAGCTGTGGGCTCAGAAGCAGAGTTCTGGGGTGTCTCCACCATGGCCTGGACCCCTCTCTGGCTCACTCTCCTCACTCTTTGCATAGGTTCTGTGGTTTCTTCTGAGCTGACTCAGGACCCTGCTGTGTCTGTGGCCTTGGGACAGACAGTCAGGAC")
-        self.tail_seq = Seq("TTGTCATCTATGGTAAAAACAACCGGCCCTCAGGGATCCCAGACCGATTCTCTGGCTTCAGCTCAGGAAACACAGCTTCCTTGACCATCACTGGGGCTCAGGCGGAAGATGAGGCTGACTATTACTGTAACTCCCGGGACAGCAGTGGTAACCATCCATTCGGCGGAGGGACCAAGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
-
-        # MISEQ:121:000000000-A7VDM:1:1101:22042:1446
-        #self.head_seq = Seq("GTCTCAACAAAATACCATCTACGGGATGTGTATTGGTACCAGCAACTCCCAGGATCGGCCCCCAAGCTCCTCATTTATAGTAGTAGCCAGCCGCCCTCAGGGGTCCCTGACCGATTCTCTGGCTCCAAGTCTGGCACCTCAGCCTCCCTGGCCCTCCGTGTGCTCCGTTCCGAAGATGACGCCGCTTATTCCTGTTCAGCCTGGGCTTACCCCCTGATTCGTCTTTCCTTGTTCGCCCCACCGTCCCCTCCCCCCCTCCTACCTCCGCCCCACGCC")
-        #self.tail_seq = Seq("GAGAGGTGGGAGGAGCCGATCTGGGTCAACAAAATAGGATAGACGGGAAGGGTATTGGTACAAGCAACTCCCAGGAGCGGAGCCCAAGCTCGTCATTTATAGGAGAAGCCAGGGGCCCTCAGGGGTACCTGACCGATTCTCTGGCTCCAAGTCTGGAAGCTAAGCCTCCCTGGCCATCAGTGGGCTCCGGTACGAAGATGAGGCTGATTATTACTGTGCAGCATGGGATGACAGCCTGAGTGGTCTTTGGGTGTTCGGCGGAGGGACCAGGCTGACCGTCCTAGGTCAGCCCAAGGCTGCCCCCTCGGTCACTCTGTTCCCACCCT")
-
-        # TATATTATGTGCAGT_GCCTTC|PRCONS=TRB
-        #self.head_seq = Seq('gacacctctccccagagaaggtggtgtgagaccaccacggaagatgctgctgctactgctcctcctgtggataggctccgggcttggtgccgtcgtctctcaacatccgagccgggctatctgaaagtgtggaaccattgtcaaccacgagggccgttcaccggactttcggccccctacgaagttttggcaacctcagctcccgatacatggtcttttgctgctggcgacctccaaccggggctccac')
-        #self.tail_seq = Seq('gtcgagtgtcgttccctggactttcaagccacatcgaagtactggtatcggcagttcccgaaacagagtctaaggctggtggcaacatccaacgagtactcaaaggccacatacgagcaaggcgtcgagaaggacaagtatctcatcaaccatgcaagcctgaccttgtcctctcttacagtgaccagtgcccagcctgaagacagcagcttctacatctacagtgctgcaacgggtcaggggacgatcgagacccagtatttcgggcctggcacgcggctcctggtgctcgaggacctgaaaaac')
-        #self.head_seq = self.head_seq.reverse_complement()
-
-        self.head_rec = SeqRecord(self.head_seq, id='HEAD', name='HEAD', description='')
-        self.tail_rec = SeqRecord(self.tail_seq, id='TAIL', name='TAIL', description='')
-        #self.head_rec = SeqRecord(self.tail_seq, id='HEAD', name='HEAD', description='')
-        #self.tail_rec = SeqRecord(self.head_seq, id='TAIL', name='TAIL', description='')
+        # Load data
+        self.head_list = [s.upper() for s in readSeqFile(head_file)]
+        self.tail_list = [s.upper() for s in readSeqFile(tail_file)]
+        self.ref_dict = {s.id: s.upper() for s in readSeqFile(ref_file)}
 
         self.start = time.time()
 
@@ -73,27 +54,30 @@ class TestAssemblePairs(unittest.TestCase):
     @unittest.skip("-> runUSearch() skipped\n")
     def test_runUSearch(self):
         print('USEARCH>')
-        head_df = Applications.runUSearch(self.head_rec, self.ref_file,
-                                          aligner_exec=usearch_exec)
-        tail_df = Applications.runUSearch(self.tail_rec, self.ref_file,
-                                          aligner_exec=usearch_exec)
-        print('HEAD SEQUENCE>')
-        print(head_df)
-        print('TAIL SEQUENCE>')
-        print(tail_df)
+        for head_seq, tail_seq in zip(self.head_list, self.tail_list):
+            head_df = Applications.runUSearch(head_seq, ref_file, evalue=1e-5,
+                                              aligner_exec=usearch_exec)
+            tail_df = Applications.runUSearch(tail_seq, ref_file, evalue=1e-5,
+                                              aligner_exec=usearch_exec)
+            print('HEAD> %s' % head_seq.id)
+            print(head_df)
+            print('TAIL> %s' % tail_seq.id)
+            print(tail_df)
 
         self.fail()
 
     @unittest.skip("-> runBlastn() skipped\n")
     def test_runBlastn(self):
-        head_df = Applications.runBlastn(self.head_rec, self.ref_file,
-                                         aligner_exec=blastn_exec)
-        tail_df = Applications.runBlastn(self.tail_rec, self.ref_file,
-                                         aligner_exec=blastn_exec)
-        print('HEAD SEQUENCE>')
-        print(head_df)
-        print('TAIL SEQUENCE>')
-        print(tail_df)
+        for head_seq, tail_seq in zip(self.head_list, self.tail_list):
+            head_df = Applications.runBlastn(head_seq, ref_file, evalue=1e-5,
+                                             aligner_exec=blastn_exec)
+            tail_df = Applications.runBlastn(tail_seq, ref_file, evalue=1e-5,
+                                             aligner_exec=blastn_exec)
+            print('HEAD> %s' % head_seq.id)
+            print(head_df)
+            print('TAIL> %s' % tail_seq.id)
+            print(tail_df)
+
         self.fail()
 
     @unittest.skip("-> referenceAssembly() skipped\n")

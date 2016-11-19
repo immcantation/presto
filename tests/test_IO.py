@@ -23,8 +23,8 @@ class TestIO(unittest.TestCase):
     def setUp(self):
         print('-> %s()' % self._testMethodName)
         # Annotation dictionaries
-        self.germ_file = os.path.join(data_path, 'Human_IGV_TRV.fasta')
-        self.missing_file = os.path.join(data_path, 'Human_IGV_TRV.bob')
+        self.germ_file = os.path.join(data_path, 'human_igv_trv.fasta')
+        self.missing_file = os.path.join(data_path, 'human_igv_trv.bob')
 
         # Start clock
         self.start = time.time()
