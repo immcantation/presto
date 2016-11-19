@@ -18,7 +18,8 @@ from presto.IO import readSeqFile
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
-usearch_exec = '/usr/local/bin/usearch'
+usearch_exec = 'usearch'
+blastn_exec = 'blastn'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -69,47 +70,26 @@ class TestAssemblePairs(unittest.TestCase):
         t = time.time() - self.start
         print("<- %s() %.3f" % (self._testMethodName, t))
 
-    @unittest.skip("-> runUSearchLocal() skipped\n")
-    def test_runUSearchLocal(self):
-        head_df = Applications.runUSearchLocal(self.head_rec, self.ref_file,
-                                               usearch_exec=usearch_exec)
-        tail_df = Applications.runUSearchLocal(self.tail_rec, self.ref_file,
-                                               usearch_exec=usearch_exec)
-        print('HEAD SEQUENCE>')
-        print(head_df)
-        print('TAIL SEQUENCE>')
-        print(tail_df)
-        self.fail()
-
     @unittest.skip("-> runUSearch() skipped\n")
     def test_runUSearch(self):
         print('USEARCH>')
-        head_df = Applications.runUSearch(self.head_rec, self.ref_file, method='usearch',
-                                          usearch_exec=usearch_exec)
-        tail_df = Applications.runUSearch(self.tail_rec, self.ref_file, method='usearch',
-                                          usearch_exec=usearch_exec)
+        head_df = Applications.runUSearch(self.head_rec, self.ref_file,
+                                          aligner_exec=usearch_exec)
+        tail_df = Applications.runUSearch(self.tail_rec, self.ref_file,
+                                          aligner_exec=usearch_exec)
         print('HEAD SEQUENCE>')
         print(head_df)
         print('TAIL SEQUENCE>')
         print(tail_df)
-
-        print('UBLAST>')
-        head_df = Applications.runUSearch(self.head_rec, self.ref_file, method='ublast',
-                                          usearch_exec=usearch_exec)
-        tail_df = Applications.runUSearch(self.tail_rec, self.ref_file, method='ublast',
-                                          usearch_exec=usearch_exec)
-        print('HEAD SEQUENCE>')
-        print(head_df)
-        print('TAIL SEQUENCE>')
-        print(tail_df)
-
 
         self.fail()
 
     @unittest.skip("-> runBlastn() skipped\n")
     def test_runBlastn(self):
-        head_df = Applications.runBlastn(self.head_rec, self.ref_file)
-        tail_df = Applications.runBlastn(self.tail_rec, self.ref_file)
+        head_df = Applications.runBlastn(self.head_rec, self.ref_file,
+                                         aligner_exec=blastn_exec)
+        tail_df = Applications.runBlastn(self.tail_rec, self.ref_file,
+                                         aligner_exec=blastn_exec)
         print('HEAD SEQUENCE>')
         print(head_df)
         print('TAIL SEQUENCE>')

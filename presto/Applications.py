@@ -22,21 +22,19 @@ from Bio.SeqRecord import SeqRecord
 from presto.Defaults import default_muscle_exec, default_usearch_exec, default_blastn_exec
 
 # Defaults
-choices_usearch_method = ['ublast', 'usearch']
-default_usearch_method = 'ublast'
-default_uclust_ident = 0.9
-default_usearch_ident = 0.5
+default_cluster_ident = 0.9
+default_align_ident = 0.5
 default_evalue = 1e-5
 default_max_hits = 100
 
 
-def runMuscle(seq_list, muscle_exec=default_muscle_exec):
+def runMuscle(seq_list, aligner_exec=default_muscle_exec):
     """
     Multiple aligns a set of sequences using MUSCLE
 
     Arguments:
     seq_list = a list of SeqRecord objects to align
-    muscle_exec = the MUSCLE executable
+    aligner_exec = the MUSCLE executable
 
     Returns:
     a MultipleSeqAlignment object containing the alignment
@@ -47,7 +45,7 @@ def runMuscle(seq_list, muscle_exec=default_muscle_exec):
         return align
 
     # Set MUSCLE command
-    cmd = [muscle_exec, '-diags', '-maxiters', '2']
+    cmd = [aligner_exec, '-diags', '-maxiters', '2']
 
     # Convert sequences to FASTA and write to string
     stdin_handle = StringIO()
@@ -70,8 +68,8 @@ def runMuscle(seq_list, muscle_exec=default_muscle_exec):
     return align
 
 
-def runUClust(seq_list, ident=default_uclust_ident, seq_start=0, seq_end=None,
-              usearch_exec=default_usearch_exec):
+def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
+              cluster_exec=default_usearch_exec):
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
@@ -80,7 +78,7 @@ def runUClust(seq_list, ident=default_uclust_ident, seq_start=0, seq_end=None,
     ident = the sequence identity cutoff to be passed to usearch
     seq_start = the start position to trim sequences at before clustering
     seq_end = the end position to trim sequences at before clustering
-    usearch_exec = the path to the usearch executable
+    cluster_exec = the path to the usearch executable
 
     Returns:
     a dictionary object containing {sequence id: cluster id}
@@ -108,7 +106,7 @@ def runUClust(seq_list, ident=default_uclust_ident, seq_start=0, seq_end=None,
     out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
 
     # Define usearch command
-    cmd = [usearch_exec,
+    cmd = [cluster_exec,
            '-cluster_fast', in_handle.name,
            '-uc', out_handle.name,
            '-id', str(ident),
@@ -156,42 +154,56 @@ def runUClust(seq_list, ident=default_uclust_ident, seq_start=0, seq_end=None,
     return cluster_dict if cluster_dict else None
 
 
-def runUSearch(seq, ref_file, method=default_usearch_method,
-               ident=default_usearch_ident, evalue=default_evalue,
-               max_hits=default_max_hits,
-               usearch_exec=default_usearch_exec):
+def runMakeUSearchDb(ref_file, aligner_exec=default_usearch_exec):
+    """
+    Makes a usearch database file
+
+    Arguments:
+    ref_file = the path to the reference database file
+    aligner_exec = the path to the usearch executable
+
+    Returns:
+    A handle to the named temporary file containing the database file
+    """
+    # Open temporary file
+    db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
+
+    # Define usearch command
+    cmd = [aligner_exec,
+           '-makeudb_ublast', ref_file,
+           '-output', db_handle.name,
+           '-dbmask', 'none']
+
+    stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                              universal_newlines=True)
+
+    return db_handle
+
+
+def runUSearch(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
+               aligner_exec=default_usearch_exec):
     """
     Aligns a sequence against a reference database using the usearch_local algorithm of USEARCH
 
     Arguments:
-    seq = a SeqRecord object to align
-    ref_file = the path to the reference database file
-    method = the alignment method to use; one of 'usearch' or 'ublast'
-    ident = the identity cut-off for usearch_local
-    evalue = the E-value cut-off for usearch_local
-    max_hits = the maxhits output limit for usearch_local
-    usearch_exec = the path to the usearch executable
+    seq = a list of SeqRecord objects to align
+    ref_dict = a dictionary of reference SeqRecord objects
+    evalue = the E-value cut-off
+    maxhits = the maximum number of hits returned
+    aligner_exec = the path to the usearch executable
 
     Returns:
-    a DataFrame of alignment results
+    A pandas.DataFrame of alignment results
     """
-    # Set alignment algorithm
-    method_dict = {'ublast': '-ublast', 'usearch': '-usearch_local'}
-    try:
-        method_cmd = method_dict[method]
-    except:
-        sys.exit('ERROR: invalid method argument for runUSearch')
-
     # Open temporary files
     in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
     out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
 
     # Define usearch command
-    cmd = [usearch_exec,
-           method_cmd, in_handle.name,
+    cmd = [aligner_exec,
+           '-ublast', in_handle.name,
            '-db', ref_file,
            '-strand', 'plus',
-           '-id', str(ident),
            '-evalue', str(evalue),
            '-maxhits', str(max_hits),
            '-maxaccepts', '0',
@@ -206,7 +218,7 @@ def runUSearch(seq, ref_file, method=default_usearch_method,
     SeqIO.write(seq, in_handle, 'fasta')
     in_handle.seek(0)
 
-    # Run usearch ublast algorithm
+    # Run ublast algorithm
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
 
@@ -235,65 +247,49 @@ def runUSearch(seq, ref_file, method=default_usearch_method,
     return align_df
 
 
-def runMakeUSearchDb(ref_file, usearch_exec=default_usearch_exec):
-    """
-    Makes a usearch database file
-
-    Arguments:
-    ref_file = the path to the reference database file
-    usearch_exec = the path to the usearch executable
-
-    Returns:
-    A handle to the named temporary file containing the database file
-    """
-    # Open temporary file
-    db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
-
-    # Define usearch command
-    cmd = [usearch_exec,
-           '-makeudb_ublast', ref_file,
-           '-output', db_handle.name,
-           '-dbmask', 'none']
-
-    stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
-                              universal_newlines=True)
-
-    return db_handle
-
-
 def runBlastn(seq, ref_file, evalue=default_evalue, max_hits=default_max_hits,
-              blastn_exec=default_blastn_exec):
+              aligner_exec=default_blastn_exec):
     """
     Aligns a sequence against a reference database using BLASTN
 
     Arguments:
-    seq = a SeqRecord objects to align
+    seq = a list of SeqRecord objects to align
     ref_dict = a dictionary of reference SeqRecord objects
-    evalue = the E-value cut-off for ublast
-    maxhits = the maxhits output limit for ublast
-    blastn_exec = the path to the usearch executable
+    evalue = the E-value cut-off
+    maxhits = the maximum number of hits returned
+    aligner_exec = the path to the blastn executable
 
     Returns:
-    a DataFrame of alignment results
+    A pandas.DataFrame of alignment results
     """
     seq_fasta = seq.format('fasta')
 
     # Define blastn command
-    cmd = ' '.join([blastn_exec,
-                    '-query -',
-                    #'-query', str(seq.seq),
-                    '-subject', ref_file,
-                    '-strand plus',
-                    '-evalue', str(evalue),
-                    '-max_target_seqs', str(max_hits),
-                    '-outfmt "6 qseqid sseqid qstart qend sstart send length evalue pident"',
-                    '-num_threads 1'])
+    cmd = [aligner_exec,
+           '-query',  '-',
+           '-subject', ref_file,
+           '-strand', 'plus',
+           '-evalue', str(evalue),
+           '-max_target_seqs', str(max_hits),
+           #'-num_descriptions', str(max_hits),
+           #'-num_alignments', str(max_hits),
+           #'-max_hsps', str(max_hits),
+           '-outfmt', '6 qseqid sseqid qstart qend sstart send length evalue pident',
+           '-num_threads', '1']
 
     # Run blastn
     child = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE,
                   shell=False, universal_newlines=True)
     stdout_str, stderr_str = child.communicate(seq_fasta)
     out_handle = StringIO(stdout_str)
+
+    # child = Popen(cmd, bufsize=1, stdout=PIPE, stderr=STDOUT, shell=False,
+    #              universal_newlines=True)
+    # while child.poll() is None:
+    #    out = child.stdout.readline()
+    #    sys.stdout.write(out)
+    #    sys.stdout.flush()
+    # child.wait()
 
     # Parse blastn output
     field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',

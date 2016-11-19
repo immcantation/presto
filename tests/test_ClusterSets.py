@@ -14,7 +14,7 @@ from Bio.SeqRecord import SeqRecord
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
-usearch_exec = '/usr/local/bin/vsearch'
+cluster_exec = 'vsearch'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -45,19 +45,20 @@ class TestClusterSets(unittest.TestCase):
     #@unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
         print('FULL_LENGTH>')
-        results = ClusterSets.runUClust(self.records_clust, usearch_exec=usearch_exec)
+        results = ClusterSets.runUClust(self.records_clust,
+                                        cluster_exec=cluster_exec)
         print(results)
         self.assertEqual(sorted(self.results_clust), sorted(results))
 
         print('TRIMMED>')
         results = ClusterSets.runUClust(self.records_clust, seq_start=10, seq_end=50,
-                                        usearch_exec=usearch_exec)
+                                        cluster_exec=cluster_exec)
         print(results)
         self.assertEqual(sorted(self.results_clust), sorted(results))
 
         print('ZERO_LENGTH>')
         results = ClusterSets.runUClust(self.records_clust, seq_start=75, seq_end=150,
-                                        usearch_exec=usearch_exec)
+                                        cluster_exec=cluster_exec)
         print(results)
         self.assertEqual(None, results)
 

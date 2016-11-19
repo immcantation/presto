@@ -7,13 +7,16 @@ Version 0.5.2.999:  November 18, 2016
 
 AssemblePairs:
 
++ Added blastn compatibility.
 + Changed masking behavior of usearch to ``none`` in reference subcommand.
-+ Added the option ``--method`` to the reference subcommand to allow toggling
-  of the usearch local alignment method used. Defaults to the ublast algorithm
-  used in previous releases.
++ Added the option ``--aligner`` to the reference subcommand to allow use of
+  either blastn or usearch for performing the local alignment. Defaults to
+  the usearch algorithm used in previous releases.
+
 
 ClusterSets:
 
++ Added vsearch compatibility.
 + Fixed a bug wherein sets containing empty sequences were being fed to
   usearch, rather than automatically failed, which would cause usearch v8 to
   hang indefinitely.
@@ -22,7 +25,6 @@ ClusterSets:
 + Changed masking behavior of usearch to ``none``.
 + Changed how gaps are handling before passing sequences to usearch. Gaps are
   now masked (with Ns) for clustering, instead of removed.
-+ Added vsearch compatibility.
 
 EstimateError:
 

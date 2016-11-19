@@ -8,6 +8,7 @@ from presto import __version__, __date__
 
 # Imports
 import os
+import shutil
 import sys
 import tempfile
 from argparse import ArgumentParser
@@ -27,8 +28,8 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 # Defaults
+default_cluster_exec = default_usearch_exec
 default_ident = 0.9
-
 
 def processCSQueue(alive, data_queue, result_queue, cluster_field,
                   cluster_args={}, delimiter=default_delimiter):
@@ -115,7 +116,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
 def clusterSets(seq_file, barcode_field=default_barcode_field,
                 cluster_field=default_cluster_field,
                 ident=default_ident, seq_start=None, seq_end=None,
-                usearch_exec=default_usearch_exec,
+                cluster_exec=default_cluster_exec,
                 out_args=default_out_args, nproc=None,
                 queue_size=None):
     """
@@ -127,7 +128,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     ident = the identity threshold for clustering sequences
     seq_start = the start position to trim sequences at before clustering
     seq_end = the end position to trim sequences at before clustering
-    usearch_exec = the path to the executable for usearch
+    cluster_exec = the path to the executable for usearch
     nproc = the number of processQueue processes;
             if None defaults to the number of CPUs
     queue_size = maximum size of the argument queue;
@@ -149,7 +150,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     printLog(log)
 
     # Define cluster function parameters
-    cluster_args = {'usearch_exec':usearch_exec,
+    cluster_args = {'cluster_exec':cluster_exec,
                     'ident':ident,
                     'seq_start':seq_start,
                     'seq_end':seq_end}
@@ -235,9 +236,9 @@ def getArgParser():
                              subsequence of each read to use in the clustering algorithm.''')
     parser.add_argument('--end', action='store', dest='seq_end', type=int,
                         help='The end of the region to be used for clustering.')
-    parser.add_argument('--exec', action='store', dest='usearch_exec',
-                        default=default_usearch_exec,
-                        help='The location of the usearch or vsearch executable.')
+    parser.add_argument('--exec', action='store', dest='cluster_exec',
+                        default=default_cluster_exec,
+                        help='The name or location of the usearch or vsearch executable.')
 
     return parser
 
@@ -258,8 +259,8 @@ if __name__ == '__main__':
         args_dict['cluster_field'] = args_dict['cluster_field'].upper()
     
     # Check if a valid usearch executable was specified
-    if not os.path.isfile(args.usearch_exec):
-        parser.error('%s does not exist' % args.usearch_exec)
+    if not shutil.which(args.cluster_exec):
+        parser.error('%s does not exist' % args.cluster_exec)
 
     # Check for valid start and end input
     if ('seq_start' in args_dict and 'seq_end' in args_dict) and \

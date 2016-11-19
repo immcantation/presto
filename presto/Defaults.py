@@ -28,9 +28,9 @@ default_primer_field = 'PRIMER'
 default_cluster_field = 'CLUSTER'
 
 # External applications
-default_muscle_exec = r'/usr/local/bin/muscle'
-default_usearch_exec = r'/usr/local/bin/usearch'
-default_blastn_exec = r'/usr/bin/blastn'
+default_muscle_exec = 'muscle'
+default_usearch_exec = 'usearch'
+default_blastn_exec = 'blastn'
 
 # Sequence sets
 default_gap_chars = set(['-', '.'])

@@ -8,6 +8,7 @@ from presto import __version__, __date__
 
 # Imports
 import os
+import shutil
 import sys
 import numpy as np
 import pandas as pd
@@ -25,17 +26,21 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_delimiter, choices_coord, \
                             default_coord, default_missing_chars, \
-                            default_out_args, default_usearch_exec
+                            default_blastn_exec, default_usearch_exec, \
+                            default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
-from presto.Applications import choices_usearch_method, default_usearch_method, runUSearch
+from presto.Applications import runUSearch, runBlastn
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
 from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
 from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
 # Defaults
+choices_aligner = ['blastn', 'usearch']
+default_aligner = 'usearch'
+default_aligner_exec = default_usearch_exec
 default_alpha = 1e-5
 default_max_error = 0.3
 default_min_ident = 0.5
@@ -132,10 +137,9 @@ class AssemblyStats:
         return z_matrix
 
 
-def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
-                      method=default_usearch_method, min_ident=default_min_ident,
+def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file, min_ident=default_min_ident,
                       evalue=default_evalue, max_hits=default_max_hits, fill=False,
-                      usearch_exec=default_usearch_exec,
+                      aligner=default_aligner, aligner_exec=default_aligner_exec,
                       score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches two sequences together by aligning against a reference database
@@ -145,19 +149,24 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
     head_seq = the tail SeqRecord
     ref_dict = a dictionary of reference SeqRecord objects
     ref_file = the path to the reference database file
-    method = the alignment method to use; one of 'usearch' or 'ublast'
     min_ident = the minimum identity for a valid assembly
     evalue = the E-value cut-off for ublast
     max_hits = the maxhits output limit for ublast
     fill = if False non-overlapping regions will be assigned Ns;
            if True non-overlapping regions will be filled with the reference sequence.
-    usearch_exec = the path to the usearch executable
+    aligner = the alignment tool; one of 'blastn' or 'usearch'
+    aligner_exec = the path to the alignment tool executable
     score_dict = optional dictionary of character scores in the
                  form {(char1, char2): score}
 
     Returns:
     an AssemblyRecord object
     """
+    try:
+        align_func = {'blastn': runBlastn, 'usearch': runUSearch}[aligner]
+    except:
+        sys.exit('ERROR: Invalid alignment tool %s' % aligner)
+
     # Define general parameters
     head_len = len(head_seq)
     tail_len = len(tail_seq)
@@ -169,10 +178,10 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_file,
                   'phred_quality' in tail_seq.letter_annotations
 
     # Align against reference
-    head_df = runUSearch(head_seq, ref_file, method=method, evalue=evalue,
-                         max_hits=max_hits, usearch_exec=usearch_exec)
-    tail_df = runUSearch(tail_seq, ref_file, method=method, evalue=evalue,
-                         max_hits=max_hits, usearch_exec=usearch_exec)
+    head_df = align_func(head_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                         aligner_exec=aligner_exec)
+    tail_df = align_func(tail_seq, ref_file, evalue=evalue, max_hits=max_hits,
+                         aligner_exec=aligner_exec)
 
     # Subset results to matching reference assignments
     align_df = pd.merge(head_df, tail_df, on='target', how='inner', suffixes=('_head', '_tail'))
@@ -803,6 +812,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     if 'evalue' in assemble_args:  log['EVALUE'] = assemble_args['evalue']
     if 'max_hits' in assemble_args:  log['MAX_HITS'] = assemble_args['max_hits']
     if 'fill' in assemble_args:  log['FILL'] = assemble_args['fill']
+    if 'aligner' in assemble_args:  log['ALIGNER'] = assemble_args['aligner']
     log['NPROC'] = nproc
     printLog(log)
 
@@ -958,13 +968,14 @@ def getArgParser():
                                   instead of a sequence of Ns in the non-overlapping region.
                                   Warning, you could end up making chimeric sequences by using
                                   this option.''')
-    parser_ref.add_argument('--method', action='store', dest='method',
-                            choices=choices_usearch_method, default=default_usearch_method,
-                            help='''The usearch algorithm to use for alignment. Must be one
-                                 of ublast or usearch (usearch local alignment).''')
-    parser_ref.add_argument('--exec', action='store', dest='usearch_exec',
-                            default=default_usearch_exec,
-                            help='''The path to the usearch executable file.''')
+    parser_ref.add_argument('--aligner', action='store', dest='aligner',
+                            choices=choices_aligner, default=default_aligner,
+                            help='''The local alignment tool to use. Must be one blastn
+                                 (blast+ nucleotide) or usearch (ublast algorithm).''')
+    parser_ref.add_argument('--exec', action='store', dest='aligner_exec', default=None,
+                            help='''The  name or location of the aligner executable file
+                                 (blastn or usearch). Defaults to the name specified by the
+                                 --aligner argument.''')
     parser_ref.set_defaults(assemble_func=referenceAssembly)
 
 
@@ -1002,26 +1013,30 @@ if __name__ == '__main__':
         del args_dict['gap']
     elif args_dict['assemble_func'] is referenceAssembly:
         ref_dict = {s.id:s.upper() for s in readSeqFile(args_dict['ref_file'])}
-        #ref_file = makeUsearchDb(args_dict['ref_file'], args_dict['usearch_exec'])
+        #ref_file = makeUsearchDb(args_dict['ref_file'], args_dict['aligner_exec'])
         args_dict['assemble_args'] = {'ref_file': args_dict['ref_file'],
                                       'ref_dict': ref_dict,
                                       'min_ident': args_dict['min_ident'],
                                       'evalue': args_dict['evalue'],
                                       'max_hits': args_dict['max_hits'],
                                       'fill': args_dict['fill'],
-                                      'method': args_dict['method'],
-                                      'usearch_exec': args_dict['usearch_exec']}
+                                      'aligner': args_dict['aligner']}
+        if args_dict['aligner_exec'] is None:
+            args_dict['assemble_args']['aligner_exec'] = args_dict['aligner']
+        else:
+            args_dict['assemble_args']['aligner_exec'] = args_dict['aligner_exec']
+
         del args_dict['ref_file']
         del args_dict['min_ident']
         del args_dict['evalue']
         del args_dict['max_hits']
         del args_dict['fill']
-        del args_dict['method']
-        del args_dict['usearch_exec']
+        del args_dict['aligner']
+        del args_dict['aligner_exec']
 
         # Check if a valid USEARCH executable was specified
-        if not os.path.isfile(args.usearch_exec):
-            parser.error('%s does not exist' % args.usearch_exec)
+        if not shutil.which(args_dict['assemble_args']['aligner_exec']):
+            parser.error('%s does not exist' % args.aligner_exec)
 
     # Call assemblePairs for each sample file
     del args_dict['command']

@@ -9,6 +9,7 @@ from presto import __version__, __date__
 # Imports
 import csv
 import os
+import shutil
 import sys
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
@@ -29,6 +30,9 @@ from presto.Sequence import calculateDiversity, indexSeqSets
 from presto.IO import readPrimerFile, getOutputHandle, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
+
+# Defaults
+default_aligner_exec = default_muscle_exec
 
 
 def offsetSeqSet(seq_list, offset_dict, field=default_primer_field, 
@@ -377,10 +381,10 @@ def getArgParser():
     # MUSCLE mode argument parser
     parser_muscle = subparsers.add_parser('muscle', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter,
-                                          help='Align sequence sets using MUSCLE',
-                                          description='Align sequence sets using MUSCLE')
-    parser_muscle.add_argument('--exec', action='store', dest='muscle_exec', default=default_muscle_exec,
-                               help='The location of the MUSCLE executable')
+                                          help='Align sequence sets using muscle',
+                                          description='Align sequence sets using muscle')
+    parser_muscle.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
+                               help='The name or location of the muscle executable')
     parser_muscle.set_defaults(align_func=runMuscle)
 
     # Primer offset mode argument parser
@@ -408,8 +412,8 @@ def getArgParser():
                                help='A FASTA or REGEX file containing primer sequences')
     parser_table.add_argument('--reverse', action='store_true', dest='reverse',  
                                help='If specified create a 3\' offset table instead')
-    parser_table.add_argument('--exec', action='store', dest='muscle_exec', default=default_muscle_exec,
-                               help='The location of the MUSCLE executable')
+    parser_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
+                               help='The name or location of the muscle executable')
     parser_table.set_defaults(align_func=runMuscle)
     
     return parser
@@ -431,13 +435,13 @@ if __name__ == '__main__':
         args_dict['primer_field'] = args_dict['primer_field'].upper()
     
     # Check if a valid MUSCLE executable was specified for muscle mode
-    if args.command in ['muscle', 'table'] and not os.path.isfile(args.muscle_exec):
-        parser.error('%s does not exist' % args.muscle_exec)
+    if args.command in ['muscle', 'table'] and not shutil.which(args.aligner_exec):
+        parser.error('%s does not exist' % args.aligner_exec)
     
     # Define align_args
     if args_dict['align_func'] is runMuscle:
-        args_dict['align_args'] = {'muscle_exec':args_dict['muscle_exec']}
-        del args_dict['muscle_exec']
+        args_dict['align_args'] = {'aligner_exec':args_dict['aligner_exec']}
+        del args_dict['aligner_exec']
     elif args_dict['align_func'] is offsetSeqSet:
         args_dict['align_args'] = {'offset_dict':readOffsetFile(args_dict['offset_table']),
                                    'field':args_dict['primer_field'],
