@@ -641,7 +641,6 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     if stitch.ident is not None:
         result.log['IDENTITY'] = '%.4f' % stitch.ident
 
-
     return result
 
 
