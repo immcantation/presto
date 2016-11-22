@@ -35,11 +35,11 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
     Multiple aligns a set of sequences using MUSCLE
 
     Arguments:
-    seq_list = a list of SeqRecord objects to align
-    aligner_exec = the MUSCLE executable
+      seq_list : a list of SeqRecord objects to align
+      aligner_exec : the MUSCLE executable
 
     Returns:
-    a MultipleSeqAlignment object containing the alignment
+      MultipleSeqAlignment : A MultipleSeqAlignment object containing the alignment.
     """
     # Return sequence if only one sequence in seq_list
     if len(seq_list) < 2:
@@ -76,14 +76,14 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
     Arguments:
-    seq_list = a list of SeqRecord objects to align
-    ident = the sequence identity cutoff to be passed to usearch
-    seq_start = the start position to trim sequences at before clustering
-    seq_end = the end position to trim sequences at before clustering
-    cluster_exec = the path to the usearch executable
+      seq_list : a list of SeqRecord objects to align.
+      ident : the sequence identity cutoff to be passed to usearch.
+      seq_start : the start position to trim sequences at before clustering.
+      seq_end : the end position to trim sequences at before clustering.
+      cluster_exec : the path to the usearch executable.
 
     Returns:
-    a dictionary object containing {sequence id: cluster id}
+      dict : A dictionary object containing {sequence id: cluster id}.
     """
     # Function to trim and mask sequences
     gap_trans = str.maketrans({'-': 'N', '.': 'N'})
@@ -161,12 +161,12 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
     Makes a ublast database file
 
     Arguments:
-    ref_file = the path to the reference database file
-    db_exec = the path to the usearch executable
+      ref_file : path to the reference database file.
+      db_exec : path to the usearch executable.
 
     Returns:
-    A tuple containing the
-    (location of the database, handle of the tempfile.NamedTemporaryFile)
+      tuple : A tuple containing
+              (location of the database, handle of the tempfile.NamedTemporaryFile)
     """
     # Open temporary file
     db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
@@ -191,12 +191,12 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
     Makes a ublast database file
 
     Arguments:
-    ref_file = the path to the reference database file
-    db_exec = the path to the makeblastdb executable
+      ref_file : the path to the reference database file
+      db_exec : the path to the makeblastdb executable
 
     Returns:
-    A tuple defining the database named 'reference' containing the
-    (name and location of the database, handle of the tempfile.TemporaryDirectory)
+      tuple : A tuple defining the database named 'reference' containing the
+              (name and location of the database, handle of the tempfile.TemporaryDirectory)
     """
     # Open temporary file
     db_handle = tempfile.TemporaryDirectory()
@@ -222,14 +222,14 @@ def runUBlast(seq, database, evalue=default_evalue, max_hits=default_max_hits,
     Aligns a sequence against a reference database using the usearch_local algorithm of USEARCH
 
     Arguments:
-    seq = a list of SeqRecord objects to align
-    database = the path to the ublast database or a fasta file
-    evalue = the E-value cut-off
-    maxhits = the maximum number of hits returned
-    aligner_exec = the path to the usearch executable
+      seq : a list of SeqRecord objects to align.
+      database : the path to the ublast database or a fasta file.
+      evalue : the E-value cut-off.
+      maxhits : the maximum number of hits returned.
+      aligner_exec : the path to the usearch executable.
 
     Returns:
-    A pandas.DataFrame of alignment results
+      DataFrame : A pandas.DataFrame of alignment results.
     """
     # Open temporary files
     in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
@@ -290,14 +290,14 @@ def runBlastn(seq, database, evalue=default_evalue, max_hits=default_max_hits,
     Aligns a sequence against a reference database using BLASTN
 
     Arguments:
-    seq = a list of SeqRecord objects to align
-    database = the path and name of the blastn database
-    evalue = the E-value cut-off
-    maxhits = the maximum number of hits returned
-    aligner_exec = the path to the blastn executable
+      seq : a list of SeqRecord objects to align.
+      database : the path and name of the blastn database.
+      evalue : the E-value cut-off.
+      maxhits : the maximum number of hits returned.
+      aligner_exec : the path to the blastn executable.
 
     Returns:
-    A pandas.DataFrame of alignment results
+      DataFrame : A pandas.DataFrame of alignment results.
     """
     seq_fasta = seq.format('fasta')
 
