@@ -39,7 +39,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
       aligner_exec : the MUSCLE executable
 
     Returns:
-      MultipleSeqAlignment : Multiple alignment results.
+      Bio.Align.MultipleSeqAlignment : Multiple alignment results.
     """
     # Return sequence if only one sequence in seq_list
     if len(seq_list) < 2:
@@ -227,7 +227,7 @@ def runUBlast(seq, database, evalue=default_evalue, max_hits=default_max_hits,
       aligner_exec : the path to the usearch executable.
 
     Returns:
-      DataFrame : Alignment results.
+      pandas.DataFrame : Alignment results.
     """
     # Open temporary files
     in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
@@ -295,7 +295,7 @@ def runBlastn(seq, database, evalue=default_evalue, max_hits=default_max_hits,
       aligner_exec : the path to the blastn executable.
 
     Returns:
-      DataFrame : Alignment results.
+      pandas.DataFrame : Alignment results.
     """
     seq_fasta = seq.format('fasta')
 
