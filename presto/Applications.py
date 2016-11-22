@@ -39,7 +39,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
       aligner_exec : the MUSCLE executable
 
     Returns:
-      MultipleSeqAlignment : A MultipleSeqAlignment object containing the alignment.
+      MultipleSeqAlignment : Multiple alignment results.
     """
     # Return sequence if only one sequence in seq_list
     if len(seq_list) < 2:
@@ -83,7 +83,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
       cluster_exec : the path to the usearch executable.
 
     Returns:
-      dict : A dictionary object containing {sequence id: cluster id}.
+      dict : {sequence id: cluster id}.
     """
     # Function to trim and mask sequences
     gap_trans = str.maketrans({'-': 'N', '.': 'N'})
@@ -165,8 +165,7 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
       db_exec : path to the usearch executable.
 
     Returns:
-      tuple : A tuple containing
-              (location of the database, handle of the tempfile.NamedTemporaryFile)
+      tuple : (location of the database, handle of the tempfile.NamedTemporaryFile)
     """
     # Open temporary file
     db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
@@ -195,8 +194,7 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
       db_exec : the path to the makeblastdb executable
 
     Returns:
-      tuple : A tuple defining the database named 'reference' containing the
-              (name and location of the database, handle of the tempfile.TemporaryDirectory)
+      tuple : (name and location of the database, handle of the tempfile.TemporaryDirectory)
     """
     # Open temporary file
     db_handle = tempfile.TemporaryDirectory()
@@ -229,7 +227,7 @@ def runUBlast(seq, database, evalue=default_evalue, max_hits=default_max_hits,
       aligner_exec : the path to the usearch executable.
 
     Returns:
-      DataFrame : A pandas.DataFrame of alignment results.
+      DataFrame : Alignment results.
     """
     # Open temporary files
     in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
@@ -297,7 +295,7 @@ def runBlastn(seq, database, evalue=default_evalue, max_hits=default_max_hits,
       aligner_exec : the path to the blastn executable.
 
     Returns:
-      DataFrame : A pandas.DataFrame of alignment results.
+      DataFrame : Alignment results.
     """
     seq_fasta = seq.format('fasta')
 
