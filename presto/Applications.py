@@ -22,12 +22,34 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_muscle_exec, default_usearch_exec, \
                             default_blastn_exec, default_blastdb_exec
+from presto.IO import readSeqFile
 
 # Defaults
 default_cluster_ident = 0.9
 default_align_ident = 0.5
 default_evalue = 1e-5
 default_max_hits = 100
+
+
+def ungapReferences(ref_file):
+    """
+    Create a dictionary of cleaned, ungapped reference sequences.
+
+    Arguments:
+      ref_file : reference sequences in fasta format.
+
+    Returns:
+      dict : cleaned and ungapped reference sequences;
+             with the key as the sequence ID and value as a Bio.SeqRecord for each reference sequence.
+    """
+    def _clean(rec):
+        rec.seq = rec.seq.ungap('-').ungap('.').upper()
+        rec.name = rec.description = ''
+        return rec
+
+    ref_dict = {s.id: _clean(s) for s in readSeqFile(ref_file)}
+
+    return ref_dict
 
 
 def runMuscle(seq_list, aligner_exec=default_muscle_exec):
@@ -167,12 +189,19 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
     Returns:
       tuple : (location of the database, handle of the tempfile.NamedTemporaryFile)
     """
-    # Open temporary file
+    # Open temporary files
+    seq_handle = tempfile.NamedTemporaryFile(suffix='.fasta', mode='w+t', encoding='utf-8')
     db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
+
+    # Write temporary ungapped reference file
+    ref_dict = ungapReferences(ref_file)
+    writer = SeqIO.FastaIO.FastaWriter(seq_handle, wrap=None)
+    writer.write_file(ref_dict.values())
+    seq_handle.seek(0)
 
     # Define usearch command
     cmd = [db_exec,
-           '-makeudb_ublast', ref_file,
+           '-makeudb_ublast', seq_handle.name,
            '-wordlength', '9',
            '-output', db_handle.name,
            '-dbmask', 'none']
@@ -180,7 +209,11 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
     except:
+        seq_handle.close()
         sys.exit('Error: failed to make usearch database')
+
+    # Close temporary sequence file
+    seq_handle.close()
 
     return (db_handle.name, db_handle)
 
@@ -196,20 +229,32 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
     Returns:
       tuple : (name and location of the database, handle of the tempfile.TemporaryDirectory)
     """
-    # Open temporary file
+    # Open temporary files
+    seq_handle = tempfile.NamedTemporaryFile(suffix='.fasta', mode='w+t', encoding='utf-8')
     db_handle = tempfile.TemporaryDirectory()
+
+    # Write temporary ungapped reference file
+    ref_dict = ungapReferences(ref_file)
+    writer = SeqIO.FastaIO.FastaWriter(seq_handle, wrap=None)
+    writer.write_file(ref_dict.values())
+    seq_handle.seek(0)
 
     # Define usearch command
     cmd = [db_exec,
-           '-in', ref_file,
+           '-in', seq_handle.name,
            '-out', os.path.join(db_handle.name, 'reference'),
            '-dbtype', 'nucl',
-           '-title', 'reference']
+           '-title', 'reference',
+           '-parse_seqids']
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
     except:
+        seq_handle.close()
         sys.exit('Error: failed to make blastn database')
+
+    # Close temporary sequence file
+    seq_handle.close()
 
     return (os.path.join(db_handle.name, 'reference'), db_handle)
 
