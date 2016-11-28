@@ -109,6 +109,27 @@ def readSeqFile(seq_file, index=False, key_func=None):
     return seq_records
 
 
+def readReferenceFile(ref_file):
+    """
+    Create a dictionary of cleaned and ungapped reference sequences.
+
+    Arguments:
+      ref_file : reference sequences in fasta format.
+
+    Returns:
+      dict : cleaned and ungapped reference sequences;
+             with the key as the sequence ID and value as a Bio.SeqRecord for each reference sequence.
+    """
+    def _clean(rec):
+        rec.seq = rec.seq.ungap('-').ungap('.').upper()
+        rec.name = rec.description = ''
+        return rec
+
+    ref_dict = {s.id: _clean(s) for s in readSeqFile(ref_file)}
+
+    return ref_dict
+
+
 def countSeqFile(seq_file):
     """
     Counts the records in FASTA/FASTQ files

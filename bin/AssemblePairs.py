@@ -32,9 +32,9 @@ from presto.Defaults import default_delimiter, choices_coord, \
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
-from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast, ungapReferences
-from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
-                      printLog, printProgress
+from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast
+from presto.IO import getFileType, readReferenceFile, readSeqFile, countSeqFile, \
+                      getOutputHandle, printLog, printProgress
 from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
 from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
@@ -830,7 +830,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
         db_exec = assemble_args.pop('db_exec')
 
         # Build reference sequence dictionary
-        assemble_args['ref_dict'] = ungapReferences(ref_file)
+        assemble_args['ref_dict'] = readReferenceFile(ref_file)
 
         # Build reference database files
         try:

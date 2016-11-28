@@ -22,34 +22,13 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_muscle_exec, default_usearch_exec, \
                             default_blastn_exec, default_blastdb_exec
-from presto.IO import readSeqFile
+from presto.IO import readReferenceFile
 
 # Defaults
 default_cluster_ident = 0.9
 default_align_ident = 0.5
 default_evalue = 1e-5
 default_max_hits = 100
-
-
-def ungapReferences(ref_file):
-    """
-    Create a dictionary of cleaned, ungapped reference sequences.
-
-    Arguments:
-      ref_file : reference sequences in fasta format.
-
-    Returns:
-      dict : cleaned and ungapped reference sequences;
-             with the key as the sequence ID and value as a Bio.SeqRecord for each reference sequence.
-    """
-    def _clean(rec):
-        rec.seq = rec.seq.ungap('-').ungap('.').upper()
-        rec.name = rec.description = ''
-        return rec
-
-    ref_dict = {s.id: _clean(s) for s in readSeqFile(ref_file)}
-
-    return ref_dict
 
 
 def runMuscle(seq_list, aligner_exec=default_muscle_exec):
@@ -194,7 +173,7 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
     db_handle = tempfile.NamedTemporaryFile(suffix='.udb')
 
     # Write temporary ungapped reference file
-    ref_dict = ungapReferences(ref_file)
+    ref_dict = readReferenceFile(ref_file)
     writer = SeqIO.FastaIO.FastaWriter(seq_handle, wrap=None)
     writer.write_file(ref_dict.values())
     seq_handle.seek(0)
@@ -234,7 +213,7 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
     db_handle = tempfile.TemporaryDirectory()
 
     # Write temporary ungapped reference file
-    ref_dict = ungapReferences(ref_file)
+    ref_dict = readReferenceFile(ref_file)
     writer = SeqIO.FastaIO.FastaWriter(seq_handle, wrap=None)
     writer.write_file(ref_dict.values())
     seq_handle.seek(0)
