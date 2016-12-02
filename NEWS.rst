@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  November 30, 2016
+Version 0.5.2.999:  December 2, 2016
 -------------------------------------------------------------------------------
 
 
@@ -17,6 +17,13 @@ AssemblePairs:
   subcommand when using usearch as the aligner.
 + Internal modifications to the reference subcommand to rebuild the database
   before alignments for performance reasons.
+
+BuildConsensus:
+
++ Fixed a bug in the read group error rate calculation wherein either a
+  consensus sequence or read group that was completely N characters would
+  cause the program to exit with a division by zero error. Now, such
+  non-informative read groups will be assigned an error rate of 1.0.
 
 ClusterSets:
 

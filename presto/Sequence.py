@@ -330,13 +330,13 @@ def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
     Counts the occurrence of nucleotide mismatches from a reference in a set of sequences
 
     Arguments:
-      seq_list : List of SeqRecord objects with aligned sequences
-      ref_seq : SeqRecord object containing the reference sequence to match against
-      ignore_chars : List of characters to exclude from mismatch counts
-      score_dict : Optional dictionary of alignment scores as {(char1, char2): score}
+      seq_list : list of SeqRecord objects with aligned sequences.
+      ref_seq : SeqRecord object containing the reference sequence to match against.
+      ignore_chars : list of characters to exclude from mismatch counts.
+      score_dict : optional dictionary of alignment scores as {(char1, char2): score}.
 
     Returns:
-      float : Error rate for the set
+      float : error rate for the set.
     """
     # Count informative characters in reference sequence
     ref_bases = sum(1 for b in ref_seq if b not in ignore_chars)
@@ -353,7 +353,11 @@ def calculateSetError(seq_list, ref_seq, ignore_chars=default_mask_chars,
         score += sum([score_dict[(a, b)] for a, b in zip(seq, ref_seq)
                       if a not in ignore_chars and b not in ignore_chars])
 
-    return 1.0 - float(score) / total
+    # Calculate and return error rate
+    try:
+        return 1.0 - float(score) / total
+    except ZeroDivisionError:
+        return 1.0
 
 
 def deleteSeqPositions(seq, positions):

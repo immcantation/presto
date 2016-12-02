@@ -14,7 +14,8 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Sequence import getDNAScoreDict, scoreDNA, scoreSeqPair, weightSeq
+from presto.Sequence import getDNAScoreDict, scoreDNA, scoreSeqPair, weightSeq, \
+                            calculateSetError
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -33,8 +34,12 @@ class TestSequence(unittest.TestCase):
                    Seq('NNNNNNAA'),
                    Seq('--------'),
                    Seq('CG------')]
+        ref_dna = [Seq('CGGCGTAA'),
+                   Seq('NNNNNNNN')]
         self.records_dna = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                             for i, s in enumerate(seq_dna, start=1)]
+        self.reference_dna = [SeqRecord(s, id='REF%i' % i, name='REF%i' % i, description='')
+                              for i, s in enumerate(ref_dna, start=1)]
 
         # Make sequence pairs
         self.seq_pairs = list(combinations(self.records_dna, 2))
@@ -42,7 +47,11 @@ class TestSequence(unittest.TestCase):
         # Weights
         self.weight_dna_mask = [8, 6, 8, 6, 0, 2, 8, 8]
 
-        # Error rates
+        # Set error rates against reference
+        self.error_ref = [1.0 - float(8 + 5 + 6 + 3 + 0 + 2 + 0 + 2) / (8 + 6 + 8 + 6 + 0 + 2 + 8 + 8),
+                          1.0]
+
+        # Pairwise rrror rates
         # scoreSeqPair returns (score, minimum weight, error rate)
         # Asymmetric case is with score_dict = getDNAScoreDict(n_score=(0, 1), gap_score=(0, 1))
         # 1vs2, 1vs3, 1vs4, 1vs5, 1vs6, 1v7, 1v8
@@ -203,6 +212,13 @@ class TestSequence(unittest.TestCase):
             print('  %s==%s> %s' % (a, b, s))
 
         self.assertSequenceEqual(self.pairs_scores_asym, scores)
+
+    #@unittest.skip('-> calculateSetError() skipped\n')
+    def test_calculateSetError(self):
+        for r, e in zip(self.reference_dna, self.error_ref):
+            result = calculateSetError(self.records_dna, r)
+            print('REF>', r.seq, result)
+            self.assertAlmostEqual(e, result, places=4)
 
 
 if __name__ == '__main__':
