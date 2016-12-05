@@ -113,7 +113,7 @@ class AssemblyStats:
         """
         p_matrix = np.empty([n, n], dtype=float)
         p_matrix.fill(np.nan)
-        k = np.arange(n, dtype=float)
+        k = np.arange(n, dtype=int)
         for i, x in enumerate(k):
             p_matrix[x, i:] = 1 - stats.binom.cdf(x - 1, k[i:], 0.25) - stats.binom.pmf(x, k[i:], 0.25) / 2.0
         return p_matrix

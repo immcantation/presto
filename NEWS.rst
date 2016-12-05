@@ -17,6 +17,7 @@ AssemblePairs:
   subcommand when using usearch as the aligner.
 + Internal modifications to the reference subcommand to rebuild the database
   before alignments for performance reasons.
++ Fixed a deprecation warning appearing with newer versions of numpy.
 
 BuildConsensus:
 
