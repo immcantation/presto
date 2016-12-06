@@ -116,6 +116,7 @@ class AssemblyStats:
         k = np.arange(n, dtype=int)
         for i, x in enumerate(k):
             p_matrix[x, i:] = 1 - stats.binom.cdf(x - 1, k[i:], 0.25) - stats.binom.pmf(x, k[i:], 0.25) / 2.0
+
         return p_matrix
 
     @staticmethod
@@ -131,10 +132,11 @@ class AssemblyStats:
         """
         z_matrix = np.empty([n, n], dtype=float)
         z_matrix.fill(np.nan)
-        k = np.arange(0, n, dtype=float)
+        k = np.arange(0, n, dtype=int)
         for i, x in enumerate(k):
             j = i + 1 if i == 0 else i
             z_matrix[x, j:] = (x - k[j:]/4.0)/np.sqrt(3.0/16.0*k[j:])
+
         return z_matrix
 
 
