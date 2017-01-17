@@ -788,8 +788,8 @@ def getArgParser():
     parser_select = subparsers.add_parser('select',
                                           parents=[getCommonArgParser(failed=False, log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='''Select sequences from a sequence files by annotation.''',
-                                          description='''Select sequences from a sequence files by annotation.''')
+                                          help='''Selects sequences from sequence files by annotation.''',
+                                          description='''Selects sequences from sequence files by annotation.''')
     parser_select.add_argument('-f', action='store', dest='field', type=str, default=None, required=True,
                                help='''The annotation field for selection criteria.''')
     select_group = parser_select.add_mutually_exclusive_group()
@@ -800,8 +800,8 @@ def getArgParser():
                                     The file must be formatted with the given field name in the header row. Values will
                                     be taken from that column. Mutually exclusive with -u.''')
     parser_select.add_argument('--not', action='store_true', dest='not_match',
-                               help='''If specified, will perform negative matches. Meaning, records will be selected
-                                    if they fail to match the specified values.''')
+                               help='''If specified, will perform negative matching. Meaning, sequences will be selected
+                                    if they fail to match for all specified values.''')
     parser_select.set_defaults(func=selectSeqFile)
 
     return parser
