@@ -43,4 +43,5 @@ Tool	Subcommand	Description
 	group	Splits files based on numerical or categorical annotation
 	sample	Randomly samples sequences from a file
 	samplepair	Randomly samples paired-end reads from two files
+	select	Filters sequences based on annotations
 	sort	Sorts sequences based on annotations

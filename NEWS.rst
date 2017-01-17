@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  December 2, 2016
+Version 0.5.2.999:  January 17, 2017
 -------------------------------------------------------------------------------
 
 
@@ -44,6 +44,8 @@ EstimateError:
 
 SplitSeq:
 
++ Added the select subcommand, which allows filtering of sequences based on
+  annotation value matches or mismatches.
 + Altered the behavior of the ``-u`` argument for both the sample and
   samplepair subcommands. If ``-u`` is specified, sampling is performed as in
   previous versions wherein samples will be drawn from only fields with the

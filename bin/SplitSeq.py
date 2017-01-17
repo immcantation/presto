@@ -559,38 +559,32 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     return out_files
 
 
-def selectSeqFile(seq_file, field=None, value_list=None, value_file=None, not_match=False, out_args=default_out_args):
+def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=False, out_args=default_out_args):
     """
     Select from a sequence file
 
     Arguments:
-    seq_file = filename of the sequence file to sample from
-    field = the annotation field to check for required values
-    value_list = a list of annotation values that a sample must contain one of
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : filename of the sequence file to sample from.
+      field : the annotation field to check for required values.
+      value_list : a list of annotation values that a sample must contain one of.
+      value_file : a tab delimited file containing values to select.
+      not_match : if True select entires that do not contain the specific values.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output file name
+      str : output file name.
     """
-    
-    def read_value_file(value_file, field):
-        """
-        Reads value_file
+    if value_list is not None and value_file is not None:
+        sys.exit('ERROR:  specify only one of value_list and value_file')
 
-        Arguments:
-        value_file : 
-        field : 
-
-        Returns:
-        field_list : 
-        """
-        # Read and check file
+    # Reads value_file
+    def _read_file(value_file, field):
         field_list = []
         try:
-            handle = open(value_file, 'rt')
-            reader_dict = csv.DictReader(handle, dialect='excel-tab')
-            for row in reader_dict:
-                field_list.append(row[field])
+            with open(value_file, 'rt') as handle:
+                reader_dict = csv.DictReader(handle, dialect='excel-tab')
+                for row in reader_dict:
+                    field_list.append(row[field])
         except IOError:
             sys.exit('ERROR:  File %s cannot be read' % value_file)
         except:
@@ -611,54 +605,50 @@ def selectSeqFile(seq_file, field=None, value_list=None, value_file=None, not_ma
     log['NOT_MATCH'] = not_match
     printLog(log)
 
-    # Read input files and open output files
-    start_time = time()
-    printMessage('Reading files', start_time=start_time, width=25)
-
-    in_type = getFileType(seq_file)
-    seq_dict = readSeqFile(seq_file, index=True)
-    if out_args['out_type'] is None:  out_args['out_type'] = in_type
-    
     # Read value_file
     if value_file is not None:
-        value_list = read_value_file(value_file, field)
+        value_list = _read_file(value_file, field)
+
+    # Read sequence file
+    in_type = getFileType(seq_file)
+    seq_iter = readSeqFile(seq_file)
+    if out_args['out_type'] is None:  out_args['out_type'] = in_type
+
+    # Output output handle
+    out_handle = getOutputHandle(seq_file, 'selected',
+                                 out_dir=out_args['out_dir'],
+                                 out_name=out_args['out_name'],
+                                 out_type=out_args['out_type'])
 
     # Generate subset of records
-    out_files = []
+    start_time = time()
     printMessage('Selecting records', start_time=start_time, width=25)
-    out_handle = getOutputHandle(seq_file, 
-        'selected',
-        out_dir=out_args['out_dir'], 
-        out_name=out_args['out_name'], 
-        out_type=out_args['out_type'])
     pass_count = 0
     fail_count = 0
-    for k in seq_dict:
-        if (k in value_list and not_match==False) or (k not in value_list and not_match==True):
+    for rec in seq_iter:
+        ann = parseAnnotation(rec.description, delimiter=out_args['delimiter'])[field]
+        ann = ann.split(out_args['delimiter'][2])
+        if (not not_match and any([x in ann for x in value_list])) or \
+                (not_match and all([x not in ann for x in value_list])):
             # Write
-            SeqIO.write(seq_dict[k], out_handle, out_args['out_type'])
+            SeqIO.write(rec, out_handle, out_args['out_type'])
             pass_count += 1
         else:
             fail_count += 1
             
-    out_files = out_handle.name
-    
     printMessage('Done', start_time=start_time, end=True, width=25)
-
-    # Print log for iteration
-    log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(out_files)
-    printLog(log)
 
     # Print log
     log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(out_handle.name)
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
     log['END'] = 'SplitSeq'
     printLog(log)
         
-    return out_files
-    
+    return out_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -691,6 +681,8 @@ def getArgParser():
                  sample<i>-n<count>
                      randomly sampled reads where <i> is a number specifying the sampling
                      instance and <count> is the number of sampled reads.
+                 selected
+                     reads passing selection criteria.
 
              output annotation fields:
                  None
@@ -796,25 +788,24 @@ def getArgParser():
     parser_select = subparsers.add_parser('select',
                                           parents=[getCommonArgParser(failed=False, log=False)],
                                           formatter_class=CommonHelpFormatter,
-                                          help='''Select sequences from unpaired sequences files by regular 
-                                          expresssionsearch in an annotation .''',
-                                          description='''Select sequences from unpaired sequences files by regular 
-                                          expresssionsearch in an annotation .''')
+                                          help='''Select sequences from a sequence files by annotation.''',
+                                          description='''Select sequences from a sequence files by annotation.''')
     parser_select.add_argument('-f', action='store', dest='field', type=str, default=None, required=True,
                                help='''The annotation field for selection criteria.''')
     select_group = parser_select.add_mutually_exclusive_group()
     select_group.add_argument('-u', nargs='+', action='store', dest='value_list', type=str, default=None, required=False,
-                               help='''If specified, sampling will be restricted to sequences that contain
-                                    one of the declared annotation values in the specified field.
-                                    Requires the -f argument.''')
+                               help='''A list of values to select for in the specified field. Mutually exclusive with -t.''')
     select_group.add_argument('-t', action='store', dest='value_file', type=str, default=None, required=False,
-                               help='''File.''')
+                               help='''A tab delimited file specifying values to select for in the specified field.
+                                    The file must be formatted with the given field name in the header row. Values will
+                                    be taken from that column. Mutually exclusive with -u.''')
     parser_select.add_argument('--not', action='store_true', dest='not_match',
-                               help='''Not''')
-
+                               help='''If specified, will perform negative matches. Meaning, records will be selected
+                                    if they fail to match the specified values.''')
     parser_select.set_defaults(func=selectSeqFile)
 
     return parser
+
 
 if __name__ == '__main__':
     """
