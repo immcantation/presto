@@ -574,9 +574,6 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=F
     Returns:
       str : output file name.
     """
-    if value_list is not None and value_file is not None:
-        sys.exit('ERROR:  specify only one of value_list and value_file')
-
     # Reads value_file
     def _read_file(value_file, field):
         field_list = []
@@ -606,7 +603,9 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=F
     printLog(log)
 
     # Read value_file
-    if value_file is not None:
+    if value_list is not None and value_file is not None:
+        sys.exit('ERROR:  specify only one of value_list and value_file')
+    elif value_file is not None:
         value_list = _read_file(value_file, field)
 
     # Read sequence file
