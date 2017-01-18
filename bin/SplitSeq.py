@@ -31,12 +31,12 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     Splits a FASTA/FASTQ file into segments with a limited number of records
 
     Arguments: 
-    seq_file = filename of the FASTA file to split
-    max_count = number of records in each output file
-    out_args = common output argument dictionary from parseCommonArgs
+    seq_file : filename of the FASTA file to split
+    max_count : number of records in each output file
+    out_args : common output argument dictionary from parseCommonArgs
 
     Returns: 
-    a list of output file names
+      list : output file names
     """
     log = OrderedDict()
     log['START'] = 'SplitSeq'
@@ -100,14 +100,14 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     Divides a sequence file into segments by description tags
 
     Arguments: 
-    seq_file = filename of the sequence file to split
-    field = The annotation field to split seq_file by
-    threshold = The numerical threshold for group sequences by;
-                if None treat field as textual
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : filename of the sequence file to split
+      field : The annotation field to split seq_file by
+      threshold : The numerical threshold for group sequences by;
+                  if None treat field as textual
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns: 
-    a tuple of output file names
+      list : output file names
     """
     log = OrderedDict()
     log['START'] = 'SplitSeq'
@@ -210,14 +210,14 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
     Samples from a sequence file
 
     Arguments: 
-    seq_file = filename of the sequence file to sample from
-    max_count = a list of the maximum number of sequences to sample
-    field = the annotation field to check for required values
-    values = a list of annotation values that a sample must contain one of
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : filename of the sequence file to sample from
+      max_count : a list of the maximum number of sequences to sample
+      field : the annotation field to check for required values
+      values : a list of annotation values that a sample must contain one of
+      out_args : common output argument dictionary from parseCommonArgs
               
     Returns: 
-    the output file name
+      str : output file name
     """
     # Function to sample from a list of sequence indices
     def _sample_list(n, index_list):
@@ -311,16 +311,16 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     Samples from paired-end sequence files
 
     Arguments: 
-    seq_file_1 = filename of the first paired-end sequence file
-    seq_file_2 = filename of the second paired-end sequence file
-    max_count = a list of the maximum number of sequences to sample
-    field = the annotation field to check for required values
-    values = a list of annotation values that a sample must contain one of
-    coord_type = the sequence header format
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file_1 : filename of the first paired-end sequence file
+      seq_file_2 : filename of the second paired-end sequence file
+      max_count : a list of the maximum number of sequences to sample
+      field : the annotation field to check for required values
+      values : a list of annotation values that a sample must contain one of
+      coord_type : the sequence header format
+      out_args : common output argument dictionary from parseCommonArgs
               
     Returns: 
-    a list of [seq_file_1, seq_file_2] output file names
+      list : seq_file_1 and seq_file_2 output file names
     """
     # Sequence index key function
     def _key_func(x):
@@ -449,16 +449,16 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     Sorts a sequence file by annotation fields
 
     Arguments: 
-    seq_file = filename of the sequence file to split
-    field = position of field in sequence description to split by
-    numeric = if True sort field numerically;
-              if False sort field alphabetically
-    max_count = maximum number of records in each output file
-                if None do not create multiple files
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : filename of the sequence file to split
+      field : position of field in sequence description to split by
+      numeric : if True sort field numerically;
+                if False sort field alphabetically
+      max_count : maximum number of records in each output file
+                  if None do not create multiple files
+      out_args : common output argument dictionary from parseCommonArgs
     
     Returns: 
-    a list of output file names
+      list : output file names
     """
     log = OrderedDict()
     log['START'] = 'SplitSeq'
@@ -653,11 +653,8 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments: 
-    None
-                      
-    Returns: 
-    an ArgumentParser object
+    Returns:
+      argparse.ArgumentParser : an ArgumentParser object
     """
     # Define output file names and header fields
     fields = dedent(
