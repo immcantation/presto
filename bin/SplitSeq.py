@@ -627,7 +627,10 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=F
     fail_count = 0
     for rec in seq_iter:
         ann = parseAnnotation(rec.description, delimiter=out_args['delimiter'])[field]
-        ann = ann.split(out_args['delimiter'][2])
+        if (field=='ID'):
+            ann = ann.split(' ')[0]
+        else:
+            ann = ann.split(out_args['delimiter'][2])
         if (not not_match and any([x in ann for x in value_list])) or \
                 (not_match and all([x not in ann for x in value_list])):
             # Write
