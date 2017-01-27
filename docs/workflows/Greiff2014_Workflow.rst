@@ -81,7 +81,7 @@ the :ref:`AssemblePairs` tool:
    :lines: 2-3
 
 During assembly we have defined read 2 (V-region) as the head of the sequence
-(:option:`-1 <AssemblePairs align -1>`) and read 2 as tail of the sequence
+(:option:`-1 <AssemblePairs align -1>`) and read 1 as the tail of the sequence
 (:option:`-2 <AssemblePairs align -2>`). The
 :option:`--coord <AssemblePairs align --coord>` argument defines the format of
 the sequence header so that :ref:`AssemblePairs` can properly identify mate-pairs;
