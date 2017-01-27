@@ -217,7 +217,7 @@ and ``CPRIMER`` using the :program:`rename` subcommand:
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 9-10
+   :lines: 9-11
 
 To summarize these steps, the :ref:`ParseLog` tool is used to build tab-delimited
 files from the two :ref:`MaskPrimers` logs:
