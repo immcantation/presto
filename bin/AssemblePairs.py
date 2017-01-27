@@ -1072,9 +1072,9 @@ if __name__ == '__main__':
         del args_dict['aligner_exec']
         del args_dict['db_exec']
 
-        # Check if a valid USEARCH executable was specified
+        # Check if a valid executable was specified
         if not shutil.which(args_dict['assemble_args']['aligner_exec']):
-            parser.error('%s does not exist' % args.aligner_exec)
+            parser.error('%s executable not found' % args_dict['assemble_args']['aligner_exec'])
 
     # Call assemblePairs for each sample file
     del args_dict['command']
