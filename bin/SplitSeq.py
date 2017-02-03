@@ -13,6 +13,7 @@ import sys
 import csv
 from argparse import ArgumentParser
 from collections import OrderedDict
+from operator import xor
 from textwrap import dedent
 from time import time
 from Bio import SeqIO
@@ -559,7 +560,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     return out_files
 
 
-def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=False, out_args=default_out_args):
+def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=False, out_args=default_out_args):
     """
     Select from a sequence file
 
@@ -568,7 +569,7 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=F
       field : the annotation field to check for required values.
       value_list : a list of annotation values that a sample must contain one of.
       value_file : a tab delimited file containing values to select.
-      not_match : if True select entires that do not contain the specific values.
+      negate : if True select entires that do not contain the specific values.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
@@ -599,7 +600,7 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=F
         log['VALUE_LIST'] = ','.join([str(x) for x in value_list]) 
     if value_file is not None:
         log['VALUE_FILE'] = os.path.basename(value_file)
-    log['NOT_MATCH'] = not_match
+    log['NOT'] = negate
     printLog(log)
 
     # Read value_file
@@ -621,21 +622,25 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, not_match=F
 
     # Generate subset of records
     start_time = time()
-    printMessage('Selecting records', start_time=start_time, width=25)
-    pass_count = 0
-    fail_count = 0
+    pass_count, fail_count, rec_count = 0, 0, 0
+    value_set = set(value_list)
     for rec in seq_iter:
+        printProgress(rec_count, None, 1e5, start_time)
+        rec_count += 1
+
+        # Parse annotations into a list of values
         ann = parseAnnotation(rec.description, delimiter=out_args['delimiter'])[field]
         ann = ann.split(out_args['delimiter'][2])
-        if (not not_match and any([x in ann for x in value_list])) or \
-                (not_match and all([x not in ann for x in value_list])):
+
+        # Write
+        if xor(negate, not value_set.isdisjoint(ann)):
             # Write
             SeqIO.write(rec, out_handle, out_args['out_type'])
             pass_count += 1
         else:
             fail_count += 1
-            
-    printMessage('Done', start_time=start_time, end=True, width=25)
+
+    printProgress(rec_count, None, 1e5, start_time, end=True)
 
     # Print log
     log = OrderedDict()
@@ -795,7 +800,7 @@ def getArgParser():
                                help='''A tab delimited file specifying values to select for in the specified field.
                                     The file must be formatted with the given field name in the header row. Values will
                                     be taken from that column. Mutually exclusive with -u.''')
-    parser_select.add_argument('--not', action='store_true', dest='not_match',
+    parser_select.add_argument('--not', action='store_true', dest='negate',
                                help='''If specified, will perform negative matching. Meaning, sequences will be selected
                                     if they fail to match for all specified values.''')
     parser_select.set_defaults(func=selectSeqFile)
