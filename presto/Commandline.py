@@ -62,10 +62,11 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
       ArgumentParser : An ArgumentParser object
     """
     parser = ArgumentParser(add_help=False, formatter_class=CommonHelpFormatter)
+    group = parser.add_argument_group('standard arguments')
 
     # Database arguments
     if db_in:
-        parser.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
+        group.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
                         help='A list of tab delimited database files.')
     if db_out:
         # Place holder for the future
@@ -73,34 +74,34 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
 
     # Sequence arguments
     if seq_in and not paired:
-        parser.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
+        group.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
                             help='A list of FASTA/FASTQ files containing sequences to process.')
     elif seq_in and paired:
-        parser.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
+        group.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
                             help='''An ordered list of FASTA/FASTQ files containing
                                  head/primary sequences.''')
-        parser.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
+        group.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
                             help='''An ordered list of FASTA/FASTQ files containing
                                  tail/secondary sequences.''')
     if seq_out:
-        parser.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
+        group.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
                             help='Specify to force output as FASTA rather than FASTQ.')
 
     # Failed result arguments
     if failed:
-        parser.add_argument('--failed', action='store_true', dest='failed',
+        group.add_argument('--failed', action='store_true', dest='failed',
                             help='''If specified create files containing records that
                                   fail processing.''')
 
     # Log arguments
     if log:
-        parser.add_argument('--log', action='store', dest='log_file', default=None,
+        group.add_argument('--log', action='store', dest='log_file', default=None,
                             help='''Specify to write verbose logging to a file. May not be
                                   specified with multiple input files.''')
 
     # Annotation arguments
     if annotation:
-        parser.add_argument('--delim', nargs=3, action='store', dest='delimiter',
+        group.add_argument('--delim', nargs=3, action='store', dest='delimiter',
                             type=str, default=default_delimiter,
                             help='''A list of the three delimiters that separate annotation
                                  blocks, field names and values, and values within a field,
@@ -108,15 +109,15 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
 
     # Multiprocessing arguments
     if multiproc:
-        parser.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
+        group.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
                             help='The number of simultaneous computational processes to execute \
                                   (CPU cores to utilized).')
 
     # Universal arguments
-    parser.add_argument('--outdir', action='store', dest='out_dir', default=None,
+    group.add_argument('--outdir', action='store', dest='out_dir', default=None,
                         help='Specify to changes the output directory to the location specified. \
                               The input file directory is used if this is not specified.')
-    parser.add_argument('--outname', action='store', dest='out_name', default=None,
+    group.add_argument('--outname', action='store', dest='out_name', default=None,
                         help='Changes the prefix of the successfully processed output file \
                               to the string specified. May not be specified with multiple \
                               input files.')

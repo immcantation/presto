@@ -923,95 +923,120 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
+                            formatter_class=CommonHelpFormatter,
+                            add_help=False)
+    group = parser.add_argument_group('help')
+    group.add_argument('--version', action='version',
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Assembly method')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
     # Parent parser    
-    parser_parent = getCommonArgParser(paired=True, multiproc=True)
-    parser_parent.add_argument('--coord', action='store', dest='coord_type',
-                               choices=choices_coord, default=default_coord,
-                               help='The format of the sequence identifier which defines shared coordinate \
-                                     information across paired ends')
-    parser_parent.add_argument('--rc', action='store', dest='rc', choices=('head', 'tail', 'both'),
-                               default=None, help='Specify to reverse complement sequences before stitching')
-    parser_parent.add_argument('--1f', nargs='+', action='store', dest='head_fields', type=str, default=None, 
-                               help='Specify annotation fields to copy from head records into assembled record')
-    parser_parent.add_argument('--2f', nargs='+', action='store', dest='tail_fields', type=str, default=None, 
-                               help='Specify annotation fields to copy from tail records into assembled record')
-    
+    parent_parser = getCommonArgParser(paired=True, multiproc=True)
+    group_parser = parent_parser.add_argument_group('format arguments')
+    group_parser.add_argument('--coord', action='store', dest='coord_type',
+                              choices=choices_coord, default=default_coord,
+                              help='''The format of the sequence identifier which defines shared coordinate
+                                   information across paired ends.''')
+    group_parser.add_argument('--rc', action='store', dest='rc', choices=('head', 'tail', 'both'),
+                              default=None, help='Specify to reverse complement sequences before stitching.')
+    group_parser.add_argument('--1f', nargs='+', action='store', dest='head_fields', type=str, default=None,
+                              help='Specify annotation fields to copy from head records into assembled record.')
+    group_parser.add_argument('--2f', nargs='+', action='store', dest='tail_fields', type=str, default=None,
+                              help='Specify annotation fields to copy from tail records into assembled record.')
+
     # Paired end overlap alignment mode argument parser
-    parser_align = subparsers.add_parser('align', parents=[parser_parent],
-                                         formatter_class=CommonHelpFormatter,
-                                         help='Assemble pairs by aligning ends',
-                                         description='Assemble pairs by aligning ends')
-    parser_align.add_argument('--alpha', action='store', dest='alpha', type=float,
-                              default=default_alpha, help='Significance threshold for sequence assemble')
-    parser_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                              default=default_max_error, help='Maximum allowable error rate')
-    parser_align.add_argument('--minlen', action='store', dest='min_len', type=int,
-                              default=default_min_len, help='Minimum sequence length to scan for overlap')
-    parser_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
-                              default=default_max_len, help='Maximum sequence length to scan for overlap')
-    parser_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
+    parent_align = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
+    group_align = parent_align.add_argument_group('de novo assembly arguments')
+    group_align.add_argument('--alpha', action='store', dest='alpha', type=float,
+                              default=default_alpha, help='Significance threshold for paired-end assembly.')
+    group_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
+                              default=default_max_error, help='Maximum allowable error rate.')
+    group_align.add_argument('--minlen', action='store', dest='min_len', type=int,
+                              default=default_min_len, help='Minimum sequence length to scan for overlap.')
+    group_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
+                              default=default_max_len, help='Maximum sequence length to scan for overlap.')
+    group_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
                               help='''If specified, scan past the end of the tail sequence to allow
                                       the head sequence to overhang the end of the tail sequence.''')
+
+    parser_align = subparsers.add_parser('align', parents=[parent_parser, parent_align], add_help=False,
+                                         formatter_class=CommonHelpFormatter,
+                                         help='Assemble pairs by aligning ends.',
+                                         description='Assemble pairs by aligning ends.')
+    parser_align.add_argument_group('help').add_argument('-h', '--help', action='help',
+                                                         help='show this help message and exit')
     parser_align.set_defaults(assemble_func=alignAssembly)
     
     # Paired end concatenation mode argument parser
-    parser_join = subparsers.add_parser('join', parents=[parser_parent],
-                                         formatter_class=CommonHelpFormatter,
-                                         help='Assemble pairs by concatenating ends',
-                                         description='Assemble pairs by concatenating ends')
-    parser_join.add_argument('--gap', action='store', dest='gap', type=int, default=default_gap, 
-                             help='Number of N characters to place between ends')
-    parser_join.set_defaults(assemble_func=joinSeqPair)    
+    parser_join = subparsers.add_parser('join', parents=[parent_parser],
+                                         formatter_class=CommonHelpFormatter, add_help=False,
+                                         help='Assemble pairs by concatenating ends.',
+                                         description='Assemble pairs by concatenating ends.')
+    parser_join.add_argument_group('join assembly arguments').add_argument('--gap', action='store', dest='gap',
+                                                                           type=int, default=default_gap,
+                                                                           help='Number of N characters to place between ends.')
+    parser_join.add_argument_group('help').add_argument('-h', '--help', action='help',
+                                                        help='show this help message and exit')
+    parser_join.set_defaults(assemble_func=joinSeqPair)
 
     # Reference alignment mode argument parser
-    parser_ref = subparsers.add_parser('reference', parents=[parser_parent],
-                                        formatter_class=CommonHelpFormatter,
-                                        help='Assemble pairs by aligning reads against a reference database',
-                                        description='Assemble pairs by aligning reads against a reference database')
-    parser_ref.add_argument('-r', action='store', dest='ref_file', required=True,
+    parent_ref = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
+    group_ref = parent_ref.add_argument_group('reference guided assembly arguments')
+    group_ref.add_argument('-r', action='store', dest='ref_file', required=True,
                             help='''A FASTA file containing the reference sequence database.''')
-    parser_ref.add_argument('--minident', action='store', dest='min_ident', type=float,
+    group_ref.add_argument('--minident', action='store', dest='min_ident', type=float,
                             default=default_min_ident,
                             help='''Minimum identity of the assembled sequence required to call a
                                  valid assembly (between 0 and 1).''')
-    parser_ref.add_argument('--evalue', action='store', dest='evalue', type=float,
+    group_ref.add_argument('--evalue', action='store', dest='evalue', type=float,
                             default=default_evalue,
                             help='''Minimum E-value for the ublast reference alignment for both
                                  the head and tail sequence.''')
-    parser_ref.add_argument('--maxhits', action='store', dest='max_hits', type=int,
+    group_ref.add_argument('--maxhits', action='store', dest='max_hits', type=int,
                             default=default_max_hits,
                             help='''Maximum number of hits from ublast to check for matching
                                  head and tail sequence reference alignments.''')
-    parser_ref.add_argument('--fill', action='store_true', dest='fill',
+    group_ref.add_argument('--fill', action='store_true', dest='fill',
                             help='''Specify to insert change the behavior of inserted characters
                                   when the head and tail sequences do not overlap. If specified
                                   this will result in inserted of the V region reference sequence
                                   instead of a sequence of Ns in the non-overlapping region.
                                   Warning, you could end up making chimeric sequences by using
                                   this option.''')
-    parser_ref.add_argument('--aligner', action='store', dest='aligner',
+    group_ref.add_argument('--aligner', action='store', dest='aligner',
                             choices=choices_aligner, default=default_aligner,
                             help='''The local alignment tool to use. Must be one blastn
                                  (blast+ nucleotide) or usearch (ublast algorithm).''')
-    parser_ref.add_argument('--exec', action='store', dest='aligner_exec', default=None,
+    group_ref.add_argument('--exec', action='store', dest='aligner_exec', default=None,
                             help='''The  name or location of the aligner executable file
                                  (blastn or usearch). Defaults to the name specified by the
                                  --aligner argument.''')
-    parser_ref.add_argument('--dbexec', action='store', dest='db_exec', default=None,
+    group_ref.add_argument('--dbexec', action='store', dest='db_exec', default=None,
                             help='''The  name or location of the executable file that builds
                                  the reference database. This defaults to makeblastdb when
                                  blastn is specified to the --aligner argument, and usearch
                                  when usearch is specified.''')
+
+    parser_ref = subparsers.add_parser('reference', parents=[parent_parser, parent_ref],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
+                                        help='Assemble pairs by aligning reads against a reference database.',
+                                        description='Assemble pairs by aligning reads against a reference database.')
+    parser_ref.add_argument_group('help').add_argument('-h', '--help', action='help',
+                                                       help='show this help message and exit')
     parser_ref.set_defaults(assemble_func=referenceAssembly)
 
+    # De novo to reference rollover assembly
+    # parser_two = subparsers.add_parser('twostep', parents=[parent_parser, parent_align, parent_ref],
+    #                                     formatter_class=CommonHelpFormatter, add_help=False,
+    #                                     help='Assemble pairs by first attempting de novo assembly, then reference guided assembly.',
+    #                                     description='Assemble pairs by first attempting de novo assembly, then reference guided assembly.')
+    # parser_two.add_argument_group('help').add_argument('-h', '--help', action='help',
+    #                                                    help='show this help message and exit')
+    #parser_twostep.set_defaults(assemble_func=twostepAssembly)
 
     return parser
 

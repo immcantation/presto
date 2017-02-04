@@ -362,58 +362,75 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
+                            formatter_class=CommonHelpFormatter,
+                            add_help=False)
+    group = parser.add_argument_group('help')
+    group.add_argument('--version', action='version',
                         version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Alignment method')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
     # Parent parser    
-    parser_parent = getCommonArgParser(multiproc=True)
-    parser_parent.add_argument('--bf', action='store', dest='barcode_field', type=str,
-                               default=default_barcode_field, 
-                               help='The annotation field containing barcode labels for sequence grouping')
-    parser_parent.add_argument('--div', action='store_true', dest='calc_div',
-                               help='Specify to calculate nucleotide diversity of each set (average pairwise error rate)')    
+    parent_parser = getCommonArgParser(multiproc=True)
         
     # MUSCLE mode argument parser
-    parser_muscle = subparsers.add_parser('muscle', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
-                                          help='Align sequence sets using muscle',
-                                          description='Align sequence sets using muscle')
-    parser_muscle.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
-                               help='The name or location of the muscle executable')
+    parser_muscle = subparsers.add_parser('muscle', parents=[parent_parser],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
+                                          help='Align sequence sets using muscle.',
+                                          description='Align sequence sets using muscle.')
+    group_muscle = parser_muscle.add_argument_group('muscle alignment arguments')
+    group_muscle.add_argument('--bf', action='store', dest='barcode_field', type=str,
+                              default=default_barcode_field,
+                              help='The annotation field containing barcode labels for sequence grouping.')
+    group_muscle.add_argument('--div', action='store_true', dest='calc_div',
+                              help='Specify to calculate nucleotide diversity of each set (average pairwise error rate).')
+    group_muscle.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
+                              help='The name or location of the muscle executable.')
+    parser_muscle.add_argument_group('help').add_argument('-h', '--help', action='help',
+                                                          help='show this help message and exit')
     parser_muscle.set_defaults(align_func=runMuscle)
 
     # Primer offset mode argument parser
-    parser_offset = subparsers.add_parser('offset', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter,
-                                          help='Align sequence sets using predefined 5\' offset',
-                                          description='Align sequence sets using predefined 5\' offset')
-    parser_offset.add_argument('-d', action='store', dest='offset_table', default=None,
-                               help='The tab delimited file of offset tags and values')
-    parser_offset.add_argument('--pf', action='store', dest='primer_field', type=str, 
+    parser_offset = subparsers.add_parser('offset', parents=[parent_parser],
+                                          formatter_class=CommonHelpFormatter, add_help=False,
+                                          help='Align sequence sets using predefined 5\' offset.',
+                                          description='Align sequence sets using predefined 5\' offset.')
+    group_offset = parser_offset.add_argument_group('offset table alignment arguments')
+    group_offset.add_argument('-d', action='store', dest='offset_table', default=None,
+                               help='The tab delimited file of offset tags and values.')
+    group_offset.add_argument('--bf', action='store', dest='barcode_field', type=str,
+                               default=default_barcode_field,
+                               help='The annotation field containing barcode labels for sequence grouping.')
+    group_offset.add_argument('--pf', action='store', dest='primer_field', type=str,
                                default=default_primer_field, 
-                               help='The primer field to use for offset assignment')
-    parser_offset.add_argument('--mode', action='store', dest='offset_mode', 
+                               help='The primer field to use for offset assignment.')
+    group_offset.add_argument('--mode', action='store', dest='offset_mode',
                                choices=('pad', 'cut'), default='pad', 
-                               help='Specifies whether or align sequence by padding with gaps or by cutting the 5\' \
-                                     sequence to a common start position')
+                               help='''Specifies whether or align sequence by padding with gaps or by cutting the 5\'
+                                     sequence to a common start position.''')
+    group_offset.add_argument('--div', action='store_true', dest='calc_div',
+                               help='Specify to calculate nucleotide diversity of each set (average pairwise error rate).')
+    parser_offset.add_argument_group('help').add_argument('-h', '--help', action='help',
+                                                          help='show this help message and exit')
     parser_offset.set_defaults(align_func=offsetSeqSet)
 
     # Offset table generation argument parser
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_in=False, seq_out=False, log=False, multiproc=False)],
-                                         formatter_class=CommonHelpFormatter,
-                                         help='Create a 5\' offset table by primer multiple alignment',
-                                         description='Create a 5\' offset table by primer multiple alignment')
-    parser_table.add_argument('-p', action='store', dest='primer_file', required=True, 
+                                         formatter_class=CommonHelpFormatter, add_help=False,
+                                         help='Create a 5\' offset table by primer multiple alignment.',
+                                         description='Create a 5\' offset table by primer multiple alignment.')
+    group_table = parser_table.add_argument_group('alignment table generation arguments')
+    group_table.add_argument('-p', action='store', dest='primer_file', required=True,
                                help='A FASTA or REGEX file containing primer sequences')
-    parser_table.add_argument('--reverse', action='store_true', dest='reverse',  
+    group_table.add_argument('--reverse', action='store_true', dest='reverse',
                                help='If specified create a 3\' offset table instead')
-    parser_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
+    group_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
                                help='The name or location of the muscle executable')
+    parser_table.add_argument_group('help').add_argument('-h', '--help', action='help',
+                                                         help='show this help message and exit')
     parser_table.set_defaults(align_func=runMuscle)
     
     return parser
