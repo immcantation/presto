@@ -897,9 +897,6 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
 
     # Define feeder function and arguments
     feed_func = feedPairQueue
-    # feed_args = {'seq_file_1': head_file,
-    #              'seq_file_2': tail_file,
-    #              'index_dict': index_dict}
     feed_args = {'seq_file_1': head_file,
                  'seq_file_2': tail_file,
                  'coord_type': coord_type,
@@ -916,10 +913,6 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                  'process_args': process_args}
     # Define collector function and arguments
     collect_func = collectPairQueue
-    # collect_args = {'result_count': pair_count,
-    #                 'seq_file_1': head_file,
-    #                 'seq_file_2': tail_file,
-    #                 'out_args': out_args}
     collect_args = {'result_count': head_count,
                     'seq_file_1': head_file,
                     'seq_file_2': tail_file,

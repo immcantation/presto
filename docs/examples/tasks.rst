@@ -131,13 +131,14 @@ Assembling paired-end reads that do not overlap
 The typical way to assemble paired-end reads is via *de novo* assembly using
 the :program:`align` subcommand of :ref:`AssemblePairs`. However, some sequences
 with long CDR3 regions may fail to assemble due to insufficient, or completely
-absent, overlap between the mate-pairs. The :program:`reference` subcommand can
-be used to assemble mate-pairs that do not overlap using the ungapped V-segment
-references sequences as a guide.
+absent, overlap between the mate-pairs. The :program:`reference` or
+:program:`twostep` subcommands can be used to assemble mate-pairs that do not
+overlap using the ungapped V-segment references sequences as a guide.
 
-First, a normal :program:`align` command would be performed. The
-:option:`--failed <AssemblePairs align --failed>` argument is added so that
-the reads failing *de novo* alignment are output to separate files::
+To handle such sequence in two separate steps, a normal :program:`align` command
+would be performed first. The :option:`--failed <AssemblePairs align --failed>`
+argument is added so that the reads failing *de novo* alignment are output to
+separate files::
 
     AssemblePairs.py align -1 reads-1.fastq -2 reads-2.fastq --rc tail \
         --coord illumina --failed -outname align
