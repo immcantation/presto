@@ -490,6 +490,55 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
     return stitch
 
 
+def twostepAssembly(head_seq, tail_seq, ref_dict, ref_db,
+                    alpha=default_alpha, max_error=default_max_error,
+                    min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
+                    min_ident=default_min_ident, evalue=default_evalue, max_hits=default_max_hits,
+                    fill=False, aligner=default_aligner, aligner_exec=default_aligner_exec,
+                    assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
+    """
+    Stitches sequences together by first attempting de novo assembly then falling back to reference guided assembly
+
+    Arguments:
+      head_seq : the head SeqRecord
+      head_seq : the tail SeqRecord
+      ref_dict : a dictionary of reference SeqRecord objects
+      ref_db : the path and name of the reference database
+      alpha : the minimum p-value for a valid de novo assembly
+      max_error : the maximum error rate for a valid de novo assembly
+      min_len : minimum length of overlap to test for de novo assembly
+      max_len : maximum length of overlap to test for de novo assembly
+      scan_reverse : if True allow the head sequence to overhang the end of the tail sequence in de novo assembly
+                     if False end alignment scan at end of tail sequence or start of head sequence
+      min_ident : the minimum identity for a valid reference guided assembly
+      evalue : the E-value cut-off for reference guided assembly
+      max_hits : the maxhits output limit for reference guided assembly
+      fill : if False non-overlapping regions will be assigned Ns in reference guided assembly;
+             if True non-overlapping regions will be filled with the reference sequence.
+      aligner : the alignment tool; one of 'blastn' or 'usearch'
+      aligner_exec : the path to the alignment tool executable
+      assembly_stats : optional successes by trials numpy.array of p-values
+      score_dict : optional dictionary of character scores in the
+                 form {(char1, char2): score}
+
+    Returns:
+      AssemblyRecord : assembled sequence object
+    """
+    # First attempt align mode
+    stitch = alignAssembly(head_seq, tail_seq, alpha=alpha, max_error=max_error,
+                  min_len=min_len, max_len=max_len, scan_reverse=scan_reverse,
+                  assembly_stats=assembly_stats, score_dict=score_dict)
+
+    # Then try reference mode
+    if not stitch:
+        stitch = referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=min_ident,
+                                   evalue=evalue, max_hits=max_hits, fill=fill,
+                                   aligner=aligner, aligner_exec=aligner_exec,
+                                   score_dict=score_dict)
+
+    return stitch
+
+
 def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
                   coord_type=default_coord, delimiter=default_delimiter):
     """
@@ -560,7 +609,7 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     data = a SeqData object with a list of exactly two SeqRecords
     assemble_func = the function to use to assemble paired ends
     assemble_args = a dictionary of arguments to pass to the assembly function
-    rc = Defines which sequences ('head','tail','both') to reverse complement
+    rc = Defines which sequences ('head', 'tail', 'both') to reverse complement
          before assembly; if None do not reverse complement sequences
     fields_1 = list of annotations in head SeqRecord to copy to assembled record;
                if None do not copy an annotation
@@ -571,14 +620,14 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     Returns:
     a SeqResult object
     """
+    # Define result object
+    result = SeqResult(data.id, data.data)
+
     # Reverse complement sequences if required
     head_seq = data.data[0] if rc not in ('head', 'both') \
                else reverseComplement(data.data[0])
     tail_seq = data.data[1] if rc not in ('tail', 'both') \
                else reverseComplement(data.data[1])
-
-    # Define result object
-    result = SeqResult(data.id, [head_seq, tail_seq])
 
     # Define stitched sequence annotation
     stitch_ann = OrderedDict([('ID', data.id)])
@@ -794,7 +843,10 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     a list of successful output file names
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignAssembly:'align', joinSeqPair:'join', referenceAssembly:'reference'}
+    cmd_dict = {alignAssembly:'align',
+                joinSeqPair:'join',
+                referenceAssembly:'reference',
+                twostepAssembly:'twostep'}
     cmd_name = cmd_dict.get(assemble_func, assemble_func.__name__)
 
     # Print parameter info
@@ -827,7 +879,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                  % (head_count, tail_count))
 
     # Setup for reference alignment
-    if cmd_name == 'reference':
+    if cmd_name in ('reference', 'twostep'):
         ref_file = assemble_args.pop('ref_file')
         db_exec = assemble_args.pop('db_exec')
 
@@ -879,7 +931,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                              nproc, queue_size)
 
     # Close reference database handle
-    if cmd_name == 'reference':
+    if cmd_name in ('reference', 'twosep'):
         try:
             db_handle.close()
         except AttributeError:
@@ -951,15 +1003,15 @@ def getArgParser():
     parent_align = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
     group_align = parent_align.add_argument_group('de novo assembly arguments')
     group_align.add_argument('--alpha', action='store', dest='alpha', type=float,
-                              default=default_alpha, help='Significance threshold for paired-end assembly.')
+                              default=default_alpha, help='Significance threshold for de novo paired-end assembly.')
     group_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                              default=default_max_error, help='Maximum allowable error rate.')
+                              default=default_max_error, help='Maximum allowable error rate for de novo assembly.')
     group_align.add_argument('--minlen', action='store', dest='min_len', type=int,
-                              default=default_min_len, help='Minimum sequence length to scan for overlap.')
+                              default=default_min_len, help='Minimum sequence length to scan for overlap in de novo assembly.')
     group_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
-                              default=default_max_len, help='Maximum sequence length to scan for overlap.')
+                              default=default_max_len, help='Maximum sequence length to scan for overlap in de novo assembly.')
     group_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
-                              help='''If specified, scan past the end of the tail sequence to allow
+                              help='''If specified, scan past the end of the tail sequence in de novo assembly to allow
                                       the head sequence to overhang the end of the tail sequence.''')
     parser_align = subparsers.add_parser('align', parents=[parent_parser, parent_align], add_help=False,
                                          formatter_class=CommonHelpFormatter,
@@ -985,35 +1037,34 @@ def getArgParser():
     group_ref.add_argument('--minident', action='store', dest='min_ident', type=float,
                             default=default_min_ident,
                             help='''Minimum identity of the assembled sequence required to call a
-                                 valid assembly (between 0 and 1).''')
+                                 valid reference guided assembly (between 0 and 1).''')
     group_ref.add_argument('--evalue', action='store', dest='evalue', type=float,
                             default=default_evalue,
-                            help='''Minimum E-value for the ublast reference alignment for both
+                            help='''Minimum E-value for reference alignment for both
                                  the head and tail sequence.''')
     group_ref.add_argument('--maxhits', action='store', dest='max_hits', type=int,
                             default=default_max_hits,
-                            help='''Maximum number of hits from ublast to check for matching
-                                 head and tail sequence reference alignments.''')
+                            help='''Maximum number of hits from the reference alignment to check for
+                                 matching head and tail sequence assignments.''')
     group_ref.add_argument('--fill', action='store_true', dest='fill',
-                            help='''Specify to insert change the behavior of inserted characters
-                                  when the head and tail sequences do not overlap. If specified
-                                  this will result in inserted of the V region reference sequence
-                                  instead of a sequence of Ns in the non-overlapping region.
-                                  Warning, you could end up making chimeric sequences by using
-                                  this option.''')
+                            help='''Specify to change the behavior of inserted characters when the head and tail
+                                 sequences do not overlap during reference guided assembly. If specified,
+                                 this will result in inserted of the V region reference sequence
+                                 instead of a sequence of Ns in the non-overlapping region.
+                                 Warning: you could end up making chimeric sequences by using this option.''')
     group_ref.add_argument('--aligner', action='store', dest='aligner',
-                            choices=choices_aligner, default=default_aligner,
-                            help='''The local alignment tool to use. Must be one blastn
-                                 (blast+ nucleotide) or usearch (ublast algorithm).''')
+                           choices=choices_aligner, default=default_aligner,
+                           help='''The local alignment tool to use. Must be one blastn
+                                (blast+ nucleotide) or usearch (ublast algorithm).''')
     group_ref.add_argument('--exec', action='store', dest='aligner_exec', default=None,
-                            help='''The  name or location of the aligner executable file
-                                 (blastn or usearch). Defaults to the name specified by the
-                                 --aligner argument.''')
+                           help='''The  name or location of the aligner executable file
+                                (blastn or usearch). Defaults to the name specified by the
+                                --aligner argument.''')
     group_ref.add_argument('--dbexec', action='store', dest='db_exec', default=None,
-                            help='''The  name or location of the executable file that builds
-                                 the reference database. This defaults to makeblastdb when
-                                 blastn is specified to the --aligner argument, and usearch
-                                 when usearch is specified.''')
+                           help='''The  name or location of the executable file that builds
+                                the reference database. This defaults to makeblastdb when
+                                blastn is specified to the --aligner argument, and usearch
+                                when usearch is specified.''')
     parser_ref = subparsers.add_parser('reference', parents=[parent_parser, parent_ref],
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Assemble pairs by aligning reads against a reference database.',
@@ -1021,11 +1072,11 @@ def getArgParser():
     parser_ref.set_defaults(assemble_func=referenceAssembly)
 
     # De novo to reference rollover assembly
-    # parser_two = subparsers.add_parser('twostep', parents=[parent_parser, parent_align, parent_ref],
-    #                                     formatter_class=CommonHelpFormatter, add_help=False,
-    #                                     help='Assemble pairs by first attempting de novo assembly, then reference guided assembly.',
-    #                                     description='Assemble pairs by first attempting de novo assembly, then reference guided assembly.')
-    #parser_twostep.set_defaults(assemble_func=twostepAssembly)
+    parser_two = subparsers.add_parser('twostep', parents=[parent_parser, parent_align, parent_ref],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
+                                        help='Assemble pairs by first attempting de novo assembly, then reference guided assembly.',
+                                        description='Assemble pairs by first attempting de novo assembly, then reference guided assembly.')
+    parser_two.set_defaults(assemble_func=twostepAssembly)
 
     return parser
 
@@ -1043,39 +1094,47 @@ if __name__ == '__main__':
     if args_dict['head_fields']:  args_dict['head_fields'] = list(map(str.upper, args_dict['head_fields'])) 
     if args_dict['tail_fields']:  args_dict['tail_fields'] = list(map(str.upper, args_dict['tail_fields'])) 
     
-    # Define assemble_args dictionary to pass to maskPrimers
-    if args_dict['assemble_func'] is alignAssembly:
-        args_dict['assemble_args'] = {'alpha': args_dict['alpha'],
-                                      'max_error': args_dict['max_error'],
-                                      'min_len': args_dict['min_len'],
-                                      'max_len': args_dict['max_len'],
-                                      'scan_reverse': args_dict['scan_reverse'],
-                                      'assembly_stats': AssemblyStats(args_dict['max_len'] + 1)}
+    # Define assemble_args dictionary for join mode
+    if args_dict['assemble_func'] is joinSeqPair:
+        args_dict['assemble_args'] = {'gap':args_dict['gap']}
+        del args_dict['gap']
+
+    # Define assemble_args dictionary for align mode
+    if args_dict['assemble_func'] is alignAssembly or args_dict['assemble_func'] is twostepAssembly:
+        assemble_args = args_dict.setdefault('assemble_args', {})
+        assemble_args.update({'alpha': args_dict['alpha'],
+                              'max_error': args_dict['max_error'],
+                              'min_len': args_dict['min_len'],
+                              'max_len': args_dict['max_len'],
+                              'scan_reverse': args_dict['scan_reverse'],
+                              'assembly_stats': AssemblyStats(args_dict['max_len'] + 1)})
         del args_dict['alpha']
         del args_dict['max_error']
         del args_dict['min_len']
         del args_dict['max_len']
         del args_dict['scan_reverse']
-    elif args_dict['assemble_func'] is joinSeqPair:
-        args_dict['assemble_args'] = {'gap':args_dict['gap']}
-        del args_dict['gap']
-    elif args_dict['assemble_func'] is referenceAssembly:
-        args_dict['assemble_args'] = {'ref_file': args_dict['ref_file'],
-                                      'min_ident': args_dict['min_ident'],
-                                      'evalue': args_dict['evalue'],
-                                      'max_hits': args_dict['max_hits'],
-                                      'fill': args_dict['fill'],
-                                      'aligner': args_dict['aligner']}
+
+        print(args_dict['assemble_args'])
+
+    # Define assemble_args dictionary for reference mode
+    if args_dict['assemble_func'] is referenceAssembly or args_dict['assemble_func'] is twostepAssembly:
+        assemble_args = args_dict.setdefault('assemble_args', {})
+        assemble_args.update({'ref_file': args_dict['ref_file'],
+                              'min_ident': args_dict['min_ident'],
+                              'evalue': args_dict['evalue'],
+                              'max_hits': args_dict['max_hits'],
+                              'fill': args_dict['fill'],
+                              'aligner': args_dict['aligner']})
         if args_dict['aligner_exec'] is None:
-            args_dict['assemble_args']['aligner_exec'] = args_dict['aligner']
+            assemble_args.update({'aligner_exec': args_dict['aligner']})
         else:
-            args_dict['assemble_args']['aligner_exec'] = args_dict['aligner_exec']
+            assemble_args.update({'aligner_exec': args_dict['aligner_exec']})
 
         if args_dict['db_exec'] is None:
             exec_map = {'blastn': default_blastdb_exec, 'usearch': default_usearch_exec}
-            args_dict['assemble_args']['db_exec'] = exec_map[args_dict['aligner']]
+            assemble_args.update({'db_exec': exec_map[args_dict['aligner']]})
         else:
-            args_dict['assemble_args']['db_exec'] = args_dict['db_exec']
+            assemble_args.update({'db_exec': args_dict['db_exec']})
 
         del args_dict['ref_file']
         del args_dict['min_ident']
@@ -1089,6 +1148,8 @@ if __name__ == '__main__':
         # Check if a valid executable was specified
         if not shutil.which(args_dict['assemble_args']['aligner_exec']):
             parser.error('%s executable not found' % args_dict['assemble_args']['aligner_exec'])
+
+        print(args_dict['assemble_args'])
 
     # Call assemblePairs for each sample file
     del args_dict['command']

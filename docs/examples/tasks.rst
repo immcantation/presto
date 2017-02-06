@@ -147,23 +147,29 @@ reference sequences (:option:`-r vref.fasta <AssemblePairs reference -r>`),
 would be input into the :program:`reference` subcommand of :ref:`AssemblePairs`::
 
     AssemblePairs.py reference -1 align-1_assemble-fail.fastq -2 align-2_assemble-fail.fastq \
-        -r vref.fasta --coord illumina --outname ref
+         --rc tail -r vref.fasta --coord illumina --outname ref
 
-Note, we have skipped the argument to reverse complement the tail sequence this
-time (:option:`--rc tail <AssemblePairs reference --rc>`) as this was
-done in the first invocation of :ref:`AssemblePairs`. You may then process the
-two ``assemble-pass`` files separately or concatenate them together into a single file::
+This will result in two separate ``assemble-pass`` files - one from each step. You may
+process them separately or concatenate them together into a single file::
 
     cat align_assemble-pass.fastq ref_assemble-pass.fastq > merged_assemble-pass.fastq
 
+However, if you intend to processes them together, you may simplify this by perform both
+steps using the :program:`twostep` subcommand, which will attempt *de novo* assembly
+followed by reference guided assembly if *de novo* assembly fails::
+
+    AssemblePairs.py twostep -1 reads-1.fastq -2 reads-2.fastq --rc tail \
+        --coord illumina -r vref.fasta
+
 .. note::
 
-    The sequences output by the :program:`reference` subcommand will contain
-    an appropriate length spacer of Ns between any mate-pairs that do not overlap.
-    The `AssemblePairs reference --fill` argument can be specified to force
+    The sequences output by the :program:`reference` or :program:`twostep` subcommands
+    may contain an appropriate length spacer of Ns between any mate-pairs that do not overlap.
+    The `:option:`--fill <AssemblePairs reference --fill>`` argument may be specified to force
     :ref:`AssemblePairs` to insert the germline sequence into the missing positions,
     but this should be used with caution as the inserted sequence may not be
     biologically correct.
+
 
 Assigning isotype annotations from the constant region sequence
 --------------------------------------------------------------------------------

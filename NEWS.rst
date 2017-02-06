@@ -1,12 +1,18 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  January 17, 2017
+Version 0.5.2.999:  February 6, 2017
 -------------------------------------------------------------------------------
 
 
 AssemblePairs:
 
++ Changed the behavior of the ``--failed`` argument so that failed output
+  are in the same orientation as the input sequences. Meaning, the ``--rc``
+  argument is ignored for failed output.
++ Added the twostep subcommand which will first attempt de novo assembly
+  (align subcommand) following by reference guided assembly (reference
+  subcommand) if de novo assembly fails.
 + Added blastn compatibility to reference subcommand.
 + Added the option ``--aligner`` to the reference subcommand to allow use of
   either blastn or usearch for performing the local alignment. Defaults to
