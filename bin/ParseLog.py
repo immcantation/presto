@@ -147,15 +147,14 @@ def getArgParser():
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[getCommonArgParser(seq_in=False, seq_out=False,
                                                         failed=False, log=False)],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
 
-    parser.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
-                        help='List of log files to parse.')
-    parser.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                        help='''List of fields to collect. The sequence identifier may
-                             be specified using the hidden field name "ID".''')
+    group_log = parser.add_argument_group('parsing arguments')
+    group_log.add_argument('-l', nargs='+', action='store', dest='record_files', required=True,
+                           help='List of log files to parse.')
+    group_log.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                           help='''List of fields to collect. The sequence identifier may
+                                be specified using the hidden field name "ID".''')
     
     return parser
 

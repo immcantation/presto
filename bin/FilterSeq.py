@@ -372,9 +372,11 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', metavar='',
                                        help='Filtering operation')
     # TODO:  This is a temporary fix for Python issue 9253
@@ -385,80 +387,86 @@ def getArgParser():
     
     # Length filter mode argument parser
     parser_length = subparsers.add_parser('length', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter, 
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Filters reads by length.',
                                           description='Filters reads by length.')
-    parser_length.add_argument('-n', action='store', dest='min_length', type=int, 
+    group_length = parser_length.add_argument_group('filtering arguments')
+    group_length.add_argument('-n', action='store', dest='min_length', type=int,
                                default=default_min_length, 
                                help='Minimum sequence length to retain.')
-    parser_length.add_argument('--inner', action='store_true', dest='inner',
+    group_length.add_argument('--inner', action='store_true', dest='inner',
                                help='''If specified exclude consecutive missing characters
                                     at either end of the sequence.''')
     parser_length.set_defaults(filter_func=filterLength)
     
     # Missing character filter mode argument parser
     parser_missing = subparsers.add_parser('missing', parents=[parser_parent],
-                                           formatter_class=CommonHelpFormatter, 
+                                           formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Filters reads by N or gap character count.',
                                            description='Filters reads by N or gap character count.')
-    parser_missing.add_argument('-n', action='store', dest='max_missing', type=int, 
+    group_missing = parser_missing.add_argument_group('filtering arguments')
+    group_missing.add_argument('-n', action='store', dest='max_missing', type=int,
                                 default=default_max_missing, 
                                 help='Threshold for fraction of gap or N nucleotides.')
-    parser_missing.add_argument('--inner', action='store_true', dest='inner',
+    group_missing.add_argument('--inner', action='store_true', dest='inner',
                                 help='''If specified exclude consecutive missing characters
                                      at either end of the sequence.''')
     parser_missing.set_defaults(filter_func=filterMissing)
     
     # Continuous repeating character filter mode argument parser
     parser_repeats = subparsers.add_parser('repeats', parents=[parser_parent],
-                                           formatter_class=CommonHelpFormatter, 
+                                           formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Filters reads by consecutive nucleotide repeats.',
                                            description='Filters reads by consecutive nucleotide repeats.')
-    parser_repeats.add_argument('-n', action='store', dest='max_repeat', type=int, 
-                                default=default_max_repeat, 
-                                help='Threshold for fraction of repeating nucleotides.')
-    parser_repeats.add_argument('--missing', action='store_true', dest='include_missing',
-                                help='''If specified count consecutive gap and N characters '
-                                     in addition to {A,C,G,T}.''')
-    parser_repeats.add_argument('--inner', action='store_true', dest='inner',
-                                help='''If specified exclude consecutive missing characters
-                                     at either end of the sequence.''')
+    group_repeats = parser_repeats.add_argument_group('filtering arguments')
+    group_repeats.add_argument('-n', action='store', dest='max_repeat', type=int,
+                               default=default_max_repeat,
+                               help='Threshold for fraction of repeating nucleotides.')
+    group_repeats.add_argument('--missing', action='store_true', dest='include_missing',
+                               help='''If specified count consecutive gap and N characters '
+                                    in addition to {A,C,G,T}.''')
+    group_repeats.add_argument('--inner', action='store_true', dest='inner',
+                               help='''If specified exclude consecutive missing characters
+                                    at either end of the sequence.''')
     parser_repeats.set_defaults(filter_func=filterRepeats)
     
     # Quality filter mode argument parser
     parser_quality = subparsers.add_parser('quality', parents=[parser_parent],
-                                          formatter_class=CommonHelpFormatter, 
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Filters reads by quality score.',
                                           description='Filters reads by quality score.')
-    parser_quality.add_argument('-q', action='store', dest='min_qual', type=float, 
-                                default=default_min_qual, help='Quality score threshold.')
-    parser_quality.add_argument('--inner', action='store_true', dest='inner',
-                                help='''If specified exclude consecutive missing characters
-                                     at either end of the sequence.''')
+    group_quality = parser_quality.add_argument_group('filtering arguments')
+    group_quality.add_argument('-q', action='store', dest='min_qual', type=float,
+                               default=default_min_qual, help='Quality score threshold.')
+    group_quality.add_argument('--inner', action='store_true', dest='inner',
+                               help='''If specified exclude consecutive missing characters
+                                    at either end of the sequence.''')
     parser_quality.set_defaults(filter_func=filterQuality)
 
     # Mask mode argument parser
     parser_maskqual = subparsers.add_parser('maskqual', parents=[parser_parent], 
-                                        formatter_class=CommonHelpFormatter,
+                                        formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Masks low quality positions.',
                                         description='Masks low quality positions.')
-    parser_maskqual.add_argument('-q', action='store', dest='min_qual', type=float, 
-                             default=default_min_qual, help='Quality score threshold.')
+    group_maskqual = parser_maskqual.add_argument_group('filtering arguments')
+    group_maskqual.add_argument('-q', action='store', dest='min_qual', type=float,
+                                default=default_min_qual, help='Quality score threshold.')
     parser_maskqual.set_defaults(filter_func=maskQuality)
 
     # Trim mode argument parser
     parser_trimqual = subparsers.add_parser('trimqual', parents=[parser_parent], 
-                                            formatter_class=CommonHelpFormatter,
+                                            formatter_class=CommonHelpFormatter, add_help=False,
                                             help='Trims sequences by quality score decay.',
                                             description='Trims sequences by quality score decay.')
-    parser_trimqual.add_argument('-q', action='store', dest='min_qual', type=float, 
-                                 default=default_min_qual, help='Quality score threshold.')
-    parser_trimqual.add_argument('--win', action='store', dest='window', type=int, 
-                                 default=default_window, 
-                                 help='Nucleotide window size for moving average calculation.')
-    parser_trimqual.add_argument('--reverse', action='store_true', dest='reverse', 
-                                 help='''Specify to trim the head of the sequence rather
-                                      than the tail.''')
+    group_trimqual = parser_trimqual.add_argument_group('filtering arguments')
+    group_trimqual.add_argument('-q', action='store', dest='min_qual', type=float,
+                                default=default_min_qual, help='Quality score threshold.')
+    group_trimqual.add_argument('--win', action='store', dest='window', type=int,
+                                default=default_window,
+                                help='Nucleotide window size for moving average calculation.')
+    group_trimqual.add_argument('--reverse', action='store_true', dest='reverse',
+                                help='''Specify to trim the head of the sequence rather
+                                     than the tail.''')
     parser_trimqual.set_defaults(filter_func=trimQuality)
     
     return parser

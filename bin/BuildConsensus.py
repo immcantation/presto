@@ -371,34 +371,34 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[getCommonArgParser(multiproc=True)], 
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
-    
-    parser.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
-                        help='The minimum number of sequences needed to define a valid consensus')
-    parser.add_argument('--bf', action='store', dest='barcode_field', type=str,
-                        default=default_barcode_field, 
-                        help='Position of description barcode field to group sequences by')
-    parser.add_argument('-q', action='store', dest='min_qual', type=int, default=default_min_qual,
-                        help='Consensus quality score cut-off under which an ambiguous character is assigned; \
-                              does not apply when quality scores are unavailable')
-    parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
-                        help='Fraction of character occurrences under which an ambiguous character is assigned.')
-    parser.add_argument('--maxgap', action='store', dest='max_gap', type=float, default=None,
-                        help='If specified, this defines a cut-off for the frequency of allowed \
-                              gap values for each position. Positions exceeding the threshold \
-                              are deleted from the consensus. If not defined, positions are always \
-                              retained.')
-    parser.add_argument('--pf', action='store', dest='primer_field', type=str, default=None, 
-                        help='Specifies the field name of the primer annotations')
-    parser.add_argument('--prcons', action='store', dest='primer_freq', type=float, default=None, 
-                        help='Specify to define a minimum primer frequency required to assign a consensus primer, \
-                              and filter out sequences with minority primers from the consensus building step')
-    parser.add_argument('--cf', nargs='+', action='store', dest='copy_fields', type=str, default=None,
-                        help='''Specifies a set of additional annotation fields to copy into
-                             the consensus sequence annotations.''')
-    parser.add_argument('--act', nargs='+', action='store', dest='copy_actions', default=None,
+                            formatter_class=CommonHelpFormatter, add_help=False)
+
+    # Consensus arguments
+    group_cons = parser.add_argument_group('consensus generation arguments')
+    group_cons.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
+                            help='The minimum number of sequences needed to define a valid consensus.')
+    group_cons.add_argument('--bf', action='store', dest='barcode_field', type=str,
+                            default=default_barcode_field,
+                            help='Position of description barcode field to group sequences by.')
+    group_cons.add_argument('-q', action='store', dest='min_qual', type=int, default=default_min_qual,
+                            help='''Consensus quality score cut-off under which an ambiguous character is assigned;
+                                 does not apply when quality scores are unavailable.''')
+    group_cons.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
+                            help='Fraction of character occurrences under which an ambiguous character is assigned.')
+    group_cons.add_argument('--maxgap', action='store', dest='max_gap', type=float, default=None,
+                            help='''If specified, this defines a cut-off for the frequency of allowed
+                                 gap values for each position. Positions exceeding the threshold
+                                 are deleted from the consensus. If not defined, positions are always
+                                 retained.''')
+    group_cons.add_argument('--pf', action='store', dest='primer_field', type=str, default=None,
+                            help='Specifies the field name of the primer annotations')
+    group_cons.add_argument('--prcons', action='store', dest='primer_freq', type=float, default=None,
+                            help='''Specify to define a minimum primer frequency required to assign a consensus primer,
+                                 and filter out sequences with minority primers from the consensus building step.''')
+    group_cons.add_argument('--cf', nargs='+', action='store', dest='copy_fields', type=str, default=None,
+                            help='''Specifies a set of additional annotation fields to copy into
+                                 the consensus sequence annotations.''')
+    group_cons.add_argument('--act', nargs='+', action='store', dest='copy_actions', default=None,
                         choices=['min', 'max', 'sum', 'set', 'majority'],
                         help='''List of actions to take for each copy field which defines how
                              each annotation will be combined into a single value. The actions
@@ -410,28 +410,26 @@ def getArgParser():
                              most frequent annotation to the consensus annotation and adds
                              an annotation named <FIELD>_FREQ specifying the frequency
                              of the majority value.''')
-    parser.add_argument('--dep', action='store_true', dest='dependent',
+    group_cons.add_argument('--dep', action='store_true', dest='dependent',
                         help='Specify to calculate consensus quality with a non-independence assumption')
 
-    # Mutually exclusive argument group
-    arg_group = parser.add_mutually_exclusive_group()
-    arg_group.add_argument('--maxdiv', action='store', dest='max_diversity', type=float,
-                           default=None,
-                           help='''Specify to calculate the nucleotide diversity of each read
-                                group (average pairwise error rate) and remove groups exceeding
-                                the given diversity threshold. Diversity is calculate for all
-                                positions within the read group, ignoring any character filtering
-                                imposed by the -q, --freq and --maxgap arguments.
-                                Mutually exclusive with --maxerror.''')
-    arg_group.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                           default=None,
-                           help='''Specify to calculate the error rate of each read group
-                                (rate of mismatches from consensus) and remove groups exceeding
-                                the given error threshold. The error rate is calculated against
-                                the final consensus sequence, which may include masked positions
-                                due to the -q and --freq arguments and may have deleted
-                                positions due to the --maxgap argument.
-                                Mutually exclusive with --maxdiv.''')
+    # Mutually exclusive error arguments
+    group_error = group_cons.add_mutually_exclusive_group()
+    group_error.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,
+                            help='''Specify to calculate the nucleotide diversity of each read
+                                 group (average pairwise error rate) and remove groups exceeding
+                                 the given diversity threshold. Diversity is calculate for all
+                                 positions within the read group, ignoring any character filtering
+                                 imposed by the -q, --freq and --maxgap arguments.
+                                 Mutually exclusive with --maxerror.''')
+    group_error.add_argument('--maxerror', action='store', dest='max_error', type=float, default=None,
+                             help='''Specify to calculate the error rate of each read group
+                                  (rate of mismatches from consensus) and remove groups exceeding
+                                  the given error threshold. The error rate is calculated against
+                                  the final consensus sequence, which may include masked positions
+                                  due to the -q and --freq arguments and may have deleted
+                                  positions due to the --maxgap argument.
+                                  Mutually exclusive with --maxdiv.''')
 
     return parser
 

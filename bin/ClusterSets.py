@@ -215,30 +215,30 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[getCommonArgParser(multiproc=True)],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
 
-    parser.add_argument('-f', action='store', dest='barcode_field', type=str,
-                        default=default_barcode_field,
-                        help='''The annotation field containing annotations, such as UID
-                             barcode, for sequence grouping.''')
-    parser.add_argument('-k', action='store', dest='cluster_field', type=str,
-                        default=default_cluster_field,
-                        help='''The name of the output annotation field to add with the
-                             cluster information for each sequence.''')
-    parser.add_argument('--id', action='store', dest='ident', type=float,
-                        default=default_ident,
-                        help='The sequence identity threshold for the uclust algorithm.')
-    parser.add_argument('--start', action='store', dest='seq_start', type=int,
-                        help='''The start of the region to be used for clustering.
-                             Together with --end, this parameter can be used to specify a
-                             subsequence of each read to use in the clustering algorithm.''')
-    parser.add_argument('--end', action='store', dest='seq_end', type=int,
-                        help='The end of the region to be used for clustering.')
-    parser.add_argument('--exec', action='store', dest='cluster_exec',
-                        default=default_cluster_exec,
-                        help='The name or location of the usearch or vsearch executable.')
+    # Clustering arguments
+    group_clust = parser.add_argument_group('clustering arguments')
+    group_clust.add_argument('-f', action='store', dest='barcode_field', type=str,
+                             default=default_barcode_field,
+                             help='''The annotation field containing annotations, such as UID
+                                  barcode, for sequence grouping.''')
+    group_clust.add_argument('-k', action='store', dest='cluster_field', type=str,
+                             default=default_cluster_field,
+                             help='''The name of the output annotation field to add with the
+                                  cluster information for each sequence.''')
+    group_clust.add_argument('--id', action='store', dest='ident', type=float,
+                             default=default_ident,
+                             help='The sequence identity threshold for the uclust algorithm.')
+    group_clust.add_argument('--start', action='store', dest='seq_start', type=int,
+                             help='''The start of the region to be used for clustering.
+                                  Together with --end, this parameter can be used to specify a
+                                  subsequence of each read to use in the clustering algorithm.''')
+    group_clust.add_argument('--end', action='store', dest='seq_end', type=int,
+                             help='The end of the region to be used for clustering.')
+    group_clust.add_argument('--exec', action='store', dest='cluster_exec',
+                             default=default_cluster_exec,
+                             help='The name or location of the usearch or vsearch executable.')
 
     return parser
 

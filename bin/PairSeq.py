@@ -205,24 +205,23 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[getCommonArgParser(paired=True, failed=True, log=False)],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
 
-    parser.add_argument('--1f', nargs='+', action='store', dest='fields_1', type=str, default=None,
-                        help='''The annotation fields to copy from file 1 records into file
-                             2 records. If a copied annotation already exists in a file 2
-                             record, then the annotations copied from file 1 will be added
-                             to the front of the existing annotation.''')
-    parser.add_argument('--2f', nargs='+', action='store', dest='fields_2', type=str, default=None,
-                        help='''The annotation fields to copy from file 2 records into file
-                             1 records. If a copied annotation already exists in a file 1
-                             record, then the annotations copied from file 2 will be added
-                             to the end of the existing annotation.''')
-    parser.add_argument('--coord', action='store', dest='coord_type',
-                        choices=choices_coord, default=default_coord,
-                        help='''The format of the sequence identifier which defines shared
-                             coordinate information across mate pairs.''')
+    group_pair = parser.add_argument_group('pairing arguments')
+    group_pair.add_argument('--1f', nargs='+', action='store', dest='fields_1', type=str, default=None,
+                            help='''The annotation fields to copy from file 1 records into file
+                                 2 records. If a copied annotation already exists in a file 2
+                                 record, then the annotations copied from file 1 will be added
+                                 to the front of the existing annotation.''')
+    group_pair.add_argument('--2f', nargs='+', action='store', dest='fields_2', type=str, default=None,
+                            help='''The annotation fields to copy from file 2 records into file
+                                 1 records. If a copied annotation already exists in a file 1
+                                 record, then the annotations copied from file 2 will be added
+                                to the end of the existing annotation.''')
+    group_pair.add_argument('--coord', action='store', dest='coord_type',
+                            choices=choices_coord, default=default_coord,
+                            help='''The format of the sequence identifier which defines shared
+                                 coordinate information across mate pairs.''')
     
     return parser
 

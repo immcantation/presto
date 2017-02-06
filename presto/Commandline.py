@@ -43,7 +43,7 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
 
 
 def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_out=False,
-                       failed=True, log=True, annotation=True, multiproc=False):
+                       failed=True, log=True, annotation=True, multiproc=False, add_help=True):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
@@ -57,11 +57,21 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
       log : If True include log arguments
       annotation : If True include annotation arguments
       multiproc : If True include multiprocessing arguments
+      add_help : If True add help and version arguments
     
     Returns:
       ArgumentParser : An ArgumentParser object
     """
-    parser = ArgumentParser(add_help=False, formatter_class=CommonHelpFormatter)
+    parser = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
+
+    # Add help and version arguments
+    if add_help:
+        group_help = parser.add_argument_group('help')
+        group_help.add_argument('--version', action='version',
+                                version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+        group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
+
+    # Set standard group
     group = parser.add_argument_group('standard arguments')
 
     # Database arguments

@@ -320,9 +320,11 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Annotation operation')
     # TODO:  This is a temporary fix for Python issue 9253
@@ -330,120 +332,127 @@ def getArgParser():
 
     # Subparser to add header fields
     parser_add = subparsers.add_parser('add', parents=[getCommonArgParser(log=False)],
-                                       formatter_class=CommonHelpFormatter,
+                                       formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Adds field/value pairs to header annotations',
                                        description='Adds field/value pairs to header annotations')
-    parser_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                            help='List of fields to add.')
-    parser_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
-                            help='List of values to add for each field.')
+    group_add = parser_add.add_argument_group('parsing arguments')
+    group_add.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                           help='List of fields to add.')
+    group_add.add_argument('-u', nargs='+', action='store', dest='values', required=True,
+                           help='List of values to add for each field.')
     parser_add.set_defaults(func=modifyHeaders)
     parser_add.set_defaults(modify_func=addHeader)
 
     # Subparser to collapse header fields
     parser_collapse = subparsers.add_parser('collapse', parents=[getCommonArgParser(log=False)],
-                                            formatter_class=CommonHelpFormatter,
+                                            formatter_class=CommonHelpFormatter, add_help=False,
                                             help='Collapses header annotations with multiple entries',
                                             description='Collapses header annotations with multiple entries')
-    parser_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                                 help='List of fields to collapse.')
-    parser_collapse.add_argument('--act', nargs='+', action='store', dest='actions', required=True,
-                                 choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
-                                 help='''List of actions to take for each field defining how
-                                      each annotation will be combined into a single value.
-                                      The actions "min", "max", "sum" perform the corresponding
-                                      mathematical operation on numeric annotations. The
-                                      actions "first" and "last" choose the value from the
-                                      corresponding position in the annotation. The action
-                                      "set" collapses annotations into a comma delimited
-                                      list of unique values. The action "cat" concatenates
-                                      the values together into a single string.''')
+    group_collapse = parser_collapse.add_argument_group('parsing arguments')
+    group_collapse.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                                help='List of fields to collapse.')
+    group_collapse.add_argument('--act', nargs='+', action='store', dest='actions', required=True,
+                                choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
+                                help='''List of actions to take for each field defining how
+                                     each annotation will be combined into a single value.
+                                     The actions "min", "max", "sum" perform the corresponding
+                                     mathematical operation on numeric annotations. The
+                                     actions "first" and "last" choose the value from the
+                                     corresponding position in the annotation. The action
+                                     "set" collapses annotations into a comma delimited
+                                     list of unique values. The action "cat" concatenates
+                                     the values together into a single string.''')
     parser_collapse.set_defaults(func=modifyHeaders)
     parser_collapse.set_defaults(modify_func=collapseHeader)
 
     # Subparser to copy header fields
     parser_copy = subparsers.add_parser('copy', parents=[getCommonArgParser(log=False)],
-                                        formatter_class=CommonHelpFormatter,
+                                        formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Copies header annotation fields',
                                         description='Copies header annotation fields')
-    parser_copy.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to copy.')
-    parser_copy.add_argument('-k', nargs='+', action='store', dest='names', required=True,
-                               help='''List of names for each copied field. If the new field
-                                    is already present, the copied field will be merged into
-                                    the existing field.''')
-    parser_copy.add_argument('--act', nargs='+', action='store', dest='actions', required=False,
-                                 choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
-                                 help='''List of collapse actions to take on each new field
-                                      following the copy operation defining how each annotation
-                                      will be combined into a single value. The actions
-                                      "min", "max", "sum" perform the corresponding
-                                      mathematical operation on numeric annotations. The
-                                      actions "first" and "last" choose the value from the
-                                      corresponding position in the annotation. The action
-                                      "set" collapses annotations into a comma delimited
-                                      list of unique values. The action "cat" concatenates
-                                      the values together into a single string.''')
+    group_copy = parser_copy.add_argument_group('parsing arguments')
+    group_copy.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                            help='List of fields to copy.')
+    group_copy.add_argument('-k', nargs='+', action='store', dest='names', required=True,
+                            help='''List of names for each copied field. If the new field
+                                 is already present, the copied field will be merged into
+                                 the existing field.''')
+    group_copy.add_argument('--act', nargs='+', action='store', dest='actions', required=False,
+                            choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
+                            help='''List of collapse actions to take on each new field
+                                 following the copy operation defining how each annotation
+                                 will be combined into a single value. The actions
+                                 "min", "max", "sum" perform the corresponding
+                                 mathematical operation on numeric annotations. The
+                                 actions "first" and "last" choose the value from the
+                                 corresponding position in the annotation. The action
+                                 "set" collapses annotations into a comma delimited
+                                 list of unique values. The action "cat" concatenates
+                                 the values together into a single string.''')
     parser_copy.set_defaults(func=modifyHeaders)
     parser_copy.set_defaults(modify_func=copyHeader)
 
     # Subparser to delete header fields
     parser_delete = subparsers.add_parser('delete', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=CommonHelpFormatter,
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Deletes fields from header annotations',
                                           description='Deletes fields from header annotations')
-    parser_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to delete.')
+    group_delete = parser_delete.add_argument_group('parsing arguments')
+    group_delete.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                              help='List of fields to delete.')
     parser_delete.set_defaults(func=modifyHeaders)
     parser_delete.set_defaults(modify_func=deleteHeader)
 
     # Subparser to expand header fields
     parser_expand = subparsers.add_parser('expand', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=CommonHelpFormatter,
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Expands annotation fields with multiple values',
                                           description='Expands annotation fields with multiple values')
-    parser_expand.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to expand.')
-    parser_expand.add_argument('--sep', action='store', dest='separator', 
-                               default=default_separator,
-                               help='The character separating each value in the fields.')
+    group_expand = parser_expand.add_argument_group('parsing arguments')
+    group_expand.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                              help='List of fields to expand.')
+    group_expand.add_argument('--sep', action='store', dest='separator',
+                              default=default_separator,
+                              help='The character separating each value in the fields.')
     parser_expand.set_defaults(func=modifyHeaders)
     parser_expand.set_defaults(modify_func=expandHeader)
 
     # Subparser to rename header fields
     parser_rename = subparsers.add_parser('rename', parents=[getCommonArgParser(log=False)],
-                                          formatter_class=CommonHelpFormatter,
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Renames header annotation fields',
                                           description='Renames header annotation fields')
-    parser_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                               help='List of fields to rename.')
-    parser_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
-                               help='''List of new names for each field. If the new field is
-                                    already present, the renamed field will be merged into
-                                    the existing field and the old field will be deleted.''')
-    parser_rename.add_argument('--act', nargs='+', action='store', dest='actions', required=False,
-                               choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
-                               help='''List of collapse actions to take on each new field
-                                    following the rename operation defining how each annotation
-                                    will be combined into a single value. The actions
-                                    "min", "max", "sum" perform the corresponding
-                                    mathematical operation on numeric annotations. The
-                                    actions "first" and "last" choose the value from the
-                                    corresponding position in the annotation. The action
-                                    "set" collapses annotations into a comma delimited
-                                    list of unique values. The action "cat" concatenates
-                                    the values together into a single string.''')
+    group_rename = parser_rename.add_argument_group('parsing arguments')
+    group_rename.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                              help='List of fields to rename.')
+    group_rename.add_argument('-k', nargs='+', action='store', dest='names', required=True,
+                              help='''List of new names for each field. If the new field is
+                                   already present, the renamed field will be merged into
+                                   the existing field and the old field will be deleted.''')
+    group_rename.add_argument('--act', nargs='+', action='store', dest='actions', required=False,
+                              choices=['min', 'max', 'sum', 'first', 'last', 'set', 'cat'],
+                              help='''List of collapse actions to take on each new field
+                                   following the rename operation defining how each annotation
+                                   will be combined into a single value. The actions
+                                   "min", "max", "sum" perform the corresponding
+                                   mathematical operation on numeric annotations. The
+                                   actions "first" and "last" choose the value from the
+                                   corresponding position in the annotation. The action
+                                   "set" collapses annotations into a comma delimited
+                                   list of unique values. The action "cat" concatenates
+                                   the values together into a single string.''')
     parser_rename.set_defaults(func=modifyHeaders)
     parser_rename.set_defaults(modify_func=renameHeader)
             
     # Subparser to create a header table
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_out=False, log=False)],
-                                         formatter_class=CommonHelpFormatter,
+                                         formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Writes sequence headers to a table',
                                          description='Writes sequence headers to a table')
-    parser_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
-                              help='''List of fields to collect. The sequence identifier may
-                                   be specified using the hidden field name "ID".''')
+    group_table = parser_table.add_argument_group('parsing arguments')
+    group_table.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                             help='''List of fields to collect. The sequence identifier may
+                                  be specified using the hidden field name "ID".''')
     parser_table.set_defaults(func=tableHeaders)
 
     return parser

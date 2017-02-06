@@ -505,31 +505,31 @@ def getArgParser():
                             parents=[getCommonArgParser(seq_out=False,
                                                         failed=False,
                                                         multiproc=True)],
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
-    
-    parser.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field, 
-                        help='The name of the annotation field to group sequences by')
-    parser.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
-                        help='The minimum number of sequences needed to consider a set')
-    parser.add_argument('--mode', action='store', dest='mode', choices=('freq', 'qual'), default='freq', 
-                        help='''Specifies which method to use to determine the consensus
-                             sequence. The "freq" method will determine the consensus by
-                             nucleotide frequency at each position and assign the most
-                             common value.  The "qual" method will weight values by their
-                             quality scores to determine the consensus nucleotide at
-                             each position.''')
-    parser.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
-                        help='''Consensus quality score cut-off under which an ambiguous
-                             character is assigned.''')
-    parser.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
-                        help='''Fraction of character occurrences under which an ambiguous
-                             character is assigned.''')
-    parser.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,
-                        help='''Specify to calculate the nucleotide diversity of each read
-                              group (average pairwise error rate) and exclude groups which
-                              exceed the given diversity threshold.''')
+                            formatter_class=CommonHelpFormatter, add_help=False)
+
+    # Error profiling arguments
+    group_error = parser.add_argument_group('error profiling arguments')
+    group_error.add_argument('-f', action='store', dest='set_field', type=str, default=default_barcode_field,
+                             help='The name of the annotation field to group sequences by')
+    group_error.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
+                             help='The minimum number of sequences needed to consider a set')
+    group_error.add_argument('--mode', action='store', dest='mode', choices=('freq', 'qual'), default='freq',
+                             help='''Specifies which method to use to determine the consensus
+                                  sequence. The "freq" method will determine the consensus by
+                                  nucleotide frequency at each position and assign the most
+                                  common value.  The "qual" method will weight values by their
+                                  quality scores to determine the consensus nucleotide at
+                                  each position.''')
+    group_error.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
+                             help='''Consensus quality score cut-off under which an ambiguous
+                                  character is assigned.''')
+    group_error.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
+                             help='''Fraction of character occurrences under which an ambiguous
+                                  character is assigned.''')
+    group_error.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,
+                             help='''Specify to calculate the nucleotide diversity of each read
+                                  group (average pairwise error rate) and exclude groups which
+                                  exceed the given diversity threshold.''')
     
     return parser
 

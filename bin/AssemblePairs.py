@@ -923,12 +923,11 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter,
-                            add_help=False)
-    group = parser.add_argument_group('help')
-    group.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
-    group.add_argument('-h', '--help', action='help', help='show this help message and exit')
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Assembly method')
     # TODO:  This is a temporary fix for Python issue 9253
@@ -962,13 +961,10 @@ def getArgParser():
     group_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
                               help='''If specified, scan past the end of the tail sequence to allow
                                       the head sequence to overhang the end of the tail sequence.''')
-
     parser_align = subparsers.add_parser('align', parents=[parent_parser, parent_align], add_help=False,
                                          formatter_class=CommonHelpFormatter,
                                          help='Assemble pairs by aligning ends.',
                                          description='Assemble pairs by aligning ends.')
-    parser_align.add_argument_group('help').add_argument('-h', '--help', action='help',
-                                                         help='show this help message and exit')
     parser_align.set_defaults(assemble_func=alignAssembly)
     
     # Paired end concatenation mode argument parser
@@ -979,8 +975,6 @@ def getArgParser():
     parser_join.add_argument_group('join assembly arguments').add_argument('--gap', action='store', dest='gap',
                                                                            type=int, default=default_gap,
                                                                            help='Number of N characters to place between ends.')
-    parser_join.add_argument_group('help').add_argument('-h', '--help', action='help',
-                                                        help='show this help message and exit')
     parser_join.set_defaults(assemble_func=joinSeqPair)
 
     # Reference alignment mode argument parser
@@ -1020,13 +1014,10 @@ def getArgParser():
                                  the reference database. This defaults to makeblastdb when
                                  blastn is specified to the --aligner argument, and usearch
                                  when usearch is specified.''')
-
     parser_ref = subparsers.add_parser('reference', parents=[parent_parser, parent_ref],
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Assemble pairs by aligning reads against a reference database.',
                                         description='Assemble pairs by aligning reads against a reference database.')
-    parser_ref.add_argument_group('help').add_argument('-h', '--help', action='help',
-                                                       help='show this help message and exit')
     parser_ref.set_defaults(assemble_func=referenceAssembly)
 
     # De novo to reference rollover assembly
@@ -1034,8 +1025,6 @@ def getArgParser():
     #                                     formatter_class=CommonHelpFormatter, add_help=False,
     #                                     help='Assemble pairs by first attempting de novo assembly, then reference guided assembly.',
     #                                     description='Assemble pairs by first attempting de novo assembly, then reference guided assembly.')
-    # parser_two.add_argument_group('help').add_argument('-h', '--help', action='help',
-    #                                                    help='show this help message and exit')
     #parser_twostep.set_defaults(assemble_func=twostepAssembly)
 
     return parser

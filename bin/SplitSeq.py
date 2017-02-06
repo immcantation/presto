@@ -691,9 +691,11 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            formatter_class=CommonHelpFormatter)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                            formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
                                        help='Sequence file operation')
     # TODO:  This is a temporary fix for Python issue 9253
@@ -701,108 +703,110 @@ def getArgParser():
 
     # Subparser to downsize files to a maximum count
     parser_downsize = subparsers.add_parser('count',
-                                            parents=[getCommonArgParser(failed=False,
-                                                                        annotation=False,
-                                                                        log=False)],
-                                            formatter_class=CommonHelpFormatter,
+                                            parents=[getCommonArgParser(failed=False, annotation=False, log=False)],
+                                            formatter_class=CommonHelpFormatter, add_help=False,
                                             help='Splits sequences files by number of records.',
                                             description='Splits sequences files by number of records.')
-    parser_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
-                                 help='Maximum number of sequences in each new file')
+    group_downsize = parser_downsize.add_argument_group('splitting arguments')
+    group_downsize.add_argument('-n', action='store', dest='max_count', type=int, required=True,
+                                help='Maximum number of sequences in each new file')
     parser_downsize.set_defaults(func=downsizeSeqFile)
     
     # Subparser to partition files by annotation
     parser_group = subparsers.add_parser('group',
                                          parents=[getCommonArgParser(failed=False, log=False)],
-                                         formatter_class=CommonHelpFormatter,
+                                         formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Splits sequences files by annotation.',
                                          description='Splits sequences files by annotation.')
-    parser_group.add_argument('-f', action='store', dest='field', type=str, required=True,
-                              help='Annotation field to split sequence files by')
-    parser_group.add_argument('--num', action='store', dest='threshold', type=float, default=None, 
-                              help='Specify to define the split field as numeric and group \
-                                    sequences by value')
+    group_group = parser_group.add_argument_group('splitting arguments')
+    group_group.add_argument('-f', action='store', dest='field', type=str, required=True,
+                             help='Annotation field to split sequence files by')
+    group_group.add_argument('--num', action='store', dest='threshold', type=float, default=None,
+                             help='''Specify to define the split field as numeric and group
+                                  sequences by value.''')
     parser_group.set_defaults(func=groupSeqFile)
 
     # Subparser to randomly sample from unpaired files
     parser_sample = subparsers.add_parser('sample',
                                           parents=[getCommonArgParser(failed=False, log=False)],
-                                          formatter_class=CommonHelpFormatter,
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Randomly samples from unpaired sequences files.',
                                           description='Randomly samples from unpaired sequences files.')
-    parser_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True, 
-                               help='''Maximum number of sequences to sample from each file, field or
-                                    annotation set. The default behavior, without the -f argument, is to
-                                    sample from the complete set of sequences in the input file.''')
-    parser_sample.add_argument('-f', action='store', dest='field', type=str, default=None,
-                               help='''The annotation field for sampling criteria. If the -u argument
-                                    is not also specified, then sampling will be performed for each unique
-                                    annotation value in the declared field separately.''')
-    parser_sample.add_argument('-u', nargs='+', action='store', dest='values', type=str, default=None, 
-                               help='''If specified, sampling will be restricted to sequences that contain
-                                    one of the declared annotation values in the specified field.
-                                    Requires the -f argument.''')
+    group_sample = parser_sample.add_argument_group('splitting arguments')
+    group_sample.add_argument('-n', nargs='+', action='store', dest='max_count', type=int, required=True,
+                              help='''Maximum number of sequences to sample from each file, field or
+                                   annotation set. The default behavior, without the -f argument, is to
+                                   sample from the complete set of sequences in the input file.''')
+    group_sample.add_argument('-f', action='store', dest='field', type=str, default=None,
+                              help='''The annotation field for sampling criteria. If the -u argument
+                                   is not also specified, then sampling will be performed for each unique
+                                   annotation value in the declared field separately.''')
+    group_sample.add_argument('-u', nargs='+', action='store', dest='values', type=str, default=None,
+                              help='''If specified, sampling will be restricted to sequences that contain
+                                   one of the declared annotation values in the specified field.
+                                   Requires the -f argument.''')
     parser_sample.set_defaults(func=sampleSeqFile)
     
     # Subparser to randomly sample from paired files
-    parser_samplepair = subparsers.add_parser('samplepair',
-                                              parents=[getCommonArgParser(failed=False,
-                                                                          paired=True,
-                                                                          log=False)],
-                                              formatter_class=CommonHelpFormatter,
-                                              help='Randomly samples from paired-end sequences files.',
-                                              description='Randomly samples from paired-end sequences files.')
-    parser_samplepair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int,  required=True,
-                                   help='''Maximum number of paired sequences to sample from each
-                                        set of files, fields or annotations. The default behavior,
-                                        without the -f argument, is to sample from the complete
-                                        set of paired sequences in the input files.''')
-    parser_samplepair.add_argument('-f', action='store', dest='field', type=str, default=None,
-                                   help='''The annotation field for sampling criteria. If the -u argument
-                                        is not also specified, then sampling will be performed for each unique
-                                        annotation value in the declared field separately.''')
-    parser_samplepair.add_argument('-u', nargs='+', action='store', dest='values', type=str, default=None, 
-                                   help='''If specified, sampling will be restricted to sequences that contain
-                                        one of the declared annotation values in the specified field.
-                                        Requires the -f argument.''')
-    parser_samplepair.add_argument('--coord', action='store', dest='coord_type',
-                                   choices=choices_coord, default=default_coord,
-                                   help='''The format of the sequence identifier which defines shared
-                                        coordinate information across paired read files.''')
-    parser_samplepair.set_defaults(func=samplePairSeqFile)
+    parser_sampair = subparsers.add_parser('samplepair',
+                                           parents=[getCommonArgParser(failed=False, paired=True, log=False)],
+                                           formatter_class=CommonHelpFormatter, add_help=False,
+                                           help='Randomly samples from paired-end sequences files.',
+                                           description='Randomly samples from paired-end sequences files.')
+    group_sampair = parser_sampair.add_argument_group('sampling arguments')
+    group_sampair.add_argument('-n', nargs='+', action='store', dest='max_count', type=int,  required=True,
+                               help='''Maximum number of paired sequences to sample from each
+                                    set of files, fields or annotations. The default behavior,
+                                    without the -f argument, is to sample from the complete
+                                    set of paired sequences in the input files.''')
+    group_sampair.add_argument('-f', action='store', dest='field', type=str, default=None,
+                               help='''The annotation field for sampling criteria. If the -u argument
+                                    is not also specified, then sampling will be performed for each unique
+                                    annotation value in the declared field separately.''')
+    group_sampair.add_argument('-u', nargs='+', action='store', dest='values', type=str, default=None,
+                               help='''If specified, sampling will be restricted to sequences that contain
+                                    one of the declared annotation values in the specified field.
+                                    Requires the -f argument.''')
+    group_sampair.add_argument('--coord', action='store', dest='coord_type',
+                               choices=choices_coord, default=default_coord,
+                               help='''The format of the sequence identifier which defines shared
+                                    coordinate information across paired read files.''')
+    parser_sampair.set_defaults(func=samplePairSeqFile)
     
     # Subparser to sort files
     parser_sort = subparsers.add_parser('sort',
                                         parents=[getCommonArgParser(failed=False, log=False)],
-                                        formatter_class=CommonHelpFormatter,
+                                        formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Sorts sequences files by annotation.',
                                         description='Sorts sequences files by annotation.')
-    parser_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
-                             help='The annotation field to sort sequences by.')
-    parser_sort.add_argument('-n', action='store', dest='max_count', type=int,
-                             default=None, help='Maximum number of sequences in each new file.')
-    parser_sort.add_argument('--num', action='store_true', dest='numeric',
-                             help='Specify to define the sort field as numeric rather than textual.')
+    group_sort = parser_sort.add_argument_group('sorting arguments')
+    group_sort.add_argument('-f', action='store', dest='field', type=str, required=True,
+                            help='The annotation field to sort sequences by.')
+    group_sort.add_argument('-n', action='store', dest='max_count', type=int,
+                            default=None, help='Maximum number of sequences in each new file.')
+    group_sort.add_argument('--num', action='store_true', dest='numeric',
+                            help='Specify to define the sort field as numeric rather than textual.')
     parser_sort.set_defaults(func=sortSeqFile)
     
     # Subparser to select sequences
     parser_select = subparsers.add_parser('select',
                                           parents=[getCommonArgParser(failed=False, log=False)],
-                                          formatter_class=CommonHelpFormatter,
+                                          formatter_class=CommonHelpFormatter, add_help=False,
                                           help='''Selects sequences from sequence files by annotation.''',
                                           description='''Selects sequences from sequence files by annotation.''')
-    parser_select.add_argument('-f', action='store', dest='field', type=str, default=None, required=True,
+    group_select = parser_select.add_argument_group('splitting arguments')
+    group_select.add_argument('-f', action='store', dest='field', type=str, default=None, required=True,
                                help='''The annotation field for selection criteria.''')
-    select_group = parser_select.add_mutually_exclusive_group()
-    select_group.add_argument('-u', nargs='+', action='store', dest='value_list', type=str, default=None, required=False,
-                               help='''A list of values to select for in the specified field. Mutually exclusive with -t.''')
-    select_group.add_argument('-t', action='store', dest='value_file', type=str, default=None, required=False,
-                               help='''A tab delimited file specifying values to select for in the specified field.
-                                    The file must be formatted with the given field name in the header row. Values will
-                                    be taken from that column. Mutually exclusive with -u.''')
-    parser_select.add_argument('--not', action='store_true', dest='negate',
-                               help='''If specified, will perform negative matching. Meaning, sequences will be selected
-                                    if they fail to match for all specified values.''')
+    group_select_val = group_select.add_mutually_exclusive_group()
+    group_select_val.add_argument('-u', nargs='+', action='store', dest='value_list', type=str, default=None, required=False,
+                                  help='''A list of values to select for in the specified field. Mutually exclusive with -t.''')
+    group_select_val.add_argument('-t', action='store', dest='value_file', type=str, default=None, required=False,
+                                  help='''A tab delimited file specifying values to select for in the specified field.
+                                       The file must be formatted with the given field name in the header row. Values will
+                                       be taken from that column. Mutually exclusive with -u.''')
+    group_select.add_argument('--not', action='store_true', dest='negate',
+                              help='''If specified, will perform negative matching. Meaning, sequences will be selected
+                                   if they fail to match for all specified values.''')
     parser_select.set_defaults(func=selectSeqFile)
 
     return parser
