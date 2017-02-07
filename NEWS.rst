@@ -4,6 +4,8 @@ Release Notes
 Version 0.5.2.999:  February 7, 2017
 -------------------------------------------------------------------------------
 
+License changed to Creative Commons Attribution-ShareAlike 4.0 International
+(CC BY-SA 4.0).
 
 AssemblePairs:
 
