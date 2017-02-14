@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.2.999:  February 7, 2017
+Version 0.5.3:  February 14, 2017
 -------------------------------------------------------------------------------
 
 License changed to Creative Commons Attribution-ShareAlike 4.0 International
@@ -12,7 +12,7 @@ AssemblePairs:
 + Changed the behavior of the ``--failed`` argument so that failed output
   are in the same orientation as the input sequences. Meaning, the ``--rc``
   argument is ignored for failed output.
-+ Added the twostep subcommand which will first attempt de novo assembly
++ Added the sequential subcommand which will first attempt de novo assembly
   (align subcommand) following by reference guided assembly (reference
   subcommand) if de novo assembly fails.
 + Added blastn compatibility to reference subcommand.

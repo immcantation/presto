@@ -490,7 +490,7 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
     return stitch
 
 
-def twostepAssembly(head_seq, tail_seq, ref_dict, ref_db,
+def sequentialAssembly(head_seq, tail_seq, ref_dict, ref_db,
                     alpha=default_alpha, max_error=default_max_error,
                     min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
                     min_ident=default_min_ident, evalue=default_evalue, max_hits=default_max_hits,
@@ -846,7 +846,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     cmd_dict = {alignAssembly:'align',
                 joinSeqPair:'join',
                 referenceAssembly:'reference',
-                twostepAssembly:'twostep'}
+                sequentialAssembly:'sequential'}
     cmd_name = cmd_dict.get(assemble_func, assemble_func.__name__)
 
     # Print parameter info
@@ -879,7 +879,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                  % (head_count, tail_count))
 
     # Setup for reference alignment
-    if cmd_name in ('reference', 'twostep'):
+    if cmd_name in ('reference', 'sequential'):
         ref_file = assemble_args.pop('ref_file')
         db_exec = assemble_args.pop('db_exec')
 
@@ -1065,11 +1065,11 @@ def getArgParser():
     parser_ref.set_defaults(assemble_func=referenceAssembly)
 
     # De novo to reference rollover assembly
-    parser_two = subparsers.add_parser('twostep', parents=[parent_parser, parent_align, parent_ref],
+    parser_two = subparsers.add_parser('sequential', parents=[parent_parser, parent_align, parent_ref],
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Assemble pairs by first attempting de novo assembly, then reference guided assembly.',
                                         description='Assemble pairs by first attempting de novo assembly, then reference guided assembly.')
-    parser_two.set_defaults(assemble_func=twostepAssembly)
+    parser_two.set_defaults(assemble_func=sequentialAssembly)
 
     return parser
 
@@ -1093,7 +1093,7 @@ if __name__ == '__main__':
         del args_dict['gap']
 
     # Define assemble_args dictionary for align mode
-    if args_dict['assemble_func'] is alignAssembly or args_dict['assemble_func'] is twostepAssembly:
+    if args_dict['assemble_func'] is alignAssembly or args_dict['assemble_func'] is sequentialAssembly:
         assemble_args = args_dict.setdefault('assemble_args', {})
         assemble_args.update({'alpha': args_dict['alpha'],
                               'max_error': args_dict['max_error'],
@@ -1107,10 +1107,8 @@ if __name__ == '__main__':
         del args_dict['max_len']
         del args_dict['scan_reverse']
 
-        print(args_dict['assemble_args'])
-
     # Define assemble_args dictionary for reference mode
-    if args_dict['assemble_func'] is referenceAssembly or args_dict['assemble_func'] is twostepAssembly:
+    if args_dict['assemble_func'] is referenceAssembly or args_dict['assemble_func'] is sequentialAssembly:
         assemble_args = args_dict.setdefault('assemble_args', {})
         assemble_args.update({'ref_file': args_dict['ref_file'],
                               'min_ident': args_dict['min_ident'],
@@ -1141,8 +1139,6 @@ if __name__ == '__main__':
         # Check if a valid executable was specified
         if not shutil.which(args_dict['assemble_args']['aligner_exec']):
             parser.error('%s executable not found' % args_dict['assemble_args']['aligner_exec'])
-
-        print(args_dict['assemble_args'])
 
     # Call assemblePairs for each sample file
     del args_dict['command']
