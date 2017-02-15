@@ -1,4 +1,4 @@
-pRESTO - The REpertoire Sequencing TOolkit
+pRESTO: The REpertoire Sequencing TOolkit
 ================================================================================
 
 pRESTO is a toolkit for processing raw reads from high-throughput sequencing of
