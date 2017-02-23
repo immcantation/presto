@@ -16,7 +16,6 @@
 import sys
 import os
 import sphinx_rtd_theme
-#import sphinx_bootstrap_theme
 from unittest.mock import MagicMock
 
 # Presto imports
