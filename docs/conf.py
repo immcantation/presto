@@ -16,7 +16,6 @@
 import sys
 import os
 import sphinx_rtd_theme
-#import sphinx_bootstrap_theme
 from unittest.mock import MagicMock
 
 # Presto imports
@@ -26,7 +25,7 @@ import presto.Version
 if os.environ.get('READTHEDOCS', None) == 'True':
     class Mock(MagicMock):
         @classmethod
-        def __getattr__(cls, name):  return Mock()
+        def __getattr__(cls, name):  return MagicMock()
 
     mock_modules = ['numpy', 'scipy', 'scipy.stats', 'pandas',
                     'Bio', 'Bio.Align', 'Bio.Alphabet', 'Bio.Seq', 'Bio.SeqRecord']
