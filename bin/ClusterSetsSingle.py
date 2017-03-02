@@ -37,13 +37,14 @@ default_cluster_ident = 0.9
 
 
 
+#Temporary. runUClust uses a different set of run flags as of Feb 2017. Should be updated in Applications API. 
+#In particular, not the absence of a thread specification.
+
 import tempfile
 import csv
 from subprocess import CalledProcessError, check_output, PIPE, Popen, STDOUT
 from Bio.Seq import Seq
 from Bio import SeqIO
-
-#Temporary. runUClust uses a different set of run flags as of Feb 2017.
 
 def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
               cluster_exec=default_usearch_exec):
@@ -153,17 +154,20 @@ def feedSingleQueue(alive, data_queue, seq_file, index_func=None, index_args={},
     try:
         seq_dict = readSeqFile(seq_file, index=True) #seq_id + seq_record
         index_dict = index_func(seq_dict, **index_args) #UID + seq_id
-        seq_list_umi = _returnSeqRecordsfromDict(index_dict) #SeqRecord(seq=UID, name/id = list(seq_id))
+        seq_list_umi = _returnSeqRecordsfromDict(index_dict) # list of SeqRecord(seq=UID, name/id = list(seq_id))
         
+        #Runs Uclust (No threads specified.)
         try:
             clust_dict = runUClust(seq_list_umi, **cluster_args)
         except:
             raise
-            
+        
+        #Separate raise because runUClust is used in other bin tools
         if clust_dict is None:
             sys.stderr.write('Uclust failure. No clusters generated or IO error.')
             raise
 
+        #Generates a data_iter from UClust
         data_iter = ((k, [seq_dict[i] for i in v]) \
                          for k, v in clust_dict.items())
 
@@ -197,7 +201,7 @@ def feedSingleQueue(alive, data_queue, seq_file, index_func=None, index_args={},
 def processSingleQueue(alive, data_queue, result_queue, cluster_field,
                   cluster_args={}, delimiter=default_delimiter):
     """
-    Pulls from data queue, performs calculations, and feeds results queue
+    Pulls from data queue, and feeds results queue. 
 
     Arguments:
     alive = a multiprocessing.Value boolean controlling whether processing
@@ -256,80 +260,6 @@ def processSingleQueue(alive, data_queue, result_queue, cluster_field,
 
     return None
 
-
-def clusterSets(seq_file, barcode_field=default_barcode_field,
-                cluster_field=default_cluster_field,
-                ident=default_ident, seq_start=None, seq_end=None,
-                cluster_exec=default_cluster_exec,
-                out_args=default_out_args, nproc=None,
-                queue_size=None):
-    """
-    Performs clustering on sets of sequences
-
-    Arguments:
-    seq_file = the sample sequence file name
-    barcode_field = the annotation containing set IDs
-    ident = the identity threshold for clustering sequences
-    seq_start = the start position to trim sequences at before clustering
-    seq_end = the end position to trim sequences at before clustering
-    cluster_exec = the path to the executable for usearch
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
-
-    Returns:
-    the clustered output file name
-    """
-    # Print parameter info
-    log = OrderedDict()
-    log['START'] = 'ClusterSets'
-    log['FILE'] = os.path.basename(seq_file)
-    log['BARCODE_FIELD'] = barcode_field
-    log['CLUSTER_FIELD'] = cluster_field
-    log['IDENTITY'] = ident
-    log['SEQUENCE_START'] = seq_start
-    log['SEQUENCE_END'] = seq_end
-    log['NPROC'] = nproc
-    printLog(log)
-
-    # Define cluster function parameters
-    cluster_args = {'cluster_exec':cluster_exec,
-                    'ident':ident,
-                    'seq_start':seq_start,
-                    'seq_end':seq_end}
-
-    # Define feeder function and arguments
-    index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
-    feed_func = feedSeqQueue
-    feed_args = {'seq_file': seq_file,
-                 'index_func': indexSeqSets,
-                 'index_args': index_args,
-                 'cluster_args': cluster_args,}
-    # Define worker function and arguments
-    work_func = processCSQueue
-    work_args = {'cluster_field': cluster_field,
-                 'delimiter': out_args['delimiter']}
-    # Define collector function and arguments
-    collect_func = collectSeqQueue
-    collect_args = {'seq_file': seq_file,
-                    'task_label': 'cluster',
-                    'out_args': out_args,
-                    'index_field': barcode_field}
-
-    # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
-
-    # Print log
-    log = OrderedDict()
-    log['OUTPUT'] = result['log'].pop('OUTPUT')
-    for k, v in result['log'].items():  log[k] = v
-    log['END'] = 'ClusterSets'
-    printLog(log)
-
-    return result['out_files']
 
 
 def clusterSetsSingle(seq_file, barcode_field=default_barcode_field,
