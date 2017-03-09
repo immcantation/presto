@@ -73,7 +73,7 @@ def translateAmbigDNA(key):
         return 'N'
 
 
-def scoreDNA(a, b, mask_score=None, gap_score=None):
+def scoreDNA(a, b, mask_score=None, gap_score=None, invert=False):
     """
     Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
 
@@ -96,7 +96,6 @@ def scoreDNA(a, b, mask_score=None, gap_score=None):
                    '-.':'.'}
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.items() for p in list(product(k, v))]
-
     # Check gap and N-value conditions, prioritizing score for first character
     if gap_score is not None and a in '-.':
         return gap_score[0]
@@ -106,16 +105,17 @@ def scoreDNA(a, b, mask_score=None, gap_score=None):
         return gap_score[1]
     elif mask_score is not None and b in 'nN':
         return mask_score[1]
-
     # Return symmetric and reflexive score for IUPAC match conditions
-    if a == b:
-        return 1
-    elif (a, b) in IUPAC_matches:
-        return 1
-    elif (b, a) in IUPAC_matches:
-        return 1
+    if not invert:
+        if a == b or (a, b) in IUPAC_matches or (b, a) in IUPAC_matches:
+            return 1
+        else:
+            return 0
     else:
-        return 0
+        if a == b or (a, b) in IUPAC_matches or (b, a) in IUPAC_matches:
+            return 0
+        else:
+            return 1
 
 
 def scoreAA(a, b, mask_score=None, gap_score=None):
@@ -162,7 +162,7 @@ def scoreAA(a, b, mask_score=None, gap_score=None):
         return 0
 
 
-def getDNAScoreDict(mask_score=None, gap_score=None):
+def getDNAScoreDict(mask_score=None, gap_score=None, invert =False):
     """
     Generates a score dictionary
 
@@ -173,14 +173,14 @@ def getDNAScoreDict(mask_score=None, gap_score=None):
       gap_score : Tuple of length two defining score for all matches against a [-, .]
                   character for (a, b), with the score for character (a) taking precedence;
                   if None score symmetrically according to IUPAC character identity
+      invert ;    Boolean, returns an inverted scoreDict if true
 
     Returns:
       dict : Score dictionary with keys (char1, char2) mapping to scores
     """
     chars = '-.ACGTRYSWKMBDHVN'
-    score_dict = {k:scoreDNA(*k, mask_score=mask_score, gap_score=gap_score)
+    score_dict = {k:scoreDNA(*k, mask_score=mask_score, gap_score=gap_score, invert=invert)
                   for k in product(chars, repeat=2)}
-
     return score_dict
 
 
@@ -295,6 +295,24 @@ def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     error = 1.0 - float(score) / weight if weight > 0 else 1.0
 
     return (score, weight, error)
+
+
+def scoreHamPair(seq1, seq2, score_dict=getDNAScoreDict(invert=True)):
+    """
+    Simple hamming calculator derived from scoreSeqPair using inverted scoreDict
+
+    Arguments:
+        seq1 : string representing an nt sequence with valid chars
+        seq2 : string representing an nt sequence with valid chars
+        score_dict : optional dictionary of alignment scores
+
+    Returns:
+          dict : Score dictionary with keys (char1, char2) mapping to scores
+    """
+    nts = zip(seq1, seq2)
+    score = sum([score_dict[(c1, c2)] for c1, c2 in nts])
+    
+    return score
 
 
 def calculateDiversity(seq_list, score_dict=getDNAScoreDict()):

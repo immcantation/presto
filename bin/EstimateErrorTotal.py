@@ -21,107 +21,14 @@ from time import time
 from presto.Defaults import default_barcode_field, default_missing_chars, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
-from presto.Sequence import getDNAScoreDict, indexSeqSets
+from presto.Sequence import getDNAScoreDict, indexSeqSets, scoreHamPair
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 
 
-
-#####NEED TO UPDATE API TO INCORPORATE CHANGES
-
-from itertools import product
-##Addition of invert flag
-def scoreDNA(a, b, mask_score=None, gap_score=None, invert=False):
-    """
-    Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
-
-    Arguments:
-      a : First characters
-      b : Second character
-      n_score : Tuple of length two defining scores for all matches against an N
-                character for (a, b), with the score for character (a) taking precedence;
-                if None score symmetrically according to IUPAC character identity
-      gap_score : Tuple of length two defining score for all matches against a gap (-, .)
-                  character for (a, b), with the score for character (a) taking precedence;
-                  if None score symmetrically according to IUPAC character identity
-
-    Returns:
-      int : Score for the character pair
-    """
-    # Define ambiguous character translations
-    IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
-                   'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
-                   '-.':'.'}
-    # Create list of tuples of synonymous character pairs
-    IUPAC_matches = [p for k, v in IUPAC_trans.items() for p in list(product(k, v))]
-    # Check gap and N-value conditions, prioritizing score for first character
-    if gap_score is not None and a in '-.':
-        return gap_score[0]
-    elif mask_score is not None and a in 'nN':
-        return mask_score[0]
-    elif gap_score is not None and b in '-.':
-        return gap_score[1]
-    elif mask_score is not None and b in 'nN':
-        return mask_score[1]
-    # Return symmetric and reflexive score for IUPAC match conditions
-    if not invert:
-        if a == b or (a, b) in IUPAC_matches or (b, a) in IUPAC_matches:
-            return 1
-        else:
-            return 0
-    else:
-        if a == b or (a, b) in IUPAC_matches or (b, a) in IUPAC_matches:
-            return 0
-        else:
-            return 1
-
-from itertools import product
-def getDNAScoreDict(mask_score=None, gap_score=None, invert =False):
-    """
-    Generates a score dictionary
-
-    Arguments:
-      mask_score : Tuple of length two defining scores for all matches against an N
-                   character for (a, b), with the score for character (a) taking precedence;
-                   if None score symmetrically according to IUPAC character identity
-      gap_score : Tuple of length two defining score for all matches against a [-, .]
-                  character for (a, b), with the score for character (a) taking precedence;
-                  if None score symmetrically according to IUPAC character identity
-
-    Returns:
-      dict : Score dictionary with keys (char1, char2) mapping to scores
-    """
-    chars = '-.ACGTRYSWKMBDHVN'
-    score_dict = {k:scoreDNA(*k, mask_score=mask_score, gap_score=gap_score, invert=invert)
-                  for k in product(chars, repeat=2)}
-    return score_dict
-
-
-default_score_dict = getDNAScoreDict(invert=True)
-
-
-def scoreHamPair(seq1, seq2, score_dict=default_score_dict):
-    """
-    Simple hamming calculator derived from scoreSeqPair
-
-    Arguments:
-        seq1 : string representing an nt sequence with valid chars
-        seq2 : string representing an nt sequence with valid chars
-        score_dict : optional dictionary of alignment scores
-
-    Returns:
-          dict : Score dictionary with keys (char1, char2) mapping to scores
-    """
-    nts = zip(seq1, seq2)
-    score = sum([score_dict[(c1, c2)] for c1, c2 in nts])
-    
-    return score
-
-
-from itertools import combinations
-
-def calcDistancesPairwise(sequences, score_dict=default_score_dict):
+def calcDistancesPairwise(sequences):
     """
     Calculate pairwise distances between input sequences (currently hamming only)
+    Does not require input matrices, uses inverted scoreDict
     
     Arguments:
         sequences: List of sequences for which to calculate pairwise distances
@@ -144,14 +51,14 @@ def calcDistancesPairwise(sequences, score_dict=default_score_dict):
         #Calculate distances
         try:
         	#TODO: hamming calculator ignores differences in length
-            dists[j, k] = dists[k, j] = scoreHamPair(seq1, seq2, score_dict) 
+            dists[j, k] = dists[k, j] = scoreHamPair(seq1, seq2) 
         except (KeyError):
             raise KeyError('Unrecognized character in sequence.')
         
     return dists
 
 
-def histogramDistMatrix(array, max_dist, triangle=True):
+def histogramDistMatrix(array, max_dist, triangle=True, DistToNearest=True):
     """
     Bins the output distance matrix from pairwise distance calculations
     
@@ -163,25 +70,35 @@ def histogramDistMatrix(array, max_dist, triangle=True):
     Returns:
         output_hist: a histogram/count distribution of hamming distances 
     """
-	#we assume the input array is a square matrix/array
+    #we assume the input array is a square matrix/array
     n = len(array)
-	#check that the array is not empty
+    #check that the array is not empty
     if not n:
         raise Exception('barcode/annotation group with no sequences encountered')
-	#flattens whole or upper triangular part of matrix (based on triangle flag)
+    #flattens whole or upper triangular part of matrix (based on triangle flag)
     output = []
     if triangle:
-    	for i in range(n):
-    		for j in range(i+1, n):
-    			output.append(array[i,j])
+        for i in range(n):
+            row = []
+            for j in range(i+1, n):
+                row.append(array[i,j])
+            if DistToNearest and any(row):  #when i is n, row = []
+                output.append(min(row))
+            else:
+                output += row
     else:
-    	for i in range(n):
-    		for j in range(n):
-    			output.append(array[i,j])
-	#check that the hamming distance resulted in plausible distances
+        for i in range(n):
+            row = []
+            for j in range(n):
+                row.append(array[i,j])
+            if DistToNearest:
+                output.append(min(row))
+            else:
+                output += row
+    #check that the hamming distance resulted in plausible distances
     if max(output) > max_dist:
         raise Exception('distance observed between sequences is greater than maximum plausible distance')
-	#generate the histogram from the flattened matrix
+    #generate the histogram from the flattened matrix
     output_hist = list(np.histogram(output, bins=list(range(max_dist)))[0])
     return output_hist
 
