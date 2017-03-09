@@ -22,7 +22,7 @@ from presto.Defaults import default_barcode_field, default_missing_chars, defaul
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
 from presto.Sequence import getDNAScoreDict, indexSeqSets, scoreHamPair
-from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
+from presto.Multiprocessing import SeqNumResult, manageProcesses, feedSeqQueue
 
 
 def calcDistancesPairwise(sequences):
@@ -162,7 +162,7 @@ def processEETQueue(alive, data_queue, result_queue):
             # Gets the length of the shortest seq in the list
             seq_min_len = min([len(seq) for seq in seq_list])
 
-            result = SeqResult(seq_id, seq_list)
+            result = SeqNumResult(seq_id, seq_list)
 
             # Update log
             result.log['SET'] = seq_id
@@ -190,6 +190,7 @@ def processEETQueue(alive, data_queue, result_queue):
                 
                 
             # Update results and feed result queue (including results without hists)
+            result.count = seq_count
             result.valid = (seq_count > 0)
             result_queue.put(result)
         else:
@@ -273,7 +274,7 @@ def collectEETQueue(alive, result_queue, collect_queue, seq_file, out_args, set_
             
             # Update counts for progress logs
             set_count += 1
-            seq_count += result.data_count
+            seq_count += result.count
             
             # only add results that contain a hist to the eventual output hist_df
             if result.results is not None:
