@@ -288,7 +288,7 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     a tuple of (valid_file, invalid_file) names
     """
     # Define subcommand label dictionary
-    cmd_dict = {runMuscle:'align', offsetSeqSet:'offset'}
+    cmd_dict = {runMuscle:'muscle', offsetSeqSet:'offset'}
     
     # Print parameter info
     log = OrderedDict()
