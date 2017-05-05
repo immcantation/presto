@@ -4,5 +4,5 @@ Version and authorship information
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2017 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)'
-__version__   = '0.5.3'
-__date__      = '2017.02.14'
+__version__   = '0.5.3.999'
+__date__      = '2017.05.05'
