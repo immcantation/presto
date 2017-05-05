@@ -8,6 +8,10 @@ AlignSets:
 
 + Fixed a typo in the console log of the muscle subcommand.
 
+ConvertHeaders:
+
++ Added the ``migec`` subcommand to convert the headers of from the
+  MIGEC tool.
 
 Version 0.5.3:  February 14, 2017
 -------------------------------------------------------------------------------

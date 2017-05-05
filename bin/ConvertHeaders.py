@@ -272,6 +272,34 @@ def convertSRAHeader(desc):
     return header
 
 
+def convertMIGECHeader(desc):
+    """
+    Parses headers from the MIGEC tool into the pRESTO format
+
+    Arguments:
+    desc = a sequence description string
+
+    Returns:
+    a dictionary of header {field: value} pairs
+
+    Header example:
+        @MIG UMI:TCGGCCAACAAA:8
+        @MIG UMI:<UMI sequence>:<consensus read count>
+    """
+    # Split description and assign field names
+    try:
+        fields = desc.split(':')
+
+        # Build header dictionary
+        header = OrderedDict()
+        header['ID'] = fields[1]
+        header['COUNT'] = fields[2]
+    except:
+        header = None
+
+    return header
+
+
 def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out_args):
     """
     Converts sequence headers to the pRESTO format
@@ -291,6 +319,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
                 convertGenbankHeader:'genbank',
                 convertIlluminaHeader:'illumina',
                 convertIMGTHeader:'imgt',
+                convertMIGECHeader: 'migec',
                 convertSRAHeader:'sra'}
 
     log = OrderedDict()
@@ -451,6 +480,15 @@ def getArgParser():
                                  annotations, will appear in the converted sequence
                                  header.''')
     parser_imgt.set_defaults(convert_func=convertIMGTHeader)
+
+    # Subparser for conversion of MIGEC headers
+    parser_migec = subparsers.add_parser('migec', parents=[parent_parser],
+                                         formatter_class=CommonHelpFormatter, add_help=False,
+                                         help='''Converts headers for consensus sequence generated
+                                              by the MIGEC tool.''',
+                                         description='''Converts headers for consensus sequence generated
+                                              by the MIGEC tool.''')
+    parser_migec.set_defaults(convert_func=convertMIGECHeader)
 
     # Subparser for conversion of SRA headers
     parser_sra = subparsers.add_parser('sra', parents=[parent_parser], add_help=False,
