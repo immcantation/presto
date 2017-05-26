@@ -19,7 +19,7 @@ from textwrap import dedent
 from presto.Defaults import default_delimiter, default_barcode_field, \
                             default_cluster_field, default_out_args, \
                             default_usearch_exec
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.Applications import runUClust
 from presto.IO import printLog
@@ -249,6 +249,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 

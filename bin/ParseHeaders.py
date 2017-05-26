@@ -18,7 +18,7 @@ from Bio import SeqIO
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_separator, default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               renameAnnotation, collapseAnnotation
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
@@ -464,6 +464,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     # Convert case of fields

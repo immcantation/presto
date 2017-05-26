@@ -1,8 +1,10 @@
 Release Notes
 ================================================================================
 
-Version 0.5.3.999:  March 12, 2017
+Version 0.5.3.999:  March 26, 2017
 -------------------------------------------------------------------------------
+
++ All tools will now print detailed help if no arguments are provided.
 
 AlignSets:
 

@@ -16,7 +16,7 @@ from time import time
 
 # Presto imports
 from presto.Defaults import default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getOutputHandle, printLog, printProgress
 
 
@@ -166,6 +166,7 @@ if __name__ == '__main__':
     # Parse arguments
     parser = getArgParser()
     args = parser.parse_args()
+    checkArgs(parser)
     args_dict = parseCommonArgs(args, in_arg='record_files')
     # Convert case of fields
     if args_dict['fields']:  args_dict['fields'] = list(map(str.upper, args_dict['fields'])) 

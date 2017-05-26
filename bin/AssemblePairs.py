@@ -27,7 +27,7 @@ from presto.Defaults import default_delimiter, choices_coord, \
                             default_coord, default_missing_chars, \
                             default_blastn_exec, default_blastdb_exec, \
                             default_usearch_exec, default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               getCoordKey
 from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast
@@ -1078,6 +1078,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='ref_file')
     

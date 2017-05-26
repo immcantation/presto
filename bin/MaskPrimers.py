@@ -17,7 +17,7 @@ from Bio import pairwise2
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.Sequence import compilePrimers, getDNAScoreDict, reverseComplement
 from presto.IO import readPrimerFile, printLog
@@ -626,6 +626,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

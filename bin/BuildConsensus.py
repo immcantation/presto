@@ -17,7 +17,7 @@ from textwrap import dedent
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
     default_min_freq, default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
                               annotationConsensus
 from presto.IO import getFileType, printLog
@@ -440,6 +440,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     

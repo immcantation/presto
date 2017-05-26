@@ -19,7 +19,7 @@ from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_missing_chars, default_min_qual, default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
@@ -478,6 +478,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
     
