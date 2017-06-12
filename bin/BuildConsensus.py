@@ -450,7 +450,7 @@ if __name__ == '__main__':
     
     # Check prcons argument dependencies
     if args.primer_freq and not args.primer_field:
-        parser.error('You must define a primer field with --prf to use the --prcons option')
+        parser.error('You must define a primer field with --pf to use the --prcons option')
 
     # Check copy field and action arguments
     if bool(args_dict['copy_fields']) ^ bool(args_dict['copy_actions']) or \
