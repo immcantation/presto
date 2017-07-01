@@ -23,7 +23,7 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
                             default_primer_field, default_out_args, default_muscle_exec
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation
 from presto.Applications import runMuscle
 from presto.Sequence import calculateDiversity, indexSeqSets

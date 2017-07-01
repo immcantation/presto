@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.3.999:  March 26, 2017
+Version 0.5.4:  July 1, 2017
 -------------------------------------------------------------------------------
 
 + All tools will now print detailed help if no arguments are provided.
@@ -12,8 +12,13 @@ AlignSets:
 
 ConvertHeaders:
 
-+ Added the ``migec`` subcommand to convert the headers of from the
-  MIGEC tool.
++ Added the ``migec`` subcommand to convert headers from the MIGEC tool.
+
+EstimateError:
+
++ Fixed a division by zero error when there were no observed mismatches.
++ Bounded error rate to a minimum of 10^-9 (Q=90).
+
 
 Version 0.5.3:  February 14, 2017
 -------------------------------------------------------------------------------

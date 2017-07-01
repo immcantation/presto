@@ -7,6 +7,7 @@ Tool	Subcommand	Description
 	align	Assembles paired-end reads by aligning the sequence ends
 	join	Concatenates pair-end reads with intervening gaps
 	reference	Assembles paired-end reads using V-segment references
+	sequential	Attempt alignment assembly followed by reference assembly
 :ref:`BuildConsensus`		Constructs UMI consensus sequences
 :ref:`ClusterSets`		Clusters UMI read groups into smaller sub-groups
 :ref:`CollapseSeq`		Removes duplicate sequences
@@ -16,6 +17,7 @@ Tool	Subcommand	Description
 	genbank	Converts NCBI GenBank and RefSeq sequence headers
 	illumina	Converts Illumina sequence headers
 	imgt	Converts sequence headers output by IMGT/GENE-DB.
+	migec	Converts sequence headers output by MIGEC.
 	sra	Converts NCBI SRA sequence headers
 :ref:`EstimateError`		Estimates error rates for UMI data
 :ref:`FilterSeq`		Removes or modifies low quality reads

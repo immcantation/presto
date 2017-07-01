@@ -279,11 +279,17 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             return None
     
         # Calculate error rates
-        pos_df['error'] = pos_df['mismatch'] / pos_df['total'] 
+        pos_df['error'] = pos_df['mismatch'] / pos_df['total']
         nuc_df['error'] = nuc_df['mismatch'] / nuc_df['total']
         qual_df['error'] = qual_df['mismatch'] / qual_df['total']
         set_df['error'] = set_df['mismatch'] / set_df['total']
-        
+
+        # Bound minimum error to Q=90
+        pos_df['error'][pos_df['error'] == 0] = 1e-9
+        nuc_df['error'][nuc_df['error'] == 0] = 1e-9
+        qual_df['error'][qual_df['error'] == 0] = 1e-9
+        set_df['error'][set_df['error'] == 0] = 1e-9
+
         # Convert error to empirical quality score
         pos_df['emp_q'] = -10 * np.log10(pos_df['error'])
         nuc_df['emp_q'] = -10 * np.log10(nuc_df['error'])
