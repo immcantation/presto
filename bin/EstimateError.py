@@ -160,7 +160,7 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             result.log['ERROR'] = '%.6f' % error_rate
             result.log['REPORTED_Q'] = '%.2f' % reported_q
             result.log['EMPIRICAL_Q'] = '%.2f' % (-10 * np.log10(max(error_rate, 1e-9)))
-                
+
             # Update results and feed result queue
             result.valid = True
             result.results.update(mismatch)

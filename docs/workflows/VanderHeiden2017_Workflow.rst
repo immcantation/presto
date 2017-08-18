@@ -1,6 +1,37 @@
 Illumina MiSeq 2x300bp B cell receptor mRNA 5'RACE with UMIs
 ================================================================================
 
+
+Read Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: figures/VanderHeiden2017_ReadConfiguration.svg
+    :align: center
+
+    **Schematic of the Illumina MiSeq 2x250 paired-end reads with UMI barcodes.**
+    Each 250 base-pair read was sequenced from one end of the target cDNA, so
+    that the two reads together cover the entire variable region of the Ig
+    heavy chain. The V(D)J reading frame proceeds from the start of read 2 to
+    the start of read 1. Read 1 is in the opposite orientation
+    (reverse complement), and contains a 15 nucleotide UMI barcode preceding
+    the C-region primer sequence.
+
+
+Flowchart
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. figure:: figures/VanderHeiden2017_Flowchart.svg
+    :align: center
+
+    **Flowchart of processing steps.**
+    Each pRESTO tool is shown as a colored box. The workflow is divided into
+    four primary tasks: (red) quality control, UMI annotation and primer masking;
+    (orange) generation of UMI consensus sequences; (green) paired-end assembly of
+    UMI consensus sequences; and (blue) deduplication and filtering to obtain the
+    high-fidelity repertoire. Grey boxes indicate the initial and final data files.
+    The intermediate files output by each tool are not shown for the sake of brevity.
+
+
 .. todo::
 
     Example workflow for MiSeq 325+275 5'RACE with UMIs
