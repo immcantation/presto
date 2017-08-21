@@ -1,6 +1,10 @@
-Illumina MiSeq 2x300bp B cell receptor mRNA 5'RACE with UMIs
+UMI Barcoded Illumina MiSeq 325+275 paired-end 5'RACE BCR mRNA
 ================================================================================
 
+Overview of Experimental Data
+--------------------------------------------------------------------------------
+
+.. include:: ../../examples/VanderHeiden2017/README.rst
 
 Read Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -8,14 +12,38 @@ Read Configuration
 .. figure:: figures/VanderHeiden2017_ReadConfiguration.svg
     :align: center
 
-    **Schematic of the Illumina MiSeq 2x250 paired-end reads with UMI barcodes.**
-    Each 250 base-pair read was sequenced from one end of the target cDNA, so
-    that the two reads together cover the entire variable region of the Ig
-    heavy chain. The V(D)J reading frame proceeds from the start of read 2 to
-    the start of read 1. Read 1 is in the opposite orientation
-    (reverse complement), and contains a 15 nucleotide UMI barcode preceding
-    the C-region primer sequence.
+    **Schematic of the Illumina MiSeq 325+275 paired-end reads with UMI barcodes.**
+    Each read was sequenced from one end of the target cDNA so that the two reads
+    together cover the entire variable region of the Ig heavy chain. Sequencing was
+    performed using an uneven number of cycles for read 1 and read 2 using a 2x300 kit.
+    The V(D)J reading frame proceeds from the start of read 2 to the start of read 1.
+    Read 1 is in the opposite orientation (reverse complement), contains a partial C-region,
+    and is 325 nucletoides in length. Read 2 contains the 5'RACE template switch site
+    and a 17 nucleotide UMI barcode preceding it, and is 275 nucleotides in length.
 
+Example Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have hosted a small subset of the data (Accession: SRR1383456) on the
+pRESTO website in FASTQ format with accompanying primer files. The sample data
+set and workflow script may be downloaded from here:
+
+`Vander Heiden et al, 2017 Example Files <http://clip.med.yale.edu/immcantation/examples/VanderHeiden2017_Example.tar.gz>`__
+
+Overview of the Workflow
+--------------------------------------------------------------------------------
+
+In the following sections, we demonstrate each step of the workflow to move
+from raw sequence reads to a fully annotated repertoire of complete V(D)J
+sequences. The workflow is divided into four high-level tasks:
+
+    1. `Quality control, UMI annotation and primer masking`_
+    2. `Generation of UMI consensus sequences`_
+    3. `Paired-end assembly of UMI consensus sequences`_
+    4. `Deduplication and filtering`_
+
+A graphical representation of the workflow along with the corresponding
+sequence of pRESTO commands is shown below.
 
 Flowchart
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -31,342 +59,352 @@ Flowchart
     high-fidelity repertoire. Grey boxes indicate the initial and final data files.
     The intermediate files output by each tool are not shown for the sake of brevity.
 
+Commands
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. todo::
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
 
-    Example workflow for MiSeq 325+275 5'RACE with UMIs
+:download:`Download Commands <scripts/VanderHeiden2017_Commands.sh>`
+
+Quality control, UMI annotation and primer masking
+--------------------------------------------------------------------------------
+
+Removal of low quality reads
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Quality control begins with the identification and removal of
+low-quality reads using the :program:`quality` subcommand of the
+:ref:`FilterSeq` tool. In this example, reads with mean Phred quality scores
+less than 20 (:option:`-q 20 <FilterSeq quality -q>`) are removed:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 2-3
+
+The :ref:`ParseLog` tool is then used to extract results
+from the :ref:`FilterSeq` logs into tab-delimited files:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 24
+
+Extracting the following information from the log:
+
+===================== ===============================
+Field                 Description
+===================== ===============================
+ID                    Sequence name
+QUALITY               Quality score
+===================== ===============================
+
+UMI annotation and masking of primer regions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Next, the :program:`score` subcommand of :ref:`MaskPrimers` is
+used to identify and remove the PCR primers for both reads. When
+dealing with Ig sequences, it is important to cut or mask the primers,
+as B cell receptors are subject to somatic hypermutation (the
+accumulation of point mutations in the DNA) and degenerate primer
+matches can look like mutations in downstream applications. The
+MaskPrimers tool is also used to annotate each read 2 sequence
+with the 17 nucleotide UMI that precedes the template switch site.
+(:option:`MaskPrimers score --barcode`):
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 4-7
+
+To summarize these steps, the :ref:`ParseLog` tool is used to build a
+tab-delimited file from the :ref:`MaskPrimers` log:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 30
+
+Containing the following information:
+
+===================== ===============================
+Field                 Description
+===================== ===============================
+ID                    Sequence name
+PRIMER                Primer name
+BARCODE               UMI sequence
+ERROR                 Primer match error rate
+===================== ===============================
+
+.. note::
+
+    For this data, we are using the 5'RACE template switch sequences
+    as proxy primers. We've set the match error rate extremely high
+    using the option (:option:`--maxerror 0.5 <MaskPrimers score --maxerror>`)
+    because and accurate match isn't important. Mostly, we are just concerned
+    with extracting the UMI barcode that precedes the template switch site.
+
+Generation of UMI consensus sequences
+--------------------------------------------------------------------------------
+
+.. _VanderHeiden2017-PairSeq-1:
+
+Copying the UMI annotation across paired-end files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this task, a single consensus sequence is constructed for each set of
+reads annotated with the same UMI barcode. As the UMI barcode is part of
+read 2, the ``BARCODE`` annotation identified by :ref:`MaskPrimers` must
+first be copied to the read 1 mate-pair of each read 2
+sequence. Propogation of annotations between mate pairs is performed
+using :ref:`PairSeq` which also removes
+unpaired reads and ensures that paired reads are sorted in the same
+order across files:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 8-9
+
+.. note::
+
+    For both the :ref:`PairSeq` and :ref:`AssemblePairs` commands using the
+    correct :option:`--coord <PairSeq --coord>` argument is critical
+    for matching mate-pairs. If this was raw data from Illumina, rather than
+    data downloaded from SRA/ENA, then the appropriate argument would be
+    :option:`--coord illumina <PairSeq --coord>`.
+
+Multiple alignment of UMI read groups
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before generating a consensus for a set of reads sharing a UMI barcode,
+the sequences must be properly aligned. Sequences may not be aligned if
+more than one PCR primer is identified in a UMI read group - leading to
+variations in the the start positions of the reads. Ideally, each set of
+reads originating from a single mRNA molecule should be amplified with
+the same primer. However, different primers in the multiplex pool may be
+incorporated into the same UMI read group during amplification if the
+primers are sufficiently similar. This type of primer misalignment can
+be corrected using the :ref:`AlignSets` tool.
+
+This step is not required for this data, but if it is need for your data
+see the section on :ref:`fixing UMI alignments <UMI-Alignment>`.
+
+Generating UMI consensus reads
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After alignment, a single consensus sequence is generated for each UMI
+barcode using :ref:`BuildConsensus`:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 10-13
+
+To correct for UMI chemistry and sequencing errors, UMI read groups having
+high error statistics (mismatch rate from consensus) are removed by
+specifiying the :option:`--maxerror 0.1 <BuildConsensus --maxerror>`
+threshold. As the accuracy of the primer assignment in read 1 is critical
+for correct isotype identification, additional filtering of read 1 is carried out
+during this step. Specifying the :option:`--prcons 0.6 <BuildConsensus --prcons>`
+threshold: (a) removes individual sequences that do not share a common primer annotation with
+the majority of the set, (b) removes entire read groups which have
+ambiguous primer assignments, and (c) constructs a consensus primer
+assignment for each UMI.
+
+.. note::
+
+    The :option:`--maxgap 0.5 <BuildConsensus --maxgap>` argument tells
+    :ref:`BuildConsensus` to use a majority rule to delete any gap positions
+    which occur in more than 50% of the reads. The :option:`--maxgap <BuildConsensus --maxgap>`
+    argument is not really necessary for this example data set as we did not perform
+    a multiple alignment of the UMI read groups. However, if you have performed an
+    alignment, then use of :option:`--maxgap <BuildConsensus --maxgap>` during consensus
+    generation is highly recommended.
+
+The :ref:`ParseLog` tool is then used to build a tab-delimited file contain
+the consensus results:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 31
+
+With the following annotations:
+
+===================== ===============================
+Field                 Description
+===================== ===============================
+BARCODE               UMI sequence
+SEQCOUNT              Number of total reads in the UMI group
+CONSCOUNT             Number of reads used for the UMI consensus
+PRCONS                Consensus primer name
+ERROR                 Average mismatch rate from consensus
+===================== ===============================
+
+Paired-end assembly of UMI consensus sequences
+--------------------------------------------------------------------------------
+
+Syncronizing paired-end files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Following UMI consensus generation, the read 1 and read 2 files may
+again be out of sync due to differences in UMI read group filtering by
+:ref:`BuildConsensus`. To synchronize the reads another instance of :ref:`PairSeq`
+must be run, but without any annotation manipulation:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 14-15
+
+Assembling UMI consensus mate-pairs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Once the files have been synchronized, each paired-end UMI consensus
+sequence is assembled into a full length Ig sequence using the
+:program:`sequential` subcommand of :ref:`AssemblePairs`.
+5'RACE creates long amplicons which are not guaranteed to overlap when sequenced
+using a 2x300 kit. The :program:`sequential` subcommand will first attempt de
+novo paired-end assembly, and if that approach fails it will attempt assembly guided
+by the V segment reference sequences specified by the
+:option:`-r <AssemblePairs sequential -r>` argument. Mate-pairs that fail to
+overlap can thus be assembled, with the full length sequence containing an
+appropriate number of intervening between the two reads.
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 16-19
+
+During assembly, the consensus isotype annotation (``PRCONS``) from read 1
+and the number of reads used to define the consensus sequence (``CONSCOUNT``)
+for both reads are propagated into the annotations of the full length Ig sequence
+(:option:`--1f CONSCOUNT --2f CONSCOUNT PRCONS <AssemblePairs align --1f>`.
+
+:ref:`ParseLog` is then uses to extract the results from the :ref:`AssemblePairs`
+log into a tab-delimited file:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 32
+
+Containing the following information:
+
+ID REFID LENGTH OVERLAP GAP ERROR IDENTITY
+
+===================== ===============================
+Field                 Description
+===================== ===============================
+ID                    Sequence name (UMI)
+REFID                 The reference sequence name for reference guided assembly
+LENGTH                Length of the assembled sequence
+OVERLAP               Length of the overlap between mate-pairs
+GAP                   Length of the gap between mate-pairs
+ERROR                 Mismatch rate of the overlapping region from de novo assembly
+IDENTITY              Identity score for the aligned region in reference guided assembly
+===================== ===============================
 
 
-.. code-block:: bash
-    :linenos:
+Deduplication and filtering
+--------------------------------------------------------------------------------
 
-    #!/bin/bash
-    # Super script to run the pRESTO 0.4.7 pipeline on AbVitro AbSeq (V3) data
-    #
-    # Author:  Jason Anthony Vander Heiden, Gur Yaari, Namita Gupta
-    # Date:    2015.05.31
-    #
-    # Required Arguments:
-    #   $1 = read 1 file (C-region start sequence)
-    #   $2 = read 2 file (V-region start sequence)
-    #   $3 = read 1 primer file
-    #   $4 = read 2 primer file
-    #   $5 = output directory
-    #   $6 = output file prefix
-    #   $7 = number of subprocesses for multiprocessing tools
+Combining UMI read group size annotations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # Capture command line parameters
-    R1_FILE=$(readlink -f $1)
-    R2_FILE=$(readlink -f $2)
-    R1_PRIMERS=$(readlink -f $3)
-    R2_PRIMERS=$(readlink -f $4)
-    OUTDIR=$5
-    OUTNAME=$6
-    NPROC=$7
+In the final stage of the workflow, the high-fidelity Ig repertoire is
+obtained by a series of filtering steps. First, the annotation
+specifying the number of raw reads used to build each sequence
+(:option:`-f CONSCOUNT <ParseHeaders collapse -f>`) is updated to be the
+minimum (:option:`--act min <ParseHeaders collapse --act>`) of the
+forward and reverse reads using the
+:program:`collapse` subcommand of :ref:`ParseHeaders`:
 
-    # Define pipeline steps
-    ZIP_FILES=true
-    FILTER_LOWQUAL=true
-    ALIGN_UIDSETS=false
-    REFERENCE_ASSEMBLY=true
-    MASK_LOWQUAL=false
-    ALIGN_CREGION=true
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 19
 
-    # FilterSeq run parameters
-    FS_QUAL=20
-    FS_MASK=30
+Removal of duplicate sequences
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # MaskPrimers run parameters
-    MP_UIDLEN=17
-    MP_R1_MAXERR=0.2
-    MP_R2_MAXERR=0.5
-    MP_CREGION_MAXLEN=100
-    MP_CREGION_MAXERR=0.4
-    MP_CREGION_PRIMERS="/scratch2/kleinstein/oconnor_mg_memory/primers/AbSeqV3_Human_InternalCRegion.fasta"
+Second, duplicate nucleotide sequences are removed using the :ref:`CollapseSeq`
+tool with the requirement that duplicate sequences share the same
+isotype primer (:option:`--uf PRCONS <CollapseSeq --uf>`). The duplicate removal
+step also removes sequences with a high number of interior N-valued nucleotides
+(:option:`-n 20 <CollapseSeq -n>` and :option:`--inner <CollapseSeq --inner>`)
+and combines the read counts for each UMI read group
+(:option:`--cf CONSCOUNT <CollapseSeq --cf>` and :option:`--act sum <CollapseSeq --act>`).
 
-    # AlignSets run parameters
-    MUSCLE_EXEC=$HOME/bin/muscle
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 20-21
 
-    # BuildConsensus run parameters
-    BC_PRCONS_FLAG=true
-    BC_ERR_FLAG=true
-    BC_MAXERR=0.1
-    BC_PRCONS=0.6
-    BC_QUAL=0
-    BC_MAXGAP=0.5
+Filtering to sequences with at least two representative reads
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # AssemblePairs-align run parameters
-    AP_ALN_SCANREV=true
-    AP_ALN_MAXERR=0.3
-    AP_ALN_MINLEN=8
-    AP_ALN_ALPHA=1e-5
+Finally, unique sequences are filtered to those with at least 2
+contributing sequences using the :program:`group` subcommand of :ref:`SplitSeq`,
+by splitting the file on the ``CONSCOUNT`` annotation with a numeric threshold
+(:option:`-f CONSCOUNT <SplitSeq group -f>` and :option:`--num 2 <SplitSeq group --num>`):
 
-    # AssemblePairs-reference run parameters
-    AP_REF_MINIDENT=0.5
-    AP_REF_EVALUE=1e-5
-    AP_REF_MAXHITS=100
-    REF_FILE="/scratch2/kleinstein/germlines/IMGT_Human_IGV_ungapped_2014-08-23.fasta"
-    #REF_FILE="/scratch2/kleinstein/germlines/IMGT_Mouse_IGV_ungapped_2014-11-22.fasta"
-    USEARCH_EXEC=$HOME/bin/usearch
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 22
 
-    # CollapseSeq run parameters
-    CS_KEEP=true
-    CS_MISS=0
+Creating an annotation table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # Define log files
-    PIPELINE_LOG="Pipeline.log"
-    ERROR_LOG="Pipeline.err"
+For further analysis, the annotations of the final repertoire are then converted to
+into a table using the :program:`table` subcommand of :ref:`ParseHeaders`:
 
-    # Make output directory and empty log files
-    mkdir -p $OUTDIR; cd $OUTDIR
-    echo '' > $PIPELINE_LOG
-    echo '' > $ERROR_LOG
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 23
 
-    # Start
-    echo "DIRECTORY: ${OUTDIR}"
-    echo "VERSIONS:"
-    echo "  $(AlignSets.py --version 2>&1)"
-    echo "  $(AssemblePairs.py --version 2>&1)"
-    echo "  $(BuildConsensus.py --version 2>&1)"
-    echo "  $(ClusterSets.py --version 2>&1)"
-    echo "  $(CollapseSeq.py --version 2>&1)"
-    echo "  $(ConvertHeaders.py --version 2>&1)"
-    echo "  $(FilterSeq.py --version 2>&1)"
-    echo "  $(MaskPrimers.py --version 2>&1)"
-    echo "  $(PairSeq.py --version 2>&1)"
-    echo "  $(ParseHeaders.py --version 2>&1)"
-    echo "  $(ParseLog.py --version 2>&1)"
-    echo "  $(SplitSeq.py --version 2>&1)"
-    echo -e "\nSTART"
-    STEP=0
+Output files
+--------------------------------------------------------------------------------
 
-    # Remove low quality reads
-    if $FILTER_LOWQUAL; then
-        printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
-        #OUTPREFIX="$(printf '%02d' $STEP)--${OUTNAME}"
-        FilterSeq.py quality -s $R1_FILE -q $FS_QUAL --nproc $NPROC \
-            --outname "${OUTNAME}-R1" --outdir . --log QualityLogR1.log \
-            >> $PIPELINE_LOG  2> $ERROR_LOG
-        FilterSeq.py quality -s $R2_FILE -q $FS_QUAL --nproc $NPROC \
-            --outname "${OUTNAME}-R2" --outdir . --log QualityLogR2.log  \
-            >> $PIPELINE_LOG  2> $ERROR_LOG
-        MPR1_FILE="${OUTNAME}-R1_quality-pass.fastq"
-        MPR2_FILE="${OUTNAME}-R2_quality-pass.fastq"
-    else
-        MPR1_FILE=$R1_FILE
-        MPR2_FILE=$R2_FILE
-    fi
+The final set of sequences, which serve as input to a V(D)J reference aligner
+(Eg, IMGT/HighV-QUEST or IgBLAST), and tables that can be plotted for quality
+control are:
 
-    # Identify primers and UID
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
-    MaskPrimers.py score -s $MPR1_FILE -p $R1_PRIMERS --mode cut \
-        --start 0 --maxerror $MP_R1_MAXERR --nproc $NPROC --log PrimerLogR1.log \
-        --outname "${OUTNAME}-R1" --outdir . >> $PIPELINE_LOG 2> $ERROR_LOG
-    MaskPrimers.py score -s $MPR2_FILE -p $R2_PRIMERS --mode cut \
-        --start $MP_UIDLEN --barcode --maxerror $MP_R2_MAXERR --nproc $NPROC --log PrimerLogR2.log \
-        --outname "${OUTNAME}-R2" --outdir . >> $PIPELINE_LOG 2> $ERROR_LOG
+=============================== ===============================
+File                            Description
+=============================== ===============================
+M12_collapse-unique.fastq       Total unique sequences
+M12_atleast-2.fastq             Unique sequences represented by at least 2 reads
+M12_atleast-2_headers.tab       Annotation table of the atleast-2 file
+FS1_table.tab                   Table of the read 1 FilterSeq log
+FS2_table.tab                   Table of the read 2 FilterSeq log
+MP1_table.tab                   Table of the C-region MaskPrimers log
+MP2_table.tab                   Table of the V-region MaskPrimers log
+BC1_table.tab                   Table of the read 1 BuildConsensus log
+BC2_table.tab                   Table of the read 2 BuildConsensus log
+AP_table.tab                    Table of the AssemblePairs log
+=============================== ===============================
 
-    # Assign UIDs to read 1 sequences
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
-    PairSeq.py -1 "${OUTNAME}-R2_primers-pass.fastq" -2 "${OUTNAME}-R1_primers-pass.fastq" \
-        --1f BARCODE --coord illumina >> $PIPELINE_LOG 2> $ERROR_LOG
-
-    # Multiple align UID read groups
-    if $ALIGN_UIDSETS; then
-        printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AlignSets muscle"
-        AlignSets.py muscle -s "${OUTNAME}-R1_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
-            --nproc $NPROC --log AlignLogR1.log --outname "${OUTNAME}-R1" \
-            >> $PIPELINE_LOG 2> $ERROR_LOG
-        AlignSets.py muscle -s "${OUTNAME}-R2_primers-pass_pair-pass.fastq" --exec $MUSCLE_EXEC \
-            --nproc $NPROC --log AlignLogR2.log --outname "${OUTNAME}-R2" \
-            >> $PIPELINE_LOG 2> $ERROR_LOG
-        BCR1_FILE="${OUTNAME}-R1_align-pass.fastq"
-        BCR2_FILE="${OUTNAME}-R2_align-pass.fastq"
-    else
-        BCR1_FILE="${OUTNAME}-R1_primers-pass_pair-pass.fastq"
-        BCR2_FILE="${OUTNAME}-R2_primers-pass_pair-pass.fastq"
-    fi
-
-    # Build UID consensus sequences
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
-    if $BC_ERR_FLAG; then
-        if $BC_PRCONS_FLAG; then
-            BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-                -q $BC_QUAL --maxerror $BC_MAXERR --maxgap $BC_MAXGAP \
-                --nproc $NPROC --log ConsensusLogR1.log \
-                --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
-        else
-            BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
-                -q $BC_QUAL --maxerror $BC_MAXERR --maxgap $BC_MAXGAP \
-                --nproc $NPROC --log ConsensusLogR1.log \
-                --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
-        fi
-
-        BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-            -q $BC_QUAL --maxerror $BC_MAXERR --maxgap $BC_MAXGAP \
-            --nproc $NPROC --log ConsensusLogR2.log \
-            --outname "${OUTNAME}-R2" >> $PIPELINE_LOG 2> $ERROR_LOG
-    else
-        if $BC_PRCONS_FLAG; then
-            BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER --prcons $BC_PRCONS \
-                -q $BC_QUAL --maxgap $BC_MAXGAP \
-                --nproc $NPROC --log ConsensusLogR1.log \
-                --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
-        else
-            BuildConsensus.py -s $BCR1_FILE --bf BARCODE --pf PRIMER \
-                -q $BC_QUAL --maxgap $BC_MAXGAP \
-                --nproc $NPROC --log ConsensusLogR1.log \
-                --outname "${OUTNAME}-R1" >> $PIPELINE_LOG 2> $ERROR_LOG
-        fi
-
-        BuildConsensus.py -s $BCR2_FILE --bf BARCODE --pf PRIMER \
-            -q $BC_QUAL --maxgap $BC_MAXGAP \
-            --nproc $NPROC --log ConsensusLogR2.log \
-            --outname "${OUTNAME}-R2" >> $PIPELINE_LOG 2> $ERROR_LOG
-    fi
-
-    # Assign UIDs to read 1 sequences
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
-    PairSeq.py -1 "${OUTNAME}-R2_consensus-pass.fastq" -2 "${OUTNAME}-R1_consensus-pass.fastq" \
-        --coord presto >> $PIPELINE_LOG 2> $ERROR_LOG
-
-    # Assemble paired ends via mate-pair alignment
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs align"
-
-    if $BC_PRCONS_FLAG; then
-        PRFIELD="PRCONS"
-    else
-        PRFIELD="PRIMER"
-    fi
-
-    if $AP_ALN_SCANREV; then
-        AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass_pair-pass.fastq" \
-            -2 "${OUTNAME}-R1_consensus-pass_pair-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
-            --coord presto --rc tail --minlen $AP_ALN_MINLEN --maxerror $AP_ALN_MAXERR \
-            --alpha $AP_ALN_ALPHA --nproc $NPROC --log AssembleAlignLog.log \
-            --outname "${OUTNAME}-ALN" --scanrev --failed >> $PIPELINE_LOG 2> $ERROR_LOG
-    else
-        AssemblePairs.py align -1 "${OUTNAME}-R2_consensus-pass_pair-pass.fastq" \
-            -2 "${OUTNAME}-R1_consensus-pass_pair-pass.fastq" --1f CONSCOUNT --2f $PRFIELD CONSCOUNT \
-            --coord presto --rc tail --minlen $AP_ALN_MINLEN --maxerror $AP_ALN_MAXERR \
-            --alpha $AP_ALN_ALPHA --nproc $NPROC --log AssembleAlignLog.log \
-            --outname "${OUTNAME}-ALN" --failed >> $PIPELINE_LOG 2> $ERROR_LOG
-    fi
-
-    # Assemble paired ends via alignment against V-region reference database
-    if $REFERENCE_ASSEMBLY; then
-        printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs reference"
-        AssemblePairs.py reference -1 "${OUTNAME}-ALN-1_assemble-fail.fastq" \
-            -2 "${OUTNAME}-ALN-2_assemble-fail.fastq" -r $REF_FILE \
-            --1f CONSCOUNT --2f $PRFIELD CONSCOUNT --coord presto \
-            --minident $AP_REF_MINIDENT --evalue $AP_REF_EVALUE --maxhits $AP_REF_MAXHITS \
-            --nproc $NPROC --log AssembleReferenceLog.log --outname "${OUTNAME}-REF" \
-            --exec $USEARCH_EXEC --failed >> $PIPELINE_LOG 2> $ERROR_LOG
-        cat "${OUTNAME}-ALN_assemble-pass.fastq" "${OUTNAME}-REF_assemble-pass.fastq" > \
-            "${OUTNAME}-CAT_assemble-pass.fastq"
-        PH_FILE="${OUTNAME}-CAT_assemble-pass.fastq"
-    else
-        PH_FILE="${OUTNAME}-ALN_assemble-pass.fastq"
-    fi
-
-    # Mask low quality positions
-    if $MASK_LOWQUAL; then
-        printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq maskqual"
-        FilterSeq.py maskqual -s $PH_FILE -q $FS_MASK --nproc $NPROC \
-            --outname "${OUTNAME}-MQ" --log MaskqualLog.log \
-            >> $PIPELINE_LOG 2> $ERROR_LOG
-        PH_FILE="${OUTNAME}-MQ_maskqual-pass.fastq"
-    fi
-
-    if $ALIGN_CREGION; then
-        # Annotate with internal C-region
-        printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align"
-        MaskPrimers.py align -s $PH_FILE -p $MP_CREGION_PRIMERS \
-        --maxlen $MP_CREGION_MAXLEN --maxerror $MP_CREGION_MAXERR --mode tag --revpr --skiprc \
-        --failed --log CRegionLog.log --outname "${OUTNAME}-CR" --nproc $NPROC \
-        >> $PIPELINE_LOG 2> $ERROR_LOG
-
-        # Renamer primer field
-        printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename"
-        ParseHeaders.py rename -s "${OUTNAME}-CR_primers-pass.fastq" -f PRIMER -k CREGION \
-            --outname "${OUTNAME}-CR" > /dev/null 2> $ERROR_LOG
-
-        PH_FILE="${OUTNAME}-CR_reheader.fastq"
-        CREGION_FIELD="CREGION"
-    else
-        CREGION_FIELD=""
-    fi
-
-    # Rewrite header with minimum of CONSCOUNT
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
-    ParseHeaders.py collapse -s $PH_FILE -f CONSCOUNT --act min \
-        --outname "${OUTNAME}-FIN" > /dev/null 2> $ERROR_LOG
-
-    # Remove duplicate sequences
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
-    if $CS_KEEP; then
-        CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS \
-        --uf PRCONS $CREGION_FIELD --cf CONSCOUNT --act sum --inner \
-        --keepmiss --outname "${OUTNAME}-FIN" >> $PIPELINE_LOG 2> $ERROR_LOG
-    else
-        CollapseSeq.py -s "${OUTNAME}-FIN_reheader.fastq" -n $CS_MISS \
-        --uf PRCONS $CREGION_FIELD --cf CONSCOUNT --act sum --inner \
-        --outname "${OUTNAME}-FIN" >> $PIPELINE_LOG 2> $ERROR_LOG
-    fi
-
-    # Filter to sequences with at least 2 supporting sources
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitSeq group"
-    SplitSeq.py group -s "${OUTNAME}-FIN_collapse-unique.fastq" -f CONSCOUNT --num 2 \
-        >> $PIPELINE_LOG 2> $ERROR_LOG
-
-    # Create table of final repertoire
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders table"
-    ParseHeaders.py table -s "${OUTNAME}-FIN_reheader.fastq" \
-        -f ID PRCONS $CREGION_FIELD CONSCOUNT --outname "Final" \
-        >> $PIPELINE_LOG 2> $ERROR_LOG
-    ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique.fastq" \
-        -f ID PRCONS $CREGION_FIELD CONSCOUNT DUPCOUNT --outname "Final-Unique" \
-        >> $PIPELINE_LOG 2> $ERROR_LOG
-    ParseHeaders.py table -s "${OUTNAME}-FIN_collapse-unique_atleast-2.fastq" \
-        -f ID PRCONS $CREGION_FIELD CONSCOUNT DUPCOUNT --outname "Final-Unique-Atleast2" \
-        >> $PIPELINE_LOG 2> $ERROR_LOG
-
-    # Process log files
-    printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseLog"
-    if $FILTER_LOWQUAL; then
-        ParseLog.py -l QualityLogR[1-2].log -f ID QUALITY > /dev/null &
-    fi
-    ParseLog.py -l PrimerLogR[1-2].log -f ID BARCODE PRIMER ERROR \
-        > /dev/null  2> $ERROR_LOG &
-    ParseLog.py -l ConsensusLogR[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRIMER PRCONS PRCOUNT PRFREQ ERROR \
-        > /dev/null  2> $ERROR_LOG &
-    ParseLog.py -l AssembleAlignLog.log -f ID LENGTH OVERLAP ERROR PVALUE FIELDS1 FIELDS2 \
-        > /dev/null  2> $ERROR_LOG &
-    if $REFERENCE_ASSEMBLY; then
-        ParseLog.py -l AssembleReferenceLog.log -f ID REFID LENGTH OVERLAP GAP EVALUE1 EVALUE2 IDENTITY FIELDS1 FIELDS2 \
-        > /dev/null  2> $ERROR_LOG &
-    fi
-    if $MASK_LOWQUAL; then
-        ParseLog.py -l MaskqualLog.log -f ID MASKED > /dev/null  2> $ERROR_LOG &
-    fi
-    if $ALIGN_CREGION; then
-        ParseLog.py -l CRegionLog.log -f ID PRIMER ERROR \
-            > /dev/null  2> $ERROR_LOG &
-    fi
-    wait
-
-    # Zip intermediate and log files
-    if $ZIP_FILES; then
-        LOG_FILES_ZIP=$(ls *LogR[1-2].log *Log.log)
-        tar -zcf LogFiles.tar $LOG_FILES_ZIP
-        rm $LOG_FILES_ZIP
-
-        TEMP_FILES_ZIP=$(ls *.fastq | grep -v "FIN_reheader.fastq\|FIN_collapse-unique.fastq\|FIN_collapse-unique_atleast-2.fastq")
-        tar -zcf TempFiles.tar $TEMP_FILES_ZIP
-        rm $TEMP_FILES_ZIP
-    fi
-
-    # End
-    printf "DONE\n\n"
-    cd ../
-
+A number of other intermediate and log files are generated during the workflow,
+which allows easy tracking/reversion of processing steps. These files are not
+listed in the table above.
