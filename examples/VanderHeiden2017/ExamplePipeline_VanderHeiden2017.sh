@@ -70,14 +70,9 @@ AssemblePairs.py sequential -1 "${OUTNAME}-R2_consensus-pass_pair-pass.fastq" \
 	--aligner blastn --outname "${OUTNAME}-C" --log AP.log --nproc $NPROC \
 	>> $PIPELINE_LOG
 
-# Rewrite header with minimum of CONSCOUNT
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
-ParseHeaders.py collapse -s "${OUTNAME}-C_assemble-pass.fastq" -f CONSCOUNT --act min \
-    > /dev/null
-    
 # Annotate with internal C-region
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align"
-MaskPrimers.py align -s "${OUTNAME}-C_assemble-pass_reheader.fastq" -p $CREGION_FILE \
+MaskPrimers.py align -s "${OUTNAME}-C_assemble-pass.fastq" -p $CREGION_FILE \
     --maxlen 100 --maxerror 0.3 --mode tag --revpr --skiprc \
     --log MP3.log --outname "${OUTNAME}-C" --nproc $NPROC \
     >> $PIPELINE_LOG
@@ -87,10 +82,15 @@ printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename"
 ParseHeaders.py rename -s "${OUTNAME}-C_primers-pass.fastq" -f PRIMER -k CREGION \
 	> /dev/null
 
+# Rewrite header with minimum of CONSCOUNT
+printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
+ParseHeaders.py collapse -s "${OUTNAME}-C_primers-pass_reheader.fastq" \
+	-f CONSCOUNT --act min > /dev/null
+    
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
-CollapseSeq.py -s "${OUTNAME}-C_primers-pass_reheader.fastq" -n 20 \
-	--uf PRCONS --cf CONSCOUNT --act sum --inner \
+CollapseSeq.py -s "${OUTNAME}-C_primers-pass_reheader_reheader.fastq" -n 20 \
+	--uf CREGION --cf CONSCOUNT --act sum --inner \
 	--outname "${OUTNAME}-C" >> $PIPELINE_LOG
 
 # Filter to sequences with at least 2 supporting reads
@@ -107,7 +107,7 @@ ParseHeaders.py table -s "${OUTNAME}-C_atleast-2.fastq" -f ID PRCONS CONSCOUNT D
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseLog"
 ParseLog.py -l FS[1-2].log -f ID QUALITY > /dev/null &
 ParseLog.py -l MP[1-3].log -f ID BARCODE PRIMER ERROR > /dev/null &
-ParseLog.py -l BC[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRCONS ERROR \
+ParseLog.py -l BC[1-2].log -f BARCODE SEQCOUNT CONSCOUNT PRCONS PRFREQ ERROR \
 	> /dev/null &
 ParseLog.py -l AP.log -f ID REFID LENGTH OVERLAP GAP ERROR PVALUE EVALUE1 EVALUE2 IDENTITY FIELDS1 FIELDS2 \
     > /dev/null &

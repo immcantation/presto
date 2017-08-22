@@ -308,8 +308,3 @@ MPC_table.tab                   Table of the C-region MaskPrimers log
 A number of other intermediate and log files are generated during the workflow,
 which allows easy tracking/reversion of processing steps. These files are not
 listed in the table above.
-
-Performance
---------------------------------------------------------------------------------
-
-.. todo::

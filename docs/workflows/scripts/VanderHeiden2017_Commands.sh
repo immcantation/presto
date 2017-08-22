@@ -17,16 +17,17 @@ AssemblePairs.py sequential -1 HD09N-R2_consensus-pass_pair-pass.fastq \
     -2 HD09N-R1_consensus-pass_pair-pass.fastq -r IMGT_Human_IG_V.fasta \
     --coord presto --rc tail --scanrev --1f CONSCOUNT --2f CONSCOUNT PRCONS \
     --aligner blastn --outname HD09N-C --log AP.log
-ParseHeaders.py collapse -s HD09N-C_assemble-pass.fastq -f CONSCOUNT --act min
-MaskPrimers.py align -s HD09N-C_assemble-pass_reheader.fastq \
-	-p AbSeq_Human_IG_InternalCRegion.fasta --maxlen 100 --maxerror 0.3 \
-	--mode tag --revpr --skiprc --log MP3.log --outname HD09N-C
-ParseHeaders.py rename -s HD09N-C_primers-pass.fastq -f PRIMER -k CREGION	
-CollapseSeq.py -s HD09N-C_primers-pass_reheader.fastq -n 20 --inner --uf PRCONS \
-    --cf CONSCOUNT --act sum --outname HD09N-C
-SplitSeq.py group -s HD09N-C_collapse-unique.fastq -f CONSCOUNT --num 2 --outname HD09N-C
-ParseHeaders.py table -s HD09N-C_atleast-2.fastq -f ID PRCONS CONSCOUNT DUPCOUNT
+MaskPrimers.py align -s HD09N-C_assemble-pass.fastq \
+    -p AbSeq_Human_IG_InternalCRegion.fasta --maxlen 100 --maxerror 0.3 \
+    --mode tag --revpr --skiprc --log MP3.log --outname HD09N-C
+ParseHeaders.py rename -s HD09N-C_primers-pass.fastq -f PRIMER -k CREGION
+ParseHeaders.py collapse -s HD09N-C_primers-pass_reheader.fastq -f CONSCOUNT --act min
+CollapseSeq.py -s HD09N-C_primers-pass_reheader_reheader.fastq -n 20 --inner \
+    --uf CREGION --cf CONSCOUNT --act sum --outname HD09N-C
+SplitSeq.py group -s HD09N-C_collapse-unique.fastq \
+    -f CONSCOUNT --num 2 --outname HD09N-C
+ParseHeaders.py table -s HD09N-C_atleast-2.fastq -f ID CREGION CONSCOUNT DUPCOUNT
 ParseLog.py -l FS1.log FS2.log -f ID QUALITY
 ParseLog.py -l MP1.log MP2.log MP3.log -f ID PRIMER BARCODE ERROR
-ParseLog.py -l BC1.log BC2.log -f BARCODE SEQCOUNT CONSCOUNT PRCONS ERROR
+ParseLog.py -l BC1.log BC2.log -f BARCODE SEQCOUNT CONSCOUNT PRCONS PRFREQ ERROR
 ParseLog.py -l AP.log -f ID REFID LENGTH OVERLAP GAP ERROR IDENTITY

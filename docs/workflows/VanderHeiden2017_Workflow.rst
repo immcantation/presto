@@ -19,7 +19,7 @@ Read Configuration
     The V(D)J reading frame proceeds from the start of read 2 to the start of read 1.
     Read 1 is in the opposite orientation (reverse complement), contains a partial C-region,
     and is 325 nucletoides in length. Read 2 contains the 5'RACE template switch site
-    and a 17 nucleotide UMI barcode preceding it, and is 275 nucleotides in length.
+    with a 17 nucleotide UMI barcode preceding it, and is 275 nucleotides in length.
 
 Example Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -93,7 +93,7 @@ from the :ref:`FilterSeq` logs into tab-delimited files:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 24
+   :lines: 30
 
 Extracting the following information from the log:
 
@@ -104,7 +104,7 @@ ID                    Sequence name
 QUALITY               Quality score
 ===================== ===============================
 
-UMI annotation and masking of primer regions
+UMI annotation and removal of primer regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Next, the :program:`score` subcommand of :ref:`MaskPrimers` is
@@ -130,7 +130,7 @@ tab-delimited file from the :ref:`MaskPrimers` log:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 30
+   :lines: 31
 
 Containing the following information:
 
@@ -147,8 +147,8 @@ ERROR                 Primer match error rate
 
     For this data, we are using the 5'RACE template switch sequences
     as proxy primers. We've set the match error rate extremely high
-    using the option (:option:`--maxerror 0.5 <MaskPrimers score --maxerror>`)
-    because and accurate match isn't important. Mostly, we are just concerned
+    (:option:`--maxerror 0.5 <MaskPrimers score --maxerror>`)
+    because an accurate match isn't important. Mostly, we are just concerned
     with extracting the UMI barcode that precedes the template switch site.
 
 Generation of UMI consensus sequences
@@ -179,7 +179,7 @@ order across files:
     For both the :ref:`PairSeq` and :ref:`AssemblePairs` commands using the
     correct :option:`--coord <PairSeq --coord>` argument is critical
     for matching mate-pairs. If this was raw data from Illumina, rather than
-    data downloaded from SRA/ENA, then the appropriate argument would be
+    data downloaded from SRA, then the appropriate argument would be
     :option:`--coord illumina <PairSeq --coord>`.
 
 Multiple alignment of UMI read groups
@@ -195,8 +195,8 @@ incorporated into the same UMI read group during amplification if the
 primers are sufficiently similar. This type of primer misalignment can
 be corrected using the :ref:`AlignSets` tool.
 
-This step is not required for this data, but if it is need for your data
-see the section on :ref:`fixing UMI alignments <UMI-Alignment>`.
+This step is not required for this data, but if necessary for your data
+see the section on :ref:`fixing UMI problems <UMI-Alignment>`.
 
 Generating UMI consensus reads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -213,10 +213,9 @@ barcode using :ref:`BuildConsensus`:
 To correct for UMI chemistry and sequencing errors, UMI read groups having
 high error statistics (mismatch rate from consensus) are removed by
 specifiying the :option:`--maxerror 0.1 <BuildConsensus --maxerror>`
-threshold. As the accuracy of the primer assignment in read 1 is critical
-for correct isotype identification, additional filtering of read 1 is carried out
-during this step. Specifying the :option:`--prcons 0.6 <BuildConsensus --prcons>`
-threshold: (a) removes individual sequences that do not share a common primer annotation with
+threshold. Additional filtering of read 1 is carried out
+during this step by specifying the :option:`--prcons 0.6 <BuildConsensus --prcons>`
+threshold which: (a) removes individual sequences that do not share a common primer annotation with
 the majority of the set, (b) removes entire read groups which have
 ambiguous primer assignments, and (c) constructs a consensus primer
 assignment for each UMI.
@@ -238,7 +237,7 @@ the consensus results:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 31
+   :lines: 32
 
 With the following annotations:
 
@@ -249,6 +248,7 @@ BARCODE               UMI sequence
 SEQCOUNT              Number of total reads in the UMI group
 CONSCOUNT             Number of reads used for the UMI consensus
 PRCONS                Consensus primer name
+PRFREQ                Frequency of primers in the UMI group
 ERROR                 Average mismatch rate from consensus
 ===================== ===============================
 
@@ -277,7 +277,7 @@ sequence is assembled into a full length Ig sequence using the
 :program:`sequential` subcommand of :ref:`AssemblePairs`.
 5'RACE creates long amplicons which are not guaranteed to overlap when sequenced
 using a 2x300 kit. The :program:`sequential` subcommand will first attempt de
-novo paired-end assembly, and if that approach fails it will attempt assembly guided
+novo paired-end assembly. If that approach fails, it will attempt assembly guided
 by the V segment reference sequences specified by the
 :option:`-r <AssemblePairs sequential -r>` argument. Mate-pairs that fail to
 overlap can thus be assembled, with the full length sequence containing an
@@ -289,7 +289,7 @@ appropriate number of intervening between the two reads.
    :lineno-match:
    :lines: 16-19
 
-During assembly, the consensus isotype annotation (``PRCONS``) from read 1
+During assembly, the consensus primer annotation (``PRCONS``) from read 1
 and the number of reads used to define the consensus sequence (``CONSCOUNT``)
 for both reads are propagated into the annotations of the full length Ig sequence
 (:option:`--1f CONSCOUNT --2f CONSCOUNT PRCONS <AssemblePairs align --1f>`.
@@ -301,7 +301,7 @@ log into a tab-delimited file:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 32
+   :lines: 33
 
 Containing the following information:
 
@@ -323,12 +323,47 @@ IDENTITY              Identity score for the aligned region in reference guided 
 Deduplication and filtering
 --------------------------------------------------------------------------------
 
-Combining UMI read group size annotations
+Annotating sequences with the constant region
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In the final stage of the workflow, the high-fidelity Ig repertoire is
-obtained by a series of filtering steps. First, the annotation
-specifying the number of raw reads used to build each sequence
+obtained by a series of filtering steps. First, an additional annotation
+defining the constant region is added to each sequence by aligning against
+the constant region sequence internal to the primer. This step is not strictly
+necessary, as the constant region primer is usually sufficient for isotype calls.
+However, primer calls may be inaccurate with some primer sets, so this additional
+confirmatory step is beneficial.
+
+Internal constant regions are assigned using the :program:`align` subcommand
+of :ref:`MaskPrimers` with a set of manually constructed sequences as the
+"primers" (:option:`-p AbSeq_Human_IG_InternalCRegion.fasta <MaskPrimers align -p>`):
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 20-22
+
+Here we use a high error rate for the match
+(:option:`--maxerror 0.3 <MaskPrimers align --maxerror>`), restrict the match
+to 100 nucleotides at the end of the sequence
+(:option:`--maxlen 100 --revpr --skiprc <MaskPrimers align --maxlen>`), and
+use mode the argument :option:`--mode tag <MaskPrimers align --mode>` to specify
+that the input sequence should not be modified.
+
+Following annotation, we rename the ``PRIMER`` field in the sequence headers
+to ``CREGION`` for clarity:
+
+.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
+   :language: none
+   :linenos:
+   :lineno-match:
+   :lines: 23
+
+Combining UMI read group size annotations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The annotation specifying the number of raw reads used to build each sequence
 (:option:`-f CONSCOUNT <ParseHeaders collapse -f>`) is updated to be the
 minimum (:option:`--act min <ParseHeaders collapse --act>`) of the
 forward and reverse reads using the
@@ -338,14 +373,14 @@ forward and reverse reads using the
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 19
+   :lines: 24
 
 Removal of duplicate sequences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Second, duplicate nucleotide sequences are removed using the :ref:`CollapseSeq`
 tool with the requirement that duplicate sequences share the same
-isotype primer (:option:`--uf PRCONS <CollapseSeq --uf>`). The duplicate removal
+constant region annotation (:option:`--uf CREGION <CollapseSeq --uf>`). The duplicate removal
 step also removes sequences with a high number of interior N-valued nucleotides
 (:option:`-n 20 <CollapseSeq -n>` and :option:`--inner <CollapseSeq --inner>`)
 and combines the read counts for each UMI read group
@@ -355,7 +390,7 @@ and combines the read counts for each UMI read group
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 20-21
+   :lines: 25-26
 
 Filtering to sequences with at least two representative reads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -369,7 +404,7 @@ by splitting the file on the ``CONSCOUNT`` annotation with a numeric threshold
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 22
+   :lines: 27-28
 
 Creating an annotation table
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -381,7 +416,7 @@ into a table using the :program:`table` subcommand of :ref:`ParseHeaders`:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 23
+   :lines: 29
 
 Output files
 --------------------------------------------------------------------------------
@@ -390,20 +425,21 @@ The final set of sequences, which serve as input to a V(D)J reference aligner
 (Eg, IMGT/HighV-QUEST or IgBLAST), and tables that can be plotted for quality
 control are:
 
-=============================== ===============================
-File                            Description
-=============================== ===============================
-M12_collapse-unique.fastq       Total unique sequences
-M12_atleast-2.fastq             Unique sequences represented by at least 2 reads
-M12_atleast-2_headers.tab       Annotation table of the atleast-2 file
-FS1_table.tab                   Table of the read 1 FilterSeq log
-FS2_table.tab                   Table of the read 2 FilterSeq log
-MP1_table.tab                   Table of the C-region MaskPrimers log
-MP2_table.tab                   Table of the V-region MaskPrimers log
-BC1_table.tab                   Table of the read 1 BuildConsensus log
-BC2_table.tab                   Table of the read 2 BuildConsensus log
-AP_table.tab                    Table of the AssemblePairs log
-=============================== ===============================
+================================= ===============================
+File                              Description
+================================= ===============================
+HD09N-C_collapse-unique.fastq     Total unique sequences
+HD09N-C_atleast-2.fastq           Unique sequences represented by at least 2 reads
+HD09N-C_atleast-2_headers.tab     Annotation table of the atleast-2 file
+FS1_table.tab                     Table of the read 1 FilterSeq log
+FS2_table.tab                     Table of the read 2 FilterSeq log
+MP1_table.tab                     Table of the C-region primer MaskPrimers log
+MP2_table.tab                     Table of the TS site MaskPrimers log
+MP3_table.tab                     Table of the internal C-region MaskPrimers log
+BC1_table.tab                     Table of the read 1 BuildConsensus log
+BC2_table.tab                     Table of the read 2 BuildConsensus log
+AP_table.tab                      Table of the AssemblePairs log
+================================= ===============================
 
 A number of other intermediate and log files are generated during the workflow,
 which allows easy tracking/reversion of processing steps. These files are not

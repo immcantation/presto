@@ -5,8 +5,6 @@ Manipulating Annotations
 
 :ref:`AnnotationScheme`
 
-.. todo::
-
 .. code-block:: bash
     :linenos:
 
