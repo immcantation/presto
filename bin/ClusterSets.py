@@ -31,8 +31,9 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
 default_cluster_exec = default_usearch_exec
 default_ident = 0.9
 
+
 def processCSQueue(alive, data_queue, result_queue, cluster_field,
-                  cluster_args={}, delimiter=default_delimiter):
+                   cluster_args={}, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -234,25 +235,25 @@ def getArgParser():
                                        description='Cluster sequences within annotation sets.')
     group_set = parser_set.add_argument_group('clustering arguments')
     group_set.add_argument('-f', action='store', dest='set_field', type=str,
-                             default=default_barcode_field,
-                             help='''The annotation field containing annotations, such as UMI
-                                  barcode, for sequence grouping.''')
+                           default=default_barcode_field,
+                           help='''The annotation field containing annotations, such as UMI
+                                barcode, for sequence grouping.''')
     group_set.add_argument('-k', action='store', dest='cluster_field', type=str,
-                             default=default_cluster_field,
-                             help='''The name of the output annotation field to add with the
-                                  cluster information for each sequence.''')
+                           default=default_cluster_field,
+                           help='''The name of the output annotation field to add with the
+                                cluster information for each sequence.''')
     group_set.add_argument('--ident', action='store', dest='ident', type=float,
-                             default=default_ident,
-                             help='The sequence identity threshold for the uclust algorithm.')
+                           default=default_ident,
+                           help='The sequence identity threshold for the uclust algorithm.')
     group_set.add_argument('--start', action='store', dest='seq_start', type=int,
-                             help='''The start of the region to be used for clustering.
-                                  Together with --end, this parameter can be used to specify a
-                                  subsequence of each read to use in the clustering algorithm.''')
+                           help='''The start of the region to be used for clustering.
+                                Together with --end, this parameter can be used to specify a
+                                subsequence of each read to use in the clustering algorithm.''')
     group_set.add_argument('--end', action='store', dest='seq_end', type=int,
-                             help='The end of the region to be used for clustering.')
+                           help='The end of the region to be used for clustering.')
     group_set.add_argument('--exec', action='store', dest='cluster_exec',
-                             default=default_cluster_exec,
-                             help='The name or location of the usearch or vsearch executable.')
+                           default=default_cluster_exec,
+                           help='The name or location of the usearch or vsearch executable.')
     #parser_set.set_defaults(cluster_func=runUClust)
 
     # Total sequence clustering arguments
@@ -262,41 +263,41 @@ def getArgParser():
                                        description='Cluster all sequences regardless of annotation.')
     group_all = parser_all.add_argument_group('clustering arguments')
     group_all.add_argument('-k', action='store', dest='cluster_field', type=str,
-                             default=default_cluster_field,
-                             help='''The name of the output annotation field to add with the
-                                  cluster information for each sequence.''')
+                           default=default_cluster_field,
+                           help='''The name of the output annotation field to add with the
+                                cluster information for each sequence.''')
     group_all.add_argument('--ident', action='store', dest='ident', type=float,
-                             default=default_ident,
-                             help='The sequence identity threshold for the uclust algorithm.')
+                           default=default_ident,
+                           help='The sequence identity threshold for the uclust algorithm.')
     group_all.add_argument('--start', action='store', dest='seq_start', type=int,
-                             help='''The start of the region to be used for clustering.
-                                  Together with --end, this parameter can be used to specify a
-                                  subsequence of each read to use in the clustering algorithm.''')
+                           help='''The start of the region to be used for clustering.
+                                Together with --end, this parameter can be used to specify a
+                                subsequence of each read to use in the clustering algorithm.''')
     group_all.add_argument('--end', action='store', dest='seq_end', type=int,
-                             help='The end of the region to be used for clustering.')
+                           help='The end of the region to be used for clustering.')
     group_all.add_argument('--exec', action='store', dest='cluster_exec',
-                             default=default_cluster_exec,
-                             help='The name or location of the usearch or vsearch executable.')
+                           default=default_cluster_exec,
+                           help='The name or location of the usearch or vsearch executable.')
 
     # Sequence set clustering arguments
     parser_barcode = subparsers.add_parser('barcode', parents=[parent_parser],
-                                       formatter_class=CommonHelpFormatter, add_help=False,
-                                       help='Cluster reads by clustering barcode sequences.',
-                                       description='Cluster reads by clustering barcode sequences.')
+                                           formatter_class=CommonHelpFormatter, add_help=False,
+                                           help='Cluster reads by clustering barcode sequences.',
+                                           description='Cluster reads by clustering barcode sequences.')
     group_barcode = parser_barcode.add_argument_group('clustering arguments')
     group_barcode.add_argument('-f', action='store', dest='barcode_field', type=str,
-                             default=default_barcode_field,
-                             help='''The annotation field containing barcode sequence annotations.''')
+                               default=default_barcode_field,
+                               help='''The annotation field containing barcode sequences.''')
     group_barcode.add_argument('-k', action='store', dest='cluster_field', type=str,
-                             default=default_cluster_field,
-                             help='''The name of the output annotation field to add with the
-                                  cluster information for each sequence.''')
+                               default=default_cluster_field,
+                               help='''The name of the output annotation field to add with the
+                                    cluster information for each sequence.''')
     group_barcode.add_argument('--ident', action='store', dest='ident', type=float,
-                             default=default_ident,
-                             help='The sequence identity threshold for the uclust algorithm.')
+                               default=default_ident,
+                               help='The sequence identity threshold for the uclust algorithm.')
     group_barcode.add_argument('--exec', action='store', dest='cluster_exec',
-                             default=default_cluster_exec,
-                             help='The name or location of the usearch or vsearch executable.')
+                               default=default_cluster_exec,
+                               help='The name or location of the usearch or vsearch executable.')
 
     return parser
 

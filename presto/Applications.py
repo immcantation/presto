@@ -72,7 +72,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
 
 
 def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
-              cluster_exec=default_usearch_exec):
+              threads=1, cluster_exec=default_usearch_exec):
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
@@ -81,6 +81,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
       ident : the sequence identity cutoff to be passed to usearch.
       seq_start : the start position to trim sequences at before clustering.
       seq_end : the end position to trim sequences at before clustering.
+      threads : number of threads for usearch.
       cluster_exec : the path to the usearch executable.
 
     Returns:
@@ -115,7 +116,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
            '-id', str(ident),
            '-qmask', 'none',
            '-minseqlength', '1',
-           '-threads', '1']
+           '-threads', str(threads)]
 
     # Write usearch input fasta file
     SeqIO.write(seq_trimmed, in_handle, 'fasta')
