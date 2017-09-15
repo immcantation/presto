@@ -113,7 +113,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
     return None
 
 
-def clusterSets(seq_file, barcode_field=default_barcode_field,
+def clusterSets(seq_file, set_field=default_barcode_field,
                 cluster_field=default_cluster_field,
                 ident=default_ident, seq_start=None, seq_end=None,
                 cluster_exec=default_cluster_exec,
@@ -124,7 +124,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
 
     Arguments:
     seq_file = the sample sequence file name
-    barcode_field = the annotation containing set IDs
+    set_field = the annotation containing set IDs
     ident = the identity threshold for clustering sequences
     seq_start = the start position to trim sequences at before clustering
     seq_end = the end position to trim sequences at before clustering
@@ -141,7 +141,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     log = OrderedDict()
     log['START'] = 'ClusterSets'
     log['FILE'] = os.path.basename(seq_file)
-    log['BARCODE_FIELD'] = barcode_field
+    log['SET_FIELD'] = set_field
     log['CLUSTER_FIELD'] = cluster_field
     log['IDENTITY'] = ident
     log['SEQUENCE_START'] = seq_start
@@ -156,7 +156,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
                     'seq_end':seq_end}
 
     # Define feeder function and arguments
-    index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
+    index_args = {'field': set_field, 'delimiter': out_args['delimiter']}
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
                  'index_func': indexSeqSets,
@@ -171,7 +171,7 @@ def clusterSets(seq_file, barcode_field=default_barcode_field,
     collect_args = {'seq_file': seq_file,
                     'task_label': 'cluster',
                     'out_args': out_args,
-                    'index_field': barcode_field}
+                    'index_field': set_field}
 
     # Call process manager
     result = manageProcesses(feed_func, work_func, collect_func,
@@ -214,29 +214,87 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(multiproc=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)
+    group_help = parser.add_argument_group('help')
+    group_help.add_argument('--version', action='version',
+                            version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+    group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
+    subparsers = parser.add_subparsers(title='subcommands', dest='command', metavar='',
+                                       help='Clustering method')
+    # TODO:  This is a temporary fix for Python issue 9253
+    subparsers.required = True
 
-    # Clustering arguments
-    group_clust = parser.add_argument_group('clustering arguments')
-    group_clust.add_argument('-f', action='store', dest='barcode_field', type=str,
+    # Parent parser
+    parent_parser = getCommonArgParser(multiproc=True)
+
+    # Sequence set clustering arguments
+    parser_set = subparsers.add_parser('set', parents=[parent_parser],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
+                                       help='Cluster sequences within annotation sets.',
+                                       description='Cluster sequences within annotation sets.')
+    group_set = parser_set.add_argument_group('clustering arguments')
+    group_set.add_argument('-f', action='store', dest='set_field', type=str,
                              default=default_barcode_field,
-                             help='''The annotation field containing annotations, such as UID
+                             help='''The annotation field containing annotations, such as UMI
                                   barcode, for sequence grouping.''')
-    group_clust.add_argument('-k', action='store', dest='cluster_field', type=str,
+    group_set.add_argument('-k', action='store', dest='cluster_field', type=str,
                              default=default_cluster_field,
                              help='''The name of the output annotation field to add with the
                                   cluster information for each sequence.''')
-    group_clust.add_argument('--id', action='store', dest='ident', type=float,
+    group_set.add_argument('--ident', action='store', dest='ident', type=float,
                              default=default_ident,
                              help='The sequence identity threshold for the uclust algorithm.')
-    group_clust.add_argument('--start', action='store', dest='seq_start', type=int,
+    group_set.add_argument('--start', action='store', dest='seq_start', type=int,
                              help='''The start of the region to be used for clustering.
                                   Together with --end, this parameter can be used to specify a
                                   subsequence of each read to use in the clustering algorithm.''')
-    group_clust.add_argument('--end', action='store', dest='seq_end', type=int,
+    group_set.add_argument('--end', action='store', dest='seq_end', type=int,
                              help='The end of the region to be used for clustering.')
-    group_clust.add_argument('--exec', action='store', dest='cluster_exec',
+    group_set.add_argument('--exec', action='store', dest='cluster_exec',
+                             default=default_cluster_exec,
+                             help='The name or location of the usearch or vsearch executable.')
+    #parser_set.set_defaults(cluster_func=runUClust)
+
+    # Total sequence clustering arguments
+    parser_all = subparsers.add_parser('all', parents=[parent_parser],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
+                                       help='Cluster all sequences regardless of annotation.',
+                                       description='Cluster all sequences regardless of annotation.')
+    group_all = parser_all.add_argument_group('clustering arguments')
+    group_all.add_argument('-k', action='store', dest='cluster_field', type=str,
+                             default=default_cluster_field,
+                             help='''The name of the output annotation field to add with the
+                                  cluster information for each sequence.''')
+    group_all.add_argument('--ident', action='store', dest='ident', type=float,
+                             default=default_ident,
+                             help='The sequence identity threshold for the uclust algorithm.')
+    group_all.add_argument('--start', action='store', dest='seq_start', type=int,
+                             help='''The start of the region to be used for clustering.
+                                  Together with --end, this parameter can be used to specify a
+                                  subsequence of each read to use in the clustering algorithm.''')
+    group_all.add_argument('--end', action='store', dest='seq_end', type=int,
+                             help='The end of the region to be used for clustering.')
+    group_all.add_argument('--exec', action='store', dest='cluster_exec',
+                             default=default_cluster_exec,
+                             help='The name or location of the usearch or vsearch executable.')
+
+    # Sequence set clustering arguments
+    parser_barcode = subparsers.add_parser('barcode', parents=[parent_parser],
+                                       formatter_class=CommonHelpFormatter, add_help=False,
+                                       help='Cluster reads by clustering barcode sequences.',
+                                       description='Cluster reads by clustering barcode sequences.')
+    group_barcode = parser_barcode.add_argument_group('clustering arguments')
+    group_barcode.add_argument('-f', action='store', dest='barcode_field', type=str,
+                             default=default_barcode_field,
+                             help='''The annotation field containing barcode sequence annotations.''')
+    group_barcode.add_argument('-k', action='store', dest='cluster_field', type=str,
+                             default=default_cluster_field,
+                             help='''The name of the output annotation field to add with the
+                                  cluster information for each sequence.''')
+    group_barcode.add_argument('--ident', action='store', dest='ident', type=float,
+                             default=default_ident,
+                             help='The sequence identity threshold for the uclust algorithm.')
+    group_barcode.add_argument('--exec', action='store', dest='cluster_exec',
                              default=default_cluster_exec,
                              help='The name or location of the usearch or vsearch executable.')
 
@@ -254,8 +312,8 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
 
     # Convert fields to uppercase
-    if 'barcode_field' in args_dict and args_dict['barcode_field'] is not None:
-        args_dict['barcode_field'] = args_dict['barcode_field'].upper()
+    if 'set_field' in args_dict and args_dict['set_field'] is not None:
+        args_dict['set_field'] = args_dict['set_field'].upper()
     if 'cluster_field' in args_dict and args_dict['cluster_field'] is not None:
         args_dict['cluster_field'] = args_dict['cluster_field'].upper()
     
