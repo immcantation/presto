@@ -85,7 +85,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
       cluster_exec : the path to the usearch executable.
 
     Returns:
-      dict : {sequence id: cluster id}.
+      dict : {cluster id: list of sequence ids}.
     """
     # Function to trim and mask sequences
     gap_trans = str.maketrans({'-': 'N', '.': 'N'})
@@ -94,7 +94,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
         seq = seq.translate(gap_trans)
         return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
 
-    # Return sequence if only one sequence in seq_list
+    # Return sequence if only one sequence in seq_iter
     if len(seq_list) < 2:
         return {1:[seq_list[0].id]}
 

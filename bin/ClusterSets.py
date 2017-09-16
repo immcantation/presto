@@ -3,17 +3,20 @@
 Cluster sequences by group
 """
 # Info
-__author__ = 'Christopher Bolen, Jason Anthony Vander Heiden'
+__author__ = 'Christopher Bolen, Jason Anthony Vander Heiden, Ruoyi Jiang'
 from presto import __version__, __date__
 
 # Imports
 import os
 import shutil
 import sys
-import tempfile
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
+from time import time
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
@@ -22,7 +25,8 @@ from presto.Defaults import default_delimiter, default_barcode_field, \
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.Applications import runUClust
-from presto.IO import printLog
+from presto.IO import countSeqFile, getFileType, getOutputHandle, printLog, printMessage, \
+                      printProgress, readSeqFile
 from presto.Sequence import indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
@@ -116,7 +120,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
 
 def clusterSets(seq_file, set_field=default_barcode_field,
                 cluster_field=default_cluster_field,
-                ident=default_ident, seq_start=None, seq_end=None,
+                ident=default_ident, seq_start=0, seq_end=None,
                 cluster_exec=default_cluster_exec,
                 out_args=default_out_args, nproc=None,
                 queue_size=None):
@@ -126,6 +130,7 @@ def clusterSets(seq_file, set_field=default_barcode_field,
     Arguments:
     seq_file = the sample sequence file name
     set_field = the annotation containing set IDs
+    cluster_field = the name of the output cluster field
     ident = the identity threshold for clustering sequences
     seq_start = the start position to trim sequences at before clustering
     seq_end = the end position to trim sequences at before clustering
@@ -189,6 +194,207 @@ def clusterSets(seq_file, set_field=default_barcode_field,
     return result['out_files']
 
 
+def clusterAll(seq_file, cluster_field=default_cluster_field,
+               ident=default_ident, seq_start=0, seq_end=None,
+               cluster_exec=default_cluster_exec,
+               out_args=default_out_args, nproc=None):
+    """
+    Performs clustering on sets of sequences
+
+    Arguments:
+    seq_file = the sample sequence file name
+    cluster_field = the name of the output cluster field
+    ident = the identity threshold for clustering sequences
+    seq_start = the start position to trim sequences at before clustering
+    seq_end = the end position to trim sequences at before clustering
+    cluster_exec = the path to the executable for usearch
+    nproc = the number of processQueue processes;
+            if None defaults to the number of CPUs
+
+    Returns:
+    the clustered output file name
+    """
+    # Function to modify SeqRecord header with cluster identifier
+    def _header(seq, cluster, cluster_field=cluster_field,
+                delimiter=out_args['delimiter']):
+        header = parseAnnotation(seq.description, delimiter=delimiter)
+        header = mergeAnnotation(header, {cluster_field: cluster}, delimiter=delimiter)
+        seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
+        seq.description = ''
+        return seq
+
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'ClusterSets'
+    log['COMMAND'] = 'all'
+    log['FILE'] = os.path.basename(seq_file)
+    log['CLUSTER_FIELD'] = cluster_field
+    log['IDENTITY'] = ident
+    log['SEQUENCE_START'] = seq_start
+    log['SEQUENCE_END'] = seq_end
+    log['NPROC'] = nproc
+    printLog(log)
+
+    # Count sequence file and parse into a list of SeqRecords
+    result_count = countSeqFile(seq_file)
+    seq_list = list(readSeqFile(seq_file))
+
+    # Perform clustering
+    start_time = time()
+    printMessage('Running uclust', start_time=start_time, width=25)
+    cluster_dict = runUClust(seq_list, ident=ident,
+                             seq_start=seq_start, seq_end=seq_end,
+                             threads=nproc, cluster_exec=cluster_exec)
+    printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Determine file type
+    if out_args['out_type'] is None:
+        out_args['out_type'] = getFileType(seq_file)
+
+    # Open output file handles
+    pass_handle = getOutputHandle(seq_file,
+                                  'cluster-pass',
+                                  out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'],
+                                  out_type=out_args['out_type'])
+
+    # Open indexed sequence file
+    seq_dict = readSeqFile(seq_file, index=True)
+
+    # Iterate over sequence records and update header with cluster annotation
+    start_time = time()
+    rec_count = pass_count = 0
+    for cluster, id_list in cluster_dict.items():
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += len(id_list)
+
+        # Define output sequences
+        seq_output = [_header(seq_dict[x], cluster) for x in id_list]
+
+        # Write output
+        pass_count += len(seq_output)
+        SeqIO.write(seq_output, pass_handle, out_args['out_type'])
+
+    # Update progress
+    printProgress(rec_count, result_count, 0.05, start_time)
+
+    # Print log
+    log = OrderedDict()
+    log['SEQUENCES'] = result_count
+    log['PASS'] = pass_count
+    log['CLUSTERS'] = len(cluster_dict)
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['END'] = 'ClusterSets'
+    printLog(log)
+
+    # Close handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
+def clusterBarcodes(seq_file, barcode_field=default_barcode_field,
+                    cluster_field=default_cluster_field,
+                    ident=default_ident, cluster_exec=default_cluster_exec,
+                    out_args=default_out_args, nproc=None):
+    """
+    Performs clustering on sets of sequences
+
+    Arguments:
+    seq_file = the sample sequence file name
+    barcode_field = the annotation field containing barcode sequences
+    cluster_field = the name of the output cluster field
+    ident = the identity threshold for clustering sequences
+    seq_start = the start position to trim sequences at before clustering
+    seq_end = the end position to trim sequences at before clustering
+    cluster_exec = the path to the executable for usearch
+    nproc = the number of processQueue processes;
+            if None defaults to the number of CPUs
+
+    Returns:
+    the clustered output file name
+    """
+    # Function to modify SeqRecord header with cluster identifier
+    def _header(seq, cluster, field=cluster_field, delimiter=out_args['delimiter']):
+        header = parseAnnotation(seq.description, delimiter=delimiter)
+        header = mergeAnnotation(header, {field: cluster}, delimiter=delimiter)
+        seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
+        seq.description = ''
+        return seq
+
+    # Function to extract to make SeqRecord object from a barcode annotation
+    def _barcode(seq, field=barcode_field, delimiter=out_args['delimiter']):
+        header = parseAnnotation(seq.description, delimiter=delimiter)
+        return SeqRecord(Seq(header[field]), id=seq.id)
+
+    # Print parameter info
+    log = OrderedDict()
+    log['START'] = 'ClusterSets'
+    log['COMMAND'] = 'barcode'
+    log['FILE'] = os.path.basename(seq_file)
+    log['BARCODE_FIELD'] = barcode_field
+    log['CLUSTER_FIELD'] = cluster_field
+    log['IDENTITY'] = ident
+    log['NPROC'] = nproc
+    printLog(log)
+
+    # Count sequence file and parse into a list of SeqRecords
+    result_count = countSeqFile(seq_file)
+    barcode_list = [_barcode(x) for x in readSeqFile(seq_file)]
+
+    # Perform clustering
+    start_time = time()
+    printMessage('Running uclust', start_time=start_time, width=25)
+    cluster_dict = runUClust(barcode_list, ident=ident, seq_start=0, seq_end=None,
+                             threads=nproc, cluster_exec=cluster_exec)
+    printMessage('Done', start_time=start_time, end=True, width=25)
+
+    # Determine file type
+    if out_args['out_type'] is None:
+        out_args['out_type'] = getFileType(seq_file)
+
+    # Open output file handles
+    pass_handle = getOutputHandle(seq_file,
+                                  'cluster-pass',
+                                  out_dir=out_args['out_dir'],
+                                  out_name=out_args['out_name'],
+                                  out_type=out_args['out_type'])
+
+    # Open indexed sequence file
+    seq_dict = readSeqFile(seq_file, index=True)
+
+    # Iterate over sequence records and update header with cluster annotation
+    start_time = time()
+    rec_count = pass_count = 0
+    for cluster, id_list in cluster_dict.items():
+        printProgress(rec_count, result_count, 0.05, start_time)
+        rec_count += len(id_list)
+
+        # Define output sequences
+        seq_output = [_header(seq_dict[x], cluster) for x in id_list]
+
+        # Write output
+        pass_count += len(seq_output)
+        SeqIO.write(seq_output, pass_handle, out_args['out_type'])
+
+    # Update progress
+    printProgress(rec_count, result_count, 0.05, start_time)
+
+    # Print log
+    log = OrderedDict()
+    log['SEQUENCES'] = result_count
+    log['PASS'] = pass_count
+    log['CLUSTERS'] = len(cluster_dict)
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['END'] = 'ClusterSets'
+    printLog(log)
+
+    # Close handles
+    pass_handle.close()
+
+    return pass_handle.name
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -245,7 +451,7 @@ def getArgParser():
     group_set.add_argument('--ident', action='store', dest='ident', type=float,
                            default=default_ident,
                            help='The sequence identity threshold for the uclust algorithm.')
-    group_set.add_argument('--start', action='store', dest='seq_start', type=int,
+    group_set.add_argument('--start', action='store', dest='seq_start', type=int, default=0,
                            help='''The start of the region to be used for clustering.
                                 Together with --end, this parameter can be used to specify a
                                 subsequence of each read to use in the clustering algorithm.''')
@@ -254,7 +460,7 @@ def getArgParser():
     group_set.add_argument('--exec', action='store', dest='cluster_exec',
                            default=default_cluster_exec,
                            help='The name or location of the usearch or vsearch executable.')
-    #parser_set.set_defaults(cluster_func=runUClust)
+    parser_set.set_defaults(func=clusterSets)
 
     # Total sequence clustering arguments
     parser_all = subparsers.add_parser('all', parents=[parent_parser],
@@ -278,6 +484,7 @@ def getArgParser():
     group_all.add_argument('--exec', action='store', dest='cluster_exec',
                            default=default_cluster_exec,
                            help='The name or location of the usearch or vsearch executable.')
+    parser_all.set_defaults(func=clusterAll)
 
     # Sequence set clustering arguments
     parser_barcode = subparsers.add_parser('barcode', parents=[parent_parser],
@@ -298,6 +505,7 @@ def getArgParser():
     group_barcode.add_argument('--exec', action='store', dest='cluster_exec',
                                default=default_cluster_exec,
                                help='The name or location of the usearch or vsearch executable.')
+    parser_barcode.set_defaults(func=clusterBarcodes)
 
     return parser
 
@@ -327,10 +535,11 @@ if __name__ == '__main__':
             args_dict['seq_start'] is not None and args_dict['seq_end'] is not None and \
             args_dict['seq_start'] >= args_dict['seq_end']:
         parser.error('--start must be less than --end')
-    
-        
-    # Call cluster for each input file
+
+    # Call cluster main function for each input file
     del args_dict['seq_files']
+    del args_dict['func']
+    del args_dict['command']
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
-        clusterSets(**args_dict)
+        args.func(**args_dict)
