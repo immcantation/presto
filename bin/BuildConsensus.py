@@ -116,6 +116,7 @@ def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             cons_count = len(seq_list)
             result.log['CONSCOUNT'] = cons_count
             if cons_count < min_count:
+                #print(cons_count, min_count)
                 # If set fails count threshold, feed result queue and continue
                 result_queue.put(result)
                 continue

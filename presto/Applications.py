@@ -11,7 +11,6 @@ import os
 import sys
 import tempfile
 import pandas as pd
-from itertools import chain
 from io import StringIO
 from subprocess import CalledProcessError, check_output, PIPE, Popen, STDOUT
 from Bio import AlignIO, SeqIO
@@ -94,12 +93,12 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
         seq = seq.translate(gap_trans)
         return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
 
-    # Return sequence if only one sequence in seq_iter
-    if len(seq_list) < 2:
-        return {1:[seq_list[0].id]}
-
     # Make a trimmed and masked copy of each sequence so we don't mess up originals
     seq_trimmed = [_clean(x, seq_start, seq_end) for x in seq_list]
+
+    # Return sequence if only one sequence in seq_iter
+    if len(seq_trimmed) < 2:
+        return {1:[seq_trimmed[0].id]}
 
     # If there are any empty sequences after trimming return None
     if any([len(x.seq) == 0 for x in seq_trimmed]):

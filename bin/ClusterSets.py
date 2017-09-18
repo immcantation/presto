@@ -237,12 +237,12 @@ def clusterAll(seq_file, cluster_field=default_cluster_field,
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
-    seq_list = list(readSeqFile(seq_file))
+    seq_iter = readSeqFile(seq_file)
 
     # Perform clustering
     start_time = time()
     printMessage('Running uclust', start_time=start_time, width=25)
-    cluster_dict = runUClust(seq_list, ident=ident,
+    cluster_dict = runUClust(seq_iter, ident=ident,
                              seq_start=seq_start, seq_end=seq_end,
                              threads=nproc, cluster_exec=cluster_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
@@ -340,12 +340,12 @@ def clusterBarcodes(seq_file, barcode_field=default_barcode_field,
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
-    barcode_list = [_barcode(x) for x in readSeqFile(seq_file)]
+    barcode_iter = (_barcode(x) for x in readSeqFile(seq_file))
 
     # Perform clustering
     start_time = time()
     printMessage('Running uclust', start_time=start_time, width=25)
-    cluster_dict = runUClust(barcode_list, ident=ident, seq_start=0, seq_end=None,
+    cluster_dict = runUClust(barcode_iter, ident=ident, seq_start=0, seq_end=None,
                              threads=nproc, cluster_exec=cluster_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 

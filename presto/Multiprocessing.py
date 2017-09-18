@@ -287,7 +287,7 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
               continues; when False function returns
       data_queue : multiprocessing.Queue holding data to process
       result_queue : multiprocessing.Queue to hold processed results
-      process_func : function to use for filtering sequences
+      process_func : function to use for processing sequences
       process_args : Dictionary of arguments to pass to process_func
 
     Returns:
