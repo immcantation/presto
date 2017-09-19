@@ -13,16 +13,34 @@ import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict
-from itertools import permutations
+from itertools import combinations
 from textwrap import dedent
 from time import time
 
 # Presto imports
-from presto.Defaults import default_barcode_field, default_missing_chars, default_out_args
+from presto.Defaults import default_barcode_field, default_out_args
 from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
-from presto.Sequence import getDNAScoreDict, indexSeqSets, scoreHamPair
+from presto.Sequence import getDNAScoreDict, indexSeqSets
 from presto.Multiprocessing import SeqNumResult, manageProcesses, feedSeqQueue
+
+
+def hammingDist(seq1, seq2, score_dict=getDNAScoreDict()):
+    """
+    Simple hamming distance calculator
+
+    Arguments:
+        seq1 : string representing an nt sequence with valid chars
+        seq2 : string representing an nt sequence with valid chars
+        score_dict : optional dictionary of alignment scores
+
+    Returns:
+          int : distance
+    """
+    nts = zip(seq1, seq2)
+    score = sum([abs(score_dict[(c1, c2)] - 1) for c1, c2 in nts])
+
+    return score
 
 
 def calcDistancesPairwise(sequences):
@@ -51,7 +69,7 @@ def calcDistancesPairwise(sequences):
         #Calculate distances
         try:
         	#TODO: hamming calculator ignores differences in length
-            dists[j, k] = dists[k, j] = scoreHamPair(seq1, seq2) 
+            dists[j, k] = dists[k, j] = hammingDist(seq1, seq2)
         except (KeyError):
             raise KeyError('Unrecognized character in sequence.')
         
@@ -120,12 +138,6 @@ def logHistogram(hist):
             output_string += str(index) + ':' + str(count) + ' '
         index += 1
     return output_string
-
-
-
-
-
-
 
 
 def processEETQueue(alive, data_queue, result_queue):
