@@ -37,10 +37,10 @@ def hammingDist(seq1, seq2, score_dict=getDNAScoreDict()):
     Returns:
           int : distance
     """
-    nts = zip(seq1, seq2)
-    score = sum([abs(score_dict[(c1, c2)] - 1) for c1, c2 in nts])
+    scores = [score_dict[(c1, c2)] for c1, c2 in zip(seq1, seq2)]
+    dist = len(scores) - sum(scores)
 
-    return score
+    return dist
 
 
 def calcDistancesPairwise(sequences):
