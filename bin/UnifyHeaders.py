@@ -39,12 +39,11 @@ def consensusUnify(data, field, delimiter=default_delimiter):
     Returns:
       SeqResult : modified sequences.
     """
-    # TODO: bad for speed and memory. dunno about a fix.
     # Copy data into new object
     records = deepcopy(data.data)
 
     # Define result object
-    result = SeqResult(data.id, records)
+    result = SeqResult(data.id, data.data)
     result.log['SEQCOUNT'] = len(data)
     for i, seq in enumerate(records, start=1):
         header = parseAnnotation(seq.description, delimiter=delimiter)
@@ -84,7 +83,7 @@ def deletionUnify(data, field, delimiter=default_delimiter):
     records = data.data
 
     # Define result object
-    result = SeqResult(data.id, records)
+    result = SeqResult(data.id, data.data)
     result.log['SEQCOUNT'] = len(data)
     for i, seq in enumerate(records, start=1):
         header = parseAnnotation(seq.description, delimiter=delimiter)
