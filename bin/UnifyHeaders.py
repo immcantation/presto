@@ -11,11 +11,12 @@ import os
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
+from copy import deepcopy
 from textwrap import dedent
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, default_out_args
-from presto.Commandline import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
+from presto.Commandline import checkArgs, CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, annotationConsensus
 from presto.IO import printLog
 from presto.Sequence import indexSeqSets
@@ -38,31 +39,30 @@ def consensusUnify(data, field, delimiter=default_delimiter):
     Returns:
       SeqResult : modified sequences.
     """
-    # Define result object
-    result = SeqResult(data.id, data.data)
-    result.log['SET'] = data.id
-    result.log['SEQCOUNT'] = len(data)
-    for i, seq in enumerate(data.data):
-        header = parseAnnotation(seq.description, delimiter=delimiter)
-        result.log['VALUE%i' % (i)] = header[field]
+    # TODO: bad for speed and memory. dunno about a fix.
+    # Copy data into new object
+    records = deepcopy(data.data)
 
-    cons_dict = annotationConsensus(data.data, field)
+    # Define result object
+    result = SeqResult(data.id, records)
+    result.log['SEQCOUNT'] = len(data)
+    for i, seq in enumerate(records, start=1):
+        header = parseAnnotation(seq.description, delimiter=delimiter)
+        result.log['%s-%i' % (field, i)] = header[field]
+
+    cons_dict = annotationConsensus(records, field)
     result.log['CONSENSUS'] = cons_dict['cons']
 
-    # TODO: can skip this if cons_dict['freq'] == 1
-    # TODO: can modify in place instead of append SeqRecords for more speeds
-    # Update sequence annotations with consensus annotation
-    results = list()
-    for i, seq in enumerate(data.data):
-        header = parseAnnotation(seq.description, delimiter=delimiter)
-        header[field] = cons_dict['cons']
-        seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
-        seq.description = ''
-
-        results.append(seq)
+    if cons_dict['freq'] != 1:
+        # Update sequence annotations with consensus annotation
+        for i, seq in enumerate(records):
+            header = parseAnnotation(seq.description, delimiter=delimiter)
+            header[field] = cons_dict['cons']
+            seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
+            seq.description = ''
 
     # Check results
-    result.results = results
+    result.results = records
     result.valid = True
 
     return result
@@ -80,41 +80,26 @@ def deletionUnify(data, field, delimiter=default_delimiter):
     Returns:
       SeqResult : modified sequences.
     """
+    # Set reference to data
+    records = data.data
+
     # Define result object
-    result = SeqResult(data.id, data.data)
-    result.log['SET'] = data.id
+    result = SeqResult(data.id, records)
     result.log['SEQCOUNT'] = len(data)
-    for i, seq in enumerate(data.data):
+    for i, seq in enumerate(records, start=1):
         header = parseAnnotation(seq.description, delimiter=delimiter)
-        result.log['VALUE%i' % (i)] = header[field]
+        result.log['%s-%i' % (field, i)] = header[field]
 
     # I the number of unique identities in the annotation field is not 1, then the group is invalid and should be removed
-    if len(set(parseAnnotation(seq.description, delimiter=delimiter)[field] for seq in data.data)) == 1:
-        result.log['RETAIN'] = True
+    if len(set(parseAnnotation(seq.description, delimiter=delimiter)[field] for seq in records)) == 1:
         result.valid = True
     else:
-        result.log['RETAIN'] = False
         result.valid = False
 
-    results = data.data
-    result.results = results
+    result.results = records
+    result.log['RETAIN'] = result.valid
 
-    return results
-
-
-def majorityUnify(data, field, delimiter=default_delimiter):
-    """
-    Removes all sequences with the minority annotation in a group
-
-    Arguments:
-      data : SeqData object contain sequences to process.
-      field : field containing annotations to collapse.
-      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
-
-    Returns:
-      SeqResult : modified sequences.
-    """
-    pass
+    return result
 
 
 def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
@@ -163,7 +148,7 @@ def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
-                    'task_label': 'collect',
+                    'task_label': 'unify',
                     'out_args': out_args,
                     'index_field': set_field}
 
@@ -212,7 +197,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(annotation=False, log=True, multiproc=True)
+    parser_parent = getCommonArgParser(annotation=True, log=True, multiproc=True)
     group_parent = parser_parent.add_argument_group('annotation arguments')
     group_parent.add_argument('-f', action='store', dest='set_field', type=str,
                              default=default_barcode_field,
@@ -245,6 +230,7 @@ if __name__ == '__main__':
     """
     # Parse arguments
     parser = getArgParser()
+    checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
 
