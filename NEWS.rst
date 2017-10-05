@@ -1,17 +1,28 @@
 Release Notes
 ================================================================================
 
-Version 0.5.4.999:  September 15, 2017
+Version 0.5.4.999:  October 5, 2017
 -------------------------------------------------------------------------------
 
-ClusterSets
+ClusterSets:
 
++ Moved functionality of previous ClusterSets command into the ``set``
+  subcommand.
++ Added the ``all`` subcommand to cluster all sequences without considering
+  annotation groups.
++ Added the ``barcode`` subcommand which allows for clustering of reads
+  based on a barcode sequence instead of the read data.
 + Renamed ``-id`` argument to ``--ident`` for consistency with AssemblePairs.
 
 EstimateError:
 
 + Fixed a division by zero warning in the log output when there were no
   observed mismatches.
+
+UnifyHeaders:
+
++ New tool to generate consensus annotations or filter reads based on
+  annotation groupings.
 
 
 Version 0.5.4:  July 1, 2017

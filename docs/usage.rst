@@ -19,3 +19,4 @@ Commandline Usage
    tools/ParseHeaders
    tools/ParseLog
    tools/SplitSeq
+   tools/UnifyHeaders

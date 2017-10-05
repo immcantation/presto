@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Collects annotation fields based on grouping scheme
+Unifies annotation fields based on grouping scheme
 """
 # Info
 __author__ = 'Ruoyi Jiang, Jason Vander Heiden'
@@ -180,8 +180,13 @@ def getArgParser():
     fields = dedent(
              '''
              output files:
-                 collect-pass
-                    clustered reads with consensus annotation.
+                 unify-pass
+                    Reads passing annotation filtering or consensus.
+                 unify-fail
+                    Reading failing filtering.
+             output annotation fields:
+                 <user defined>
+                     annotation fields specified by the -f and -k arguments.
              ''')
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
@@ -191,7 +196,7 @@ def getArgParser():
                             version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
     group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
     subparsers = parser.add_subparsers(title='subcommands', metavar='',
-                                       help='Filtering operation')
+                                       help='Annotation operation')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 

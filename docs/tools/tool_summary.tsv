@@ -9,7 +9,10 @@ Tool	Subcommand	Description
 	reference	Assembles paired-end reads using V-segment references
 	sequential	Attempt alignment assembly followed by reference assembly
 :ref:`BuildConsensus`		Constructs UMI consensus sequences
-:ref:`ClusterSets`		Clusters UMI read groups into smaller sub-groups
+:ref:`ClusterSets`		Clusters read groups
+	all	Cluster all sequences regardless of annotation
+	barcode	Cluster reads by clustering barcode sequences
+	set	Cluster reads by sequence data within barcode groups
 :ref:`CollapseSeq`		Removes duplicate sequences
 :ref:`ConvertHeaders`		Converts sequence headers to the pRESTO format
 	generic	Converts sequence headers with an unknown annotation system
@@ -47,3 +50,6 @@ Tool	Subcommand	Description
 	samplepair	Randomly samples paired-end reads from two files
 	select	Filters sequences based on annotations
 	sort	Sorts sequences based on annotations
+:ref:`UnifyHeaders`		Unifies annotation fields based on grouping scheme
+	consensus	Reassign fields to consensus values
+	delete	Delete sequences with differing field values.
