@@ -52,7 +52,8 @@ scripts = ['AlignSets.py',
            'PairSeq.py',
            'ParseHeaders.py',
            'ParseLog.py',
-           'SplitSeq.py']
+           'SplitSeq.py',
+           'UnifyHeaders.py']
 install_scripts = [os.path.join('bin', s) for s in scripts]
 
 # TODO: check pip version to avoid problem with parse_requirements(session=False)

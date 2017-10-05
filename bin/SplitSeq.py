@@ -117,7 +117,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
     log['FIELD'] = field
     log['THRESHOLD'] = threshold
     printLog(log)
-    
+
     # Open file handles
     in_type = getFileType(seq_file)
     seq_iter = readSeqFile(seq_file)

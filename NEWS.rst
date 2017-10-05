@@ -1,8 +1,12 @@
 Release Notes
 ================================================================================
 
-Version 0.5.4.999:  August 22, 2017
+Version 0.5.4.999:  September 15, 2017
 -------------------------------------------------------------------------------
+
+ClusterSets
+
++ Renamed ``-id`` argument to ``--ident`` for consistency with AssemblePairs.
 
 EstimateError:
 

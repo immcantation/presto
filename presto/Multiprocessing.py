@@ -84,6 +84,33 @@ class SeqResult:
             return len(self.data)
 
 
+class SeqNumResult:
+    """
+    A class defining numeric result objects for collector processes
+    """
+    # Instantiation
+    def __init__(self, key, records):
+        self.id = key
+        self.data = records
+        self.results = None
+        self.valid = False
+        self.count = 0
+        self.log = OrderedDict([('ID', key)])
+
+    # Set boolean evaluation to valid value
+    def __bool__(self):
+        return self.valid
+
+    # Set length evaluation to number of results
+    def __len__(self):
+        if isinstance(self.results, SeqRecord) or isinstance(self.results, Seq):
+            return 1
+        elif self.results is None:
+            return 0
+        else:
+            return len(self.results)
+
+
 def manageProcesses(feed_func, work_func, collect_func,
                     feed_args={}, work_args={}, collect_args={},
                     nproc=None, queue_size=None):
@@ -260,7 +287,7 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
               continues; when False function returns
       data_queue : multiprocessing.Queue holding data to process
       result_queue : multiprocessing.Queue to hold processed results
-      process_func : function to use for filtering sequences
+      process_func : function to use for processing sequences
       process_args : Dictionary of arguments to pass to process_func
 
     Returns:

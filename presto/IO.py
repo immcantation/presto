@@ -74,6 +74,7 @@ def getFileType(filename):
     return file_type
 
 
+# TODO:  Should probably be separate functions for index=True and index=False
 def readSeqFile(seq_file, index=False, key_func=None):
     """
     Reads FASTA/FASTQ files
@@ -86,7 +87,7 @@ def readSeqFile(seq_file, index=False, key_func=None):
                  index=True
 
     Returns:
-      tuple : Tuple of (input file type, sequence record object)
+      iter : an interator of SeqRecords if index=False. A dict if True.
     """
     # Read and check file
     try:
@@ -268,7 +269,7 @@ def printLog(record, handle=sys.stdout, inset=None):
     return record_str
 
 
-def printMessage(message, start_time=None, end=False, width=20):
+def printMessage(message, start_time=None, end=False, width=25):
     """
     Prints a progress message to standard out
 

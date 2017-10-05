@@ -11,7 +11,6 @@ import os
 import sys
 import tempfile
 import pandas as pd
-from itertools import chain
 from io import StringIO
 from subprocess import CalledProcessError, check_output, PIPE, Popen, STDOUT
 from Bio import AlignIO, SeqIO
@@ -72,7 +71,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
 
 
 def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
-              cluster_exec=default_usearch_exec):
+              threads=1, cluster_exec=default_usearch_exec):
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
@@ -81,10 +80,11 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
       ident : the sequence identity cutoff to be passed to usearch.
       seq_start : the start position to trim sequences at before clustering.
       seq_end : the end position to trim sequences at before clustering.
+      threads : number of threads for usearch.
       cluster_exec : the path to the usearch executable.
 
     Returns:
-      dict : {sequence id: cluster id}.
+      dict : {cluster id: list of sequence ids}.
     """
     # Function to trim and mask sequences
     gap_trans = str.maketrans({'-': 'N', '.': 'N'})
@@ -93,12 +93,12 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
         seq = seq.translate(gap_trans)
         return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
 
-    # Return sequence if only one sequence in seq_list
-    if len(seq_list) < 2:
-        return {1:[seq_list[0].id]}
-
     # Make a trimmed and masked copy of each sequence so we don't mess up originals
     seq_trimmed = [_clean(x, seq_start, seq_end) for x in seq_list]
+
+    # Return sequence if only one sequence in seq_iter
+    if len(seq_trimmed) < 2:
+        return {1:[seq_trimmed[0].id]}
 
     # If there are any empty sequences after trimming return None
     if any([len(x.seq) == 0 for x in seq_trimmed]):
@@ -115,7 +115,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
            '-id', str(ident),
            '-qmask', 'none',
            '-minseqlength', '1',
-           '-threads', '1']
+           '-threads', str(threads)]
 
     # Write usearch input fasta file
     SeqIO.write(seq_trimmed, in_handle, 'fasta')

@@ -94,6 +94,7 @@ def scoreDNA(a, b, mask_score=None, gap_score=None):
     IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
                    'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
                    '-.':'.'}
+
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.items() for p in list(product(k, v))]
 
