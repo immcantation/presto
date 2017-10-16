@@ -32,25 +32,30 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 # Defaults
+default_cluster_prefix=''
 default_cluster_exec = default_usearch_exec
 default_ident = 0.9
 
 
-def processCSQueue(alive, data_queue, result_queue, cluster_field,
+def processCSQueue(alive, data_queue, result_queue,
+                   cluster_field=default_cluster_field,
+                   cluster_prefix=default_cluster_prefix,
                    cluster_args={}, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing
-            continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    cluster_args = a dictionary of optional arguments for the clustering function
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+      alive : a multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns
+      data_queue : a multiprocessing.Queue holding data to process
+      result_queue : a multiprocessing.Queue to hold processed results
+      cluster_field : string defining the output cluster field name.
+      cluster_prefix : string defining a prefix for the cluster identifier.
+      cluster_args : a dictionary of optional arguments for the clustering function
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists)
 
     Returns:
-    None
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached
@@ -86,17 +91,18 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
             # Update sequence annotations with cluster assignments
             results = list()
             seq_dict = {s.id: s for s in data.data}
-            for clust, id_list in cluster_dict.items():
+            for cluster, id_list in cluster_dict.items():
                 for i, seq_id in enumerate(id_list, start=1):
                     # Add cluster annotation
                     seq = seq_dict[seq_id]
+                    label = '%s%i' % (cluster_prefix, cluster)
                     header = parseAnnotation(seq.description, delimiter=delimiter)
-                    header = mergeAnnotation(header, {cluster_field: clust}, delimiter=delimiter)
+                    header = mergeAnnotation(header, {cluster_field: label}, delimiter=delimiter)
                     seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
                     seq.description = ''
 
                     # Update log and results
-                    result.log['CLUST%i-%i' % (clust, i)] = str(seq.seq)
+                    result.log['CLUST%i-%i' % (cluster, i)] = str(seq.seq)
                     results.append(seq)
 
             # Check results
@@ -120,6 +126,7 @@ def processCSQueue(alive, data_queue, result_queue, cluster_field,
 
 def clusterSets(seq_file, set_field=default_barcode_field,
                 cluster_field=default_cluster_field,
+                cluster_prefix=default_cluster_prefix,
                 ident=default_ident, seq_start=0, seq_end=None,
                 cluster_exec=default_cluster_exec,
                 out_args=default_out_args, nproc=None,
@@ -128,20 +135,21 @@ def clusterSets(seq_file, set_field=default_barcode_field,
     Performs clustering on sets of sequences
 
     Arguments:
-    seq_file = the sample sequence file name
-    set_field = the annotation containing set IDs
-    cluster_field = the name of the output cluster field
-    ident = the identity threshold for clustering sequences
-    seq_start = the start position to trim sequences at before clustering
-    seq_end = the end position to trim sequences at before clustering
-    cluster_exec = the path to the executable for usearch
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
+      seq_file : the sample sequence file name
+      set_field : the annotation containing set IDs
+      cluster_field : the name of the output cluster field
+      cluster_prefix : string defining a prefix for the cluster identifier.
+      ident : the identity threshold for clustering sequences
+      seq_start : the start position to trim sequences at before clustering
+      seq_end : the end position to trim sequences at before clustering
+      cluster_exec : the path to the executable for usearch
+      nproc : the number of processQueue processes;
+              if None defaults to the number of CPUs
+      queue_size : maximum size of the argument queue;
+                   if None defaults to 2*nproc
 
     Returns:
-    the clustered output file name
+      str : the clustered output file name
     """
     # Print parameter info
     log = OrderedDict()
@@ -149,6 +157,7 @@ def clusterSets(seq_file, set_field=default_barcode_field,
     log['FILE'] = os.path.basename(seq_file)
     log['SET_FIELD'] = set_field
     log['CLUSTER_FIELD'] = cluster_field
+    log['CLUSTER_PREFIX'] = cluster_prefix
     log['IDENTITY'] = ident
     log['SEQUENCE_START'] = seq_start
     log['SEQUENCE_END'] = seq_end
@@ -170,6 +179,7 @@ def clusterSets(seq_file, set_field=default_barcode_field,
     # Define worker function and arguments
     work_func = processCSQueue
     work_args = {'cluster_field': cluster_field,
+                 'cluster_prefix': cluster_prefix,
                  'cluster_args': cluster_args,
                  'delimiter': out_args['delimiter']}
     # Define collector function and arguments
@@ -195,6 +205,7 @@ def clusterSets(seq_file, set_field=default_barcode_field,
 
 
 def clusterAll(seq_file, cluster_field=default_cluster_field,
+               cluster_prefix=default_cluster_prefix,
                ident=default_ident, seq_start=0, seq_end=None,
                cluster_exec=default_cluster_exec,
                out_args=default_out_args, nproc=None):
@@ -202,23 +213,25 @@ def clusterAll(seq_file, cluster_field=default_cluster_field,
     Performs clustering on sets of sequences
 
     Arguments:
-    seq_file = the sample sequence file name
-    cluster_field = the name of the output cluster field
-    ident = the identity threshold for clustering sequences
-    seq_start = the start position to trim sequences at before clustering
-    seq_end = the end position to trim sequences at before clustering
-    cluster_exec = the path to the executable for usearch
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
+      seq_file : the sample sequence file name
+      cluster_field : the name of the output cluster field
+      cluster_prefix : string defining a prefix for the cluster identifier.
+      ident : the identity threshold for clustering sequences
+      seq_start : the start position to trim sequences at before clustering
+      seq_end : the end position to trim sequences at before clustering
+      cluster_exec : the path to the executable for usearch
+      nproc : the number of processQueue processes;
+              if None defaults to the number of CPUs
 
     Returns:
-    the clustered output file name
+      str : the clustered output file name
     """
     # Function to modify SeqRecord header with cluster identifier
-    def _header(seq, cluster, cluster_field=cluster_field,
+    def _header(seq, cluster, field=cluster_field, prefix=cluster_prefix,
                 delimiter=out_args['delimiter']):
+        label = '%s%i' % (prefix, cluster)
         header = parseAnnotation(seq.description, delimiter=delimiter)
-        header = mergeAnnotation(header, {cluster_field: cluster}, delimiter=delimiter)
+        header = mergeAnnotation(header, {field: label}, delimiter=delimiter)
         seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
         seq.description = ''
         return seq
@@ -229,6 +242,7 @@ def clusterAll(seq_file, cluster_field=default_cluster_field,
     log['COMMAND'] = 'all'
     log['FILE'] = os.path.basename(seq_file)
     log['CLUSTER_FIELD'] = cluster_field
+    log['CLUSTER_PREFIX'] = cluster_prefix
     log['IDENTITY'] = ident
     log['SEQUENCE_START'] = seq_start
     log['SEQUENCE_END'] = seq_end
@@ -295,29 +309,33 @@ def clusterAll(seq_file, cluster_field=default_cluster_field,
 
 def clusterBarcodes(seq_file, barcode_field=default_barcode_field,
                     cluster_field=default_cluster_field,
+                    cluster_prefix=default_cluster_prefix,
                     ident=default_ident, cluster_exec=default_cluster_exec,
                     out_args=default_out_args, nproc=None):
     """
     Performs clustering on sets of sequences
 
     Arguments:
-    seq_file = the sample sequence file name
-    barcode_field = the annotation field containing barcode sequences
-    cluster_field = the name of the output cluster field
-    ident = the identity threshold for clustering sequences
-    seq_start = the start position to trim sequences at before clustering
-    seq_end = the end position to trim sequences at before clustering
-    cluster_exec = the path to the executable for usearch
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
+      seq_file : the sample sequence file name
+      barcode_field : the annotation field containing barcode sequences
+      cluster_field : the name of the output cluster field
+      cluster_prefix : string defining a prefix for the cluster identifier.
+      ident : the identity threshold for clustering sequences
+      seq_start : the start position to trim sequences at before clustering
+      seq_end : the end position to trim sequences at before clustering
+      cluster_exec : the path to the executable for usearch
+      nproc : the number of processQueue processes;
+              if None defaults to the number of CPUs
 
     Returns:
-    the clustered output file name
+      str : the clustered output file name
     """
     # Function to modify SeqRecord header with cluster identifier
-    def _header(seq, cluster, field=cluster_field, delimiter=out_args['delimiter']):
+    def _header(seq, cluster, field=cluster_field, prefix=cluster_prefix,
+                delimiter=out_args['delimiter']):
+        label = '%s%i' % (prefix, cluster)
         header = parseAnnotation(seq.description, delimiter=delimiter)
-        header = mergeAnnotation(header, {field: cluster}, delimiter=delimiter)
+        header = mergeAnnotation(header, {field: label}, delimiter=delimiter)
         seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
         seq.description = ''
         return seq
@@ -334,6 +352,7 @@ def clusterBarcodes(seq_file, barcode_field=default_barcode_field,
     log['FILE'] = os.path.basename(seq_file)
     log['BARCODE_FIELD'] = barcode_field
     log['CLUSTER_FIELD'] = cluster_field
+    log['CLUSTER_PREFIX'] = cluster_prefix
     log['IDENTITY'] = ident
     log['NPROC'] = nproc
     printLog(log)
@@ -457,6 +476,10 @@ def getArgParser():
                                 subsequence of each read to use in the clustering algorithm.''')
     group_set.add_argument('--end', action='store', dest='seq_end', type=int,
                            help='The end of the region to be used for clustering.')
+    group_set.add_argument('--prefix', action='store', dest='cluster_prefix', type=str,
+                           default=default_cluster_prefix,
+                           help='''A string to use as the prefix for each cluster identifier.
+                                By default, cluster identifiers will be numeric values only.''')
     group_set.add_argument('--exec', action='store', dest='cluster_exec',
                            default=default_cluster_exec,
                            help='The name or location of the usearch or vsearch executable.')
@@ -481,6 +504,10 @@ def getArgParser():
                                 subsequence of each read to use in the clustering algorithm.''')
     group_all.add_argument('--end', action='store', dest='seq_end', type=int,
                            help='The end of the region to be used for clustering.')
+    group_all.add_argument('--prefix', action='store', dest='cluster_prefix', type=str,
+                           default=default_cluster_prefix,
+                           help='''A string to use as the prefix for each cluster identifier.
+                                By default, cluster identifiers will be numeric values only.''')
     group_all.add_argument('--exec', action='store', dest='cluster_exec',
                            default=default_cluster_exec,
                            help='The name or location of the usearch or vsearch executable.')
@@ -502,6 +529,10 @@ def getArgParser():
     group_barcode.add_argument('--ident', action='store', dest='ident', type=float,
                                default=default_ident,
                                help='The sequence identity threshold for the uclust algorithm.')
+    group_barcode.add_argument('--prefix', action='store', dest='cluster_prefix', type=str,
+                               default=default_cluster_prefix,
+                               help='''A string to use as the prefix for each cluster identifier.
+                                    By default, cluster identifiers will be numeric values only.''')
     group_barcode.add_argument('--exec', action='store', dest='cluster_exec',
                                default=default_cluster_exec,
                                help='The name or location of the usearch or vsearch executable.')
