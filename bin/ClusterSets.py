@@ -154,6 +154,7 @@ def clusterSets(seq_file, set_field=default_barcode_field,
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'ClusterSets'
+    log['COMMAND'] = 'set'
     log['FILE'] = os.path.basename(seq_file)
     log['SET_FIELD'] = set_field
     log['CLUSTER_FIELD'] = cluster_field
@@ -294,10 +295,11 @@ def clusterAll(seq_file, cluster_field=default_cluster_field,
 
     # Print log
     log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['CLUSTERS'] = len(cluster_dict)
     log['SEQUENCES'] = result_count
     log['PASS'] = pass_count
-    log['CLUSTERS'] = len(cluster_dict)
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['FAIL'] = rec_count - pass_count
     log['END'] = 'ClusterSets'
     printLog(log)
 
@@ -389,6 +391,7 @@ def clusterBarcodes(seq_file, barcode_field=default_barcode_field,
         printProgress(rec_count, result_count, 0.05, start_time)
         rec_count += len(id_list)
 
+        # TODO:  make a generator. Figure out how to get pass_count updated
         # Define output sequences
         seq_output = [_header(seq_dict[x], cluster) for x in id_list]
 
@@ -401,10 +404,11 @@ def clusterBarcodes(seq_file, barcode_field=default_barcode_field,
 
     # Print log
     log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['CLUSTERS'] = len(cluster_dict)
     log['SEQUENCES'] = result_count
     log['PASS'] = pass_count
-    log['CLUSTERS'] = len(cluster_dict)
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['FAIL'] = rec_count - pass_count
     log['END'] = 'ClusterSets'
     printLog(log)
 
@@ -574,3 +578,8 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         args.func(**args_dict)
+
+    # import cProfile
+    # prof = cProfile.Profile()
+    # results = prof.runcall(args.func, **args_dict)
+    # prof.dump_stats('cluster.prof')
