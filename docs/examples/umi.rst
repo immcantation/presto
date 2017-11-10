@@ -112,17 +112,18 @@ the :option:`--prcons <BuildConsensus --prcons>` and
 (or :option:`--maxdiv <BuildConsensus --maxdiv>`) arguments to :ref:`BuildConsensus` are
 sufficient to filter out invalid reads and/or entire invalid UMI groups. However, if
 there is significant nucleotide diversity within UMI groups due to insufficient
-UMI length or low UMI diversity, the :ref:`ClusterSets` tool can help correct for this.
-:ref:`ClusterSets` will cluster sequence by similarity and add an additional annotation
-dividing sequences within a UMI read group into sub-clusters::
+UMI length or low UMI diversity, the :program:`set` command of the :ref:`ClusterSets`
+tool can help correct for this. :ref:`ClusterSets` will cluster sequence by
+similarity and add an additional annotation dividing sequences within a UMI read group
+into sub-clusters::
 
-    ClusterSets.py -s reads.fastq -f BARCODE -k CLUSTER --exec ~/bin/usearch
+    ClusterSets.py set -s reads.fastq -f BARCODE -k CLUSTER --exec ~/bin/usearch
 
 The above command will add an annotation to each sequence named ``CLUSTER``
-(:option:`-k CLUSTER <ClusterSets -k>`) containing a cluster identifier
+(:option:`-k CLUSTER <ClusterSets set -k>`) containing a cluster identifier
 for each sequence within the UMI barcode group.
-The :option:`-f BARCODE <ClusterSets -f>` argument specifies the UMI annotation and
-:option:`--exec ~/bin/usearch <ClusterSets --exec>` is a pointer to
+The :option:`-f BARCODE <ClusterSets set -f>` argument specifies the UMI annotation and
+:option:`--exec ~/bin/usearch <ClusterSets set --exec>` is a pointer to
 where the `USEARCH <http://www.drive5.com/usearch>`__ executable is located. After
 assigning cluster annotations via :ref:`ClusterSets`, the ``BARCODE`` and ``CLUSTER``
 fields can be merged using the :program:`copy` operation of :ref:`ParseHeaders`::
