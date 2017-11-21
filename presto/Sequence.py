@@ -248,7 +248,7 @@ def checkSeqEqual(seq1, seq2, ignore_chars=default_missing_chars):
     """
     equal = True
     #for a, b in zip(seq1.upper(), seq2.upper()):
-    for a, b in zip(seq1, seq2):
+    for a, b in zip_longest(seq1, seq2):
         if a != b and a not in ignore_chars and b not in ignore_chars:
             equal = False
             break
