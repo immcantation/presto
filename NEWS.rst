@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.4.999:  December 26, 2017
+Version 0.5.5:  December 26, 2017
 -------------------------------------------------------------------------------
 
 AssemblePairs:
@@ -19,6 +19,12 @@ ClusterSets:
 + Added the ``barcode`` subcommand which allows for clustering of reads
   based on a barcode sequence instead of the read data.
 + Renamed ``-id`` argument to ``--ident`` for consistency with AssemblePairs.
+
+CollapseSeq:
+
++ Fixed a bug wherein CollapseSeq would match partial sequences against longer
+  sequences that were otherwise identical up until the missing end characters.
++ Added detailed log output.
 
 EstimateError:
 
