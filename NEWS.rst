@@ -1,8 +1,14 @@
 Release Notes
 ================================================================================
 
-Version 0.5.4.999:  October 5, 2017
+Version 0.5.4.999:  December 26, 2017
 -------------------------------------------------------------------------------
+
+AssemblePairs:
+
++ Fixed a bug that caused the ``align`` subcommand to error if input sequences
+  where shorter than the minimum specified by the `--minlen` argument. It will
+  now simply fail such sequences.
 
 ClusterSets:
 

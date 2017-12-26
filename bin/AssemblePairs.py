@@ -411,14 +411,17 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
     Returns: 
     an AssemblyRecord object
     """
-    # Set alignment parameters
-    if assembly_stats is None:  assembly_stats = AssemblyStats(max_len + 1)
-
     # Define general parameters
+    stitch = AssemblyRecord()
+    if assembly_stats is None:  assembly_stats = AssemblyStats(max_len + 1)
     head_str = str(head_seq.seq)
     tail_str = str(tail_seq.seq)
     head_len = len(head_str)
     tail_len = len(tail_str)
+
+    # Fail if sequences are too short
+    if head_len <= min_len or tail_len <= min_len:
+        return stitch
 
     # Determine if quality scores are present
     has_quality = hasattr(head_seq, 'letter_annotations') and \
@@ -433,7 +436,6 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
         scan_len = min(max(head_len, tail_len), max_len)
 
     # Iterate and score overlap segments
-    stitch = AssemblyRecord()
     for i in range(min_len, scan_len + 1):
         a = max(0, head_len - i)
         b = head_len - max(0, i - tail_len)
