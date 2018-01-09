@@ -3,38 +3,75 @@ Sequence processing functions
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import __version__, __date__, default_missing_chars
+from presto import __version__, __date__
 
 # Imports
 import re
 import sys
+from collections import OrderedDict
 from itertools import product, zip_longest
+from Bio import pairwise2
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, \
                             default_gap_chars, default_mask_chars, default_missing_chars, \
-                            default_min_freq, default_min_qual
-from presto.Annotation import parseAnnotation
+                            default_min_freq, default_min_qual, \
+                            default_gap_penalty, default_max_error, default_max_len, default_start
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 
 
-def compilePrimers(primers):
+class PrimerAlignment:
     """
-    Translates IUPAC Ambiguous Nucleotide characters to regular expressions and compiles them
-
-    Arguments:
-      key : Dictionary of sequences to translate
-
-    Returns:
-      dict : Dictionary of compiled regular expressions
+    A class defining a primer alignment result
     """
+    # Instantiation
+    def __init__(self, seq=None):
+        """
+        Initializer
 
-    primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateAmbigDNA, v))
-                     for k, v in primers.items()}
+        Arguments:
+          seq : Bio.SeqRecord.SeqRecord object contained the sequence primers were aligned against.
 
-    return primers_regex
+        Returns:
+          presto.Sequence.PrimerAlignment
+        """
+        self.seq = seq
+        self.primer = None
+        self.align_seq = None
+        self.align_primer = None
+        self.start = None
+        self.end = None
+        self.gaps = 0
+        self.error = 1
+        self.rev_primer = False
+        self.valid = False
+
+    # Set boolean evaluation to valid value
+    def __bool__(self):
+        """
+        Boolean evaluation of the alignment
+
+        Returns:
+          int :  evaluates to the value of the valid attribute
+        """
+        return self.valid
+
+    # Set length evaluation to length of alignment
+    def __len__(self):
+        """
+        Length of alignment
+
+        Returns:
+          int : length of align_seq attribute
+        """
+        if self.align_seq is None:
+            return 0
+        else:
+            return len(self.align_seq)
 
 
 def translateAmbigDNA(key):
@@ -273,8 +310,6 @@ def weightSeq(seq, ignore_chars=set()):
 
 def scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict()):
     """
-    scoreSeqPair(seq1, seq2, ignore_chars=set(), score_dict=getDNAScoreDict())
-
     Determine the error rate for a pair of sequences
 
     Arguments:
@@ -616,3 +651,294 @@ def subsetSeqIndex(seq_dict, field, values, delimiter=default_delimiter):
                   in values]
 
     return key_subset
+
+
+def compilePrimers(primers):
+    """
+    Translates IUPAC Ambiguous Nucleotide characters to regular expressions and compiles them
+
+    Arguments:
+      key : Dictionary of sequences to translate
+
+    Returns:
+      dict : Dictionary of compiled regular expressions
+    """
+
+    primers_regex = {k: re.compile(re.sub(r'([RYSWKMBDHVN])', translateAmbigDNA, v))
+                     for k, v in primers.items()}
+
+    return primers_regex
+
+
+def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error,
+                 max_len=default_max_len, rev_primer=False, skip_rc=False,
+                 gap_penalty=default_gap_penalty,
+                 score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
+    """
+    Performs pairwise local alignment of a list of short sequences against a long sequence
+
+    Arguments:
+      seq_record : a SeqRecord object to align primers against
+      primers : dictionary of {names: short IUPAC ambiguous sequence strings}
+      primers_regex : optional dictionary of {names: compiled primer regular expressions}
+      max_error : maximum acceptable error rate before aligning reverse complement
+      max_len : maximum length of sample sequence to align
+      rev_primer : if True align with the tail end of the sequence
+      skip_rc : if True do not check reverse complement sequences
+      gap_penalty : a tuple of positive (gap open, gap extend) penalties
+      score_dict : optional dictionary of alignment scores as {(char1, char2): score}
+
+    Returns:
+      presto.Sequence.PrimerAlignment : primer alignment result object
+    """
+    # Defined undefined parameters
+    if primers_regex is None:  primers_regex = compilePrimers(primers)
+    seq_record = seq_record.upper()
+    rec_len = len(seq_record)
+    max_len = min(rec_len, max_len)
+
+    # Create empty return object
+    align = PrimerAlignment(seq_record)
+    align.rev_primer = rev_primer
+
+    # Define sequences to align and assign orientation tags
+    if not skip_rc:
+        seq_list = [seq_record, reverseComplement(seq_record)]
+        seq_list[0].annotations['seqorient'] = 'F'
+        seq_list[1].annotations['seqorient'] = 'RC'
+    else:
+        seq_list = [seq_record]
+        seq_list[0].annotations['seqorient'] = 'F'
+
+    # Assign primer orientation tags
+    for rec in seq_list:
+        rec.annotations['prorient'] = 'F' if not rev_primer else 'RC'
+
+        # Attempt regular expression match first
+    for rec in seq_list:
+        scan_seq = str(rec.seq)
+        scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
+        for adpt_id, adpt_regex in primers_regex.items():
+            adpt_match = adpt_regex.search(scan_seq)
+            # Parse matches
+            if adpt_match:
+                align.seq = rec
+                align.seq.annotations['primer'] = adpt_id
+                align.primer = adpt_id
+                align.align_seq = scan_seq
+                align.align_primer = '-' * adpt_match.start(0) + \
+                                     primers[adpt_id] + \
+                                     '-' * (max_len - adpt_match.end(0))
+                align.gaps = 0
+                align.error = 0
+                align.valid = True
+
+                # Determine start and end positions
+                if not rev_primer:
+                    align.start = adpt_match.start(0)
+                    align.end = adpt_match.end(0)
+                else:
+                    rev_pos = rec_len - max_len
+                    align.start = adpt_match.start(0) + rev_pos
+                    align.end = adpt_match.end(0) + rev_pos
+
+                return align
+
+    # Perform local alignment if regular expression match fails
+    best_align, best_rec, best_adpt, best_error = None, None, None, None
+    for rec in seq_list:
+        this_align = dict()
+        scan_seq = str(rec.seq)
+        scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
+        for adpt_id, adpt_seq in primers.items():
+            pw2_align = pairwise2.align.localds(scan_seq, adpt_seq, score_dict,
+                                                -gap_penalty[0], -gap_penalty[1],
+                                                one_alignment_only=True)
+            if pw2_align:
+                this_align.update({adpt_id: pw2_align[0]})
+        if not this_align:  continue
+
+        # Determine alignment with lowest error rate
+        for x_adpt, x_align in this_align.items():
+            x_error = 1.0 - x_align[2] / len(primers[x_adpt])
+            # x_gaps = len(x_align[1]) - max_len
+            # x_error = 1.0 - (x_align[2] + x_gaps) / primers[x_adpt])
+            if best_error is None or x_error < best_error:
+                best_align = this_align
+                best_rec = rec
+                best_adpt = x_adpt
+                best_error = x_error
+
+        # Skip rev_primer complement if forward sequence error within defined threshold
+        if best_error <= max_error:  break
+
+    # Set return object to lowest error rate alignment
+    if best_align:
+        # Define input alignment string and gap count
+        align_primer = best_align[best_adpt][1]
+        align_len = len(align_primer)
+        align_gaps = align_len - max_len
+
+        # Populate return object
+        align.seq = best_rec
+        align.primer = best_adpt
+        align.align_seq = str(best_align[best_adpt][0])
+        align.align_primer = align_primer
+        align.gaps = align_gaps
+        align.error = best_error
+        align.valid = True
+
+        # Determine start and end positions
+        if not rev_primer:
+            # TODO:  need to switch to an aligner that outputs start/end for both sequences in alignment
+            align.start = align_len - len(align_primer.lstrip('-'))
+            align.end = best_align[best_adpt][4] - align_gaps
+        else:
+            # Count position from tail and end gaps
+            rev_pos = rec_len - align_len
+            align.start = rev_pos + best_align[best_adpt][3] + align_gaps
+            align.end = rev_pos + len(align_primer.rstrip('-'))
+
+    return align
+
+
+def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
+                 score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
+    """
+    Performs a simple fixed position alignment of primers
+
+    Arguments:
+      seq_record : a SeqRecord object to align primers against
+      primers : dictionary of {names: short IUPAC ambiguous sequence strings}
+      start : position where primer alignment starts
+      rev_primer : if True align with the tail end of the sequence
+      score_dict : optional dictionary of {(char1, char2): score} alignment scores
+
+    Returns:
+      presto.Sequence.PrimerAlignment : primer alignment result object
+    """
+    # Create empty return dictionary
+    seq_record = seq_record.upper()
+    align = PrimerAlignment(seq_record)
+    align.rev_primer = rev_primer
+
+    # Define orientation variables
+    seq_record.annotations['seqorient'] = 'F'
+    seq_record.annotations['prorient'] = 'F' if not rev_primer else 'RC'
+
+    # Score primers
+    this_align = {}
+    rec_len = len(seq_record)
+    if rev_primer:  end = rec_len - start
+    for adpt_id, adpt_seq in primers.items():
+        if rev_primer:
+            start = end - len(adpt_seq)
+        else:
+            end = start + len(adpt_seq)
+        chars = zip(seq_record[start:end], adpt_seq)
+        score = sum([score_dict[(c1, c2)] for c1, c2 in chars])
+        this_align.update({adpt_id: (score, start, end)})
+
+    # Determine primer with lowest error rate
+    best_align, best_adpt, best_err = None, None, None
+    for adpt, algn in this_align.items():
+        # adpt_err = 1.0 - float(algn[0]) / weightSeq(primers[adpt])
+        err = 1.0 - float(algn[0]) / len(primers[adpt])
+        if best_err is None or err < best_err:
+            best_align = algn
+            best_adpt = adpt
+            best_err = err
+
+    # Set return dictionary to lowest error rate alignment
+    if best_align:
+        # Populate return object
+        align.primer = best_adpt if best_err < 1.0 else None
+        align.start = best_align[1]
+        align.end = best_align[2]
+        align.error = best_err
+        align.valid = True
+
+        # Determine alignment sequences
+        if not rev_primer:
+            align.align_seq = str(seq_record.seq[:best_align[2]])
+            align.align_primer = '-' * best_align[1] + primers[best_adpt]
+        else:
+            align.align_seq = str(seq_record.seq[best_align[1]:])
+            align.align_primer = primers[best_adpt] + '-' * (rec_len - best_align[2])
+
+    return align
+
+
+def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
+    """
+    Create an output sequence with primers masked or cut
+
+    Arguments:
+      align : a PrimerAlignment object returned from alignPrimers or scorePrimers
+      mode : defines the action taken; one of ['cut','mask','tag','trim']
+      barcode : if True add sequence preceding primer to description
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists)
+
+    Returns:
+      Bio.SeqRecord.SeqRecord : masked sequence.
+    """
+    seq = align.seq
+
+    # Build output sequence
+    if mode == 'tag' or not align.align_primer:
+        # Do not modify sequence
+        out_seq = seq
+    elif mode == 'trim':
+        # Remove region before primer
+        if not align.rev_primer:
+            out_seq = seq[align.start:]
+        else:
+            out_seq = seq[:align.end]
+    elif mode == 'cut':
+        # Remove primer and preceding region
+        if not align.rev_primer:
+            out_seq = seq[align.end:]
+        else:
+            out_seq = seq[:align.start]
+    elif mode == 'mask':
+        # Mask primer with Ns and remove preceding region
+        if not align.rev_primer:
+            mask_len = align.end - align.start + align.gaps
+            out_seq = 'N' * mask_len + seq[align.end:]
+            if hasattr(seq, 'letter_annotations') and \
+                    'phred_quality' in seq.letter_annotations:
+                out_seq.letter_annotations['phred_quality'] = \
+                    [0] * mask_len + \
+                    seq.letter_annotations['phred_quality'][align.end:]
+        else:
+            mask_len = min(align.end, len(seq)) - align.start + align.gaps
+            out_seq = seq[:align.start] + 'N' * mask_len
+            if hasattr(seq, 'letter_annotations') and \
+                    'phred_quality' in seq.letter_annotations:
+                out_seq.letter_annotations['phred_quality'] = \
+                    seq.letter_annotations['phred_quality'][:align.start] + \
+                    [0] * mask_len
+
+    # Add alignment annotations to output SeqRecord
+    out_seq.annotations = seq.annotations
+    out_seq.annotations['primer'] = align.primer
+    out_seq.annotations['prstart'] = align.start
+    out_seq.annotations['error'] = align.error
+
+    # Parse seq annotation and create output annotation
+    seq_ann = parseAnnotation(seq.description, delimiter=delimiter)
+    out_ann = OrderedDict([('SEQORIENT', seq.annotations['seqorient']),
+                           ('PRIMER', align.primer)])
+
+    # Add ID sequence to description
+    if barcode:
+        seq_code = seq[:align.start].seq if not align.rev_primer \
+            else seq[align.end:].seq
+        out_seq.annotations['barcode'] = seq_code
+        out_ann['BARCODE'] = seq_code
+
+    out_ann = mergeAnnotation(seq_ann, out_ann, delimiter=delimiter)
+    out_seq.id = flattenAnnotation(out_ann, delimiter=delimiter)
+    out_seq.description = ''
+
+    return out_seq
