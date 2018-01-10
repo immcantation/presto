@@ -77,7 +77,7 @@ def convert454Header(desc):
         if len(fields) == 3:
             header['UACCNO'] = fields[2].replace('uaccno=', '')
         elif len(fields) != 2:
-            raise
+            raise ValueError
     except:
         header = None
 
