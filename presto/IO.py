@@ -284,7 +284,7 @@ def printMessage(message, start_time=None, end=False, width=25):
       None
     """
     # Define progress bar
-    bar = 'PROGRESS> %s [%s]' % (strftime('%H:%M:%S'), message.ljust(width))
+    bar = 'PROGRESS> [%s] %s' % (strftime('%H:%M:%S'), message.ljust(width))
 
     # Add run time to bar if start_time is specified
     if start_time is not None:
@@ -303,7 +303,7 @@ def printMessage(message, start_time=None, end=False, width=25):
 
 # TODO:  probably better to split this into printProgress and printCount (like printMessage)
 # TODO:  might be worth adding task argument for the name of the current operation.
-def printProgress(current, total=None, step=None, start_time=None, end=False):
+def printProgress(current, total=None, step=None, start_time=None, task=None, end=False):
     """
     Prints a progress bar to standard out
 
@@ -315,6 +315,7 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
              if None always output the progress
       start_time : Task start time returned by time.time();
                    if None do not add run time to progress
+      task : name of task to display
       end : if True print final log (add newline)
 
     Returns:
@@ -340,24 +341,27 @@ def printProgress(current, total=None, step=None, start_time=None, end=False):
     if total is not None and total != 0:
         p = float(current) / total
         c = format(current, "%i,d" % len(format(total, ",d")))
-        bar = 'PROGRESS> %s [%-20s] %3.0f%% (%s)' \
-              % (strftime('%H:%M:%S'), '#' * int(p*20), p*100, c)
+        bar = '%s |%-20s| %3.0f%% (%s)' % (strftime('%H:%M:%S'), '=' * int(p*20), p*100, c)
     else:
-        bar = 'PROGRESS> %s (%s)' % (strftime('%H:%M:%S'), current)
+        bar = '%s (%s)' % (strftime('%H:%M:%S'), current)
 
     # Add run time to bar if start_time is specified
     if start_time is not None:
         bar = '%s %.1f min' % (bar, (time() - start_time)/60)
 
+    # Prefix with task
+    if task is not None:
+        bar = '[%s] %s' % (task, bar)
+
     # Print progress bar
     if current == 0:
-        print('%s' % bar, end='')
+        print('PROGRESS> %s' % bar, end='')
         sys.stdout.flush()
     elif end:
-        print('\r%s\n' % bar)
+        print('\rPROGRESS> %s\n' % bar)
         sys.stdout.flush()
     else:
-        print('\r%s' % bar, end='')
+        print('\rPROGRESS> %s' % bar, end='')
         sys.stdout.flush()
 
     return None

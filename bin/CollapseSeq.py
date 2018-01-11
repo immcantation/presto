@@ -102,11 +102,10 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
     
     start_time = time()
     result_count = len(search_keys)
-    print('MISSING>  %i' % max_missing)
     # Iterate over search keys and update uniq_dict and dup_keys
     for idx, key in enumerate(search_keys):
         # Print progress of previous iteration
-        printProgress(idx, result_count, 0.05, start_time)
+        printProgress(idx, result_count, 0.05, start_time, task='%i missing' % max_missing)
         
         # Define sequence to process
         seq = seq_dict[key]
@@ -184,7 +183,7 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
     for j in reversed(to_remove):  del search_keys[j]
 
     # Update progress
-    printProgress(result_count, result_count, 0.05, start_time)
+    printProgress(result_count, result_count, 0.05, start_time, task='%i missing' % max_missing)
         
     return (uniq_dict, search_keys, dup_keys)
 
