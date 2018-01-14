@@ -45,11 +45,15 @@ def consensusUnify(data, field, delimiter=default_delimiter):
     # Define result object
     result = SeqResult(data.id, data.data)
     result.log['SEQCOUNT'] = len(data)
-    for i, seq in enumerate(records, start=1):
-        header = parseAnnotation(seq.description, delimiter=delimiter)
-        result.log['%s-%i' % (field, i)] = header[field]
+    #for i, seq in enumerate(records, start=1):
+    #    header = parseAnnotation(seq.description, delimiter=delimiter)
+    #    result.log['%s-%i' % (field, i)] = header[field]
 
+    # Get consensus annotation
     cons_dict = annotationConsensus(records, field)
+    result.log['VALUES'] = ','.join(cons_dict['set'])
+    result.log['COUNTS'] = ','.join((str(x) for x in cons_dict['count']))
+    result.log['CONSFREQ'] = cons_dict['freq']
     result.log['CONSENSUS'] = cons_dict['cons']
 
     if cons_dict['freq'] != 1:
@@ -85,17 +89,20 @@ def deletionUnify(data, field, delimiter=default_delimiter):
     # Define result object
     result = SeqResult(data.id, data.data)
     result.log['SEQCOUNT'] = len(data)
-    for i, seq in enumerate(records, start=1):
-        header = parseAnnotation(seq.description, delimiter=delimiter)
-        result.log['%s-%i' % (field, i)] = header[field]
+    # for i, seq in enumerate(records, start=1):
+    #     header = parseAnnotation(seq.description, delimiter=delimiter)
+    #     result.log['%s-%i' % (field, i)] = header[field]
 
     # I the number of unique identities in the annotation field is not 1, then the group is invalid and should be removed
-    if len(set(parseAnnotation(seq.description, delimiter=delimiter)[field] for seq in records)) == 1:
+    value_set = sorted(set(parseAnnotation(seq.description, delimiter=delimiter)[field] for seq in records))
+    if len(value_set) == 1:
         result.valid = True
     else:
         result.valid = False
-
     result.results = records
+
+    # Update log
+    result.log['VALUES'] = ','.join(value_set)
     result.log['RETAIN'] = result.valid
 
     return result
