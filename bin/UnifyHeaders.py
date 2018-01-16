@@ -51,6 +51,7 @@ def consensusUnify(data, field, delimiter=default_delimiter):
 
     # Get consensus annotation
     cons_dict = annotationConsensus(records, field)
+    result.log['VALCOUNT'] = len(cons_dict['set'])
     result.log['VALUES'] = ','.join(cons_dict['set'])
     result.log['COUNTS'] = ','.join((str(x) for x in cons_dict['count']))
     result.log['CONSFREQ'] = cons_dict['freq']
@@ -102,6 +103,7 @@ def deletionUnify(data, field, delimiter=default_delimiter):
     result.results = records
 
     # Update log
+    result.log['VALCOUNT'] = len(value_set)
     result.log['VALUES'] = ','.join(value_set)
     result.log['RETAIN'] = result.valid
 
