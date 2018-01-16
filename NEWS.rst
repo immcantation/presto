@@ -1,8 +1,13 @@
 Release Notes
 ================================================================================
 
-Version 0.5.5.999:  January 14, 2018
+Version 0.5.6:  January 16, 2018
 -------------------------------------------------------------------------------
+
+CollapseSeq:
+
++ Fixed a bug causing copy fields (``--cf`` argument) to be processed
+  incorrectly.
 
 UnifyHeaders:
 

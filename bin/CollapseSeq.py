@@ -31,7 +31,12 @@ class DuplicateSet:
     """
     A class defining unique sequence sets
 
-    uniq_dict[uid] = list(chain([seq, 1, ambig_count], cid))
+    Attributes:
+      seq : SeqRecord.
+      missing : missing character count of SeqRecord.
+      annotation: copy field annotation dictionary.
+      keys : list of sequence identifier.
+      count : duplicate count.
     """
     # Instantiation
     def __init__(self, seq, key, missing, annotations):
@@ -126,32 +131,24 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
         # Parse annotation and define copied identifiers (cid)        
         if copy_fields is not None:
             ann = parseAnnotation(seq.description, copy_fields, delimiter=delimiter)
-            #print ann
-            #cid = [[a] for a in ann.values()]
-            cid = [[ann.get(k)] for k in copy_fields]
-            #print cid
+            cid = {k:[ann.get(k)] for k in copy_fields}
         else:
-            cid = []
+            cid = {}
 
         # Store new unique sequences and process duplicates
         match = findUID(uid, uniq_dict, score)
         if match is None:
-            #uniq_dict[uid] = list(chain([seq, 1, ambig_count], cid))
             uniq_dict[uid] = DuplicateSet(seq, key=key, missing=ambig_count, annotations=cid)
         else:
             # Updated sequence, count, ambiguous character count, and count sets
             dup_key = key
-            #uniq_dict[match][1] += 1
-            #for x, c in enumerate(cid):
-            #    uniq_dict[match][3 + x].extend(c)
             uniq_dict[match].count += 1
             uniq_dict[match].keys.append(key)
-            uniq_dict[match].annotations.extend(cid)
+            for k, v in cid.items():
+                uniq_dict[match].annotations[k].extend(v)
             # Check whether to replace previous unique sequence with current sequence
-            #if ambig_count <= uniq_dict[match][2]:
             if ambig_count <= uniq_dict[match].missing:
                 swap = False
-                #seq_last = uniq_dict[match][0]
                 seq_last = uniq_dict[match].seq
                 if max_field is not None:
                     swap = float(parseAnnotation(seq.description, delimiter=delimiter)[max_field]) > \
@@ -168,8 +165,6 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
                 # Replace old sequence if criteria passed
                 if swap:
                     dup_key = seq_last.id
-                    #uniq_dict[match][0] = seq
-                    #uniq_dict[match][2] = ambig_count
                     uniq_dict[match].seq = seq
                     uniq_dict[match].missing = ambig_count
 
@@ -266,17 +261,14 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
             as uniq_handle:
         for val in uniq_dict.values():
             # Define output sequence
-            #out_seq = val[0]
             out_seq = val.seq
             out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
             out_app = OrderedDict()
             if copy_fields  is not None and copy_actions is not None:
-                #for f, a, s in zip(copy_fields, copy_actions, val[3:]):
-                for f, a, s in zip(copy_fields, copy_actions, val.annotations):
-                    out_app[f] = s
-                    out_app = collapseAnnotation(out_app, a, f, delimiter=out_args['delimiter'])
+                for f, a in zip(copy_fields, copy_actions):
+                    x = collapseAnnotation(val.annotations, a, f, delimiter=out_args['delimiter'])
+                    out_app[f] = x[f]
                     out_ann.pop(f, None)
-            #out_app['DUPCOUNT'] = val[1]
             out_app['DUPCOUNT'] = val.count
             out_ann = mergeAnnotation(out_ann, out_app, delimiter=out_args['delimiter'])
             out_seq.id = out_seq.name = flattenAnnotation(out_ann, delimiter=out_args['delimiter'])

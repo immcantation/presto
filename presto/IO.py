@@ -341,7 +341,7 @@ def printProgress(current, total=None, step=None, start_time=None, task=None, en
     if total is not None and total != 0:
         p = float(current) / total
         c = format(current, "%i,d" % len(format(total, ",d")))
-        bar = '%s |%-20s| %3.0f%% (%s)' % (strftime('%H:%M:%S'), '=' * int(p*20), p*100, c)
+        bar = '%s |%-20s| %3.0f%% (%s)' % (strftime('%H:%M:%S'), '#' * int(p*20), p*100, c)
     else:
         bar = '%s (%s)' % (strftime('%H:%M:%S'), current)
 

@@ -132,10 +132,10 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
     Collapses multiple annotations into new single annotations for each field
 
     Arguments:
-      ann_dict : Dictionary of field/value pairs
-      action : Collapse action to take;
+      ann_dict : dictionary of field/value pairs
+      action : collapse action to take;
                one of {min, max, sum, first, last, set, cat}
-      fields : Subset of ann_dict to _collapse;
+      fields : subset of ann_dict to _collapse;
                if None _collapse all but the ID field
       delimiter : Tuple of delimiters for (fields, values, value lists)
 
