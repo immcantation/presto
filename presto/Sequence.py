@@ -869,19 +869,16 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     return align
 
 
-def extractSequence(seq_record):
-    pass
-
-
+# TODO:  Can probably call from a wrapper that includes alignPrimers/scorePrimers steps to remove custom worker in MaskPrimers
 def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
     """
     Create an output sequence with primers masked or cut
 
     Arguments:
-      align : a PrimerAlignment object returned from alignPrimers or scorePrimers
-      mode : defines the action taken; one of ['cut','mask','tag','trim']
-      barcode : if True add sequence preceding primer to description
-      delimiter : a tuple of delimiters for (annotations, field/values, value lists)
+      align : a PrimerAlignment object returned from alignPrimers or scorePrimers.
+      mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
+      barcode : if True add sequence preceding primer to description.
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
     Returns:
       Bio.SeqRecord.SeqRecord : masked sequence.
@@ -946,3 +943,22 @@ def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
     out_seq.description = ''
 
     return out_seq
+
+
+def extractSequence(seq, start, length, mode='mask', barcode=False,
+                    delimiter=default_delimiter):
+    """
+    Extracts a subsequence from sequence
+
+    Arguments:
+      seq : a SeqRecord object to modify.
+      start : position where subsequence starts.
+      length : the length of the subsequence to extract.
+      mode : defines the action taken; one of 'cut','mask'.
+      barcode : if True add extracted sequence to description.
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      Bio.SeqRecord.SeqRecord : modified sequence
+    """
+    pass
