@@ -18,8 +18,8 @@ from textwrap import dedent
 from presto.Defaults import default_out_args, default_gap_penalty, default_max_error, \
                             default_max_len, default_start
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.Sequence import alignPrimers, compilePrimers, getDNAScoreDict, maskSeq, \
-                            reverseComplement, scorePrimers
+from presto.Sequence import alignPrimers, compilePrimers, extractSequence, getDNAScoreDict, \
+                            maskSeq, reverseComplement, scorePrimers
 from presto.IO import readPrimerFile, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
@@ -112,7 +112,7 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     Arguments: 
       seq_file : name of file containing sample sequences
       primer_file : name of the file containing primer sequences
-      mode : defines the action taken; one of 'cut','mask','tag'
+      mode : defines the action taken; one of 'cut', 'mask', 'tag', 'trim'
       align_func : the function to call for alignment
       align_arcs : a dictionary of arguments to pass to align_func
       max_error : maximum acceptable error rate for a valid alignment
@@ -236,41 +236,20 @@ def getArgParser():
     
     # Parent parser
     parent_parser = getCommonArgParser(multiproc=True)
-    group_parent = parent_parser.add_argument_group('primer identification arguments')
-    group_parent.add_argument('-p', action='store', dest='primer_file', required=True,
-                              help='A FASTA or REGEX file containing primer sequences.')
-    group_parent.add_argument('--mode', action='store', dest='mode',
-                              choices=('cut', 'mask', 'trim', 'tag'), default='mask',
-                              help='''Specifies the action to take with the primer sequence.
-                                   The "cut" mode will remove both the primer region and
-                                   the preceding sequence. The "mask" mode will replace the
-                                   primer region with Ns and remove the preceding sequence.
-                                   The "trim" mode will remove the region preceding the primer,
-                                   but leave the primer region intact. The "tag" mode will
-                                   leave the input sequence unmodified.''')
-    group_parent.add_argument('--revpr', action='store_true', dest='rev_primer',
-                              help='''Specify to match the tail-end of the sequence against the
-                                   reverse complement of the primers. This also reverses the
-                                   behavior of the --maxlen argument, such that the search
-                                   window begins at the tail-end of the sequence.''')
-    group_parent.add_argument('--barcode', action='store_true', dest='barcode',
-                              help='''Specify to encode sequences with barcode sequences
-                                   (unique molecular identifiers) found preceding the primer
-                                   region.''')
-    group_parent.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                              default=default_max_error, help='Maximum allowable error rate.')
 
     # Align mode argument parser
     parser_align = subparsers.add_parser('align', parents=[parent_parser],
                                          formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Find primer matches using pairwise local alignment.',
                                          description='Find primer matches using pairwise local alignment.')
-    group_align = parser_align.add_argument_group('alignment arguments')
+    group_align = parser_align.add_argument_group('primer alignment arguments')
+    group_align.add_argument('-p', action='store', dest='primer_file', required=True,
+                              help='A FASTA or REGEX file containing primer sequences.')
+    group_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
+                              default=default_max_error, help='Maximum allowable error rate.')
     group_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
                               default=default_max_len,
                               help='''Length of the sequence window to scan for primers.''')
-    group_align.add_argument('--skiprc', action='store_true', dest='skip_rc',
-                              help='Specify to prevent checking of sample reverse complement sequences.')
     group_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
                               type=float, default=default_gap_penalty,
                               help='''A list of two positive values defining the gap open
@@ -280,20 +259,83 @@ def getArgParser():
                                    penalties reducing the match count accordingly; this may
                                    lead to error rates that differ from strict mismatch
                                    percentage when gaps are present in the alignment.''')
+    group_align.add_argument('--revpr', action='store_true', dest='rev_primer',
+                              help='''Specify to match the tail-end of the sequence against the
+                                   reverse complement of the primers. This also reverses the
+                                   behavior of the --maxlen argument, such that the search
+                                   window begins at the tail-end of the sequence.''')
+    group_align.add_argument('--skiprc', action='store_true', dest='skip_rc',
+                              help='Specify to prevent checking of sample reverse complement sequences.')
+    group_align.add_argument('--mode', action='store', dest='mode',
+                              choices=('cut', 'mask', 'trim', 'tag'), default='mask',
+                              help='''Specifies the action to take with the primer sequence.
+                                   The "cut" mode will remove both the primer region and
+                                   the preceding sequence. The "mask" mode will replace the
+                                   primer region with Ns and remove the preceding sequence.
+                                   The "trim" mode will remove the region preceding the primer,
+                                   but leave the primer region intact. The "tag" mode will
+                                   leave the input sequence unmodified.''')
+    group_align.add_argument('--barcode', action='store_true', dest='barcode',
+                              help='''Specify to encode sequences with barcode sequences
+                                   (unique molecular identifiers) found preceding the primer
+                                   region as the BARCODE annotation.''')
     parser_align.set_defaults(align_func=alignPrimers)
-    
 
     # Score mode argument parser
     parser_score = subparsers.add_parser('score', parents=[parent_parser],
                                          formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Find primer matches by scoring primers at a fixed position.',
                                          description='Find primer matches by scoring primers at a fixed position.')
-    group_score = parser_score.add_argument_group('scoring arguments')
+    group_score = parser_score.add_argument_group('primer scoring arguments')
+    group_score.add_argument('-p', action='store', dest='primer_file', required=True,
+                              help='A FASTA or REGEX file containing primer sequences.')
     group_score.add_argument('--start', action='store', dest='start', type=int, default=default_start,
-                              help='The starting position of the primer')
+                              help='The starting position of the primer.')
+    group_score.add_argument('--maxerror', action='store', dest='max_error', type=float,
+                              default=default_max_error, help='Maximum allowable error rate.')
+    group_score.add_argument('--revpr', action='store_true', dest='rev_primer',
+                              help='''Specify to match the tail-end of the sequence against the
+                                   reverse complement of the primers. This also reverses the
+                                   behavior of the --start argument, such that start position is 
+                                   relative to the tail-end of the sequence.''')
+    group_score.add_argument('--mode', action='store', dest='mode',
+                              choices=('cut', 'mask', 'trim', 'tag'), default='mask',
+                              help='''Specifies the action to take with the primer sequence.
+                                   The "cut" mode will remove both the primer region and
+                                   the preceding sequence. The "mask" mode will replace the
+                                   primer region with Ns and remove the preceding sequence.
+                                   The "trim" mode will remove the region preceding the primer,
+                                   but leave the primer region intact. The "tag" mode will
+                                   leave the input sequence unmodified.''')
+    group_score.add_argument('--barcode', action='store_true', dest='barcode',
+                              help='''Specify to encode sequences with barcode sequences
+                                   (unique molecular identifiers) found preceding the primer
+                                   region as the BARCODE annotation.''')
     parser_score.set_defaults(align_func=scorePrimers)
-    
+
+    # Extract mode argument parser
+    parser_extract = subparsers.add_parser('extract', parents=[parent_parser],
+                                           formatter_class=CommonHelpFormatter, add_help=False,
+                                           help='Remove and annotate a fixed sequence region.',
+                                           description='Remove and annotate a fixed sequence region.')
+    group_extract = parser_extract.add_argument_group('region extraction arguments')
+    group_extract.add_argument('--start', action='store', dest='start', type=int, default=default_start,
+                             help='The starting position of the sequence region to extract.')
+    group_extract.add_argument('--len', action='store', dest='length', type=int, required=True,
+                             help='The length of the sequence to extract.')
+    group_extract.add_argument('--mode', action='store', dest='mode',
+                              choices=('cut', 'mask'), default='mask',
+                              help='''Specifies the action to take with the sequence region.
+                                   The "cut" mode will remove the region, concatenating the preceeding
+                                   sequence to the remaining sequence. 
+                                   The "mask" mode will replace the specified region with Ns.''')
+    group_extract.add_argument('--barcode', action='store_true', dest='barcode',
+                              help='''Specify to add the extracted sequence to the sequence header
+                                    as the BARCODE annotation.''')
+    parser_extract.set_defaults(align_func=extractSequence)
+
     return parser
+
 
 
 if __name__ == '__main__':
@@ -321,7 +363,12 @@ if __name__ == '__main__':
                                    'rev_primer':args_dict['rev_primer']}
         del args_dict['start']
         del args_dict['rev_primer']
-    
+    elif args_dict['align_func'] is extractSequence:
+        args_dict['align_args'] = {'start':args_dict['start'],
+                                   'length':args_dict['length']}
+        del args_dict['start']
+        del args_dict['length']
+
     # Call maskPrimers for each sample file
     del args_dict['seq_files']
     for f in args.__dict__['seq_files']:

@@ -869,6 +869,10 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     return align
 
 
+def extractSequence(seq_record):
+    pass
+
+
 def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
     """
     Create an output sequence with primers masked or cut
