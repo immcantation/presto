@@ -26,20 +26,47 @@ EXCEPTION_SENTINEL = None
 
 class SeqData:
     """
-    A class defining sequence data objects for worker processes
+    Class defining sequence data objects for worker processes
+
+    Attributes:
+      id : unique identifier
+      data : single object or a list of data objects.
+      valid : if True data is suitable for processing.
     """
     # Instantiation
-    def __init__(self, key, records):
-        self.id = key
-        self.data = records
-        self.valid = (key is not None and records is not None)
+    def __init__(self, id, data):
+        """
+        Initializer
+
+        Arguments:
+          id :  unique identifier.
+          data : single object or a list of data objects.
+
+        Returns:
+          presto.Multiprocessing.SeqData
+        """
+        self.id = id
+        self.data = data
+        self.valid = (id is not None and data is not None)
 
     # Set boolean evaluation to valid value
     def __bool__(self):
+        """
+        Boolean evaluation
+
+        Returns:
+          bool : True if the valid attribute is True
+        """
         return self.valid
 
     # Set length evaluation to number of data records
     def __len__(self):
+        """
+        Length evaluation
+
+        Returns:
+          int : number of objects in the data attribute.
+        """
         if isinstance(self.data, SeqRecord) or isinstance(self.data, Seq):
             return 1
         elif self.data is None:
@@ -50,22 +77,48 @@ class SeqData:
 
 class SeqResult:
     """
-    A class defining sequence result objects for collector processes
+    Class defining sequence result objects for collector processes
+
+    Attributes:
+      id : unique identifier
+      data : single unprocessed object or a list of unprocessed data objects.
+      results : single processed object or a list of processed data objects.
+      valid : if True processing was successful.
+      log : dictionary containing the processing log.
     """
-    # Instantiation
-    def __init__(self, key, records):
-        self.id = key
-        self.data = records
+    def __init__(self, id, data):
+        """
+        Initializer
+
+        Arguments:
+          id :  unique identifier.
+          data : single unprocessed object or a list of unprocessed data objects.
+
+        Returns:
+          presto.Multiprocessing.SeqResult
+        """
+        self.id = id
+        self.data = data
         self.results = None
         self.valid = False
-        self.log = OrderedDict([('ID', key)])
+        self.log = OrderedDict([('ID', id)])
 
-    # Set boolean evaluation to valid value
     def __bool__(self):
+        """
+        Boolean evaluation
+
+        Returns:
+          bool : True if the valid attribute is True.
+        """
         return self.valid
 
-    # Set length evaluation to number of results
     def __len__(self):
+        """
+        Length evaluation
+
+        Returns:
+          int : number of objects in the results attribute.
+        """
         if isinstance(self.results, SeqRecord) or isinstance(self.results, Seq):
             return 1
         elif self.results is None:
@@ -73,42 +126,20 @@ class SeqResult:
         else:
             return len(self.results)
 
-    # Set data_count to number of data records
     @property
     def data_count(self):
+        """
+        Data length
+
+        Returns:
+          int : number of objects in the data attribute.
+        """
         if isinstance(self.data, SeqRecord) or isinstance(self.data, Seq):
             return 1
         elif self.data is None:
             return 0
         else:
             return len(self.data)
-
-
-class SeqNumResult:
-    """
-    A class defining numeric result objects for collector processes
-    """
-    # Instantiation
-    def __init__(self, key, records):
-        self.id = key
-        self.data = records
-        self.results = None
-        self.valid = False
-        self.count = 0
-        self.log = OrderedDict([('ID', key)])
-
-    # Set boolean evaluation to valid value
-    def __bool__(self):
-        return self.valid
-
-    # Set length evaluation to number of results
-    def __len__(self):
-        if isinstance(self.results, SeqRecord) or isinstance(self.results, Seq):
-            return 1
-        elif self.results is None:
-            return 0
-        else:
-            return len(self.results)
 
 
 def manageProcesses(feed_func, work_func, collect_func,

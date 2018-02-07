@@ -14,7 +14,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Sequence import getDNAScoreDict
+from presto.Sequence import getDNAScoreDict, localAlignment, scoreAlignment, extractSequence
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -58,7 +58,7 @@ class TestMaskPrimers(unittest.TestCase):
                         ('PR3', 3.0/8),
                         (None, 1.0)]
 
-        #Test indels
+        # Test indels
         seq_indel = [Seq('CGGATCTTCTACTCCATACGTCCGTCAGTCGTGGATCTGATCTAGCTGCGCCTTTTTCTCAG'),
                      Seq('CGGATCTTCTACTCAAAACCGTCCTCAGTCGTGGATCTGGTCTAGCTGGGGCTGTTTCCCTG'),
                      Seq('GGTTTAAGTTAAGATAATACGTCCGTCAGTCGTGATCTGTTTTACATGGGGGCATCACCCAG'),
@@ -86,6 +86,7 @@ class TestMaskPrimers(unittest.TestCase):
                             ('PR3', (0.0 + 2)/12),
                             ('PR3', (3.0 + 1)/12),
                             (None, 1.0)]
+
         # Start clock
         self.start = time.time()
 
@@ -94,10 +95,14 @@ class TestMaskPrimers(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    #@unittest.skip('-> scorePrimers() skipped\n')
+    @unittest.skip('-> extractPrimers() skipped\n')
+    def test_extractPrimers(self):
+        self.fail()
+
+    #@unittest.skip('-> scoreAlignment() skipped\n')
     def test_scorePrimers(self):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
-        align = [MaskPrimers.scorePrimers(x, self.primers_n, start=1, score_dict=score_dict)
+        align = [scoreAlignment(x, self.primers_n, start=1, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print('  %s>' % x.seq.id)
@@ -116,13 +121,13 @@ class TestMaskPrimers(unittest.TestCase):
         self.assertListEqual([(x, round(y, 4)) for x, y in self.score_n],
                              [(x.primer, round(x.error, 4)) for x in align])
 
-    #@unittest.skip('-> alignPrimers() skipped\n')
+    #@unittest.skip('-> localAlignment() skipped\n')
     def test_alignPrimers(self):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 
         # N character tests
         print('TEST Ns>')
-        align = [MaskPrimers.alignPrimers(x, self.primers_n, max_error=0.2, score_dict=score_dict)
+        align = [localAlignment(x, self.primers_n, max_error=0.2, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print('  %s>' % x.seq.id)
@@ -143,7 +148,7 @@ class TestMaskPrimers(unittest.TestCase):
 
         # Indel tests
         print('TEST INDELS>')
-        align = [MaskPrimers.alignPrimers(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
+        align = [localAlignment(x, self.primers_indel, max_error=0.2, gap_penalty=(1, 1))
                  for x in self.records_indel]
         for x in align:
             print('  %s>' % x.seq.id)

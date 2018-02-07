@@ -15,96 +15,187 @@ from collections import OrderedDict
 from textwrap import dedent
 
 # Presto imports
-from presto.Defaults import default_out_args, default_gap_penalty, default_max_error, \
-                            default_max_len, default_start
+from presto.Defaults import default_delimiter, default_out_args, default_gap_penalty, default_max_error, \
+                            default_max_len, default_start, default_barcode_field, default_primer_field
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.Sequence import alignPrimers, compilePrimers, extractSequence, getDNAScoreDict, \
-                            maskSeq, reverseComplement, scorePrimers
+from presto.Sequence import localAlignment, compilePrimers, extractAlignment, getDNAScoreDict, \
+                            maskSeq, reverseComplement, scoreAlignment
 from presto.IO import readPrimerFile, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
-                                   collectSeqQueue
+                                   processSeqQueue, collectSeqQueue
 
 
-def processMPQueue(alive, data_queue, result_queue, align_func, align_args={}, 
-                   mask_args={}, max_error=default_max_error):
+def buildMaskedResult(result, align, max_error=default_max_error, mode='mask', barcode=False,
+                      barcode_field=default_barcode_field, primer_field=default_primer_field,
+                      delimiter=default_delimiter):
     """
-    Pulls from data queue, performs calculations, and feeds results queue
+    Creates the masked output sequence
 
-    Arguments: 
-      alive : a multiprocessing.Value boolean controlling whether processing
-              continues; when False function returns
-      data_queue : a multiprocessing.Queue holding data to process
-      result_queue : a multiprocessing.Queue to hold processed results
-      align_func : the function to call for alignment
-      align_args : a dictionary of arguments to pass to align_func
-      mask_args : a dictionary of arguments to pass to maskSeq
+    Arguments:
+      result : SeqResult object to modify.
+      align : PrimerAlignment object.
+      max_error : maximum acceptable error rate for a valid alignment.
+      mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
+      barcode : if True add sequence preceding primer to description.
+      barcode_field : name of the output barcode annotation.
+      primer_field : name of the output primer annotation.
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      presto.Multiprocessing.SeqResult : modified result object.
+    """
+    # Create output sequence
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+                      primer_field=primer_field, delimiter=delimiter)
+    result.results = out_seq
+    result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
+
+    # Update log with successful alignment results
+    result.log['SEQORIENT'] = out_seq.annotations['seqorient']
+    result.log['PRIMER'] = out_seq.annotations['primer']
+    result.log['PRORIENT'] = out_seq.annotations['prorient']
+    result.log['PRSTART'] = out_seq.annotations['prstart']
+    if 'barcode' in out_seq.annotations:
+        result.log['BARCODE'] = out_seq.annotations['barcode']
+    if not align.rev_primer:
+        align_cut = len(align.align_seq) - align.gaps
+        result.log['INSEQ'] = align.align_seq + \
+                              str(align.seq.seq[align_cut:])
+        result.log['ALIGN'] = align.align_primer
+        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data) + align.gaps)
+    else:
+        align_cut = len(align.seq) - len(align.align_seq) + align.gaps
+        result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
+        result.log['ALIGN'] = align.align_primer.rjust(len(result.data) + align.gaps)
+        result.log['OUTSEQ'] = str(out_seq.seq)
+    result.log['ERROR'] = align.error
+
+    return result
+
+
+def extractPrimers(data, start, length, mode='mask', barcode=False, barcode_field=default_barcode_field,
+                   primer_field=default_primer_field, delimiter=default_delimiter):
+    """
+    Extracts primer sequences directly
+
+    Arguments:
+      data : SeqData object containing a single SeqRecord object to process.
+      start : position where subsequence starts.
+      length : the length of the subsequence to extract.
+      mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
+      barcode : if True add sequence preceding primer to description.
+      barcode_field : name of the output barcode annotation.
+      primer_field : name of the output primer annotation.
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+    """
+    # Define result object
+    result = SeqResult(data.id, data)
+
+    # Align primers
+    align = extractAlignment(data.data, start=start, length=length)
+
+    # Process alignment results and build output sequence
+    if not align:
+        # Update log if no alignment
+        result.log['ALIGN'] = None
+    else:
+        result = buildMaskedResult(result, align, max_error=1.0, mode=mode, barcode=barcode,
+                      barcode_field=barcode_field, primer_field=primer_field,
+                      delimiter=delimiter)
+
+    return result
+
+
+def alignPrimers(data, primers, primers_regex=None, max_error=default_max_error,
+                 max_len=default_max_len, rev_primer=False, skip_rc=False, mode='mask',
+                 barcode=False, barcode_field=default_barcode_field, primer_field=default_primer_field,
+                 gap_penalty=default_gap_penalty, score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
+                 delimiter=default_delimiter):
+    """
+    Performs pairwise local alignment of a list of short sequences against a long sequence
+
+    Arguments:
+      data : SeqData object containing a single SeqRecord object to process.
+      primers : dictionary of {names: short IUPAC ambiguous sequence strings}.
+      primers_regex : optional dictionary of {names: compiled primer regular expressions}.
+      max_error : maximum acceptable error rate for a valid alignment.
+      max_len : maximum length of sample sequence to align.
+      rev_primer : if True align with the tail end of the sequence.
+      skip_rc : if True do not check reverse complement sequences.
+      mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
+      barcode : if True add sequence preceding primer to description.
+      barcode_field : name of the output barcode annotation.
+      primer_field : name of the output primer annotation.
+      gap_penalty : a tuple of positive (gap open, gap extend) penalties.
+      score_dict : optional dictionary of {(char1, char2): score} alignment scores
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      presto.Multiprocessing.SeqResult : result object.
+    """
+    # Define result object
+    result = SeqResult(data.id, data)
+
+    # Align primers
+    align = localAlignment(data.data, primers, primers_regex=primers_regex, max_error=max_error,
+                           max_len=max_len, rev_primer=rev_primer, skip_rc=skip_rc,
+                           gap_penalty=gap_penalty, score_dict=score_dict)
+
+    # Process alignment results and build output sequence
+    if not align:
+        # Update log if no alignment
+        result.log['ALIGN'] = None
+    else:
+        result = buildMaskedResult(result, align, max_error=max_error, mode=mode, barcode=barcode,
+                      barcode_field=barcode_field, primer_field=primer_field,
+                      delimiter=delimiter)
+
+    return result
+
+
+def scorePrimers(data, primers, max_error=default_max_error, start=default_start, rev_primer=False, mode='mask',
+                 barcode=False, barcode_field=default_barcode_field, primer_field=default_primer_field,
+                 score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
+                 delimiter=default_delimiter):
+    """
+    Performs a simple fixed position alignment of primers
+
+    Arguments:
+      data : SeqData object containing a single SeqRecord object to process.
+      primers : dictionary of {names: short IUPAC ambiguous sequence strings}.
       max_error : maximum acceptable error rate for a valid alignment
-    
-    Returns: 
-      None
+      start : position where primer alignment starts.
+      rev_primer : if True align with the tail end of the sequence.
+      mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
+      barcode : if True add sequence preceding primer to description.
+      barcode_field : name of the output barcode annotation.
+      primer_field : name of the output primer annotation.
+      score_dict : optional dictionary of {(char1, char2): score} alignment scores
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      presto.Multiprocessing.SeqResult : result object.
     """
-    try:
-        # Iterator over data queue until sentinel object reached
-        while alive.value:
-            # Get data from queue
-            if data_queue.empty():  continue
-            else:  data = data_queue.get()
-            # Exit upon reaching sentinel
-            if data is None:  break
-            
-            # Define result object for iteration
-            in_seq = data.data
-            result = SeqResult(in_seq.id, in_seq)
-     
-            # Align primers
-            align = align_func(in_seq, **align_args)
-            
-            # Process alignment results
-            if not align:
-                # Update log if no alignment
-                result.log['ALIGN'] = None
-            else:
-                # Create output sequence
-                out_seq = maskSeq(align, **mask_args)
-                result.results = out_seq
-                result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
-                
-                # Update log with successful alignment results
-                result.log['SEQORIENT'] = out_seq.annotations['seqorient']
-                result.log['PRIMER'] = out_seq.annotations['primer']
-                result.log['PRORIENT'] = out_seq.annotations['prorient']
-                result.log['PRSTART'] = out_seq.annotations['prstart']
-                if 'barcode' in out_seq.annotations:  
-                    result.log['BARCODE'] = out_seq.annotations['barcode']
-                if not align.rev_primer:
-                    align_cut = len(align.align_seq) - align.gaps
-                    result.log['INSEQ'] = align.align_seq + \
-                                          str(align.seq.seq[align_cut:])
-                    result.log['ALIGN'] = align.align_primer
-                    result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(in_seq) + align.gaps)
-                else:
-                    align_cut = len(align.seq) - len(align.align_seq) + align.gaps
-                    result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
-                    result.log['ALIGN'] = align.align_primer.rjust(len(in_seq) + align.gaps)
-                    result.log['OUTSEQ'] = str(out_seq.seq)
-                result.log['ERROR'] = align.error
-            
-            # Feed results to result queue
-            result_queue.put(result)
-        else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        alive.value = False
-        sys.stderr.write('Error processing sequence with ID: %s.\n' % data.id)
-        raise
-    
-    return None
+    # Define result object
+    result = SeqResult(data.id, data)
+
+    # Align primers
+    align = scoreAlignment(data.data, primers, start=start, rev_primer=rev_primer,
+                           score_dict=score_dict)
+
+    # Process alignment results and build output sequence
+    if not align:
+        # Update log if no alignment
+        result.log['ALIGN'] = None
+    else:
+        result = buildMaskedResult(result, align, max_error=max_error, mode=mode, barcode=barcode,
+                      barcode_field=barcode_field, primer_field=primer_field,
+                      delimiter=delimiter)
+
+    return result
 
 
-def maskPrimers(seq_file, primer_file, mode, align_func, align_args={}, 
-                max_error=default_max_error, barcode=False,
+def maskPrimers(seq_file, primer_file, align_func, align_args={},
                 out_args=default_out_args, nproc=None, queue_size=None):
     """
     Masks or cuts primers from sample sequences using local alignment
@@ -112,11 +203,8 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
     Arguments: 
       seq_file : name of file containing sample sequences
       primer_file : name of the file containing primer sequences
-      mode : defines the action taken; one of 'cut', 'mask', 'tag', 'trim'
       align_func : the function to call for alignment
       align_arcs : a dictionary of arguments to pass to align_func
-      max_error : maximum acceptable error rate for a valid alignment
-      barcode : if True add sequence preceding primer to description
       out_args : common output argument dictionary from parseCommonArgs
       nproc : the number of processQueue processes;
               if None defaults to the number of CPUs
@@ -127,53 +215,50 @@ def maskPrimers(seq_file, primer_file, mode, align_func, align_args={},
       list : a list of successful output file names
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignPrimers:'align', scorePrimers:'score'}
+    cmd_dict = {alignPrimers: 'align', scorePrimers: 'score', extractPrimers: 'extract'}
     
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'MaskPrimers'
     log['COMMAND'] = cmd_dict.get(align_func, align_func.__name__)
     log['SEQ_FILE'] = os.path.basename(seq_file)
-    log['PRIMER_FILE'] = os.path.basename(primer_file)
-    log['MODE'] = mode
-    log['BARCODE'] = barcode
-    log['MAX_ERROR'] = max_error
+    if primer_file is not None:
+        log['PRIMER_FILE'] = os.path.basename(primer_file)
+    if 'mode' in align_args: log['MODE'] = align_args['mode']
+    if 'max_error' in align_args: log['MAX_ERROR'] = align_args['max_error']
     if 'start' in align_args: log['START_POS'] = align_args['start']
+    if 'length' in align_args: log['LENGTH'] = align_args['length']
     if 'max_len' in align_args: log['MAX_LEN'] = align_args['max_len']
     if 'rev_primer' in align_args: log['REV_PRIMER'] = align_args['rev_primer']
     if 'skip_rc' in align_args: log['SKIP_RC'] = align_args['skip_rc']
     if 'gap_penalty' in align_args:
         log['GAP_PENALTY'] = ', '.join([str(x) for x in align_args['gap_penalty']])
+    if 'barcode' in align_args:
+        log['BARCODE'] = align_args['barcode']
+    if 'barcode' in align_args and align_args['barcode']:
+        log['BARCODE_FIELD'] = align_args['barcode_field']
+    log['PRIMER_FIELD'] = align_args['primer_field']
     log['NPROC'] = nproc
     printLog(log)
 
-    # Create dictionary of primer sequences to pass to maskPrimers
-    primers = readPrimerFile(primer_file)
-    if 'rev_primer' in align_args and align_args['rev_primer']:
-        primers = {k: reverseComplement(v) for k, v in primers.items()}
-
     # Define alignment arguments and compile primers for align mode
-    align_args['primers'] = primers 
-    align_args['score_dict'] = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
+    if primer_file is not None:
+        primers = readPrimerFile(primer_file)
+        if 'rev_primer' in align_args and align_args['rev_primer']:
+            primers = {k: reverseComplement(v) for k, v in primers.items()}
+        align_args['primers'] = primers
+        align_args['score_dict'] = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
     if align_func is alignPrimers:
-        align_args['max_error'] = max_error
         align_args['primers_regex'] = compilePrimers(primers)
-    
-    # Define sequence masking arguments
-    mask_args = {'mode': mode, 
-                 'barcode': barcode, 
-                 'delimiter': out_args['delimiter']}
+    align_args['delimiter'] = out_args['delimiter']
 
     # Define feeder function and arguments
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file}
     # Define worker function and arguments
-    work_func = processMPQueue
-    work_args = {'align_func': align_func, 
-                 'align_args': align_args,
-                 'mask_args': mask_args,
-                 'max_error': max_error}
-    
+    work_func = processSeqQueue
+    work_args = {'process_func': align_func,
+                 'process_args': align_args}
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
@@ -276,9 +361,12 @@ def getArgParser():
                                    but leave the primer region intact. The "tag" mode will
                                    leave the input sequence unmodified.''')
     group_align.add_argument('--barcode', action='store_true', dest='barcode',
-                              help='''Specify to encode sequences with barcode sequences
-                                   (unique molecular identifiers) found preceding the primer
-                                   region as the BARCODE annotation.''')
+                              help='''Specify to annotate reads sequences with barcode sequences
+                                   (unique molecular identifiers) found preceding the primer.''')
+    group_align.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
+                             help='''Name of the barcode annotation field.''')
+    group_align.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
+                             help='''Name of the annotation field containing the primer name.''')
     parser_align.set_defaults(align_func=alignPrimers)
 
     # Score mode argument parser
@@ -308,9 +396,12 @@ def getArgParser():
                                    but leave the primer region intact. The "tag" mode will
                                    leave the input sequence unmodified.''')
     group_score.add_argument('--barcode', action='store_true', dest='barcode',
-                              help='''Specify to encode sequences with barcode sequences
-                                   (unique molecular identifiers) found preceding the primer
-                                   region as the BARCODE annotation.''')
+                              help='''Specify to annotate reads sequences with barcode sequences
+                                   (unique molecular identifiers) found preceding the primer.''')
+    group_score.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
+                             help='''Name of the barcode annotation field.''')
+    group_score.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
+                             help='''Name of the annotation field containing the primer name.''')
     parser_score.set_defaults(align_func=scorePrimers)
 
     # Extract mode argument parser
@@ -320,19 +411,25 @@ def getArgParser():
                                            description='Remove and annotate a fixed sequence region.')
     group_extract = parser_extract.add_argument_group('region extraction arguments')
     group_extract.add_argument('--start', action='store', dest='start', type=int, default=default_start,
-                             help='The starting position of the sequence region to extract.')
+                               help='The starting position of the sequence region to extract.')
     group_extract.add_argument('--len', action='store', dest='length', type=int, required=True,
-                             help='The length of the sequence to extract.')
+                               help='The length of the sequence to extract.')
     group_extract.add_argument('--mode', action='store', dest='mode',
-                              choices=('cut', 'mask'), default='mask',
-                              help='''Specifies the action to take with the sequence region.
-                                   The "cut" mode will remove the region, concatenating the preceeding
-                                   sequence to the remaining sequence. 
-                                   The "mask" mode will replace the specified region with Ns.''')
+                               choices=('cut', 'mask', 'trim', 'tag'), default='mask',
+                               help='''Specifies the action to take with the sequence region.
+                                    The "cut" mode will remove the region. 
+                                    The "mask" mode will replace the specified region with Ns.
+                                    The "trim" mode will remove the sequence preceding the specified region,
+                                    but leave the region intact. 
+                                    The "tag" mode will leave the input sequence unmodified.''')
     group_extract.add_argument('--barcode', action='store_true', dest='barcode',
-                              help='''Specify to add the extracted sequence to the sequence header
-                                    as the BARCODE annotation.''')
-    parser_extract.set_defaults(align_func=extractSequence)
+                               help='''Specify to remove the sequence preceding the extracted region and
+                                    annotate the read with that sequence.''')
+    group_extract.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
+                               help='''Name of the barcode annotation field.''')
+    group_extract.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
+                               help='''Name of the annotation field containing the extracted sequence region.''')
+    parser_extract.set_defaults(align_func=extractPrimers)
 
     return parser
 
@@ -350,24 +447,54 @@ if __name__ == '__main__':
     
     # Define align_args dictionary to pass to maskPrimers
     if args_dict['align_func'] is alignPrimers:
-        args_dict['align_args'] = {'max_len':args_dict['max_len'],
+        args_dict['align_args'] = {'max_error': args_dict['max_error'],
+                                   'max_len':args_dict['max_len'],
                                    'rev_primer':args_dict['rev_primer'],
                                    'skip_rc':args_dict['skip_rc'],
-                                   'gap_penalty':args_dict['gap_penalty']}
+                                   'gap_penalty':args_dict['gap_penalty'],
+                                   'mode': args_dict['mode'],
+                                   'barcode': args_dict['barcode'],
+                                   'barcode_field': args_dict['barcode_field'],
+                                   'primer_field': args_dict['primer_field']}
+
+        del args_dict['max_error']
         del args_dict['max_len']
         del args_dict['rev_primer']
         del args_dict['skip_rc']
         del args_dict['gap_penalty']
+        del args_dict['mode']
+        del args_dict['barcode']
+        del args_dict['barcode_field']
+        del args_dict['primer_field']
     elif args_dict['align_func'] is scorePrimers:
-        args_dict['align_args'] = {'start':args_dict['start'],
-                                   'rev_primer':args_dict['rev_primer']}
+        args_dict['align_args'] = {'max_error': args_dict['max_error'],
+                                   'start':args_dict['start'],
+                                   'rev_primer':args_dict['rev_primer'],
+                                   'mode': args_dict['mode'],
+                                   'barcode': args_dict['barcode'],
+                                   'barcode_field': args_dict['barcode_field'],
+                                   'primer_field': args_dict['primer_field']}
+        del args_dict['max_error']
         del args_dict['start']
         del args_dict['rev_primer']
-    elif args_dict['align_func'] is extractSequence:
+        del args_dict['mode']
+        del args_dict['barcode']
+        del args_dict['barcode_field']
+        del args_dict['primer_field']
+    elif args_dict['align_func'] is extractPrimers:
+        args_dict['primer_file'] = None
         args_dict['align_args'] = {'start':args_dict['start'],
-                                   'length':args_dict['length']}
+                                   'length':args_dict['length'],
+                                   'mode':args_dict['mode'],
+                                   'barcode': args_dict['barcode'],
+                                   'barcode_field': args_dict['barcode_field'],
+                                   'primer_field': args_dict['primer_field']}
         del args_dict['start']
         del args_dict['length']
+        del args_dict['mode']
+        del args_dict['barcode']
+        del args_dict['barcode_field']
+        del args_dict['primer_field']
 
     # Call maskPrimers for each sample file
     del args_dict['seq_files']

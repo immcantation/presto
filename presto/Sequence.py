@@ -15,9 +15,8 @@ from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-
 # Presto imports
-from presto.Defaults import default_delimiter, default_barcode_field, \
+from presto.Defaults import default_delimiter, default_barcode_field, default_primer_field, \
                             default_gap_chars, default_mask_chars, default_missing_chars, \
                             default_min_freq, default_min_qual, \
                             default_gap_penalty, default_max_error, default_max_len, default_start
@@ -670,10 +669,10 @@ def compilePrimers(primers):
     return primers_regex
 
 
-def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_error,
-                 max_len=default_max_len, rev_primer=False, skip_rc=False,
-                 gap_penalty=default_gap_penalty,
-                 score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
+def localAlignment(seq_record, primers, primers_regex=None, max_error=default_max_error,
+                   max_len=default_max_len, rev_primer=False, skip_rc=False,
+                   gap_penalty=default_gap_penalty,
+                   score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
 
@@ -802,8 +801,8 @@ def alignPrimers(seq_record, primers, primers_regex=None, max_error=default_max_
     return align
 
 
-def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
-                 score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
+def scoreAlignment(seq_record, primers, start=default_start, rev_primer=False,
+                   score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
     """
     Performs a simple fixed position alignment of primers
 
@@ -869,15 +868,18 @@ def scorePrimers(seq_record, primers, start=default_start, rev_primer=False,
     return align
 
 
-# TODO:  Can probably call from a wrapper that includes alignPrimers/scorePrimers steps to remove custom worker in MaskPrimers
-def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
+# TODO:  Can probably call from a wrapper that includes localAlignment/scoreAlignment steps to remove custom worker in MaskPrimers
+def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_field,
+            primer_field=default_primer_field, delimiter=default_delimiter):
     """
     Create an output sequence with primers masked or cut
 
     Arguments:
-      align : a PrimerAlignment object returned from alignPrimers or scorePrimers.
+      align : a PrimerAlignment object returned from localAlignment or scoreAlignment.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
+      barcode_field : name of the output barcode annotation.
+      primer_field : name of the output primer annotation.
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
     Returns:
@@ -929,14 +931,14 @@ def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
     # Parse seq annotation and create output annotation
     seq_ann = parseAnnotation(seq.description, delimiter=delimiter)
     out_ann = OrderedDict([('SEQORIENT', seq.annotations['seqorient']),
-                           ('PRIMER', align.primer)])
+                           (primer_field, align.primer)])
 
     # Add ID sequence to description
     if barcode:
         seq_code = seq[:align.start].seq if not align.rev_primer \
             else seq[align.end:].seq
         out_seq.annotations['barcode'] = seq_code
-        out_ann['BARCODE'] = seq_code
+        out_ann[barcode_field] = seq_code
 
     out_ann = mergeAnnotation(seq_ann, out_ann, delimiter=delimiter)
     out_seq.id = flattenAnnotation(out_ann, delimiter=delimiter)
@@ -945,20 +947,38 @@ def maskSeq(align, mode='mask', barcode=False, delimiter=default_delimiter):
     return out_seq
 
 
-def extractSequence(seq, start, length, mode='mask', barcode=False,
-                    delimiter=default_delimiter):
+def extractAlignment(seq_record, start, length):
     """
     Extracts a subsequence from sequence
 
     Arguments:
-      seq : a SeqRecord object to modify.
+      data : SeqRecord to process.
       start : position where subsequence starts.
       length : the length of the subsequence to extract.
-      mode : defines the action taken; one of 'cut','mask'.
-      barcode : if True add extracted sequence to description.
-      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
     Returns:
-      Bio.SeqRecord.SeqRecord : modified sequence
+      presto.Sequence.PrimerAlignment : extraction results as an alignment object
     """
-    pass
+    # Create empty return dictionary
+    seq_record = seq_record.upper()
+    align = PrimerAlignment(seq_record)
+
+    # Define orientation variables
+    seq_record.annotations['seqorient'] = 'F'
+    seq_record.annotations['prorient'] = 'F'
+
+    # Extract region
+    region = str(seq_record.seq[start:(start + length)])
+
+    # Populate return object
+    align.primer = region
+    align.start = start
+    align.end = start + length
+    align.error = 0
+    align.valid = True
+
+    # Determine alignment sequences
+    align.align_seq = '-' * (start + length) + region
+    align.align_primer = '-' * (start + length) + region
+
+    return align
