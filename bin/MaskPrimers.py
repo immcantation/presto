@@ -24,7 +24,10 @@ from presto.IO import readPrimerFile, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
 
-
+# TODO:  this is all still a mess. too much repetition, too much nesting, obtuse object passing
+# TODO:  can probably move valid check out of buildMaskedResult into parent.
+# TODO:  can probably reduce this to a log generating function with maskSeq call in parent.
+# TODO:  or move log into PrimerAlignment object, which seems better. the log shouldn't be the same for every mode.
 def buildMaskedResult(result, align, max_error=default_max_error, mode='mask', barcode=False,
                       barcode_field=default_barcode_field, primer_field=default_primer_field,
                       delimiter=default_delimiter):
@@ -100,8 +103,8 @@ def extractPrimers(data, start, length, mode='mask', barcode=False, barcode_fiel
         result.log['ALIGN'] = None
     else:
         result = buildMaskedResult(result, align, max_error=1.0, mode=mode, barcode=barcode,
-                      barcode_field=barcode_field, primer_field=primer_field,
-                      delimiter=delimiter)
+                                   barcode_field=barcode_field, primer_field=primer_field,
+                                   delimiter=delimiter)
 
     return result
 
@@ -147,8 +150,8 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_max_error,
         result.log['ALIGN'] = None
     else:
         result = buildMaskedResult(result, align, max_error=max_error, mode=mode, barcode=barcode,
-                      barcode_field=barcode_field, primer_field=primer_field,
-                      delimiter=delimiter)
+                                   barcode_field=barcode_field, primer_field=primer_field,
+                                   delimiter=delimiter)
 
     return result
 

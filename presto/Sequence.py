@@ -978,7 +978,7 @@ def extractAlignment(seq_record, start, length):
     align.valid = True
 
     # Determine alignment sequences
-    align.align_seq = '-' * (start + length) + region
-    align.align_primer = '-' * (start + length) + region
+    align.align_seq = '-' * start + region
+    align.align_primer = '-' * start + region
 
     return align
