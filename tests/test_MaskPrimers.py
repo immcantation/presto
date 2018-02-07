@@ -49,7 +49,7 @@ class TestMaskPrimers(unittest.TestCase):
                         ('PR3', 3.0/8),
                         ('PR3', 3.0/8),
                         (None, 1.0)]
-        # Score primers with start=2
+        # Score primers with start=1
         self.score_n = [('PR1', 0.0/8),
                         ('PR1', 1.0/8),
                         ('PR2', 0.0/8),
@@ -57,6 +57,14 @@ class TestMaskPrimers(unittest.TestCase):
                         ('PR2', 6.0/8),
                         ('PR3', 3.0/8),
                         (None, 1.0)]
+        # Extract primers with start=4 and length=8
+        self.extract_n = ['GTTTTAGT',
+                          'GTTTTAGT',
+                          'GTTTTAGT',
+                          'GTTTTACT',
+                          'NNNNNACT',
+                          'TANNNACT',
+                          'NNNNNNNN']
 
         # Test indels
         seq_indel = [Seq('CGGATCTTCTACTCCATACGTCCGTCAGTCGTGGATCTGATCTAGCTGCGCCTTTTTCTCAG'),
@@ -95,21 +103,35 @@ class TestMaskPrimers(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    @unittest.skip('-> extractPrimers() skipped\n')
-    def test_extractPrimers(self):
-        self.fail()
+    unittest.skip('-> extractAlignment() skipped\n')
+    def test_extractAlignment(self):
+        align = [extractAlignment(x, start=4, length=8)
+                 for x in self.records_n]
+        for x in align:
+            print('  %s>' % x.seq.id)
+            print('      SEQ> %s' % x.seq.seq)
+            print('  ALN-SEQ> %s' % x.align_seq)
+            print('   ALN-PR> %s' % x.align_primer)
+            print('   PRIMER> %s' % x.primer)
+            print('    START> %s' % x.start)
+            print('      END> %s' % x.end)
+            print('     GAPS> %i' % x.gaps)
+            print('    ERROR> %f\n' % x.error)
+
+        self.assertListEqual([x for x in self.extract_n],
+                             [str(x.primer) for x in align])
 
     #@unittest.skip('-> scoreAlignment() skipped\n')
-    def test_scorePrimers(self):
+    def test_scoreAlignment(self):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
         align = [scoreAlignment(x, self.primers_n, start=1, score_dict=score_dict)
                  for x in self.records_n]
         for x in align:
             print('  %s>' % x.seq.id)
             print('      SEQ> %s' % x.seq.seq)
-            print('   PRIMER> %s' % x.primer)
             print('  ALN-SEQ> %s' % x.align_seq)
             print('   ALN-PR> %s' % x.align_primer)
+            print('   PRIMER> %s' % x.primer)
             print('    START> %s' % x.start)
             print('      END> %s' % x.end)
             print('     GAPS> %i' % x.gaps)
@@ -122,7 +144,7 @@ class TestMaskPrimers(unittest.TestCase):
                              [(x.primer, round(x.error, 4)) for x in align])
 
     #@unittest.skip('-> localAlignment() skipped\n')
-    def test_alignPrimers(self):
+    def test_localAlignment(self):
         score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 
         # N character tests
@@ -132,9 +154,9 @@ class TestMaskPrimers(unittest.TestCase):
         for x in align:
             print('  %s>' % x.seq.id)
             print('      SEQ> %s' % x.seq.seq)
-            print('   PRIMER> %s' % x.primer)
             print('  ALN-SEQ> %s' % x.align_seq)
             print('   ALN-PR> %s' % x.align_primer)
+            print('   PRIMER> %s' % x.primer)
             print('    START> %s' % x.start)
             print('      END> %s' % x.end)
             print('     GAPS> %i' % x.gaps)
@@ -153,9 +175,9 @@ class TestMaskPrimers(unittest.TestCase):
         for x in align:
             print('  %s>' % x.seq.id)
             print('      SEQ> %s' % x.seq.seq)
-            print('   PRIMER> %s' % x.primer)
             print('  ALN-SEQ> %s' % x.align_seq)
             print('   ALN-PR> %s' % x.align_primer)
+            print('   PRIMER> %s' % x.primer)
             print('    START> %s' % x.start)
             print('      END> %s' % x.end)
             print('     GAPS> %i' % x.gaps)
