@@ -14,7 +14,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
-from presto.Sequence import getDNAScoreDict, localAlignment, scoreAlignment, extractSequence
+from presto.Sequence import getDNAScoreDict, localAlignment, scoreAlignment, extractAlignment
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
