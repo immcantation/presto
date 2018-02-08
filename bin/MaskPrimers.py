@@ -65,19 +65,20 @@ def buildMaskedResult(result, align, max_error=default_max_error, mode='mask', b
         result.log['INSEQ'] = align.align_seq + \
                               str(align.seq.seq[align_cut:])
         result.log['ALIGN'] = align.align_primer
-        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data) + align.gaps)
+        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data.seq) + align.gaps)
     else:
         align_cut = len(align.seq) - len(align.align_seq) + align.gaps
         result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
-        result.log['ALIGN'] = align.align_primer.rjust(len(result.data) + align.gaps)
+        result.log['ALIGN'] = align.align_primer.rjust(len(result.data.seq) + align.gaps)
         result.log['OUTSEQ'] = str(out_seq.seq)
     result.log['ERROR'] = align.error
 
     return result
 
 
-def extractPrimers(data, start, length, mode='mask', barcode=False, barcode_field=default_barcode_field,
-                   primer_field=default_primer_field, delimiter=default_delimiter):
+def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=False,
+                   barcode_field=default_barcode_field, primer_field=default_primer_field,
+                   delimiter=default_delimiter):
     """
     Extracts primer sequences directly
 
@@ -85,6 +86,7 @@ def extractPrimers(data, start, length, mode='mask', barcode=False, barcode_fiel
       data : SeqData object containing a single SeqRecord object to process.
       start : position where subsequence starts.
       length : the length of the subsequence to extract.
+      rev_primer : if True extract relative to the tail end of the sequence.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
       barcode_field : name of the output barcode annotation.
@@ -92,10 +94,10 @@ def extractPrimers(data, start, length, mode='mask', barcode=False, barcode_fiel
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
     """
     # Define result object
-    result = SeqResult(data.id, data)
+    result = SeqResult(data.id, data.data)
 
     # Align primers
-    align = extractAlignment(data.data, start=start, length=length)
+    align = extractAlignment(data.data, start=start, length=length, rev_primer=rev_primer)
 
     # Process alignment results and build output sequence
     if not align:
@@ -137,7 +139,7 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_max_error,
       presto.Multiprocessing.SeqResult : result object.
     """
     # Define result object
-    result = SeqResult(data.id, data)
+    result = SeqResult(data.id, data.data)
 
     # Align primers
     align = localAlignment(data.data, primers, primers_regex=primers_regex, max_error=max_error,
@@ -180,7 +182,7 @@ def scorePrimers(data, primers, max_error=default_max_error, start=default_start
       presto.Multiprocessing.SeqResult : result object.
     """
     # Define result object
-    result = SeqResult(data.id, data)
+    result = SeqResult(data.id, data.data)
 
     # Align primers
     align = scoreAlignment(data.data, primers, start=start, rev_primer=rev_primer,
@@ -417,6 +419,9 @@ def getArgParser():
                                help='The starting position of the sequence region to extract.')
     group_extract.add_argument('--len', action='store', dest='length', type=int, required=True,
                                help='The length of the sequence to extract.')
+    group_extract.add_argument('--revpr', action='store_true', dest='rev_primer',
+                               help='''Specify to extract from the tail end of the sequence with the start
+                                    position relative to the end of the sequence.''')
     group_extract.add_argument('--mode', action='store', dest='mode',
                                choices=('cut', 'mask', 'trim', 'tag'), default='mask',
                                help='''Specifies the action to take with the sequence region.
@@ -488,12 +493,14 @@ if __name__ == '__main__':
         args_dict['primer_file'] = None
         args_dict['align_args'] = {'start':args_dict['start'],
                                    'length':args_dict['length'],
+                                   'rev_primer': args_dict['rev_primer'],
                                    'mode':args_dict['mode'],
                                    'barcode': args_dict['barcode'],
                                    'barcode_field': args_dict['barcode_field'],
                                    'primer_field': args_dict['primer_field']}
         del args_dict['start']
         del args_dict['length']
+        del args_dict['rev_primer']
         del args_dict['mode']
         del args_dict['barcode']
         del args_dict['barcode_field']

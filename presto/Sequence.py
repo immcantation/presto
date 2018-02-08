@@ -868,7 +868,7 @@ def scoreAlignment(seq_record, primers, start=default_start, rev_primer=False,
     return align
 
 
-def extractAlignment(seq_record, start, length):
+def extractAlignment(seq_record, start, length, rev_primer=False):
     """
     Extracts a subsequence from sequence
 
@@ -876,6 +876,7 @@ def extractAlignment(seq_record, start, length):
       data : SeqRecord to process.
       start : position where subsequence starts.
       length : the length of the subsequence to extract.
+      rev_primer : if True extract relative to the tail end of the sequence.
 
     Returns:
       presto.Sequence.PrimerAlignment : extraction results as an alignment object
@@ -883,24 +884,37 @@ def extractAlignment(seq_record, start, length):
     # Create empty return dictionary
     seq_record = seq_record.upper()
     align = PrimerAlignment(seq_record)
+    align.rev_primer = rev_primer
 
     # Define orientation variables
     seq_record.annotations['seqorient'] = 'F'
-    seq_record.annotations['prorient'] = 'F'
+    seq_record.annotations['prorient'] = 'F' if not rev_primer else 'RC'
+
+    rec_len = len(seq_record)
+    if rev_primer:
+        end = rec_len - start
+        start = end - length
+    else:
+        end = start + length
 
     # Extract region
-    region = str(seq_record.seq[start:(start + length)])
+    region = str(seq_record.seq[start:end])
 
     # Populate return object
     align.primer = region
     align.start = start
-    align.end = start + length
+    align.end = end
     align.error = 0
     align.valid = True
 
     # Determine alignment sequences
-    align.align_seq = '-' * start + region
-    align.align_primer = '-' * start + region
+    # Determine alignment sequences
+    if not rev_primer:
+        align.align_seq = str(seq_record.seq[:end])
+        align.align_primer = '-' * start + region
+    else:
+        align.align_seq = str(seq_record.seq[start:])
+        align.align_primer = region + '-' * (rec_len - end)
 
     return align
 
