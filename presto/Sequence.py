@@ -868,14 +868,50 @@ def scoreAlignment(seq_record, primers, start=default_start, rev_primer=False,
     return align
 
 
-# TODO:  Can probably call from a wrapper that includes localAlignment/scoreAlignment steps to remove custom worker in MaskPrimers
+def extractAlignment(seq_record, start, length):
+    """
+    Extracts a subsequence from sequence
+
+    Arguments:
+      data : SeqRecord to process.
+      start : position where subsequence starts.
+      length : the length of the subsequence to extract.
+
+    Returns:
+      presto.Sequence.PrimerAlignment : extraction results as an alignment object
+    """
+    # Create empty return dictionary
+    seq_record = seq_record.upper()
+    align = PrimerAlignment(seq_record)
+
+    # Define orientation variables
+    seq_record.annotations['seqorient'] = 'F'
+    seq_record.annotations['prorient'] = 'F'
+
+    # Extract region
+    region = str(seq_record.seq[start:(start + length)])
+
+    # Populate return object
+    align.primer = region
+    align.start = start
+    align.end = start + length
+    align.error = 0
+    align.valid = True
+
+    # Determine alignment sequences
+    align.align_seq = '-' * start + region
+    align.align_primer = '-' * start + region
+
+    return align
+
+
 def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_field,
             primer_field=default_primer_field, delimiter=default_delimiter):
     """
     Create an output sequence with primers masked or cut
 
     Arguments:
-      align : a PrimerAlignment object returned from localAlignment or scoreAlignment.
+      align : a PrimerAlignment object.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
       barcode_field : name of the output barcode annotation.
@@ -945,40 +981,3 @@ def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_fie
     out_seq.description = ''
 
     return out_seq
-
-
-def extractAlignment(seq_record, start, length):
-    """
-    Extracts a subsequence from sequence
-
-    Arguments:
-      data : SeqRecord to process.
-      start : position where subsequence starts.
-      length : the length of the subsequence to extract.
-
-    Returns:
-      presto.Sequence.PrimerAlignment : extraction results as an alignment object
-    """
-    # Create empty return dictionary
-    seq_record = seq_record.upper()
-    align = PrimerAlignment(seq_record)
-
-    # Define orientation variables
-    seq_record.annotations['seqorient'] = 'F'
-    seq_record.annotations['prorient'] = 'F'
-
-    # Extract region
-    region = str(seq_record.seq[start:(start + length)])
-
-    # Populate return object
-    align.primer = region
-    align.start = start
-    align.end = start + length
-    align.error = 0
-    align.valid = True
-
-    # Determine alignment sequences
-    align.align_seq = '-' * start + region
-    align.align_primer = '-' * start + region
-
-    return align
