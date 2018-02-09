@@ -709,11 +709,7 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_ma
         seq_list = [seq_record]
         seq_list[0].annotations['seqorient'] = 'F'
 
-    # Assign primer orientation tags
-    for rec in seq_list:
-        rec.annotations['prorient'] = 'F' if not rev_primer else 'RC'
-
-        # Attempt regular expression match first
+    # Attempt regular expression match first
     for rec in seq_list:
         scan_seq = str(rec.seq)
         scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
@@ -722,7 +718,6 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_ma
             # Parse matches
             if adpt_match:
                 align.seq = rec
-                align.seq.annotations['primer'] = adpt_id
                 align.primer = adpt_id
                 align.align_seq = scan_seq
                 align.align_primer = '-' * adpt_match.start(0) + \
@@ -820,10 +815,7 @@ def scoreAlignment(seq_record, primers, start=default_start, rev_primer=False,
     seq_record = seq_record.upper()
     align = PrimerAlignment(seq_record)
     align.rev_primer = rev_primer
-
-    # Define orientation variables
-    seq_record.annotations['seqorient'] = 'F'
-    seq_record.annotations['prorient'] = 'F' if not rev_primer else 'RC'
+    align.rev_seq = False
 
     # Score primers
     this_align = {}
@@ -885,10 +877,6 @@ def extractAlignment(seq_record, start, length, rev_primer=False):
     seq_record = seq_record.upper()
     align = PrimerAlignment(seq_record)
     align.rev_primer = rev_primer
-
-    # Define orientation variables
-    seq_record.annotations['seqorient'] = 'F'
-    seq_record.annotations['prorient'] = 'F' if not rev_primer else 'RC'
 
     rec_len = len(seq_record)
     if rev_primer:
@@ -974,14 +962,12 @@ def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_fie
 
     # Add alignment annotations to output SeqRecord
     out_seq.annotations = seq.annotations
-    out_seq.annotations['primer'] = align.primer
-    out_seq.annotations['prstart'] = align.start
-    out_seq.annotations['error'] = align.error
 
-    # Parse seq annotation and create output annotation
-    seq_ann = parseAnnotation(seq.description, delimiter=delimiter)
-    out_ann = OrderedDict([('SEQORIENT', seq.annotations['seqorient']),
-                           (primer_field, align.primer)])
+    # Create output annotation
+    out_ann = OrderedDict()
+    if 'seqorient' in out_seq.annotations:
+        out_ann['SEQORIENT'] = out_seq.annotations['seqorient']
+    out_ann[primer_field] = align.primer
 
     # Add ID sequence to description
     if barcode:
@@ -990,6 +976,7 @@ def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_fie
         out_seq.annotations['barcode'] = seq_code
         out_ann[barcode_field] = seq_code
 
+    seq_ann = parseAnnotation(seq.description, delimiter=delimiter)
     out_ann = mergeAnnotation(seq_ann, out_ann, delimiter=delimiter)
     out_seq.id = flattenAnnotation(out_ann, delimiter=delimiter)
     out_seq.description = ''

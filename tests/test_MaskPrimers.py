@@ -98,7 +98,6 @@ class TestMaskPrimers(unittest.TestCase):
 
         # Masking test case
         mask_seq = SeqRecord(Seq('CCACGTTTTAGTAATTAATA'), id='SEQ', description='SEQ')
-        mask_seq.annotations['seqorient'] = 'F'
         self.mask_primer = PrimerAlignment(mask_seq)
         self.mask_primer.primer = 'A'
         self.mask_primer.align_seq =    'CCACGTTTT'
@@ -110,10 +109,10 @@ class TestMaskPrimers(unittest.TestCase):
         self.mask_primer.rev_primer = False
         self.mask_primer.valid = True
 
-        self.mask_seq_cut = SeqRecord(Seq('AGTAATTAATA'), id='SEQ|SEQORIENT=F|PRIMER=A|BARCODE=CCA')
-        self.mask_seq_mask = SeqRecord(Seq('NNNNNNAGTAATTAATA'), id='SEQ|SEQORIENT=F|PRIMER=A|BARCODE=CCA')
-        self.mask_seq_trim = SeqRecord(Seq('CGTTTTAGTAATTAATA'), id='SEQ|SEQORIENT=F|PRIMER=A|BARCODE=CCA')
-        self.mask_seq_tag = SeqRecord(Seq('CCACGTTTTAGTAATTAATA'), id='SEQ|SEQORIENT=F|PRIMER=A|BARCODE=CCA')
+        self.mask_seq_cut = SeqRecord(Seq('AGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
+        self.mask_seq_mask = SeqRecord(Seq('NNNNNNAGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
+        self.mask_seq_trim = SeqRecord(Seq('CGTTTTAGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
+        self.mask_seq_tag = SeqRecord(Seq('CCACGTTTTAGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
 
         # Start clock
         self.start = time.time()

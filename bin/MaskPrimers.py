@@ -24,57 +24,6 @@ from presto.IO import readPrimerFile, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
 
-# TODO:  this is all still a mess. too much repetition, too much nesting, obtuse object passing
-# TODO:  can probably move valid check out of buildMaskedResult into parent.
-# TODO:  can probably reduce this to a log generating function with maskSeq call in parent.
-# TODO:  or move log into PrimerAlignment object, which seems better. the log shouldn't be the same for every mode.
-def buildMaskedResult(result, align, max_error=default_max_error, mode='mask', barcode=False,
-                      barcode_field=default_barcode_field, primer_field=default_primer_field,
-                      delimiter=default_delimiter):
-    """
-    Creates the masked output sequence
-
-    Arguments:
-      result : SeqResult object to modify.
-      align : PrimerAlignment object.
-      max_error : maximum acceptable error rate for a valid alignment.
-      mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
-      barcode : if True add sequence preceding primer to description.
-      barcode_field : name of the output barcode annotation.
-      primer_field : name of the output primer annotation.
-      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
-
-    Returns:
-      presto.Multiprocessing.SeqResult : modified result object.
-    """
-    # Create output sequence
-    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
-                      primer_field=primer_field, delimiter=delimiter)
-    result.results = out_seq
-    result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
-
-    # Update log with successful alignment results
-    result.log['SEQORIENT'] = out_seq.annotations['seqorient']
-    result.log['PRIMER'] = out_seq.annotations['primer']
-    result.log['PRORIENT'] = out_seq.annotations['prorient']
-    result.log['PRSTART'] = out_seq.annotations['prstart']
-    if 'barcode' in out_seq.annotations:
-        result.log['BARCODE'] = out_seq.annotations['barcode']
-    if not align.rev_primer:
-        align_cut = len(align.align_seq) - align.gaps
-        result.log['INSEQ'] = align.align_seq + \
-                              str(align.seq.seq[align_cut:])
-        result.log['ALIGN'] = align.align_primer
-        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data.seq) + align.gaps)
-    else:
-        align_cut = len(align.seq) - len(align.align_seq) + align.gaps
-        result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
-        result.log['ALIGN'] = align.align_primer.rjust(len(result.data.seq) + align.gaps)
-        result.log['OUTSEQ'] = str(out_seq.seq)
-    result.log['ERROR'] = align.error
-
-    return result
-
 
 def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=False,
                    barcode_field=default_barcode_field, primer_field=default_primer_field,
@@ -98,15 +47,31 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
 
     # Align primers
     align = extractAlignment(data.data, start=start, length=length, rev_primer=rev_primer)
-
-    # Process alignment results and build output sequence
     if not align:
-        # Update log if no alignment
         result.log['ALIGN'] = None
+        return result
+
+    # Create output sequence
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+                      primer_field=primer_field, delimiter=delimiter)
+    result.results = out_seq
+    result.valid = True
+
+    # Update log with successful alignment results
+    result.log['PRIMER'] = align.primer
+    result.log['PRSTART'] = align.start
+    if 'barcode' in out_seq.annotations:
+        result.log['BARCODE'] = out_seq.annotations['barcode']
+    if not align.rev_primer:
+        align_cut = len(align.align_seq) - align.gaps
+        result.log['INSEQ'] = align.align_seq + str(align.seq.seq[align_cut:])
+        result.log['ALIGN'] = align.align_primer
+        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data.seq) + align.gaps)
     else:
-        result = buildMaskedResult(result, align, max_error=1.0, mode=mode, barcode=barcode,
-                                   barcode_field=barcode_field, primer_field=primer_field,
-                                   delimiter=delimiter)
+        align_cut = len(align.seq) - len(align.align_seq) + align.gaps
+        result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
+        result.log['ALIGN'] = align.align_primer.rjust(len(result.data.seq) + align.gaps)
+        result.log['OUTSEQ'] = str(out_seq.seq)
 
     return result
 
@@ -145,15 +110,36 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_max_error,
     align = localAlignment(data.data, primers, primers_regex=primers_regex, max_error=max_error,
                            max_len=max_len, rev_primer=rev_primer, skip_rc=skip_rc,
                            gap_penalty=gap_penalty, score_dict=score_dict)
-
-    # Process alignment results and build output sequence
     if not align:
         # Update log if no alignment
         result.log['ALIGN'] = None
+        return result
+
+    # Create output sequence
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+                      primer_field=primer_field, delimiter=delimiter)
+    result.results = out_seq
+    result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
+
+    # Update log with successful alignment results
+    result.log['SEQORIENT'] = out_seq.annotations['seqorient']
+    result.log['PRIMER'] = align.primer
+    result.log['PRORIENT'] = 'RC' if align.rev_primer else 'F'
+    result.log['PRSTART'] = align.start
+    if 'barcode' in out_seq.annotations:
+        result.log['BARCODE'] = out_seq.annotations['barcode']
+    if not align.rev_primer:
+        align_cut = len(align.align_seq) - align.gaps
+        result.log['INSEQ'] = align.align_seq + \
+                              str(align.seq.seq[align_cut:])
+        result.log['ALIGN'] = align.align_primer
+        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data.seq) + align.gaps)
     else:
-        result = buildMaskedResult(result, align, max_error=max_error, mode=mode, barcode=barcode,
-                                   barcode_field=barcode_field, primer_field=primer_field,
-                                   delimiter=delimiter)
+        align_cut = len(align.seq) - len(align.align_seq) + align.gaps
+        result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
+        result.log['ALIGN'] = align.align_primer.rjust(len(result.data.seq) + align.gaps)
+        result.log['OUTSEQ'] = str(out_seq.seq)
+    result.log['ERROR'] = align.error
 
     return result
 
@@ -187,15 +173,35 @@ def scorePrimers(data, primers, max_error=default_max_error, start=default_start
     # Align primers
     align = scoreAlignment(data.data, primers, start=start, rev_primer=rev_primer,
                            score_dict=score_dict)
-
-    # Process alignment results and build output sequence
     if not align:
         # Update log if no alignment
         result.log['ALIGN'] = None
+        return result
+
+    # Create output sequence
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+                      primer_field=primer_field, delimiter=delimiter)
+    result.results = out_seq
+    result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
+
+    # Update log with successful alignment results
+    result.log['PRIMER'] = align.primer
+    result.log['PRORIENT'] = 'RC' if align.rev_primer else 'F'
+    result.log['PRSTART'] = align.start
+    if 'barcode' in out_seq.annotations:
+        result.log['BARCODE'] = out_seq.annotations['barcode']
+    if not align.rev_primer:
+        align_cut = len(align.align_seq) - align.gaps
+        result.log['INSEQ'] = align.align_seq + \
+                              str(align.seq.seq[align_cut:])
+        result.log['ALIGN'] = align.align_primer
+        result.log['OUTSEQ'] = str(out_seq.seq).rjust(len(result.data.seq) + align.gaps)
     else:
-        result = buildMaskedResult(result, align, max_error=max_error, mode=mode, barcode=barcode,
-                      barcode_field=barcode_field, primer_field=primer_field,
-                      delimiter=delimiter)
+        align_cut = len(align.seq) - len(align.align_seq) + align.gaps
+        result.log['INSEQ'] = str(align.seq.seq[:align_cut]) + align.align_seq
+        result.log['ALIGN'] = align.align_primer.rjust(len(result.data.seq) + align.gaps)
+        result.log['OUTSEQ'] = str(out_seq.seq)
+    result.log['ERROR'] = align.error
 
     return result
 
