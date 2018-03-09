@@ -504,6 +504,7 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
 
         # Create per character quality sets and quality sums
         qual_total = float(sum(quals))
+        if qual_total == 0:  qual_total = 1
         qual_set, qual_sum = {}, {}
         for c in char_set:
             qual_set[c] = [q for i, q in enumerate(quals) if chars[i] == c]

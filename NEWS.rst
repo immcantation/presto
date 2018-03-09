@@ -1,6 +1,22 @@
 Release Notes
 ================================================================================
 
+Version 0.5.6.999:  March 09, 2018
+-------------------------------------------------------------------------------
+
+BuildConsensus
+
++ Fixed an error wherein the program would exit if all sequences in an UMI
+  read group had a Phred quality score of 0 in a given position.
+
+MaskPrimers
+
++ Added extract subcommand which will remove/annotation subsequences in
+  fixed position without requiring a primer sequence match.
++ Added ``--pf`` and ``--bf`` arguments to all subcommands allowing renaming
+  of output ``PRIMER`` and ``BARCODE`` fields, respectively.
+
+
 Version 0.5.6:  January 17, 2018
 -------------------------------------------------------------------------------
 

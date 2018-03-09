@@ -284,7 +284,7 @@ def printMessage(message, start_time=None, end=False, width=25):
       None
     """
     # Define progress bar
-    bar = 'PROGRESS> [%s] %s' % (strftime('%H:%M:%S'), message.ljust(width))
+    bar = 'PROGRESS> %s |%s|' % (strftime('%H:%M:%S'), message.ljust(width))
 
     # Add run time to bar if start_time is specified
     if start_time is not None:
