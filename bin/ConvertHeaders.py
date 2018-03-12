@@ -232,7 +232,7 @@ def convertIMGTHeader(desc, simple=False):
 
 def convertSRAHeader(desc):
     """
-    Parses NCBI SRA headers into the pRESTO format
+    Parses NCBI SRA or EMBL-EBI ENA headers into the pRESTO format
 
     Arguments:
     desc = a sequence description string
@@ -240,18 +240,22 @@ def convertSRAHeader(desc):
     Returns:
     a dictionary of header {field: value} pairs
 
-    Header example from fastq-dum --split-files:
+    Header example from fastq-dump --split-files:
         @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
         @SRR1383326.1 1 length=250
         @<accession>.<spot> <original sequence description> <length=#>
-    Header example from fastq-dum --split-files -I:
+    Header example from fastq-dump --split-files -I:
         @SRR1383326.1.1 1 length=250
         @<accession>.<spot>.<read number> <original sequence description> <length=#>
+    Header example from ENA
+        @ERR220397.1 HKSQ1MM01DXT2W/3
+        @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/1
+        @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/2
+
     """
     # Split description and assign field names
     try:
         fields = desc.split(' ')
-
 
         # Build header dictionary
         header = OrderedDict()
@@ -265,7 +269,8 @@ def convertSRAHeader(desc):
             header['ID'] = fields[0]
 
         header['DESC'] = fields[1]
-        header['LENGTH'] = fields[2].replace('length=', '')
+        if len(fields) >= 3 and 'length' in fields[2]:
+            header['LENGTH'] = fields[2].replace('length=', '')
     except:
         header = None
 
@@ -493,8 +498,8 @@ def getArgParser():
     # Subparser for conversion of SRA headers
     parser_sra = subparsers.add_parser('sra', parents=[parent_parser], add_help=False,
                                        formatter_class=CommonHelpFormatter,
-                                       help='''Converts NCBI SRA sequence headers.''',
-                                       description='''Converts NCBI SRA sequence headers.''')
+                                       help='''Converts NCBI SRA or EMBL-EBI ENA sequence headers.''',
+                                       description='''Converts NCBI SRA or EMBL-EBI ENA sequence headers.''')
     parser_sra.set_defaults(convert_func=convertSRAHeader)
 
     return parser
