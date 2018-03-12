@@ -1,15 +1,19 @@
 Release Notes
 ================================================================================
 
-Version 0.5.6.999:  March 09, 2018
+Version 0.5.6.999:  March 12, 2018
 -------------------------------------------------------------------------------
 
-BuildConsensus
+BuildConsensus:
 
 + Fixed an error wherein the program would exit if all sequences in an UMI
   read group had a Phred quality score of 0 in a given position.
 
-MaskPrimers
+ConvertHeaders:
+
++ Added support for EMBL-EBI ENA header format to the sra subcommand.
+
+MaskPrimers"
 
 + Added extract subcommand which will remove/annotation subsequences in
   fixed position without requiring a primer sequence match.
