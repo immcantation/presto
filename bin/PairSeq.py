@@ -17,30 +17,31 @@ from Bio import SeqIO
 # Presto imports
 from presto.Defaults import choices_coord, default_coord, default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
-                              getCoordKey
+from presto.Annotation import collapseAnnotation, parseAnnotation, flattenAnnotation, \
+                              mergeAnnotation, getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printMessage, printProgress
 
 
 def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
-            coord_type=default_coord,
-            out_args=default_out_args):
+            action=None, coord_type=default_coord, out_args=default_out_args):
     """
-    Generates consensus sequences
+    Syncronized paired end files and copies annotations between them
 
     Arguments: 
-    seq_file_1 = the file containing the grouped sequences and annotations
-    seq_file_2 = the file to assign annotations to from seq_file_1
-    fields_1 = list of annotations in seq_file_1 records to copy to seq_file_2 records;
-               if None do not copy any annotations
-    fields_2 = list of annotations in seq_file_2 records to copy to seq_file_1 records;
-               if None do not copy any annotations
-    coord_type = the sequence header format
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file_1 : the file containing the grouped sequences and annotations
+      seq_file_2 : the file to assign annotations to from seq_file_1
+      fields_1 : list of annotations in seq_file_1 records to copy to seq_file_2 records;
+                 if None do not copy any annotations
+      fields_2 : list of annotations in seq_file_2 records to copy to seq_file_1 records;
+                 if None do not copy any annotations
+      action : the collapse action to take on all copied annotation if they already exist in the
+               target header.
+      coord_type : the sequence header format
+      out_args : common output argument dictionary from parseCommonArgs
                     
     Returns: 
-    a list of tuples holding successfully paired filenames for (seq_file_1, seq_file_2)
+      list : a list of tuples holding successfully paired filenames for (seq_file_1, seq_file_2)
     """
     # Define private functions
     def _key_func(x):
@@ -122,6 +123,11 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
                                             if k in fields_1])
                     merge_ann = mergeAnnotation(ann_2, copy_ann, prepend=True,
                                                 delimiter=out_args['delimiter'])
+                    # Collapse if necessary
+                    if action is not None:
+                        merge_ann = collapseAnnotation(merge_ann, action, fields=fields_1,
+                                                       delimiter=out_args['delimiter'])
+                    # Flatten
                     seq_2.id = flattenAnnotation(merge_ann,
                                                  delimiter=out_args['delimiter'])
                     seq_2.description = ''
@@ -132,6 +138,11 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
                                             if k in fields_2])
                     merge_ann = mergeAnnotation(ann_1, copy_ann, prepend=False,
                                                 delimiter=out_args['delimiter'])
+                    # Collapse if necessary
+                    if action is not None:
+                        merge_ann = collapseAnnotation(merge_ann, action, fields=fields_2,
+                                                       delimiter=out_args['delimiter'])
+                    # Flatten
                     seq_1.id = flattenAnnotation(merge_ann,
                                                  delimiter=out_args['delimiter'])
                     seq_1.description = ''
@@ -218,6 +229,17 @@ def getArgParser():
                                  1 records. If a copied annotation already exists in a file 1
                                  record, then the annotations copied from file 2 will be added
                                 to the end of the existing annotation.''')
+    group_pair.add_argument('--act', action='store', dest='action', required=False,
+                            choices=['min', 'max', 'sum', 'set', 'cat'],
+                            help='''The collapse actions to take on all fields copied 
+                                 between files to combine duplicate fields into a single value. 
+                                 The actions "min", "max", "sum" perform the corresponding
+                                 mathematical operation on numeric annotations. The action
+                                 "set" collapses annotations into a comma delimited
+                                 list of unique values. The action "cat" concatenates
+                                 the values together into a single string. Only applies
+                                 if the field already exists in the header before being copying 
+                                 from the other file.''')
     group_pair.add_argument('--coord', action='store', dest='coord_type',
                             choices=choices_coord, default=default_coord,
                             help='''The format of the sequence identifier which defines shared

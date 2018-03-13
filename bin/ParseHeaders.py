@@ -89,39 +89,6 @@ def copyHeader(header, fields, names, actions=None, delimiter=default_delimiter)
     return header
 
 
-def mergeHeader(header, fields, name, action=None, delete=False,
-                delimiter=default_delimiter):
-    """
-    Merges fields in a sequence header
-
-    Arguments:
-      header : an annotation dictionary returned by parseAnnotation.
-      fields : a list of the field names to merge.
-      name : the name of the new field.
-      delete : if True delete the merged fields.
-      actions : the list of collapse action take after the merge
-                one of (max, min, sum, first, last, set, cat).
-      delimiter : a tuple of delimiters for (fields, values, value lists)
-
-    Returns:
-      dict : modified header dictionary
-    """
-    merge = {name: [header[f] for f in fields]}
-    header = mergeAnnotation(header, merge, delimiter=delimiter)
-
-    # Delete fields
-    if delete:
-        for f in fields:
-            if f != name:  del header[f]
-
-    # Collapse action
-    if action is not None:
-        header = collapseHeader(header, fields=[name], actions=[action],
-                                delimiter=delimiter)
-
-    return header
-
-
 def deleteHeader(header, fields, delimiter=default_delimiter):
     """
     Deletes fields from a sequence header
@@ -160,6 +127,39 @@ def expandHeader(header, fields, separator=default_separator,
         header = mergeAnnotation(header, ann, delimiter=delimiter)
         del header[f]
     
+    return header
+
+
+def mergeHeader(header, fields, name, action=None, delete=False,
+                delimiter=default_delimiter):
+    """
+    Merges fields in a sequence header
+
+    Arguments:
+      header : an annotation dictionary returned by parseAnnotation.
+      fields : a list of the field names to merge.
+      name : the name of the new field.
+      delete : if True delete the merged fields.
+      actions : the list of collapse action take after the merge
+                one of (max, min, sum, first, last, set, cat).
+      delimiter : a tuple of delimiters for (fields, values, value lists)
+
+    Returns:
+      dict : modified header dictionary
+    """
+    merge = {name: [header[f] for f in fields]}
+    header = mergeAnnotation(header, merge, delimiter=delimiter)
+
+    # Delete fields
+    if delete:
+        for f in fields:
+            if f != name:  del header[f]
+
+    # Collapse action
+    if action is not None:
+        header = collapseHeader(header, fields=[name], actions=[action],
+                                delimiter=delimiter)
+
     return header
 
 

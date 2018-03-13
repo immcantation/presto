@@ -22,6 +22,11 @@ MaskPrimers:
 + Removed ``SEQORIENT`` output field from score subcommand as the mode does
   not check the reverse complement.
 
+PairSeq:
+
++ Added the ``--act`` argument to provide a mechanism for collapsing values of
+  duplicate fields copied across files.
+
 ParseHeaders:
 
 + Added merge subcommand to combined separate annotations into a single entry.
