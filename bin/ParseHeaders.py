@@ -30,13 +30,13 @@ def addHeader(header, fields, values, delimiter=default_delimiter):
     Adds fields and values to a sequence header
 
     Arguments: 
-    header = an annotation dictionary returned by parseAnnotation
-    fields = the list of fields to add or append to
-    values = the list of annotation values to add for each field
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      header : an annotation dictionary returned by parseAnnotation
+      fields : the list of fields to add or append to
+      values : the list of annotation values to add for each field
+      delimiter : a tuple of delimiters for (fields, values, value lists)
                     
     Returns: 
-    the modified header dictionary
+      dict : modified header dictionary
     """
     for f, v in zip(fields, values):
         header = mergeAnnotation(header, {f:v}, delimiter=delimiter)
@@ -49,14 +49,14 @@ def collapseHeader(header, fields, actions, delimiter=default_delimiter):
     Collapses a sequence header
 
     Arguments: 
-    header = an annotation dictionary returned by parseAnnotation
-    fields = the list of fields to collapse
-    actions = the list of collapse action take;
-              one of (max, min, sum, first, last, set, cat) for each field
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      header : an annotation dictionary returned by parseAnnotation
+      fields : the list of fields to collapse
+      actions : the list of collapse action take;
+                one of (max, min, sum, first, last, set, cat) for each field
+      delimiter : a tuple of delimiters for (fields, values, value lists)
                     
     Returns: 
-    the output file name
+      dict : modified header dictionary
     """
     for f, a in zip(fields, actions):
         header = collapseAnnotation(header, a, f, delimiter=delimiter)
@@ -69,15 +69,15 @@ def copyHeader(header, fields, names, actions=None, delimiter=default_delimiter)
     Copies fields in a sequence header
 
     Arguments:
-    header = an annotation dictionary returned by parseAnnotation
-    fields = a list of the field names to copy
-    names = a list of the new field names
-    actions = the list of collapse action take after the copy;
-              one of (max, min, sum, first, last, set, cat) for each field
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      header : an annotation dictionary returned by parseAnnotation
+      fields : a list of the field names to copy
+      names : a list of the new field names
+      actions : the list of collapse action take after the copy;
+                one of (max, min, sum, first, last, set, cat) for each field
+      delimiter : a tuple of delimiters for (fields, values, value lists)
 
     Returns:
-    the modified header dictionary
+      dict : modified header dictionary
     """
     old_header = header.copy()
     for f, n in zip(fields, names):
@@ -89,17 +89,50 @@ def copyHeader(header, fields, names, actions=None, delimiter=default_delimiter)
     return header
 
 
+def mergeHeader(header, fields, name, action=None, delete=False,
+                delimiter=default_delimiter):
+    """
+    Merges fields in a sequence header
+
+    Arguments:
+      header : an annotation dictionary returned by parseAnnotation.
+      fields : a list of the field names to merge.
+      name : the name of the new field.
+      delete : if True delete the merged fields.
+      actions : the list of collapse action take after the merge
+                one of (max, min, sum, first, last, set, cat).
+      delimiter : a tuple of delimiters for (fields, values, value lists)
+
+    Returns:
+      dict : modified header dictionary
+    """
+    merge = {name: [header[f] for f in fields]}
+    header = mergeAnnotation(header, merge, delimiter=delimiter)
+
+    # Delete fields
+    if delete:
+        for f in fields:
+            if f != name:  del header[f]
+
+    # Collapse action
+    if action is not None:
+        header = collapseHeader(header, fields=[name], actions=[action],
+                                delimiter=delimiter)
+
+    return header
+
+
 def deleteHeader(header, fields, delimiter=default_delimiter):
     """
     Deletes fields from a sequence header
 
     Arguments: 
-    header = an annotation dictionary returned by parseAnnotation
-    fields = the list of fields to delete
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      header : an annotation dictionary returned by parseAnnotation
+      fields : the list of fields to delete
+      delimiter : a tuple of delimiters for (fields, values, value lists)
                         
     Returns: 
-    the modified header dictionary
+      dict : modified header dictionary
     """
     for f in fields:  del header[f]
 
@@ -112,13 +145,13 @@ def expandHeader(header, fields, separator=default_separator,
     Splits and annotation value into separate fields in a sequence header
 
     Arguments: 
-    header = an annotation dictionary returned by parseAnnotation
-    fields = the field to split
-    separator = the delimiter to split the values by
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      header : an annotation dictionary returned by parseAnnotation
+      fields : the field to split
+      separator : the delimiter to split the values by
+      delimiter : a tuple of delimiters for (fields, values, value lists)
                         
     Returns: 
-    the modified header dictionary
+      dict : modified header dictionary
     """
     for f in fields:
         values = header[f].split(separator)
@@ -135,15 +168,15 @@ def renameHeader(header, fields, names, actions=None, delimiter=default_delimite
     Renames fields in a sequence header
 
     Arguments: 
-    header = an annotation dictionary returned by parseAnnotation
-    fields = a list of the current field names
-    names = a list of the new field names
-    actions = the list of collapse action take after the rename;
+      header : an annotation dictionary returned by parseAnnotation
+      fields : a list of the current field names
+      names : a list of the new field names
+      actions : the list of collapse action take after the rename;
               one of (max, min, sum, first, last, set, cat) for each field
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      delimiter : a tuple of delimiters for (fields, values, value lists)
                             
     Returns: 
-    the modified header dictionary
+      dict : modified header dictionary
     """
     for f, n in zip(fields, names):
         header = renameAnnotation(header, f, n, delimiter=delimiter)
@@ -159,13 +192,13 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
     Modifies sequence headers
 
     Arguments: 
-    seq_file = the sequence file name
-    modify_func = the function defining the modification operation
-    modify_args = a dictionary of arguments to pass to modify_func
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : the sequence file name
+      modify_func : the function defining the modification operation
+      modify_args : a dictionary of arguments to pass to modify_func
+      out_args : common output argument dictionary from parseCommonArgs
                     
     Returns: 
-    the output file name
+      str : output file name
     """
     # Define subcommand label dictionary
     cmd_dict = {addHeader: 'add',
@@ -233,12 +266,12 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     Builds a table of sequence header annotations
 
     Arguments: 
-    seq_file = the sequence file name
-    fields = the list of fields to output
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : the sequence file name
+      fields : the list of fields to output
+      out_args : common output argument dictionary from parseCommonArgs
                     
     Returns: 
-    the output table file name
+      str : output table file name
     """
     log = OrderedDict()
     log['START'] = 'ParseHeaders'
@@ -295,12 +328,9 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
 def getArgParser():
     """
     Defines the ArgumentParser
-
-    Arguments: 
-    None
                       
     Returns: 
-    an ArgumentParser object
+      argparse.ArgumentParser : ArgumentParser object
     """
     # Define output file names and header fields
     fields = dedent(
@@ -417,6 +447,33 @@ def getArgParser():
     parser_expand.set_defaults(func=modifyHeaders)
     parser_expand.set_defaults(modify_func=expandHeader)
 
+    # Subparser to merge header fields
+    parser_merge = subparsers.add_parser('merge', parents=[getCommonArgParser(log=False)],
+                                        formatter_class=CommonHelpFormatter, add_help=False,
+                                        help='Merges header annotation fields',
+                                        description='Merges header annotation fields')
+    group_merge = parser_merge.add_argument_group('parsing arguments')
+    group_merge.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
+                             help='List of fields to merge.')
+    group_merge.add_argument('-k', action='store', dest='name', required=True,
+                             help='''Name for the merged field. If the new field
+                                  is already present, the merged fields will be merged into
+                                  the existing field.''')
+    group_merge.add_argument('--act', action='store', dest='action', required=False,
+                             choices=['min', 'max', 'sum', 'set', 'cat'],
+                             help='''List of collapse actions to take on the new field
+                                  following the merge defining how to combine the annotations
+                                  into a single value. The actions "min", "max", "sum" perform 
+                                  the corresponding mathematical operation on numeric annotations. 
+                                  The action "set" collapses annotations into a comma delimited
+                                  list of unique values. The action "cat" concatenates
+                                  the values together into a single string.''')
+    group_merge.add_argument('--delete', action='store_true', dest='delete',
+                             help='''If specified, delete the field that were merged from the 
+                                  output header.''')
+    parser_merge.set_defaults(func=modifyHeaders)
+    parser_merge.set_defaults(modify_func=mergeHeader)
+
     # Subparser to rename header fields
     parser_rename = subparsers.add_parser('rename', parents=[getCommonArgParser(log=False)],
                                           formatter_class=CommonHelpFormatter, add_help=False,
@@ -467,23 +524,34 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
+
     # Convert case of fields
     if 'fields' in args_dict and args_dict['fields']:  
         args_dict['fields'] = list(map(str.upper, args_dict['fields']))
+
     # Built modify_args dictionary
     if args.func == modifyHeaders:
         modify_args = {}
-        if 'fields' in args_dict:  
+        if 'field' in args_dict:
+            modify_args['field'] = args_dict.pop('field')
+        if 'fields' in args_dict:
             modify_args['fields'] = args_dict.pop('fields')
+        if 'action' in args_dict:
+            modify_args['action'] = args_dict.pop('action') if args_dict['action'] is None \
+                                    else str.lower(args_dict.pop('action'))
         if 'actions' in args_dict:
             modify_args['actions'] = args_dict.pop('actions') if args_dict['actions'] is None \
                                      else list(map(str.lower, args_dict.pop('actions')))
-        if 'names' in args_dict:  
+        if 'name' in args_dict:
+            modify_args['name'] = str.upper(args_dict.pop('name'))
+        if 'names' in args_dict:
             modify_args['names'] = list(map(str.upper, args_dict.pop('names')))
         if 'values' in args_dict: 
             modify_args['values'] = args_dict.pop('values')
         if 'separator' in args_dict: 
             modify_args['separator'] = args_dict.pop('separator')
+        if 'delete' in args_dict:
+                modify_args['delete'] = args_dict.pop('delete')
         args_dict['modify_args'] = modify_args
         
     # Check modify_args arguments

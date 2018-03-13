@@ -136,7 +136,7 @@ def collapseAnnotation(ann_dict, action, fields=None, delimiter=default_delimite
       action : collapse action to take;
                one of {min, max, sum, first, last, set, cat}
       fields : subset of ann_dict to _collapse;
-               if None _collapse all but the ID field
+               if None, collapse all but the ID field
       delimiter : Tuple of delimiters for (fields, values, value lists)
 
     Returns:

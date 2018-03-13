@@ -13,12 +13,18 @@ ConvertHeaders:
 
 + Added support for EMBL-EBI ENA header format to the sra subcommand.
 
-MaskPrimers"
+MaskPrimers:
 
 + Added extract subcommand which will remove/annotation subsequences in
   fixed position without requiring a primer sequence match.
 + Added ``--pf`` and ``--bf`` arguments to all subcommands allowing renaming
   of output ``PRIMER`` and ``BARCODE`` fields, respectively.
++ Removed ``SEQORIENT`` output field from score subcommand as the mode does
+  not check the reverse complement.
+
+ParseHeaders:
+
++ Added merge subcommand to combined separate annotations into a single entry.
 
 
 Version 0.5.6:  January 17, 2018
