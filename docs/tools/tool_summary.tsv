@@ -19,9 +19,9 @@ Tool	Subcommand	Description
 	454	Converts Roche 454 sequence headers
 	genbank	Converts NCBI GenBank and RefSeq sequence headers
 	illumina	Converts Illumina sequence headers
-	imgt	Converts sequence headers output by IMGT/GENE-DB.
-	migec	Converts sequence headers output by MIGEC.
-	sra	Converts NCBI SRA sequence headers
+	imgt	Converts sequence headers output by IMGT/GENE-DB
+	migec	Converts sequence headers output by MIGEC
+	sra	Converts NCBI SRA or EMBL-EBI ENA sequence headers
 :ref:`EstimateError`		Estimates error rates for UMI data
 :ref:`FilterSeq`		Removes or modifies low quality reads
 	length	Removes sequences under a defined length
@@ -40,6 +40,7 @@ Tool	Subcommand	Description
 	copy	Copies values between annotations fields
 	delete	Deletes an annotation from all reads
 	expand	Expands an field with multiple values into separate annotations
+	merge	Merge multiple annotations fields into a single field
 	rename	Rename annotation fields
 	table	Outputs sequence annotations as a data table
 :ref:`ParseLog`		Converts the log output of pRESTO scripts into data tables

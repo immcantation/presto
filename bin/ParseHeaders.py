@@ -450,8 +450,8 @@ def getArgParser():
     # Subparser to merge header fields
     parser_merge = subparsers.add_parser('merge', parents=[getCommonArgParser(log=False)],
                                         formatter_class=CommonHelpFormatter, add_help=False,
-                                        help='Merges header annotation fields',
-                                        description='Merges header annotation fields')
+                                        help='Merge multiple annotations fields into a single field',
+                                        description='Merge multiple annotations fields into a single field')
     group_merge = parser_merge.add_argument_group('parsing arguments')
     group_merge.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                              help='List of fields to merge.')
