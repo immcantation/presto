@@ -29,19 +29,19 @@ STEP=0
 
 # Remove low quality reads
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
-FilterSeq.py quality -s $R1_FILE -q 20 --outname "${OUTNAME}-R1" --outdir . \
-	--log FS1.log --nproc $NPROC >> $PIPELINE_LOG
-FilterSeq.py quality -s $R2_FILE -q 20 --outname "${OUTNAME}-R2" --outdir . \
-	--log FS2.log --nproc $NPROC >> $PIPELINE_LOG
+FilterSeq.py quality -s $R1_FILE -q 20 \
+	--outname "${OUTNAME}-R1" --log FS1.log --nproc $NPROC --outdir . >> $PIPELINE_LOG
+FilterSeq.py quality -s $R2_FILE -q 20 \
+	--outname "${OUTNAME}-R2" --log FS2.log --nproc $NPROC --outdir . >> $PIPELINE_LOG
 
 # Identify primers and UIDs
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
 MaskPrimers.py score -s "${OUTNAME}-R1_quality-pass.fastq" -p $R1_PRIMERS \
-	--mode cut --start 0 --maxerror 0.2 --outname "${OUTNAME}-R1" \
-	--log MP1.log --nproc $NPROC >> $PIPELINE_LOG
+	--mode cut --start 0 --maxerror 0.2 \
+	--outname "${OUTNAME}-R1" --log MP1.log --nproc $NPROC >> $PIPELINE_LOG
 MaskPrimers.py score -s "${OUTNAME}-R2_quality-pass.fastq" -p $R2_PRIMERS \
-	--mode cut --start 17 --barcode --maxerror 0.5 --outname "${OUTNAME}-R2" \
-	--log MP2.log --nproc $NPROC >> $PIPELINE_LOG
+	--mode cut --start 17 --barcode --maxerror 0.5 \
+	--outname "${OUTNAME}-R2" --log MP2.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Assign UID to read 2 sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
@@ -51,11 +51,11 @@ PairSeq.py -1 "${OUTNAME}-R1_primers-pass.fastq" -2 "${OUTNAME}-R2_primers-pass.
 # Build UID consensus sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "BuildConsensus"
 BuildConsensus.py -s "${OUTNAME}-R1_primers-pass_pair-pass.fastq" --bf BARCODE --pf PRIMER \
-	--prcons 0.6 --maxerror 0.1 --maxgap 0.5 --outname "${OUTNAME}-R1" \
-	--log BC1.log --nproc $NPROC >> $PIPELINE_LOG
+	--prcons 0.6 --maxerror 0.1 --maxgap 0.5 \
+	--outname "${OUTNAME}-R1" --log BC1.log --nproc $NPROC >> $PIPELINE_LOG
 BuildConsensus.py -s "${OUTNAME}-R2_primers-pass_pair-pass.fastq" --bf BARCODE \
-	--maxerror 0.1 --maxgap 0.5 --outname "${OUTNAME}-R2" \
-	--log BC2.log --nproc $NPROC >> $PIPELINE_LOG
+	--maxerror 0.1 --maxgap 0.5 \
+	--outname "${OUTNAME}-R2" --log BC2.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Synchronize consensus sequence files
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "PairSeq"
@@ -65,31 +65,24 @@ PairSeq.py -1 "${OUTNAME}-R1_consensus-pass.fastq" -2 "${OUTNAME}-R2_consensus-p
 # Assemble paired ends via mate-pair alignment
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "AssemblePairs sequential"
 AssemblePairs.py sequential -1 "${OUTNAME}-R2_consensus-pass_pair-pass.fastq" \
-    -2 "${OUTNAME}-R1_consensus-pass_pair-pass.fastq" -r $VREF_FILE \
-    --coord presto --rc tail --scanrev --1f CONSCOUNT --2f PRCONS CONSCOUNT \
-	--aligner blastn --outname "${OUTNAME}-C" --log AP.log --nproc $NPROC \
-	>> $PIPELINE_LOG
+    -2 "${OUTNAME}-R1_consensus-pass_pair-pass.fastq" -r $VREF_FILE --coord presto \
+    --rc tail --scanrev --1f CONSCOUNT --2f PRCONS CONSCOUNT --aligner blastn \
+	--outname "${OUTNAME}-C" --log AP.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Annotate with internal C-region
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align"
 MaskPrimers.py align -s "${OUTNAME}-C_assemble-pass.fastq" -p $CREGION_FILE \
-    --maxlen 100 --maxerror 0.3 --mode tag --revpr --skiprc \
-    --log MP3.log --outname "${OUTNAME}-C" --nproc $NPROC \
-    >> $PIPELINE_LOG
-
-# Renamer primer field
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename"
-ParseHeaders.py rename -s "${OUTNAME}-C_primers-pass.fastq" -f PRIMER -k CREGION \
-	> /dev/null
+    --maxlen 100 --maxerror 0.3 --mode tag --revpr --skiprc --pf CREGION \
+    --outname "${OUTNAME}-C" --log MP3.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Rewrite header with minimum of CONSCOUNT
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders collapse"
-ParseHeaders.py collapse -s "${OUTNAME}-C_primers-pass_reheader.fastq" \
+ParseHeaders.py collapse -s "${OUTNAME}-C_primers-pass.fastq" \
 	-f CONSCOUNT --act min > /dev/null
     
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
-CollapseSeq.py -s "${OUTNAME}-C_primers-pass_reheader_reheader.fastq" -n 20 \
+CollapseSeq.py -s "${OUTNAME}-C_primers-pass_reheader.fastq" -n 20 \
 	--uf CREGION --cf CONSCOUNT --act sum --inner \
 	--outname "${OUTNAME}-C" >> $PIPELINE_LOG
 

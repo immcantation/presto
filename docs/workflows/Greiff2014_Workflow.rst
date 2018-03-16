@@ -102,7 +102,7 @@ results from the :ref:`AssemblePairs` log file:
  .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 16
+   :lines: 13
 
 Which will containing the following columns:
 
@@ -122,7 +122,7 @@ PVALUE                P-value for the assembly
     For the sake of simplicity, we have excluded a demonstration of assembly
     in such cases. pRESTO provides a couple approaches to deal with such reads.
     The :program:`reference` subcommand of :ref:`AssemblePairs` can use the
-    ungapped V-region reference sequences to properly space non-overlapping reads.
+    ungapped V-segment reference sequences to properly space non-overlapping reads.
     Or, if all else fails, the :program:`join` subcommand can be used to simply
     stick mate-pairs together end-to-end with some intervening gap.
 
@@ -148,7 +148,7 @@ The :ref:`ParseLog` tool is then used to build tab-delimited file from the
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 17
+   :lines: 14
 
 Capturing the following annotations:
 
@@ -166,7 +166,7 @@ When dealing with Ig sequences, it is important to cut or mask the primers,
 as B cell receptors are subject to somatic hypermutation (the
 accumulation of point mutations in the DNA) and degenerate primer
 matches can look like mutations in downstream applications. The :program:`score`
-subcommand of :ref:`MaskPrimers` is used to identify and remove the V-region and
+subcommand of :ref:`MaskPrimers` is used to identify and remove the V-segment and
 C-region PCR primers for both reads:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
@@ -182,42 +182,17 @@ but the C-region primer begins 4 bases from the end of the assembled read.
 The addition of the :option:`--revpr <MaskPrimers score --revpr>` argument to the
 second :ref:`MaskPrimers` step instructs the tool to reverse complement the primer
 sequences and check the tail of the read. The two primer regions have also been treated
-differently. The V-region primer has been masked (replaced by Ns) using the
+differently. The V-segment primer has been masked (replaced by Ns) using the
 :option:`--mode mask <MaskPrimers score --mode>` argument
 to preserve the V(D)J length, while the C-region primer has been removed
 from the sequence using the :option:`--mode cut <MaskPrimers score --mode>` argument.
 
-.. note::
+During each iteration of the :ref:`MaskPrimers` tool an
+annotation field was added with the name of the primer, with the name of the field
+specified by the :option:`--pf <MaskPrimers score --pf>` argument, such that after both
+iterations each sequence contains an annotation of the form::
 
-    This library was prepared in a stranded manner. Meaning, the read
-    orientation is constant for all reads; read 1 is always the C-region
-    end of the amplicon and read 2 is always the V-region end.  If your
-    data is unstranded (50% of the reads are forward, 50% are reversed),
-    then you must modify the first :ref:`MaskPrimers` step
-    to account for this by using the :program:`align` subcommand instead::
-
-        MaskPrimers.py align -s M1*quality-pass.fastq -p Greiff2014_VPrimers.fasta \
-            --maxlen 30 --mode mask --log MP1.log
-
-    This will perform a slower process of locally aligning the primers, checking
-    the reverse compliment of each read for matches, and correcting the
-    the output sequences to the forward orientation (V to J).
-
-During each iteration of the :ref:`MaskPrimers` tool the ``PRIMER``
-annotation field was updated with an additional value, such that after both
-iterations each sequences contains an annotation of the form::
-
-    PRIMER=V-region primer,C-region primer
-
-To simplify later analysis, the :ref:`ParseHeaders` tool is used to first
-expand this single annotation into two separate annotations using the
-:program:`expand` subcommand. Then, the expanded fields are renamed to ``VPRIMER``
-and ``CPRIMER`` using the :program:`rename` subcommand:
-
-.. literalinclude:: scripts/Greiff2014_Commands.sh
-   :language: none
-   :lineno-match:
-   :lines: 9-11
+    VPRIMER=V-segment primer|CPRIMER=C-region primer
 
 To summarize these steps, the :ref:`ParseLog` tool is used to build tab-delimited
 files from the two :ref:`MaskPrimers` logs:
@@ -225,7 +200,7 @@ files from the two :ref:`MaskPrimers` logs:
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 18
+   :lines: 15
 
 Capturing the following annotations:
 
@@ -236,6 +211,22 @@ ID                    Sequence name
 PRIMER                Primer name
 ERROR                 Primer match error rate
 ===================== ===============================
+
+.. note::
+
+    This library was prepared in a stranded manner. Meaning, the read
+    orientation is constant for all reads; read 1 is always the C-region
+    end of the amplicon and read 2 is always the V-segment end.  If your
+    data is unstranded (50% of the reads are forward, 50% are reversed),
+    then you must modify the first :ref:`MaskPrimers` step
+    to account for this by using the :program:`align` subcommand instead::
+
+        MaskPrimers.py align -s M1*quality-pass.fastq -p Greiff2014_VPrimers.fasta \
+            --maxlen 30 --mode mask --pf VPRIMER --log MP1.log
+
+    This will perform a slower process of locally aligning the primers, checking
+    the reverse compliment of each read for matches, and correcting the
+    the output sequences to the forward orientation (V to J).
 
 Deduplication and filtering
 --------------------------------------------------------------------------------
@@ -249,14 +240,14 @@ the final repertoire. First, the set of unique sequences is identified using the
 (:option:`-n 20 <CollapseSeq -n>` and :option:`--inner <CollapseSeq --inner>`),
 and requiring that all reads considered duplicates share the same C-region primer
 annotation (:option:`--uf CPRIMER <CollapseSeq --uf>`). Additionally, the
-V-region primer annotations of the set of duplicate reads are propagated into the
+V-segment primer annotations of the set of duplicate reads are propagated into the
 annotation of each retained unique sequence (:option:`--cf VPRIMER <CollapseSeq --cf>`
 and :option:`--act set <CollapseSeq --act>`):
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 12-13
+   :lines: 9-10
 
 Filtering to repeated sequences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -271,20 +262,20 @@ using the :program:`group` subcommand of :ref:`SplitSeq` on the count field
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 14
+   :lines: 11
 
 Creating an annotation table
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Finally, the annotations, including duplicate read count (``DUPCOUNT``), isotype
-(``CPRIMER``) and V-region primer (``VPRIMER``), of the final repertoire are then
+(``CPRIMER``) and V-segment primer (``VPRIMER``), of the final repertoire are then
 extracted from the :ref:`SplitSeq` output into a tab-delimited file using the
 :program:`table` subcommand of :ref:`ParseHeaders`:
 
 .. literalinclude:: scripts/Greiff2014_Commands.sh
    :language: none
    :lineno-match:
-   :lines: 15
+   :lines: 12
 
 Output files
 --------------------------------------------------------------------------------
@@ -301,7 +292,7 @@ M1_atleast-2.fastq              Unique sequences represented by at least 2 reads
 M1_atleast-2_headers.tab        Annotation table of the atleast-2 file
 AP_table.tab                    Table of the AssemblePairs log
 FS_table.tab                    Table of the FilterSeq log
-MPV_table.tab                   Table of the V-region MaskPrimers log
+MPV_table.tab                   Table of the V-segment MaskPrimers log
 MPC_table.tab                   Table of the C-region MaskPrimers log
 =============================== ===============================
 

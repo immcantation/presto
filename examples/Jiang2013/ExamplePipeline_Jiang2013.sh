@@ -3,7 +3,7 @@
 # Data from Jiang, He and Weinstein et al, 2013, Sci Trans Med.
 #
 # Author:  Jason Anthony Vander Heiden
-# Date:    2016.03.04
+# Date:    2018.03.14
 
 # Define run parameters and input files
 READ_FILE=$(readlink -f SRR765688.fastq)
@@ -27,47 +27,36 @@ STEP=0
 
 # Remove short reads
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq length"
-FilterSeq.py length -s $READ_FILE -n 300 --outname $OUTNAME --outdir . \
-	--log FSL.log --nproc $NPROC >> $PIPELINE_LOG
+FilterSeq.py length -s $READ_FILE -n 300 \
+	--outname $OUTNAME --log FSL.log --nproc $NPROC --outdir . >> $PIPELINE_LOG
 
 # Remove low quality reads
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "FilterSeq quality"
-FilterSeq.py quality -s "${OUTNAME}_length-pass.fastq" -q 20 --outname $OUTNAME \
-	--log FSQ.log --nproc $NPROC >> $PIPELINE_LOG
+FilterSeq.py quality -s "${OUTNAME}_length-pass.fastq" -q 20 \
+	--outname $OUTNAME --log FSQ.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Identify and remove MIDs
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
 MaskPrimers.py score -s "${OUTNAME}_quality-pass.fastq" -p $MID_PRIMERS \
-    --start 0 --maxerror 0.1 --mode cut --outname "${OUTNAME}-MID" \
-	--log MPM.log --nproc $NPROC >> $PIPELINE_LOG
+    --start 0 --maxerror 0.1 --mode cut --pf MID \
+    --outname "${OUTNAME}-MID" --log MPM.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Identify and mask forward (V-region) primers
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align"
 MaskPrimers.py align -s "${OUTNAME}-MID_primers-pass.fastq" -p $FWD_PRIMERS \
-    --maxlen 50 --maxerror 0.3 --mode mask --outname "${OUTNAME}-FWD" \
-    --log MPV.log --nproc $NPROC >> $PIPELINE_LOG
+    --maxlen 50 --maxerror 0.3 --mode mask --pf VPRIMER \
+    --outname "${OUTNAME}-FWD" --log MPV.log --nproc $NPROC >> $PIPELINE_LOG
 
 # Identify and remove reverse (C-region) primers
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers align"
 MaskPrimers.py align -s "${OUTNAME}-FWD_primers-pass.fastq" -p $REV_PRIMERS \
-    --maxlen 50 --maxerror 0.3 --mode cut --revpr --skiprc \
+    --maxlen 50 --maxerror 0.3 --mode cut --revpr --skiprc --pf CPRIMER \
 	--outname "${OUTNAME}-REV" --log MPC.log --nproc $NPROC >> $PIPELINE_LOG
-
-# Expand primer field
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders expand"
-ParseHeaders.py expand -s "${OUTNAME}-REV_primers-pass.fastq" \
-    -f PRIMER >> $PIPELINE_LOG
-
-# Rename primer fields
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename"
-ParseHeaders.py rename -s "${OUTNAME}-REV_primers-pass_reheader.fastq" \
-    -f PRIMER1 PRIMER2 PRIMER3 -k MID VPRIMER CPRIMER \
-    --outname $OUTNAME >> $PIPELINE_LOG
 
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
-CollapseSeq.py -s "${OUTNAME}_reheader.fastq" -n 20 --uf MID CPRIMER --inner \
-    --outname $OUTNAME >> $PIPELINE_LOG
+CollapseSeq.py -s "${OUTNAME}-REV_primers-pass.fastq" -n 20 --uf MID CPRIMER \
+	--inner --outname $OUTNAME >> $PIPELINE_LOG
 
 # Filter to sequences with at least 2 supporting reads
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "SplitSeq group"

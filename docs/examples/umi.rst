@@ -82,7 +82,7 @@ Then the offset table can be input into the :program:`offset` subcommand of
         --bf BARCODE --pr VPRIMER --mode pad
 
 In the above command we have specified the field containing the primer annotation
-using :option:`--pr VPRIMER <AlignSets offset --pf>` and set the behavior
+using :option:`--pf VPRIMER <AlignSets offset --pf>` and set the behavior
 of the tool to add gap characters to align the reads with the
 :option:`--mode pad <AlignSets offset --mode>` argument.
 These options will generate the correction shown in **(B)** of the

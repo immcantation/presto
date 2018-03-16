@@ -19,10 +19,9 @@ AssemblePairs.py sequential -1 HD09N-R2_consensus-pass_pair-pass.fastq \
     --aligner blastn --outname HD09N-C --log AP.log
 MaskPrimers.py align -s HD09N-C_assemble-pass.fastq \
     -p AbSeq_Human_IG_InternalCRegion.fasta --maxlen 100 --maxerror 0.3 \
-    --mode tag --revpr --skiprc --log MP3.log --outname HD09N-C
-ParseHeaders.py rename -s HD09N-C_primers-pass.fastq -f PRIMER -k CREGION
-ParseHeaders.py collapse -s HD09N-C_primers-pass_reheader.fastq -f CONSCOUNT --act min
-CollapseSeq.py -s HD09N-C_primers-pass_reheader_reheader.fastq -n 20 --inner \
+    --mode tag --revpr --skiprc --pf CREGION --outname HD09N-C --log MP3.log 
+ParseHeaders.py collapse -s HD09N-C_primers-pass.fastq -f CONSCOUNT --act min
+CollapseSeq.py -s HD09N-C_primers-pass_reheader.fastq -n 20 --inner \
     --uf CREGION --cf CONSCOUNT --act sum --outname HD09N-C
 SplitSeq.py group -s HD09N-C_collapse-unique.fastq \
     -f CONSCOUNT --num 2 --outname HD09N-C

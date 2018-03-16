@@ -93,7 +93,7 @@ from the :ref:`FilterSeq` logs into tab-delimited files:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 30
+   :lines: 29
 
 Extracting the following information from the log:
 
@@ -130,7 +130,7 @@ tab-delimited file from the :ref:`MaskPrimers` log:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 31
+   :lines: 30
 
 Containing the following information:
 
@@ -237,7 +237,7 @@ the consensus results:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 32
+   :lines: 31
 
 With the following annotations:
 
@@ -301,7 +301,7 @@ log into a tab-delimited file:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 33
+   :lines: 32
 
 Containing the following information:
 
@@ -349,16 +349,9 @@ Here we use a high error rate for the match
 to 100 nucleotides at the end of the sequence
 (:option:`--maxlen 100 --revpr --skiprc <MaskPrimers align --maxlen>`), and
 use mode the argument :option:`--mode tag <MaskPrimers align --mode>` to specify
-that the input sequence should not be modified.
-
-Following annotation, we rename the ``PRIMER`` field in the sequence headers
-to ``CREGION`` for clarity:
-
-.. literalinclude:: scripts/VanderHeiden2017_Commands.sh
-   :language: none
-   :linenos:
-   :lineno-match:
-   :lines: 23
+that the input sequence should not be modified. The aligned C-region name
+will be added to each sequence headers in the ``CREGION`` field
+(:option:`--pf CREGION <MaskPrimers align --pf>`):
 
 Combining UMI read group size annotations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -373,7 +366,7 @@ forward and reverse reads using the
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 24
+   :lines: 23
 
 Removal of duplicate sequences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -390,7 +383,7 @@ and combines the read counts for each UMI read group
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 25-26
+   :lines: 24-25
 
 Filtering to sequences with at least two representative reads
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -404,7 +397,7 @@ by splitting the file on the ``CONSCOUNT`` annotation with a numeric threshold
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 27-28
+   :lines: 26-27
 
 Creating an annotation table
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -416,7 +409,7 @@ into a table using the :program:`table` subcommand of :ref:`ParseHeaders`:
    :language: none
    :linenos:
    :lineno-match:
-   :lines: 29
+   :lines: 28
 
 Output files
 --------------------------------------------------------------------------------

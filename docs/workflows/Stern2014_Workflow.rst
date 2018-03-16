@@ -147,7 +147,7 @@ ERROR                 Primer match error rate
     For this data set the UMI is immediately upstream of the C-region primer.
     Another common approach for UMI barcoding involves placing the UMI
     immediately upstream of a 5'RACE template switch site. Modifying the
-    workflow is simple for this case. You just need to replace the V-region
+    workflow is simple for this case. You just need to replace the V-segment
     primers with a fasta file containing the TS sequences and move the
     :option:`--barcode <MaskPrimers score --barcode>` argument to the
     appropriate read::
@@ -218,7 +218,7 @@ incorporated into the same UMI read group during amplification if the
 primers are sufficiently similar. This type of primer misalignment can
 be corrected using the :ref:`AlignSets` tool. In the example data used here,
 this step was not necessary due to the aligned primer design for the 45
-V-region primers, though this does require that the V-region primers be
+V-segment primers, though this does require that the V-segment primers be
 masked, rather than cut, during the :ref:`MaskPrimers` step
 (:option:`--mode mask <MaskPrimers score --mode>`).
 
@@ -359,7 +359,7 @@ FIELDS2               Annotations copied from read 1 into the assembled sequence
     For the sake of simplicity, we have excluded a demonstration of assembly
     in such cases. pRESTO provides a couple approaches to deal with such reads.
     The :program:`reference` subcommand of :ref:`AssemblePairs` can use the
-    ungapped V-region reference sequences to properly space non-overlapping reads.
+    ungapped V-segment reference sequences to properly space non-overlapping reads.
     Or, if all else fails, the :program:`join` subcommand can be used to simply
     stick mate-pairs together end-to-end with some intervening gap.
 
@@ -442,7 +442,7 @@ M12_atleast-2_headers.tab       Annotation table of the atleast-2 file
 FS1_table.tab                   Table of the read 1 FilterSeq log
 FS2_table.tab                   Table of the read 2 FilterSeq log
 MP1_table.tab                   Table of the C-region MaskPrimers log
-MP2_table.tab                   Table of the V-region MaskPrimers log
+MP2_table.tab                   Table of the V-segment MaskPrimers log
 BC1_table.tab                   Table of the read 1 BuildConsensus log
 BC2_table.tab                   Table of the read 2 BuildConsensus log
 AP_table.tab                    Table of the AssemblePairs log
@@ -460,7 +460,7 @@ workflow are presented below. Performance was measured
 on a 64-core system with 2.3GHz AMD Opteron(TM) 6276 processors and
 512GB of RAM, with memory usage measured at peak utilization. The data
 set contained 1,723,558 x 2 raw reads, and required
-matching of 1 constant region primer, 45 V-segment
+matching of 1 C-region primer, 45 V-segment
 primers, and averaged 24.3 reads per UMI.
 
 .. csv-table::

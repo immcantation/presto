@@ -15,6 +15,7 @@
 
     examples/workflows
     examples/umi
+    examples/annotations
     examples/tasks
 
 .. toctree::

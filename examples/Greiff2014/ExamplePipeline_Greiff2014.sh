@@ -3,7 +3,7 @@
 # Data from Greiff et al, 2014, BMC Immunol.
 # 
 # Author:  Jason Anthony Vander Heiden
-# Date:    2016.03.04
+# Date:    2018.03.14
 
 # Define run parameters and input files
 R1_FILE=$(readlink -f ERR346600_1.fastq)
@@ -38,25 +38,15 @@ FilterSeq.py quality -s "${OUTNAME}_assemble-pass.fastq" -q 20 \
 # Identify forward and reverse primers
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "MaskPrimers score"
 MaskPrimers.py score -s "${OUTNAME}_quality-pass.fastq" -p $R2_PRIMERS \
-	--mode mask --start 4 --outname "${OUTNAME}-FWD" --log MPV.log \
-	--nproc $NPROC >> $PIPELINE_LOG
+	--mode mask --start 4 --pf VPRIMER \
+	--outname "${OUTNAME}-FWD" --log MPV.log --nproc $NPROC >> $PIPELINE_LOG
 MaskPrimers.py score -s "${OUTNAME}-FWD_primers-pass.fastq" -p $R1_PRIMERS \
-	--mode cut --start 4 --revpr --outname "${OUTNAME}-REV" --log MPC.log \
-	--nproc $NPROC >> $PIPELINE_LOG
-
-# Expand primer field
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders expand"
-ParseHeaders.py expand -s "${OUTNAME}-REV_primers-pass.fastq" \
-    -f PRIMER >> $PIPELINE_LOG
-
-# Rename primer fields
-printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "ParseHeaders rename"
-ParseHeaders.py rename -s "${OUTNAME}-REV_primers-pass_reheader.fastq" \
-    -f PRIMER1 PRIMER2 -k VPRIMER CPRIMER --outname $OUTNAME >> $PIPELINE_LOG
+	--mode cut --start 4 --revpr --pf CPRIMER \
+	--outname "${OUTNAME}-REV" --log MPC.log --nproc $NPROC >> $PIPELINE_LOG
 	
 # Remove duplicate sequences
 printf "  %2d: %-*s $(date +'%H:%M %D')\n" $((++STEP)) 24 "CollapseSeq"
-CollapseSeq.py -s "${OUTNAME}_reheader.fastq" -n 20 \
+CollapseSeq.py -s "${OUTNAME}-REV_primers-pass.fastq" -n 20 \
 	--uf CPRIMER --cf VPRIMER --act set --inner \
 	--outname $OUTNAME >> $PIPELINE_LOG
 
