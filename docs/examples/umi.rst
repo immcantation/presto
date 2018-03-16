@@ -157,24 +157,25 @@ different mate-pair. To deal with these sorts of UMIs, you would first employ
 :ref:`PairSeq` similarly to how you would in the
 :ref:`single UMI case <Stern2014-PairSeq-1>`:
 
-    PairSeq.py -1 reads-1.fastq -2 reads-2.fastq --1f BARCODE --2f BARCODE --coord illumina
+    PairSeq.py -1 reads-1.fastq -2 reads-2.fastq --1f BARCODE --2f BARCODE \
+        --coord illumina
 
 The main difference from the single UMI case is that the ``BARCODE`` annotation is
 being  simultaneously copied from read 1 to read 2 (:option:`--1f BARCODE <PairSeq --1f>`)
-andfrom read 2 to read 1 (:option:`--2f BARCODE <PairSeq --2f>`). This creates
+andf rom read 2 to read 1 (:option:`--2f BARCODE <PairSeq --2f>`). This creates
 a set of annotations that look like::
 
     >READ1|BARCODE=ATGTCGTT,GGCTAGTC
     >READ2|BARCODE=ATGTCGTT,GGCTAGTC
 
-These annotations can then be cleaned up using the :program:`collapse` operation of
-:ref:`ParseHeaders`::
+Alternatively, these annotations can be combined upon copy using the
+:option:`--act cat <PairSeq --act>` argument::
 
-    ParseHeaders.py collapse -s reads-[1-2]_pair-pass.fastq -f BARCODE --act cat
+    PairSeq.py -1 reads-1.fastq -2 reads-2.fastq --1f BARCODE --2f BARCODE \
+        --coord illumina --act cat
 
-Which concatenates (:option:`--act cat <ParseHeaders collapse --act>`) the two values in the
-``BARCODE`` field (:option:`-f BARCODE <ParseHeaders collapse -f>`), yielding UMI annotations
-suitable for input to :ref:`BuildConsensus`::
+Which concatenates the two values in the ``BARCODE`` field,
+yielding UMI annotations suitable for input to :ref:`BuildConsensus`::
 
     >READ1|BARCODE=ATGTCGTTGGCTAGTC
     >READ2|BARCODE=ATGTCGTTGGCTAGTC

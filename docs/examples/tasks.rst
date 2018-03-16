@@ -30,7 +30,7 @@ generic       Headers with an unknown annotation system
 genbank       NCBI GenBank and RefSeq
 illumina      Illumina HiSeq or MiSeq
 imgt          IMGT/GENE-DB
-sra           NCBI SRA or EBI ENA
+sra           NCBI SRA or EMBL-EBI ENA
 ============  =================
 
 Reducing file size for submission to IMGT/HighV-QUEST
@@ -186,14 +186,16 @@ from the front of CH-1, then you can annotate the reads with these sequence in t
 way you would C-region specific primers::
 
     MaskPrimers.py align -s reads.fastq -p IGHC.fasta --maxlen 100 --maxerror 0.3 \
-        --mode cut --revpr
+        --mode cut --revpr --pf C_CALL
 
 Where :option:`--revpr <MaskPrimers align --revpr>` tells :ref:`MaskPrimers` to
 reverse-complement the "primer" sequences and look for them at the end of the reads,
 :option:`--maxlen 100 <MaskPrimers align --maxlen>` restricts the search to the last
 100 bp, :option:`--maxerror 0.3 <MaskPrimers align --maxerror>` allows for up to
 30% mismatches, and :option:`-p IGHC.fasta <MaskPrimers align -p>` specifies the file
-containing the CH-1 sequences.  An example CH-1 sequence file would look like:
+containing the CH-1 sequences. The name of the C-region will be added to the sequence
+headers as the ``C_CALL`` annotation, where the field name is specified by the
+:option:`--pf <MaskPrimers align --pf>` argument. An example CH-1 sequence file would look like:
 
 .. literalinclude:: ../workflows/data/IGHC.fasta
    :language: none
