@@ -48,19 +48,19 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     Defines an ArgumentParser object with common pRESTO arguments
 
     Arguments: 
-      seq_in : If True include sequence input arguments
-      seq_out : If True include sequence output arguments
-      paired : If True defined paired-end sequence input and output arguments
-      db_in : If True include tab delimited database input arguments
-      db_out : If True include tab delimited database output arguments
-      failed : If True include arguments for output of failed results
-      log : If True include log arguments
-      annotation : If True include annotation arguments
-      multiproc : If True include multiprocessing arguments
-      add_help : If True add help and version arguments
+      seq_in : If True include sequence input arguments.
+      seq_out : If True include sequence output arguments.
+      paired : If True defined paired-end sequence input and output arguments.
+      db_in : If True include tab delimited database input arguments.
+      db_out : If True include tab delimited database output arguments.
+      failed : If True include arguments for output of failed results.
+      log : If True include log arguments.
+      annotation : If True include annotation arguments.
+      multiproc : If True include multiprocessing arguments.
+      add_help : If True add help and version arguments.
     
     Returns:
-      ArgumentParser : An ArgumentParser object
+      ArgumentParser : An ArgumentParser object.
     """
     parser = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
 
@@ -74,15 +74,7 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     # Set standard group
     group = parser.add_argument_group('standard arguments')
 
-    # Database arguments
-    if db_in:
-        group.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
-                        help='A list of tab delimited database files.')
-    if db_out:
-        # Place holder for the future
-        pass
-
-    # Sequence arguments
+    # Sequence input arguments
     if seq_in and not paired:
         group.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
                             help='A list of FASTA/FASTQ files containing sequences to process.')
@@ -93,9 +85,20 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
         group.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
                             help='''An ordered list of FASTA/FASTQ files containing
                                  tail/secondary sequences.''')
-    if seq_out:
-        group.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
-                            help='Specify to force output as FASTA rather than FASTQ.')
+
+    # Database arguments
+    if db_in:
+        group.add_argument('-d', nargs='+', action='store', dest='db_files', required=True,
+                           help='A list of tab delimited database files.')
+    if db_out:
+        # Place holder for the future
+        pass
+
+    # Log arguments
+    if log:
+        group.add_argument('--log', action='store', dest='log_file', default=None,
+                            help='''Specify to write verbose logging to a file. May not be
+                                  specified with multiple input files.''')
 
     # Failed result arguments
     if failed:
@@ -103,11 +106,19 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
                             help='''If specified create files containing records that
                                   fail processing.''')
 
-    # Log arguments
-    if log:
-        group.add_argument('--log', action='store', dest='log_file', default=None,
-                            help='''Specify to write verbose logging to a file. May not be
-                                  specified with multiple input files.''')
+    # Universal arguments
+    group.add_argument('--outdir', action='store', dest='out_dir', default=None,
+                        help='Specify to changes the output directory to the location specified. \
+                              The input file directory is used if this is not specified.')
+    group.add_argument('--outname', action='store', dest='out_name', default=None,
+                        help='Changes the prefix of the successfully processed output file \
+                              to the string specified. May not be specified with multiple \
+                              input files.')
+
+    # Output format
+    if seq_out:
+        group.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
+                            help='Specify to force output as FASTA rather than FASTQ.')
 
     # Annotation arguments
     if annotation:
@@ -122,15 +133,6 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
         group.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
                             help='The number of simultaneous computational processes to execute \
                                   (CPU cores to utilized).')
-
-    # Universal arguments
-    group.add_argument('--outdir', action='store', dest='out_dir', default=None,
-                        help='Specify to changes the output directory to the location specified. \
-                              The input file directory is used if this is not specified.')
-    group.add_argument('--outname', action='store', dest='out_name', default=None,
-                        help='Changes the prefix of the successfully processed output file \
-                              to the string specified. May not be specified with multiple \
-                              input files.')
 
     return parser
 
