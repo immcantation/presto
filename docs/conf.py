@@ -49,9 +49,8 @@ needs_sphinx = '1.4'
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.imgmath',
               'sphinx.ext.intersphinx',
+              'sphinx.ext.napoleon',
               'sphinx.ext.todo',
-              'sphinx.ext.coverage',
-              'sphinxcontrib.napoleon',
               'sphinxcontrib.autoprogram']
 
 # Add any paths that contain templates here, relative to this directory.

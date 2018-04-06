@@ -186,7 +186,7 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
 
 
 def processASQueue(alive, data_queue, result_queue, align_func, align_args={}, 
-                      calc_div=False, delimiter=default_delimiter):
+                   calc_div=False, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
