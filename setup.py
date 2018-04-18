@@ -8,17 +8,12 @@ import sys
 
 # Check setup requirements
 if sys.version_info < (3,4,0):
-    sys.exit('At least Python 3.4.0 is required.\n')
+    sys.exit('At least Python 3.4.0 is required.')
 
 try:
     from setuptools import setup
 except ImportError:
-    sys.exit('Please install setuptools before installing presto.\n')
-
-try:
-    from pip.req import parse_requirements
-except ImportError:
-    sys.exit('Please install pip before installing presto.\n')
+    sys.exit('Please install setuptools before installing presto.')
 
 # Get version, author and license information
 info_file = os.path.join('presto', 'Version.py')
@@ -56,18 +51,13 @@ scripts = ['AlignSets.py',
            'UnifyHeaders.py']
 install_scripts = [os.path.join('bin', s) for s in scripts]
 
-# TODO: check pip version to avoid problem with parse_requirements(session=False)
 # Parse requirements
 if os.environ.get('READTHEDOCS', None) == 'True':
     # Set empty install_requires to get install to work on readthedocs
     install_requires = []
 else:
-    require_file = 'requirements.txt'
-    try:
-        requirements = parse_requirements(require_file, session=False)
-    except TypeError:
-        requirements = parse_requirements(require_file)
-    install_requires = [str(r.req) for r in requirements]
+    with open('requirements.txt') as req:
+        install_requires = req.read().splitlines()
 
 # Setup
 setup(name='presto',
