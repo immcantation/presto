@@ -31,7 +31,8 @@ if __license__ is None:
     sys.exit('Missing license information in %s\n.' % info_file)
 
 # Load long package description
-desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
+#desc_files = ['README.rst', 'INSTALL.rst', 'NEWS.rst']
+desc_files = ['README.rst']
 long_description = '\n\n'.join([open(f, 'r').read() for f in desc_files])
 
 # Define installation path for commandline tools
@@ -70,7 +71,9 @@ setup(name='presto',
       license=__license__,
       url='http://presto.readthedocs.io',
       download_url='https://bitbucket.org/kleinstein/presto/downloads',
-      keywords='bioinformatics immunoglobulin lymphocyte sequencing',
+      keywords=['bioinformatics', 'sequencing', 'immunology', 'adaptive immunity',
+                'immunoglobulin', 'AIRR-seq', 'Rep-Seq',
+                'B cell repertoire analysis', 'adaptive immune receptor repertoires'],
       install_requires=install_requires,
       packages=['presto'],
       package_dir={'presto': 'presto'},
