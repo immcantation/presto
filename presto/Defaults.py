@@ -28,6 +28,8 @@ default_cluster_field = 'CLUSTER'
 # External applications
 default_muscle_exec = 'muscle'
 default_usearch_exec = 'usearch'
+default_vsearch_exec = 'vsearch'
+default_cdhit_exec = 'cd-hit-est'
 default_blastn_exec = 'blastn'
 default_blastdb_exec = 'makeblastdb'
 

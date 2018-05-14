@@ -8,10 +8,12 @@ from presto import __version__, __date__
 # Imports
 import csv
 import os
+import re
 import sys
 import tempfile
 import pandas as pd
 from io import StringIO
+from itertools import groupby
 from subprocess import CalledProcessError, check_output, PIPE, Popen, STDOUT
 from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
@@ -20,7 +22,8 @@ from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_muscle_exec, default_usearch_exec, \
-                            default_blastn_exec, default_blastdb_exec
+                            default_blastn_exec, default_blastdb_exec, \
+                            default_cdhit_exec
 from presto.IO import readReferenceFile
 
 # Defaults
@@ -125,18 +128,10 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
+    except CalledProcessError as e:
+        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
+        sys.exit(e.output)
 
-        # child = Popen(cmd, bufsize=1, stdout=PIPE, stderr=STDOUT, shell=False,
-        #               universal_newlines=True)
-        # while child.poll() is None:
-        #     out = child.stdout.readline()
-        #     sys.stdout.write(out)
-        #     sys.stdout.flush()
-        # child.wait()
-    except CalledProcessError:
-        return None
-
-    # TODO:  unsure about this return object.
     # Parse the results of usearch
     # Output columns for the usearch 'uc' output format
     #   0 = entry type -- S: centroid seq, H: hit, C: cluster record (redundant with S)
@@ -153,6 +148,97 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
             # Update cluster dictionary
             cluster = cluster_dict.setdefault(key, [])
             cluster.append(hit)
+
+    return cluster_dict if cluster_dict else None
+
+
+def runCDHit(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
+             threads=1, cluster_exec=default_cdhit_exec):
+    """
+    Cluster a set of sequences using CD-HIT
+
+    Arguments:
+      seq_list : a list of SeqRecord objects to align.
+      ident : the sequence identity cutoff to be passed to usearch.
+      seq_start : the start position to trim sequences at before clustering.
+      seq_end : the end position to trim sequences at before clustering.
+      threads : number of threads for CD-HIT.
+      cluster_exec : the path to the CD-HIT executable.
+
+    Returns:
+      dict : {cluster id: list of sequence ids}.
+    """
+    # Function to trim and mask sequences
+    gap_trans = str.maketrans({'-': 'N', '.': 'N'})
+    def _clean(rec, i, j):
+        seq = str(rec.seq[i:j])
+        seq = seq.translate(gap_trans)
+        return SeqRecord(Seq(seq), id=rec.id, name=rec.name, description=rec.description)
+
+    # Make a trimmed and masked copy of each sequence so we don't mess up originals
+    seq_trimmed = [_clean(x, seq_start, seq_end) for x in seq_list]
+
+    # Return sequence if only one sequence in seq_iter
+    if len(seq_trimmed) < 2:
+        return {1:[seq_trimmed[0].id]}
+
+    # If there are any empty sequences after trimming return None
+    if any([len(x.seq) == 0 for x in seq_trimmed]):
+        return None
+
+    # Open temporary files
+    in_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
+    out_handle = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8')
+
+    # Define usearch command
+    cmd = [cluster_exec,
+           '-i', in_handle.name,
+           '-o', out_handle.name,
+           '-c', str(ident),
+           '-d', '0',
+           '-n', '3',
+           '-T', str(threads)]
+
+    # Write usearch input fasta file
+    SeqIO.write(seq_trimmed, in_handle, 'fasta')
+    in_handle.seek(0)
+
+    # Run CD-HIT
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
+                                  universal_newlines=True)
+    except CalledProcessError as e:
+        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
+        sys.exit(e.output)
+
+    # Parse the results of CD-HIT
+    # Output of the .clstr file
+    #   >Cluster 0
+    #   0	17nt, >S01|BARCODE=CTAAGTGACTGGAGTTC... *
+    #   1	17nt, >S02|BARCODE=CTAAGTGACTGGAGTTC... at +/100.00%
+    #   2	17nt, >S07|BARCODE=CTAAGTGACTGGACTTC... at +/94.12%
+    #   >Cluster 1
+    #   0	17nt, >S12|BARCODE=TTTTTTTTTTTTTTTTT... *
+    # Parsing regex
+    block_regex = re.compile('>Cluster [0-9]+')
+    id_regex = re.compile('([0-9]+\t[0-9]+nt, \>)(.+)(\.\.\.)')
+
+    # Parse .clstr file
+    cluster_dict = {}
+    cluster_file = '%s.clstr' % out_handle.name
+    with open(cluster_file, 'r') as cluster_handle:
+        # Define parsing blocks
+        clusters = groupby(cluster_handle, key=lambda x: block_regex.match(x))
+        # Iterate over clusters and update return dict
+        count = 1
+        for key, group in clusters:
+            if key is not None:
+                __, block = next(clusters)
+                cluster_dict[count] = [id_regex.match(x).group(2) for x in block]
+                count += 1
+
+    # Delete temp file
+    os.remove(cluster_file)
 
     return cluster_dict if cluster_dict else None
 

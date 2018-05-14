@@ -12,9 +12,13 @@ import unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
+# Presto imports
+from presto.Applications import runUClust, runCDHit
+
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
-cluster_exec = 'vsearch'
+usearch_exec = 'vsearch'
+cdhit_exec = 'cd-hit-est'
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
@@ -45,23 +49,42 @@ class TestClusterSets(unittest.TestCase):
     #@unittest.skip('-> runUClust() skipped\n')
     def test_runUClust(self):
         print('FULL_LENGTH>')
-        results = ClusterSets.runUClust(self.records_clust,
-                                        cluster_exec=cluster_exec)
+        results = runUClust(self.records_clust,
+                            cluster_exec=usearch_exec)
         print(results)
         self.assertEqual(sorted(self.results_clust), sorted(results))
 
         print('TRIMMED>')
-        results = ClusterSets.runUClust(self.records_clust, seq_start=10, seq_end=50,
-                                        cluster_exec=cluster_exec)
+        results = runUClust(self.records_clust, seq_start=10, seq_end=50,
+                            cluster_exec=usearch_exec)
         print(results)
         self.assertEqual(sorted(self.results_clust), sorted(results))
 
         print('ZERO_LENGTH>')
-        results = ClusterSets.runUClust(self.records_clust, seq_start=75, seq_end=150,
-                                        cluster_exec=cluster_exec)
+        results = runUClust(self.records_clust, seq_start=75, seq_end=150,
+                            cluster_exec=usearch_exec)
         print(results)
         self.assertEqual(None, results)
 
+    #@unittest.skip('-> runCDHit() skipped\n')
+    def test_runCDHit(self):
+        print('FULL_LENGTH>')
+        results = runCDHit(self.records_clust,
+                           cluster_exec=cdhit_exec)
+        print(results)
+        self.assertEqual(sorted(self.results_clust), sorted(results))
+
+        print('TRIMMED>')
+        results = runCDHit(self.records_clust, seq_start=10, seq_end=50,
+                          cluster_exec=cdhit_exec)
+        print(results)
+        self.assertEqual(sorted(self.results_clust), sorted(results))
+
+        print('ZERO_LENGTH>')
+        results = runCDHit(self.records_clust, seq_start=75, seq_end=150,
+                           cluster_exec=cdhit_exec)
+        print(results)
+        self.assertEqual(None, results)
 
 if __name__ == '__main__':
     unittest.main()
