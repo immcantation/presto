@@ -3,7 +3,7 @@
 Calculates annotation set error rates
 """
 # Info
-__author__ = 'Jason Anthony Vander Heiden, Namita Gupta'
+__author__ = 'Jason Anthony Vander Heiden, Namita Gupta, Ruoyi Jiang'
 from presto import __version__, __date__
 
 # Imports
@@ -12,7 +12,7 @@ import sys
 import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from itertools import permutations
 from textwrap import dedent
 from time import time
@@ -28,7 +28,35 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 
 # Defaults
 default_min_count = 10
-        
+default_headers = ['mismatch', 'q_sum', 'total']
+default_nucleotides = ['A', 'C', 'G', 'T']
+
+
+def initializeMismatchDictionaries(ref_seq):
+    """
+    Generates empty mismatch dictionary
+
+    Arguments: 
+    ref_seq = the reference sequence associated with a seq_list from a set
+
+    Returns: 
+    a dictionary of pandas.DataFrame objects containing [mismatch, qsum, total] counts  
+    for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set} 
+    """
+
+    ref_seq_len = len(ref_seq)
+    
+    headers = default_headers
+    nucleotides = default_nucleotides
+
+    pos_dict = { header: {position:0 for position in range(ref_seq_len)} for header in headers }
+    nuc_dict = { header: \
+        {nucleotide: {nucleotide:0 for nucleotide in nucleotides} for nucleotide in nucleotides} for header in headers}
+    qual_dict = { header: {quality:0 for quality in range(94)} for header in headers }
+    set_dict = { header: None for header in headers }
+    
+    return {'pos': pos_dict, 'nuc': nuc_dict, 'qual': qual_dict, 'set': set_dict}
+
 
 def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars, 
                     score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(1, 1))):
@@ -46,42 +74,38 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set} 
     """
     # Define position mismatch DataFrame
-    pos_max = max([len(s) for s in seq_list])
-    pos_df = pd.DataFrame(0, index=list(range(pos_max)), 
-                          columns=['mismatch', 'q_sum', 'total'], dtype=float)
-    # Define nucleotide mismatch DataFrame
-    nuc_pairs = list(permutations(['A', 'C', 'G', 'T'], 2))
-    nuc_df = pd.DataFrame(0, index=pd.MultiIndex.from_tuples(nuc_pairs, names=['obs', 'ref']), 
-                          columns=['mismatch', 'q_sum', 'total'], dtype=float)
-    # Define quality mismatch DataFrame
-    qual_df = pd.DataFrame(0, index=list(range(94)), 
-                           columns=['mismatch', 'q_sum', 'total'], dtype=float)    
+    mismatch = initializeMismatchDictionaries(ref_seq)
 
-    # Iterate over seq_list and count mismatches
     for seq in seq_list:
         qual = seq.letter_annotations['phred_quality']
         for i, b in enumerate(seq):
+            
             a = ref_seq[i]
             q = qual[i]
-            # Update total counts and qualities
-            if {a, b}.isdisjoint(ignore_chars):  
-                pos_df.ix[i, 'total'] += 1
-                pos_df.ix[i, 'q_sum'] += q
-                nuc_df.ix[b]['total'] += 1
-                nuc_df.ix[b]['q_sum'] += q
-                qual_df.ix[q, 'total'] += 1
-                qual_df.ix[q, 'q_sum'] += q
-            # Update mismatch counts
+            
+            if a not in ignore_chars and b not in ignore_chars:
+                mismatch['pos']['total'][i] += 1
+                mismatch['pos']['q_sum'][i] += q
+                
+                #@ Add nt counts, including for mismatches
+                mismatch['nuc']['mismatch'][b][b] += 1
+                for a_i in mismatch['nuc']['total'][b]: mismatch['nuc']['total'][b][a_i] += 1
+                for a_i in mismatch['nuc']['q_sum'][b]: mismatch['nuc']['q_sum'][b][a_i] += 1
+            
+                mismatch['qual']['total'][q] += 1
+                mismatch['qual']['q_sum'][q] += q
+            
             if score_dict[(a, b)] == 0:
-                pos_df.ix[i, 'mismatch'] += 1
-                nuc_df.ix[(a, b), 'mismatch'] += 1
-                qual_df.ix[q, 'mismatch'] += 1
+                mismatch['pos']['mismatch'][i] += 1
+                mismatch['nuc']['mismatch'][a][b] += 1
+                #@ Remove nt if mismatch from previous count
+                mismatch['nuc']['mismatch'][b][b] -= 1
+                mismatch['qual']['mismatch'][q] += 1
 
-    # Define set total mismatch DataFrame
-    set_df = pd.DataFrame([pos_df.sum(axis=0)], index=[len(seq_list)], 
-                          columns=['mismatch', 'q_sum', 'total'], dtype=float)
+    #Generate the set counter (for a given number of sequences in umi group, these are the mismatch values)
+    mismatch['set'] = {key: {len(seq_list): sum(mismatch['pos'][key].values())} for key in mismatch['pos']}
 
-    return {'pos':pos_df, 'nuc':nuc_df, 'qual':qual_df, 'set':set_df}
+    return mismatch
 
     
 def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
@@ -150,8 +174,8 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             mismatch = countMismatches(seq_list, ref_seq)
             
             # Calculate average reported and observed error
-            reported_q = mismatch['set']['q_sum'].sum() / mismatch['set']['total'].sum()
-            error_rate = mismatch['set']['mismatch'].sum() / mismatch['set']['total'].sum()
+            reported_q = mismatch['set']['q_sum'][len(seq_list)] / mismatch['set']['total'][len(seq_list)]
+            error_rate = mismatch['set']['mismatch'][len(seq_list)] / mismatch['set']['total'][len(seq_list)]
     
             # Update log
             result.log['REFERENCE'] = str(ref_seq.seq)
@@ -194,23 +218,30 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
     None
     (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
     """
+
+    #Helper function for adding together entries from 2 dictionaries by summation
+    def _addCounterDict(dict1, dict2):
+        A = Counter(dict1)
+        A.update(Counter(dict2))
+        return dict(A)
+
+    #Helper function for adding a mismatch dictionary to the total_mismatch dictionary
+    def _updateTotalMismatch(total_mismatch, mismatch):
+        headers = ['mismatch', 'q_sum', 'total']
+        for header in headers:
+            total_mismatch['qual'][header] = _addCounterDict(total_mismatch['qual'][header], mismatch['qual'][header])
+            total_mismatch['set'][header] = _addCounterDict(total_mismatch['set'][header], mismatch['set'][header])
+            total_mismatch['pos'][header] = _addCounterDict(total_mismatch['pos'][header], mismatch['pos'][header])
+            for nucleotide in mismatch['nuc']['mismatch']:
+                total_mismatch['nuc'][header][nucleotide] = _addCounterDict(total_mismatch['nuc'][header][nucleotide], mismatch['nuc'][header][nucleotide])
+        return total_mismatch
+
     try:
         # Count sets
         result_count = countSeqSets(seq_file, set_field, out_args['delimiter'])
         
         # Define empty DataFrames to store assembled results
-        pos_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'],
-                              dtype=float)
-        qual_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'],
-                               dtype=float)
-        set_df = pd.DataFrame(None, columns=['mismatch', 'q_sum', 'total'],
-                              dtype=float)
-        #nuc_pairs = list(permutations(['A', 'C', 'G', 'T'], 2))
-        #nuc_index = pd.MultiIndex.from_tuples(nuc_pairs, names=['obs', 'ref'])
-        nuc_index = pd.MultiIndex(levels=[[], []], labels=[[], []], names=['obs', 'ref'])
-        nuc_df = pd.DataFrame(None, index=nuc_index,
-                              columns=['mismatch', 'q_sum', 'total'],
-                              dtype=float)
+        total_mismatch = initializeMismatchDictionaries([])
 
         # Open log file
         if out_args['log_file'] is None:
@@ -242,10 +273,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             # Sum results
             if result:
                 pass_count += 1
-                pos_df = pos_df.add(result.results['pos'], fill_value=0)
-                qual_df = qual_df.add(result.results['qual'], fill_value=0)
-                nuc_df = nuc_df.add(result.results['nuc'], fill_value=0)
-                set_df = set_df.add(result.results['set'], fill_value=0)
+                total_mismatch = _updateTotalMismatch(total_mismatch, result.results)
             else:
                 fail_count += 1
                 
@@ -256,6 +284,19 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
                              % os.getpid())
             return None
         
+        # Convert total_mismatch dictionary to pd
+        headers = default_headers
+        nucleotides = default_nucleotides 
+
+        nuc_dict = {header: {(n1,n2): total_mismatch['nuc'][header][n1][n2] \
+            for n2 in nucleotides \
+                for n1 in nucleotides} for header in headers}
+
+        pos_df = pd.DataFrame.from_dict(total_mismatch['pos'])
+        qual_df = pd.DataFrame.from_dict(total_mismatch['qual'])
+        nuc_df = pd.DataFrame.from_dict(nuc_dict)
+        set_df = pd.DataFrame.from_dict(total_mismatch['set'])
+
         # Print final progress
         printProgress(set_count, result_count, 0.05, start_time)
         
@@ -285,10 +326,10 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         set_df['error'] = set_df['mismatch'] / set_df['total']
 
         # Bound minimum error to Q=90
-        pos_df['error'][pos_df['error'] == 0] = 1e-9
-        nuc_df['error'][nuc_df['error'] == 0] = 1e-9
-        qual_df['error'][qual_df['error'] == 0] = 1e-9
-        set_df['error'][set_df['error'] == 0] = 1e-9
+        pos_df.loc[pos_df['error'] == 0, 'error'] = 1e-9
+        nuc_df.loc[nuc_df['error'] == 0, 'error'] = 1e-9
+        qual_df.loc[qual_df['error'] == 0, 'error'] = 1e-9
+        set_df.loc[set_df['error'] == 0, 'error'] = 1e-9
 
         # Convert error to empirical quality score
         pos_df['emp_q'] = -10 * np.log10(pos_df['error'])
@@ -305,7 +346,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         # Calculate overall error rate
         pos_error = pos_df['mismatch'].sum() / pos_df['total'].sum() 
         qual_error = qual_df['mismatch'].sum() / qual_df['total'].sum() 
-        nuc_error = nuc_df['mismatch'].sum() / nuc_df['total'].groupby(level='obs').mean().sum()
+        nuc_error = nuc_df['mismatch'].sum() / nuc_df['total'].sum()
         set_error = set_df['mismatch'].sum() / set_df['total'].sum() 
     
         # Build results dictionary
@@ -368,7 +409,7 @@ def writeResults(results, seq_file, out_args):
                       header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'],
                       float_format='%.6f')
         nuc_df.to_csv(nuc_handle, sep='\t', na_rep='NA', index=True,
-                      index_label=['OBSERVED', 'REFERENCE'],
+                      index_label=['REFERENCE','OBSERVED'],
                       columns=['rep_q', 'mismatch', 'total', 'error', 'emp_q'],
                       header=['REPORTED_Q', 'MISMATCHES', 'OBSERVATIONS', 'ERROR', 'EMPIRICAL_Q'],
                       float_format='%.6f')
