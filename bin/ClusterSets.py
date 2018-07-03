@@ -227,14 +227,15 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
     Performs clustering on sets of sequences
 
     Arguments:
-      seq_file : the sample sequence file name
-      ident : the identity threshold for clustering sequences
-      seq_start : the start position to trim sequences at before clustering
-      seq_end : the end position to trim sequences at before clustering
-      cluster_field : the name of the output cluster field
+      seq_file : the sample sequence file name.
+      ident : the identity threshold for clustering sequences.
+      seq_start : the start position to trim sequences at before clustering.
+      seq_end : the end position to trim sequences at before clustering.
+      cluster_field : the name of the output cluster field.
       cluster_prefix : string defining a prefix for the cluster identifier.
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
-      cluster_exec : the path to the executable for usearch
+      cluster_exec : the path to the executable for usearch.
+      out_args : output arguments.
       nproc : the number of processQueue processes;
               if None defaults to the number of CPUs
 
