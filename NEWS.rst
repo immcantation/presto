@@ -1,9 +1,14 @@
 Release Notes
 ================================================================================
 
-Version 0.5.7.999:  March 26, 2018
+Version 0.5.7.999:  July 11, 2018
 -------------------------------------------------------------------------------
 
++ Fixed installation incompatibility with pip 10.
+
+ClusterSets:
+
++ Added support for CD-HIT.
 
 
 Version 0.5.7:  March 19, 2018
