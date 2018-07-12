@@ -90,7 +90,7 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
                 #@ Add nt counts, including for mismatches
                 mismatch['nuc']['mismatch'][b][b] += 1
                 for a_i in mismatch['nuc']['total'][b]: mismatch['nuc']['total'][b][a_i] += 1
-                for a_i in mismatch['nuc']['q_sum'][b]: mismatch['nuc']['q_sum'][b][a_i] += 1
+                for a_i in mismatch['nuc']['q_sum'][b]: mismatch['nuc']['q_sum'][b][a_i] += q
             
                 mismatch['qual']['total'][q] += 1
                 mismatch['qual']['q_sum'][q] += q
@@ -290,7 +290,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
 
         nuc_dict = {header: {(n1,n2): total_mismatch['nuc'][header][n1][n2] \
             for n2 in nucleotides \
-                for n1 in nucleotides} for header in headers}
+                for n1 in nucleotides if n1 != n2} for header in headers}
 
         pos_df = pd.DataFrame.from_dict(total_mismatch['pos'])
         qual_df = pd.DataFrame.from_dict(total_mismatch['qual'])
@@ -358,10 +358,12 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         # Update log
         for i, f in enumerate(out_files): 
             log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
-        log['POSITION_ERROR'] = pos_error 
-        log['NUCLEOTIDE_ERROR'] = nuc_error 
-        log['QUALITY_ERROR'] = qual_error
-        log['SET_ERROR'] = set_error
+        log['POSITION_ERROR'] = '%.6f' % pos_error
+        log['NUCLEOTIDE_ERROR'] = '%.6f' % (nuc_error * 3)
+        log['QUALITY_ERROR'] = '%.6f' % qual_error
+        log['SET_ERROR'] = '%.6f' % set_error
+        
+        
         
         # Update collector results
         collect_dict = {'log':log, 'out_files': out_files}
