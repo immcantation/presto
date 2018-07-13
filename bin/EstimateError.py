@@ -302,16 +302,18 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         
         # Generate log
         log = OrderedDict()
-        for i in range(4): 
-            log['OUTPUT%i' % (i + 1)] = None
+        log['OUTPUT_POSITION'] = None
+        log['OUTPUT_NUCLEOTIDE'] = None
+        log['OUTPUT_QUALITY'] = None
+        log['OUTPUT_SET'] = None
         log['SETS'] = set_count
         log['SEQUENCES'] = seq_count
         log['PASS'] = pass_count
         log['FAIL'] = fail_count
-        log['POSITION_ERROR'] = None 
-        log['NUCLEOTIDE_ERROR'] = None
-        log['QUALITY_ERROR'] = None
-        log['SET_ERROR'] = None
+        log['ERROR_POSITION'] = None
+        log['ERROR_NUCLEOTIDE'] = None
+        log['ERROR_QUALITY'] = None
+        log['ERROR_SET'] = None
      
         # Return if no mismatch data
         if pass_count == 0:
@@ -350,20 +352,20 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         set_error = set_df['mismatch'].sum() / set_df['total'].sum() 
     
         # Build results dictionary
-        assembled = {'pos':pos_df, 'qual':qual_df, 'nuc':nuc_df, 'set':set_df}
+        assembled = {'pos': pos_df, 'qual': qual_df, 'nuc': nuc_df, 'set': set_df}
         
         # Write assembled error counts to output files
         out_files = writeResults(assembled, seq_file, out_args)
         
         # Update log
-        for i, f in enumerate(out_files): 
-            log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
-        log['POSITION_ERROR'] = '%.6f' % pos_error
-        log['NUCLEOTIDE_ERROR'] = '%.6f' % (nuc_error * 3)
-        log['QUALITY_ERROR'] = '%.6f' % qual_error
-        log['SET_ERROR'] = '%.6f' % set_error
-        
-        
+        log['OUTPUT_POSITION'] = os.path.basename(out_files[0])
+        log['OUTPUT_NUCLEOTIDE'] = os.path.basename(out_files[1])
+        log['OUTPUT_QUALITY'] = os.path.basename(out_files[2])
+        log['OUTPUT_SET'] = os.path.basename(out_files[3])
+        log['ERROR_POSITION'] = '%.6f' % pos_error
+        log['ERROR_NUCLEOTIDE'] = '%.6f' % (nuc_error * 3)
+        log['ERROR_QUALITY'] = '%.6f' % qual_error
+        log['ERROR_SET'] = '%.6f' % set_error
         
         # Update collector results
         collect_dict = {'log':log, 'out_files': out_files}
