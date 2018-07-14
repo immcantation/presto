@@ -47,7 +47,7 @@ def initializeMismatchDictionaries(ref_seq):
     headers = default_headers
     nucleotides = default_nucleotides
 
-    pos_dict = { header: {position:0 for position in range(len(ref_seq)) for header in headers }
+    pos_dict = { header: {position:0 for position in range(len(ref_seq))} for header in headers }
     nuc_dict = { header: \
         {nucleotide: {nucleotide:0 for nucleotide in nucleotides} for nucleotide in nucleotides} for header in headers}
     qual_dict = { header: {quality:0 for quality in range(94)} for header in headers }
