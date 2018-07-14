@@ -40,16 +40,14 @@ def initializeMismatchDictionaries(ref_seq):
     ref_seq = the reference sequence associated with a seq_list from a set
 
     Returns: 
-    a dictionary of pandas.DataFrame objects containing [mismatch, qsum, total] counts  
-    for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set} 
+    a dictionary {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set}
+    of [mismatch, q_sum, total] counts  
     """
 
-    ref_seq_len = len(ref_seq)
-    
     headers = default_headers
     nucleotides = default_nucleotides
 
-    pos_dict = { header: {position:0 for position in range(ref_seq_len)} for header in headers }
+    pos_dict = { header: {position:0 for position in range(len(ref_seq)} for header in headers }
     nuc_dict = { header: \
         {nucleotide: {nucleotide:0 for nucleotide in nucleotides} for nucleotide in nucleotides} for header in headers}
     qual_dict = { header: {quality:0 for quality in range(94)} for header in headers }
@@ -70,8 +68,8 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     score_dict = optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns: 
-    a dictionary of pandas.DataFrame objects containing [mismatch, qsum, total] counts  
-    for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set} 
+    a dictionary {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set}
+    of [mismatch, q_sum, total] counts
     """
     # Define position mismatch DataFrame
     mismatch = initializeMismatchDictionaries(ref_seq)
@@ -103,7 +101,8 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
                 mismatch['qual']['mismatch'][q] += 1
 
     #Generate the set counter (for a given number of sequences in umi group, these are the mismatch values)
-    mismatch['set'] = {key: {len(seq_list): sum(mismatch['pos'][key].values())} for key in mismatch['pos']}
+    headers = default_headers
+    mismatch['set'] = {header: {len(seq_list): sum(mismatch['pos'][header].values())} for header in headers}
 
     return mismatch
 
