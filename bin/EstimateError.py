@@ -226,7 +226,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
 
     #Helper function for adding a mismatch dictionary to the total_mismatch dictionary
     def _updateTotalMismatch(total_mismatch, mismatch):
-        headers = ['mismatch', 'q_sum', 'total']
+        headers = default_headers
         for header in headers:
             total_mismatch['qual'][header] = _addCounterDict(total_mismatch['qual'][header], mismatch['qual'][header])
             total_mismatch['set'][header] = _addCounterDict(total_mismatch['set'][header], mismatch['set'][header])
