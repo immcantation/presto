@@ -24,8 +24,9 @@ Requirements
 +  `pandas 0.15 <http://pandas.pydata.org>`__
 +  `Biopython 1.65 <http://biopython.org>`__
 +  AlignSets requires `MUSCLE v3.8 <http://www.drive5.com/muscle>`__
-+  ClusterSets requires `USEARCH v7.0 <http://www.drive5.com/usearch>`__
-   or `vsearch v2.3.2 <https://github.com/torognes/vsearch>`__
++  ClusterSets `USEARCH v7.0 <http://www.drive5.com/usearch>`__,
+   `vsearch v2.3.2 <https://github.com/torognes/vsearch>`__, or
+   `CD-HIT v4.6.8 <http://weizhongli-lab.org/cd-hit>`__
 +  AssemblePairs-reference requires `USEARCH v7.0 <http://www.drive5.com/usearch>`__
    or `BLAST+ 2.5 <ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST>`__
 
