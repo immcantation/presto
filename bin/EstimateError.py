@@ -69,7 +69,7 @@ def initializeMismatchDictionaries(ref_seq):
         {nucleotide: {nucleotide:0 for nucleotide in nucleotides} for nucleotide in nucleotides} for header in headers}
     qual_dict = { header: {quality:0 for quality in range(94)} for header in headers }
     set_dict = { header: None for header in headers }
-    dist_dict = {'count': np.zeros(bin_count)}
+    dist_dict = {'all': np.zeros(bin_count), 'dtn': np.zeros(bin_count), 'first': np.zeros(bin_count)}
     
     return {'pos': pos_dict, 'nuc': nuc_dict, 'qual': qual_dict, 'set': set_dict, 'dist': dist_dict}
 
@@ -128,8 +128,16 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     
     #@Compute the distance calculation
     seq_array = np.array([[ord(nt) for nt in seq.seq] for seq in seq_list])
-    pairwise_dist = pairwise_distances(X = seq_array[0,:].reshape(1, -1), Y= seq_array, metric='hamming')
-    mismatch['dist']['count'] = np.histogram(pairwise_dist, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+    #pairwise_dist = pairwise_distances(X = seq_array[0,:].reshape(1, -1), Y= seq_array, metric='hamming')
+    pairwise_dist = pairwise_distances(X = seq_array, Y= seq_array, metric='hamming')
+    
+    all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k = 1)]
+    dtn = np.array([min(pairwise_dist[i,i+1:]) for i in range(pairwise_dist.shape[0] - 1)])
+    first = pairwise_dist[0,1:]
+    
+    mismatch['dist']['all'] = np.histogram(all_pairwise, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+    mismatch['dist']['dtn'] = np.histogram(dtn, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+    mismatch['dist']['first'] = np.histogram(first, bins = bin_count, range=(0.0, 1.0), density=False)[0]
         
     return mismatch
 
@@ -267,8 +275,10 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
             total_mismatch['pos'][header] = _addCounterDict(total_mismatch['pos'][header], mismatch['pos'][header])
             for nucleotide in mismatch['nuc']['mismatch']:
                 total_mismatch['nuc'][header][nucleotide] = _addCounterDict(total_mismatch['nuc'][header][nucleotide], mismatch['nuc'][header][nucleotide])
-        #@
-        total_mismatch['dist']['count'] += mismatch['dist']['count']
+        headers_dist = ['all', 'dtn', 'first']
+        for header in headers_dist:
+            total_mismatch['dist'][header] = total_mismatch['dist'][header] + mismatch['dist'][header]
+        
         return total_mismatch
 
     try:
@@ -439,7 +449,7 @@ def writeResults(results, seq_file, out_args):
     set_df[['mismatch', 'total']] = set_df[['mismatch', 'total']].astype(int) 
     
     #@
-    dist_df[['count']] = dist_df[['count']].astype(int) 
+    dist_df[['all', 'dtn', 'first']] = dist_df[['all', 'dtn', 'first']].astype(int)
     
     #@ Write to tab delimited files
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
@@ -472,8 +482,8 @@ def writeResults(results, seq_file, out_args):
         #@
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
-                      columns=['count'],
-                      header=['COUNT'],
+                      columns=['all', 'dtn', 'first'],
+                      header=['ALL', 'DTN', 'FIRST'],
                       float_format='%.6f')
 
     return (pos_handle.name, qual_handle.name, nuc_handle.name, set_handle.name, dist_handle.name)
@@ -577,21 +587,28 @@ def estimateBarcode(seq_file,
     
     #@Compute the distance calculation
     seq_array = np.array([[ord(nt) for nt in seq.seq] for seq in barcode_iter])
-    pairwise_dist = pairwise_distances(X = seq_array[0,:].reshape(1, -1), Y= seq_array, metric='hamming')
-    mismatch['dist']['count'] = np.histogram(pairwise_dist, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+    #pairwise_dist = pairwise_distances(X = seq_array[0,:].reshape(1, -1), Y= seq_array, metric='hamming')
+    pairwise_dist = pairwise_distances(X = seq_array, Y= seq_array, metric='hamming')
     
+    all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k = 1)]
+    dtn = np.array([min(pairwise_dist[i,i+1:]) for i in range(pairwise_dist.shape[0] - 1)])
+    first = pairwise_dist[0,1:]
+    
+    mismatch['dist']['all'] = np.histogram(all_pairwise, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+    mismatch['dist']['dtn'] = np.histogram(dtn, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+    mismatch['dist']['first'] = np.histogram(first, bins = bin_count, range=(0.0, 1.0), density=False)[0]
+
     dist_df = pd.DataFrame.from_dict(mismatch['dist'])
-    
-    dist_df[['count']] = dist_df[['count']].astype(int) 
-    
+    dist_df[['all', 'dtn', 'first']] = dist_df[['all', 'dtn', 'first']].astype(int)
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
+
     with getOutputHandle(seq_file, 'barcode-dist', **file_args) as dist_handle:
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
-                      columns=['count'],
-                      header=['COUNT'],
+                      columns=['all', 'dtn', 'first'],
+                      header=['ALL', 'DTN', 'FIRST'],
                       float_format='%.6f')
-        
+
     # Update log
     log['OUTPUT'] = os.path.basename(dist_handle.name)
     log['SEQUENCES'] = result_count
