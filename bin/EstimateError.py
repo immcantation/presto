@@ -13,9 +13,11 @@ import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict, Counter
+# TODO: unused import
 from itertools import permutations
 from textwrap import dedent
 from time import time
+# TODO: What are all these @ about? Ditch them.
 #@
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -34,13 +36,14 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 #@
 from presto.Annotation import parseAnnotation
 
+# TODO: order imports as standard library, external libraries, presto/changeo
+# TODO: can we use scipy.spatial.distance.pdist instead?
 #@
 from sklearn.metrics.pairwise import pairwise_distances
 
 
 #@
 default_bin_count = 50
-
 default_min_count = 10
 default_headers = ['mismatch', 'q_sum', 'total']
 default_nucleotides = ['A', 'C', 'G', 'T']
@@ -57,9 +60,7 @@ def initializeMismatchDictionaries(ref_seq):
     a dictionary of pandas.DataFrame objects containing [mismatch, qsum, total] counts  
     for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set} 
     """
-
     ref_seq_len = len(ref_seq)
-    
     headers = default_headers
     nucleotides = default_nucleotides
     bin_count = default_bin_count
@@ -260,13 +261,13 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
     (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
     """
 
-    #Helper function for adding together entries from 2 dictionaries by summation
+    # Helper function for adding together entries from 2 dictionaries by summation
     def _addCounterDict(dict1, dict2):
         A = Counter(dict1)
         A.update(Counter(dict2))
         return dict(A)
 
-    #Helper function for adding a mismatch dictionary to the total_mismatch dictionary
+    # Helper function for adding a mismatch dictionary to the total_mismatch dictionary
     def _updateTotalMismatch(total_mismatch, mismatch):
         headers = ['mismatch', 'q_sum', 'total']
         for header in headers:
@@ -488,6 +489,7 @@ def writeResults(results, seq_file, out_args):
 
     return (pos_handle.name, qual_handle.name, nuc_handle.name, set_handle.name, dist_handle.name)
 
+
 def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={}, 
                   cluster_field=default_barcode_field, min_count=default_min_count, max_diversity=None, 
                   out_args=default_out_args, nproc=None, queue_size=None):
@@ -529,7 +531,7 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
     in_type = getFileType(seq_file)
     if in_type != 'fastq':  sys.exit('ERROR:  Input file must be FASTQ')
     
-        # Define feeder function and arguments
+    # Define feeder function and arguments
     index_args = {'field': cluster_field, 'delimiter': out_args['delimiter']}
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
@@ -558,11 +560,14 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
         
     return result['out_files']
 
-#@
+# TODO: queue_size and nproc are unused arguments and should be removed.
+# TODO: see getCommonArgParser(multiproc=False)
+# TODO: you need a doc string.
 def estimateBarcode(seq_file,
                    barcode_field=default_barcode_field,
                    out_args=default_out_args, nproc=None, queue_size=None):
-    
+
+    # TODO: you don't need to recreate a SeqRecord or Seq object here. just return the barcode as a string.
     # Function to extract to make SeqRecord object from a barcode annotation
     def _barcode(seq, field=barcode_field, delimiter=out_args['delimiter']):
         header = parseAnnotation(seq.description, delimiter=delimiter)
@@ -581,10 +586,11 @@ def estimateBarcode(seq_file,
     result_count = countSeqFile(seq_file)
     barcode_iter = (_barcode(x) for x in readSeqFile(seq_file))
     
-    #@@@@@ TODO: fix this bin_count
+    # TODO: fix this bin_count
     bin_count = 18
     mismatch = initializeMismatchDictionaries([])
-    
+
+    # TODO: use consistent spacing. operators: x - y, arguments: x=y, slices: [0, 1:]
     #@Compute the distance calculation
     seq_array = np.array([[ord(nt) for nt in seq.seq] for seq in barcode_iter])
     #pairwise_dist = pairwise_distances(X = seq_array[0,:].reshape(1, -1), Y= seq_array, metric='hamming')
@@ -593,7 +599,9 @@ def estimateBarcode(seq_file,
     all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k = 1)]
     dtn = np.array([min(pairwise_dist[i,i+1:]) for i in range(pairwise_dist.shape[0] - 1)])
     first = pairwise_dist[0,1:]
-    
+
+    # TODO: add error as a fraction of length. do not assume uniform length.
+    # TODO: comment out first - not needed now.
     mismatch['dist']['all'] = np.histogram(all_pairwise, bins = bin_count, range=(0.0, 1.0), density=False)[0]
     mismatch['dist']['dtn'] = np.histogram(dtn, bins = bin_count, range=(0.0, 1.0), density=False)[0]
     mismatch['dist']['first'] = np.histogram(first, bins = bin_count, range=(0.0, 1.0), density=False)[0]
@@ -618,7 +626,6 @@ def estimateBarcode(seq_file,
     return dist_handle.name
 
 
-
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -629,6 +636,7 @@ def getArgParser():
     Returns: 
     an ArgumentParser object
     """
+    # TODO: update with output of `barcode` subcommand
     # Define output file names and header fields
     fields = dedent(
              '''
@@ -682,6 +690,7 @@ def getArgParser():
     
     # Parent parser
     parent_parser = getCommonArgParser(multiproc=True)
+    # TODO: unused variable. remove.
     group_parent = parent_parser.add_argument_group('common estimation arguments')
     
     
@@ -714,6 +723,7 @@ def getArgParser():
                                   exceed the given diversity threshold.''')
     parser_set.set_defaults(func=estimateSets)
     
+    # TODO: modify docs to make clear is not the same method as EstimateError-set
     # Error profiling arguments for barcodes
     parser_barcode = subparsers.add_parser('barcode', parents=[parent_parser],
                                        formatter_class=CommonHelpFormatter, add_help=False,
