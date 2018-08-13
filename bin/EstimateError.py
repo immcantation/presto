@@ -363,9 +363,8 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         qual_df = pd.DataFrame.from_dict(total_mismatch['qual'])
         nuc_df = pd.DataFrame.from_dict(nuc_dict)
         set_df = pd.DataFrame.from_dict(total_mismatch['set'])
-        
-        #@
         dist_df = pd.DataFrame.from_dict(total_mismatch['dist'])
+        dist_df.index = dist_df.index/len(dist_df.index)
 
         # Print final progress
         printProgress(set_count, result_count, 0.05, start_time)
@@ -468,13 +467,13 @@ def writeResults(results, seq_file, out_args):
     set_df[['mismatch', 'total']] = set_df[['mismatch', 'total']].astype(int)     
     dist_df[['all', 'dtn']] = dist_df[['all', 'dtn']].astype(int)
     
-    #@ Write to tab delimited files
+    # Write to tab delimited files
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
-    with getOutputHandle(seq_file, 'set-position', **file_args) as pos_handle, \
-            getOutputHandle(seq_file, 'set-quality', **file_args) as qual_handle, \
-            getOutputHandle(seq_file, 'set-nucleotide', **file_args) as nuc_handle, \
-            getOutputHandle(seq_file, 'set-set', **file_args) as set_handle, \
-            getOutputHandle(seq_file, 'set-dist', **file_args) as dist_handle:
+    with getOutputHandle(seq_file, 'error-position', **file_args) as pos_handle, \
+            getOutputHandle(seq_file, 'error-quality', **file_args) as qual_handle, \
+            getOutputHandle(seq_file, 'error-nucleotide', **file_args) as nuc_handle, \
+            getOutputHandle(seq_file, 'error-set', **file_args) as set_handle, \
+            getOutputHandle(seq_file, 'distance-set', **file_args) as dist_handle:
 
         pos_df.to_csv(pos_handle, sep='\t', na_rep='NA', index=True,
                       index_label='POSITION',
@@ -512,21 +511,21 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
     Calculates error rates of sequence sets
 
     Arguments: 
-    seq_file = the sample sequence file name
-    cons_func = the function to use for consensus generation 
-    cons_args = a dictionary of arguments for the consensus function
-    cluster_field = the annotation field containing set IDs
-    min_count = threshold number of sequences to consider a set
-    max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
+      seq_file : the sample sequence file name
+      cons_func : the function to use for consensus generation 
+      cons_args : a dictionary of arguments for the consensus function
+      cluster_field : the annotation field containing set IDs
+      min_count : threshold number of sequences to consider a set
+      max_diversity : a threshold defining the average pairwise error rate required to retain a read group;
                     if None do not calculate diversity
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
+      out_args : common output argument dictionary from parseCommonArgs
+      nproc : the number of processQueue processes;
             if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
+      queue_size : maximum size of the argument queue;
                  if None defaults to 2*nproc
                     
     Returns: 
-    a list of tuples of (position error, quality error, nucleotide pairwise error) output file names
+      tuple : (position error, quality error, nucleotide pairwise error) output file names
     """
     # Define subcommand label dictionary
     cmd_dict = {frequencyConsensus:'freq', qualityConsensus:'qual'}
@@ -583,14 +582,14 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
     Calculates error rates of barcode sequences
 
     Arguments: 
-        seq_file = the sample sequence file name
-        barcode_field = the annotation field containing barcode sequences.
-        out_args = common output argument dictionary from parseCommonArgs
-        nproc = the number of processQueue processes;
+      seq_file : the sample sequence file name
+      barcode_field : the annotation field containing barcode sequences.
+      out_args : common output argument dictionary from parseCommonArgs
+      nproc : the number of processQueue processes;
                 if None defaults to the number of CPUs
                         
-        Returns: 
-        str = the name of the df containing the statistics of interest
+    Returns: 
+      str : the name of the df containing the statistics of interest
     """
     
     # Function to extract to make SeqRecord object from a barcode annotation
@@ -621,11 +620,12 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
 
     # Generate a df
     dist_df = pd.DataFrame.from_dict(mismatch['dist'])
+    dist_df.index = dist_df.index/len(dist_df.index)
     dist_df[['all', 'dtn']] = dist_df[['all', 'dtn']].astype(int)
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
 
     # Output as csv
-    with getOutputHandle(seq_file, 'barcode-dist', **file_args) as dist_handle:
+    with getOutputHandle(seq_file, 'distance-barcode', **file_args) as dist_handle:
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
                       columns=['all', 'dtn'],
@@ -644,30 +644,27 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
 def getArgParser():
     """
     Defines the ArgumentParser
-
-    Arguments: 
-    None
                       
     Returns: 
-    an ArgumentParser object
+      ArgumentParser : ArgumentParser object
     """
     # TODO: update with output of `barcode` subcommand
     # Define output file names and header fields
     fields = dedent(
              '''
              output files:
-                 set-position
+                 error-position
                      estimated error by read position.
-                 set-quality
+                 error-quality
                      estimated error by the quality score assigned within the input file.
-                 set-nucleotide
+                 error-nucleotide
                      estimated error by nucleotide.
-                 set-set
+                 error-set
                      estimated error by barcode read group size.
-                 set-dist
+                 distance-set
                      estimated error by pairwise hamming distances
 
-                 barcode-dist
+                 distance-barcode
                      estimated error by pairwise hamming distances
 
              output fields:
@@ -695,9 +692,11 @@ def getArgParser():
                  EMPIRICAL_Q
                      estimated error rate converted to a Phred quality score.
                  ALL
-                     histogram of all pairwise distance distribution
+                     histogram (count) of all pairwise distance distribution
                  DTN
-                     histogram of distance to nearest distribution 
+                     histogram (count) of distance to nearest distribution
+                 DISTANCE
+                     length normalized hamming distance 
              ''')
     
     # Define ArgumentParser
@@ -748,8 +747,8 @@ def getArgParser():
     # Error profiling arguments for barcodes
     parser_barcode = subparsers.add_parser('barcode', parents=[parent_parser],
                                        formatter_class=CommonHelpFormatter, add_help=False,
-                                       help='Estimates error statistics of barcode sequences.',
-                                       description='Estimates error statistics of barcode sequences.')
+                                       help='Calculates pairwise distance metrics of barcode sequences.',
+                                       description='Calculates pairwise distance metrics of barcode sequences.')
     group_barcode = parser_barcode.add_argument_group('barcode sequence estimation arguments')
     group_barcode.add_argument('-f', action='store', dest='barcode_field', type=str, default=default_barcode_field,
                              help='The name of the barcode field')
