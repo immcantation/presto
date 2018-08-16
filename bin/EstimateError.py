@@ -16,6 +16,7 @@ from collections import OrderedDict, Counter
 from textwrap import dedent
 from time import time
 from scipy.spatial.distance import pdist, squareform
+from scipy.cluster.vq import kmeans2
 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -29,9 +30,6 @@ from presto.Sequence import getDNAScoreDict, calculateDiversity, qualityConsensu
                             frequencyConsensus, indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 from presto.Annotation import parseAnnotation
-
-# External imports
-from sklearn.cluster import KMeans
 
 
 # Defaults
@@ -61,13 +59,17 @@ def findKmeansThreshold(pdf):
     sample = np.random.choice(sample_choices, p=pdf, size = 500).reshape(-1,1)
     
     #fit to 2-cluster 1D KMeans 
-    km = KMeans(n_clusters=2, random_state=0).fit(sample)
-    labels = km.predict(sample_choices.reshape(-1,1))
+    label_dict = dict(zip(sample, kmeans2(sample, k=2)[1]))
     
     #find the boundary between the labels and report
-    threshold = len([label for label in labels if label == labels[0]])
-    
-    return threshold
+    empty_set = set()
+    for threshold in sample_choices:
+        if label_dict.get(threshold) is not None:
+            empty_set.add(label_dict.get(threshold))
+        if len(empty_set) > 1:
+            break
+
+    return int(threshold) - 1
     
     
 def initializeMismatchDictionary(seq_len):
