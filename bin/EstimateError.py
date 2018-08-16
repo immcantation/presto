@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 from collections import OrderedDict, Counter
 from textwrap import dedent
 from time import time
+from scipy.spatial.distance import pdist, squareform
 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -30,7 +31,7 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
 from presto.Annotation import parseAnnotation
 
 # External imports
-from scipy.spatial.distance import pdist, squareform
+from sklearn.cluster import KMeans
 
 
 # Defaults
@@ -42,15 +43,42 @@ default_nucleotides = ['A', 'C', 'G', 'T']
 
 
 # Helper functions
+def findKmeansThreshold(pdf):
+    """
+    Finds the index of the boundary separating 2 clusters given a 1D pdf
+    
+    Arguments:
+        pdf : 1D pdf of the data
+    
+    Returns:
+        threshold : index of the boundary along the pdf 
+    """
+    #check that pdf is a pdf
+    pdf = [x/sum(pdf) for x in pdf]
+    
+    #convert pdf to sampling (KMeans cannot take a pdf as input)
+    sample_choices = np.arange(0, len(pdf))
+    sample = np.random.choice(sample_choices, p=pdf, size = 500).reshape(-1,1)
+    
+    #fit to 2-cluster 1D KMeans 
+    km = KMeans(n_clusters=2, random_state=0).fit(sample)
+    labels = km.predict(sample_choices.reshape(-1,1))
+    
+    #find the boundary between the labels and report
+    threshold = len([label for label in labels if label == labels[0]])
+    
+    return threshold
+    
+    
 def initializeMismatchDictionary(seq_len):
     """
     Generates empty mismatch dictionary
 
     Arguments: 
-    seq_len = the nt length of sequences in the set
+      seq_len : the nt length of sequences in the set
 
     Returns: 
-    a dictionary of pandas.DataFrame objects containing [mismatch, qsum, total] counts  
+      dictionary : pandas.DataFrame objects containing [mismatch, qsum, total] counts  
     for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set} 
     """
     # initialize the reference-sequence mismatch dictionary
@@ -78,12 +106,11 @@ def calculateDistances(seq_iter, bin_count):
     Computes and histograms the pairwise distance matrix from a set of sequences
 
     Arguments: 
-    seq_iter = an iterable of strings
-    bin_count = number of bins to use when computing histogram
+      seq_iter : an iterable of strings
+      bin_count : number of bins to use when computing histogram
 
     Returns: 
-    a dictionary of np.arrays 
-    for {all:all pairwise, dtn:distance to nearest} 
+      dictionary : np.arrays for {all:all pairwise, dtn:distance to nearest} 
     """
 
     # Compute the distance matrix
@@ -94,8 +121,10 @@ def calculateDistances(seq_iter, bin_count):
     all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k=1)]
     dtn = np.array([min(pairwise_dist[i, i + 1:]) for i in range(pairwise_dist.shape[0] - 1)])
 
-    return { 'all' : np.histogram(all_pairwise, bins=bin_count, range=(0.0, 1.0), density=False)[0],
-        'dtn' : np.histogram(dtn, bins=bin_count, range=(0.0, 1.0), density=False)[0] }
+    return { 
+        'all' : np.histogram(all_pairwise, bins=bin_count, range=(0.0, 1.0), density=False)[0],
+        'dtn' : np.histogram(dtn, bins=bin_count, range=(0.0, 1.0), density=False)[0] 
+    }
 
 
 
@@ -105,14 +134,13 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     Counts the occurrence of nucleotide mismatches in a set of sequences
 
     Arguments: 
-    seq_list = a list of SeqRecord objects with aligned sequences
-
-    ref_seq = a SeqRecord object containing the reference sequence to match against
-    ignore_chars = list of characters to exclude from mismatch counts
-    score_dict = optional dictionary of alignment scores as {(char1, char2): score}
+      seq_list : a list of SeqRecord objects with aligned sequences
+      ref_seq : a SeqRecord object containing the reference sequence to match against
+      ignore_chars : list of characters to exclude from mismatch counts
+      score_dict : optional dictionary of alignment scores as {(char1, char2): score}
 
     Returns: 
-    a dictionary of dictionaries containing [mismatch, qsum, total] counts  
+      dictionary : dictionaries containing [mismatch, qsum, total] counts  
     for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set, dist:sequence distances} 
     """
     # Define position mismatch DataFrame
@@ -168,18 +196,18 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing 
+      alive : a multiprocessing.Value boolean controlling whether processing 
             continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    cons_func = the function to use for consensus generation 
-    cons_args = a dictionary of optional arguments for the consensus function
-    min_count = threshold number of sequences to retain a set
-    max_diversity = the minimum diversity score to retain a set;
+      data_queue : a multiprocessing.Queue holding data to process
+      result_queue : a multiprocessing.Queue to hold processed results
+      cons_func : the function to use for consensus generation 
+      cons_args : a dictionary of optional arguments for the consensus function
+      min_count : threshold number of sequences to retain a set
+      max_diversity : the minimum diversity score to retain a set;
                     if None do not calculate diversity
                         
     Returns: 
-    None
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached
@@ -266,17 +294,16 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
     Pulls from results queue, assembles results and manages log and file IO
 
     Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing 
+      alive : a multiprocessing.Value boolean controlling whether processing 
             continues; when False function returns
-    result_queue = a multiprocessing.Queue holding worker results
-    collect_queue = a multiprocessing.Queue to store collector return values
-    seq_file = the sample sequence file name
-    out_args = common output argument dictionary from parseCommonArgs
-    cluster_field = the field defining set membership
+      result_queue : a multiprocessing.Queue holding worker results
+      collect_queue : a multiprocessing.Queue to store collector return values
+      seq_file : the sample sequence file name
+      out_args : common output argument dictionary from parseCommonArgs
+      cluster_field : the field defining set membership
 
     Returns:
-    None
-    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
+      None : (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
     """
 
     # Helper function for adding together entries from 2 dictionaries by summation
@@ -350,15 +377,16 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
                              % os.getpid())
             return None
         
-        # Convert total_mismatch dictionary to pd
+        
         headers = default_headers
         nucleotides = default_nucleotides 
         
-        # rearrange the nuc_dict and remove A,A T,T C,C G,G entries
+        # Rearrange the nuc_dict and remove A,A T,T C,C G,G entries
         nuc_dict = {header: {(n1,n2): total_mismatch['nuc'][header][n1][n2] \
             for n2 in nucleotides \
                 for n1 in nucleotides if n1 != n2} for header in headers}
-
+        
+        # Convert total_mismatch dictionary to pd
         pos_df = pd.DataFrame.from_dict(total_mismatch['pos'])
         qual_df = pd.DataFrame.from_dict(total_mismatch['qual'])
         nuc_df = pd.DataFrame.from_dict(nuc_dict)
@@ -366,6 +394,12 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         dist_df = pd.DataFrame.from_dict(total_mismatch['dist'])
         dist_df.index = dist_df.index/len(dist_df.index)
 
+        # Calculate thresholds (halfway between 0.75 and the np.max index)
+        thresh_df = pd.DataFrame.from_dict({ 'thresh' : { 
+                        'ALL': dist_df.index[int(np.mean([len(dist_df.index)*0.75, np.argmax(total_mismatch['dist']['all'])]))], 
+                        'DTN': dist_df.index[int(np.mean([len(dist_df.index)*0.75, np.argmax(total_mismatch['dist']['dtn'])]))] }
+                    })
+        
         # Print final progress
         printProgress(set_count, result_count, 0.05, start_time)
         
@@ -418,8 +452,8 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         nuc_error = nuc_df['mismatch'].sum() / nuc_df['total'].sum()
         set_error = set_df['mismatch'].sum() / set_df['total'].sum() 
     
-        #@ Build results dictionary
-        assembled = {'pos':pos_df, 'qual':qual_df, 'nuc':nuc_df, 'set':set_df, 'dist': dist_df}
+        # Build results dictionary
+        assembled = {'pos':pos_df, 'qual':qual_df, 'nuc':nuc_df, 'set':set_df, 'dist': dist_df, 'thresh': thresh_df}
         
         # Write assembled error counts to output files
         out_files = writeResults(assembled, seq_file, out_args)
@@ -431,6 +465,8 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         log['NUCLEOTIDE_ERROR'] = '%.6f' % (nuc_error * 3)
         log['QUALITY_ERROR'] = '%.6f' % qual_error
         log['SET_ERROR'] = '%.6f' % set_error
+        # log['ALL_THRESH'] = '%.6f' % thresh_df['THRESH']['ALL']
+        # log['DTN_THRESH'] = '%.6f' % thresh_df['THRESH']['DTN']
 
         # Update collector results
         collect_dict = {'log':log, 'out_files': out_files}
@@ -452,13 +488,14 @@ def writeResults(results, seq_file, out_args):
     out_args = common output argument dictionary from parseCommonArgs
 
     Returns:
-    a tuple of (position error, nucleotide pairwise error, quality error, sequence set) file names
+      tuple : (position error, nucleotide pairwise error, quality error, sequence set) file names
     """
     pos_df = results['pos']
     nuc_df = results['nuc']
     qual_df = results['qual']
     set_df = results['set']
     dist_df = results['dist']
+    thresh_df = results['thresh']
 
     # Type conversion to int of mismatch and total columns
     pos_df[['mismatch', 'total']] = pos_df[['mismatch', 'total']].astype(int) 
@@ -473,7 +510,8 @@ def writeResults(results, seq_file, out_args):
             getOutputHandle(seq_file, 'error-quality', **file_args) as qual_handle, \
             getOutputHandle(seq_file, 'error-nucleotide', **file_args) as nuc_handle, \
             getOutputHandle(seq_file, 'error-set', **file_args) as set_handle, \
-            getOutputHandle(seq_file, 'distance-set', **file_args) as dist_handle:
+            getOutputHandle(seq_file, 'distance-set', **file_args) as dist_handle, \
+            getOutputHandle(seq_file, 'thresh-set', **file_args) as thresh_handle:
 
         pos_df.to_csv(pos_handle, sep='\t', na_rep='NA', index=True,
                       index_label='POSITION',
@@ -500,8 +538,13 @@ def writeResults(results, seq_file, out_args):
                       columns=['all', 'dtn'],
                       header=['ALL', 'DTN'],
                       float_format='%.6f')
+        thresh_df.to_csv(thresh_handle, sep='\t', na_rep='NA', index=True,
+                      index_label='TYPE',
+                      columns=['thresh'],
+                      header=['THRESH'],
+                      float_format='%.6f')
 
-    return (pos_handle.name, qual_handle.name, nuc_handle.name, set_handle.name, dist_handle.name)
+    return (pos_handle.name, qual_handle.name, nuc_handle.name, set_handle.name, dist_handle.name, thresh_handle.name)
 
 
 def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={}, 
@@ -622,23 +665,39 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
     dist_df = pd.DataFrame.from_dict(mismatch['dist'])
     dist_df.index = dist_df.index/len(dist_df.index)
     dist_df[['all', 'dtn']] = dist_df[['all', 'dtn']].astype(int)
+
+    thresh_df = pd.DataFrame.from_dict({ 'thresh' : { 
+                    'ALL': dist_df.index[np.argmin(mismatch['dist']['all'])], 
+                    'DTN': dist_df.index[findKmeansThreshold(mismatch['dist']['dtn'])] }
+                })
+    
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
 
-    # Output as csv
-    with getOutputHandle(seq_file, 'distance-barcode', **file_args) as dist_handle:
+    # Output as tsv
+    with getOutputHandle(seq_file, 'distance-barcode', **file_args) as dist_handle, \
+        getOutputHandle(seq_file, 'thresh-barcode', **file_args) as thresh_handle:
+        
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
                       columns=['all', 'dtn'],
                       header=['ALL', 'DTN'],
                       float_format='%.6f')
-
+        thresh_df.to_csv(thresh_handle, sep='\t', na_rep='NA', index=True,
+                      index_label='TYPE',
+                      columns=['thresh'],
+                      header=['THRESH'],
+                      float_format='%.6f')
+                      
     # Update log
-    log['OUTPUT'] = os.path.basename(dist_handle.name)
+    log['OUTPUT 1'] = os.path.basename(dist_handle.name)
+    log['OUTPUT 2'] = os.path.basename(thresh_handle.name)
     log['SEQUENCES'] = result_count
+    # log['ALL_THRESH'] = '%.6f' % thresh_df['THRESH']['ALL']
+    # log['DTN_THRESH'] = '%.6f' % thresh_df['THRESH']['DTN']
     log['END'] = 'EstimateError'
     printLog(log)
 
-    return dist_handle.name
+    return (dist_handle.name, thresh_handle.name)
 
 
 def getArgParser():
