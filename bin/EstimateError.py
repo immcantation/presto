@@ -49,14 +49,14 @@ def findKmeansThreshold(pdf):
         pdf : 1D pdf of the data
     
     Returns:
-        threshold : index of the boundary along the pdf 
+        threshold : index (interger) of the boundary along the pdf 
     """
     #check that pdf is a pdf
     pdf = [x/sum(pdf) for x in pdf]
     
     #convert pdf to sampling (KMeans cannot take a pdf as input)
     sample_choices = np.arange(0, len(pdf))
-    sample = np.random.choice(sample_choices, p=pdf, size = 500).reshape(-1,1)
+    sample = np.random.choice(sample_choices, p=pdf, size = 500).astype('float32')
     
     #fit to 2-cluster 1D KMeans 
     label_dict = dict(zip(sample, kmeans2(sample, k=2)[1]))
@@ -724,9 +724,13 @@ def getArgParser():
                      estimated error by barcode read group size.
                  distance-set
                      estimated error by pairwise hamming distances
+                 thresh-set
+                     thresholds from pairwise hamming distances for clustering groups
 
                  distance-barcode
                      estimated error by pairwise hamming distances
+                 thresh-barcode
+                     thresholds from pairwise hamming distances for clustering barcodes
 
              output fields:
                  POSITION
