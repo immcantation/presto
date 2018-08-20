@@ -145,6 +145,7 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
       dictionary : dictionaries containing [mismatch, qsum, total] counts  
     for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set, dist:sequence distances} 
     """
+
     # Define position mismatch DataFrame
     mismatch = initializeMismatchDictionary(len(ref_seq))
 
@@ -364,7 +365,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
             # Update counts for iteration
             set_count += 1
             seq_count += result.data_count
-            
+
             # Sum results
             if result:
                 pass_count += 1
@@ -378,8 +379,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
             sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
-        
-        
+
         headers = default_headers
         nucleotides = default_nucleotides 
         
@@ -387,12 +387,13 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         nuc_dict = {header: {(n1,n2): total_mismatch['nuc'][header][n1][n2] \
             for n2 in nucleotides \
                 for n1 in nucleotides if n1 != n2} for header in headers}
-        
+
         # Convert total_mismatch dictionary to pd
         pos_df = pd.DataFrame.from_dict(total_mismatch['pos'])
         qual_df = pd.DataFrame.from_dict(total_mismatch['qual'])
         nuc_df = pd.DataFrame.from_dict(nuc_dict)
-        set_df = pd.DataFrame.from_dict(total_mismatch['set'])
+        if pass_count > 0:
+            set_df = pd.DataFrame.from_dict(total_mismatch['set'])
         dist_df = pd.DataFrame.from_dict(total_mismatch['dist'])
         dist_df.index = dist_df.index/len(dist_df.index)
 
@@ -401,7 +402,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
                         'ALL': dist_df.index[int(np.mean([len(dist_df.index)*0.75, np.argmax(total_mismatch['dist']['all'])]))], 
                         'DTN': dist_df.index[int(np.mean([len(dist_df.index)*0.75, np.argmax(total_mismatch['dist']['dtn'])]))] }
                     })
-        
+
         # Print final progress
         printProgress(set_count, result_count, 0.05, start_time)
         
@@ -456,7 +457,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
     
         # Build results dictionary
         assembled = {'pos':pos_df, 'qual':qual_df, 'nuc':nuc_df, 'set':set_df, 'dist': dist_df, 'thresh': thresh_df}
-        
+
         # Write assembled error counts to output files
         out_files = writeResults(assembled, seq_file, out_args)
         
