@@ -231,17 +231,17 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
 
 def printLog(record, handle=sys.stdout, inset=None):
     """
-    Formats a dictionary into an IgPipeline log string
+    Formats a dictionary into a log string
 
     Arguments:
-      record : a dict or OrderedDict of field names mapping to values
+      record : a dict or OrderedDict of field names mapping to values.
       handle : the file handle to write the log to;
-               if None do not write to file
+               if None do not write to file.
       inset : minimum field name inset;
-              if None automatically space field names
+              if None automatically space field names.
 
     Returns:
-      str : Formatted multi-line string in IgPipeline log format
+      str: Formatted multi-line string in the log format.
     """
     # Return empty string if empty dictionary passed
     if not record:
@@ -264,7 +264,7 @@ def printLog(record, handle=sys.stdout, inset=None):
         try:
             handle.write('%s\n' % record_str)
         except IOError as e:
-            sys.stderr.write('I/O error writing to log file: %s\n' % e.strerror)
+            printWarning('I/O error writing to log file: %s' % e.strerror)
 
     return record_str
 
@@ -279,9 +279,6 @@ def printMessage(message, start_time=None, end=False, width=25):
                    if None do not add run time to progress
       end : If True print final message (add newline)
       width : Maximum number of characters for messages
-
-    Returns:
-      None
     """
     # Define progress bar
     bar = 'PROGRESS> %s |%s|' % (strftime('%H:%M:%S'), message.ljust(width))
@@ -298,52 +295,32 @@ def printMessage(message, start_time=None, end=False, width=25):
         print('\r%s' % bar, end='')
         sys.stdout.flush()
 
-    return None
 
-
-# TODO:  probably better to split this into printProgress and printCount (like printMessage)
-# TODO:  might be worth adding task argument for the name of the current operation.
-def printProgress(current, total=None, step=None, start_time=None, task=None, end=False):
+def printCount(current, step, start_time=None, task=None, end=False):
     """
     Prints a progress bar to standard out
 
     Arguments:
-      current : Count of completed tasks
-      total : Total task count; if None do not print percentage
-      step : Float defining the fractional progress increment to print if total is defined;
-             an int defining the progress increment to print at if total is not defined;
-             if None always output the progress
-      start_time : Task start time returned by time.time();
-                   if None do not add run time to progress
-      task : name of task to display
-      end : if True print final log (add newline)
-
-    Returns:
-      None
+      current (int): count of completed tasks.
+      step (int): an int defining the progress increment to print at.
+      start_time (time.time): task start time returned by time.time();
+                              if None do not add run time to progress
+      task (str): name of task to display.
+      end (bool): if True print final log (add newline).
     """
     try:
         # Check update condition
-        if total is None:
-            update = (current % step == 0)
-        else:
-            update = (current % math.ceil(step*total) == 0)
+        update = (current % step == 0)
     except:
         # Return on modulo by zero error
         return None
     else:
         # Check end condition and return if no update needed
-        if current == total:
-            end = True
         if not end and not update:
             return None
 
     # Define progress bar
-    if total is not None and total != 0:
-        p = float(current) / total
-        c = format(current, "%i,d" % len(format(total, ",d")))
-        bar = '%s |%-20s| %3.0f%% (%s)' % (strftime('%H:%M:%S'), '#' * int(p*20), p*100, c)
-    else:
-        bar = '%s (%s)' % (strftime('%H:%M:%S'), current)
+    bar = '%s (%s)' % (strftime('%H:%M:%S'), current)
 
     # Add run time to bar if start_time is specified
     if start_time is not None:
@@ -364,4 +341,77 @@ def printProgress(current, total=None, step=None, start_time=None, task=None, en
         print('\rPROGRESS> %s' % bar, end='')
         sys.stdout.flush()
 
-    return None
+
+def printProgress(current, total, step, start_time=None, task=None, end=False):
+    """
+    Prints a progress bar to standard out
+
+    Arguments:
+      current (int): count of completed tasks.
+      total (int): total task count.
+      step (float): float defining the fractional progress increment to print at.
+      start_time (float): task start time returned by time.time();
+                          if None do not add run time to progress
+      task (str): name of task to display.
+      end (bool): if True print final log (add newline).
+    """
+    try:
+        # Check update condition
+        update = (current % math.ceil(step*total) == 0)
+    except:
+        # Return on modulo by zero error
+        return None
+    else:
+        # Check end condition and return if no update needed
+        if current == total:
+            end = True
+        if not end and not update:
+            return None
+
+    # Define progress bar
+    p = float(current) / total
+    c = format(current, '%i,d' % len(format(total, ',d')))
+    bar = '%s |%-20s| %3.0f%% (%s)' % (strftime('%H:%M:%S'), '#' * int(p*20), p*100, c)
+
+    # Add run time to bar if start_time is specified
+    if start_time is not None:
+        bar = '%s %.1f min' % (bar, (time() - start_time)/60)
+
+    # Prefix with task
+    if task is not None:
+        bar = '[%s] %s' % (task, bar)
+
+    # Print progress bar
+    if current == 0:
+        print('PROGRESS> %s' % bar, end='')
+        sys.stdout.flush()
+    elif end:
+        print('\rPROGRESS> %s\n' % bar)
+        sys.stdout.flush()
+    else:
+        print('\rPROGRESS> %s' % bar, end='')
+        sys.stdout.flush()
+
+
+def printWarning(message):
+    """
+    Prints a warning to standard error
+
+    Arguments:
+      message (str): warning message.
+    """
+    sys.stderr.write('WARNING> %s\n' % message)
+
+
+def printError(message, exit=True):
+    """
+    Prints an error to standard error and exits
+
+    Arguments:
+      message (str): error message.
+      exit (bool): if True exit after the message.
+    """
+    if exit:
+        sys.exit('ERROR> %s\n' % message)
+    else:
+        sys.stderr.write('ERROR> %s\n' % message)

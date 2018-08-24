@@ -17,7 +17,7 @@ from time import time
 # Presto imports
 from presto.Defaults import default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.IO import getOutputHandle, printLog, printProgress
+from presto.IO import getOutputHandle, printLog, printCount
 
 
 def parseLogRecord(record):
@@ -76,7 +76,7 @@ def tableLog(record_file, fields, out_args=default_out_args):
     for line in log_handle:
         if line.strip() == '' and record:
             # Print progress for previous iteration
-            printProgress(rec_count, None, 1e5, start_time)
+            printCount(rec_count, 1e5, start_time=start_time)
             
             # Parse record block
             rec_count += 1
@@ -105,7 +105,7 @@ def tableLog(record_file, fields, out_args=default_out_args):
                 fail_count += 1
     
     # Print counts
-    printProgress(rec_count, None, 1e5, start_time, end=True)
+    printCount(rec_count, 1e5, start_time, end=True)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['RECORDS'] = rec_count

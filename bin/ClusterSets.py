@@ -26,7 +26,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.Applications import runCDHit, runUClust
 from presto.IO import countSeqFile, getFileType, getOutputHandle, printLog, printMessage, \
-                      printProgress, readSeqFile
+                      printProgress, readSeqFile, printError, printWarning
 from presto.Sequence import indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
@@ -117,14 +117,13 @@ def processCSQueue(alive, data_queue, result_queue,
             # Feed results to result queue
             result_queue.put(result)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
 
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence set with ID: %s.\n' % data.id)
-
+        printError('Error processing sequence set with ID: %s.' % data.id, exit=False)
         raise
 
     return None
@@ -302,7 +301,7 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
     start_time = time()
     rec_count = pass_count = 0
     for cluster, id_list in cluster_dict.items():
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += len(id_list)
 
         # Define output sequences
@@ -313,7 +312,7 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
         SeqIO.write(seq_output, pass_handle, out_args['out_type'])
 
     # Update progress
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
 
     # Print log
     log = OrderedDict()
@@ -418,7 +417,7 @@ def clusterBarcodes(seq_file, ident=default_ident,
     start_time = time()
     rec_count = pass_count = 0
     for cluster, id_list in cluster_dict.items():
-        printProgress(rec_count, result_count, 0.05, start_time)
+        printProgress(rec_count, result_count, 0.05, start_time=start_time)
         rec_count += len(id_list)
 
         # TODO:  make a generator. Figure out how to get pass_count updated
@@ -430,7 +429,7 @@ def clusterBarcodes(seq_file, ident=default_ident,
         SeqIO.write(seq_output, pass_handle, out_args['out_type'])
 
     # Update progress
-    printProgress(rec_count, result_count, 0.05, start_time)
+    printProgress(rec_count, result_count, 0.05, start_time=start_time)
 
     # Print log
     log = OrderedDict()

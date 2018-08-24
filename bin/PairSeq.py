@@ -99,7 +99,7 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
     rec_count = pair_count = 0
     for seq_2 in seq_iter_2:
         # Print progress for previous iteration
-        printProgress(rec_count, seq_count_2, 0.05, start_time)
+        printProgress(rec_count, seq_count_2, 0.05, start_time=start_time)
         rec_count += 1
 
         # Check for file 2 mate pair in file 1
@@ -157,7 +157,7 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
             else:  SeqIO.write(seq_2, fail_handle_2, out_type_2)
 
     # Print final progress
-    printProgress(rec_count, seq_count_2, 0.05, start_time)
+    printProgress(rec_count, seq_count_2, 0.05, start_time=start_time)
 
     # Find and write unpaired file 1 records
     if out_args['failed']:

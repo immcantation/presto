@@ -24,7 +24,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Sequence import indexSeqSets, subsetSeqIndex
 from presto.Annotation import parseAnnotation, getAnnotationValues, getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
-                      printLog, printMessage, printProgress
+                      printLog, printMessage, printProgress, printCount
 
  
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
@@ -61,7 +61,7 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     out_files = [out_handle.name]
     for seq in seq_iter:
         # Print progress for previous iteration
-        printProgress(seq_count, rec_count, 0.05, start_time)
+        printProgress(seq_count, rec_count, 0.05, start_time=start_time)
         
         # Update count
         seq_count += 1
@@ -81,7 +81,7 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
             out_files.append(out_handle.name)
     
     # Print log
-    printProgress(seq_count, rec_count, 0.05, start_time)
+    printProgress(seq_count, rec_count, 0.05, start_time=start_time)
     log = OrderedDict()
     for i, f in enumerate(out_files): 
         log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
@@ -161,7 +161,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
         
         # Iterate over sequences
         for seq in seq_iter:
-            printProgress(seq_count, rec_count, 0.05, start_time)
+            printProgress(seq_count, rec_count, 0.05, start_time=start_time)
             seq_count += 1
             # Write sequences
             tag = parseAnnotation(seq.description, delimiter=out_args['delimiter'])[field]                
@@ -183,7 +183,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
         
         # Iterate over sequences
         for seq in seq_iter:
-            printProgress(seq_count, rec_count, 0.05, start_time)
+            printProgress(seq_count, rec_count, 0.05, start_time=start_time)
             seq_count += 1
             # Write sequences
             tag = parseAnnotation(seq.description, delimiter=out_args['delimiter'])[field]
@@ -191,7 +191,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
             SeqIO.write(seq, handles_dict[tag], out_args['out_type'])
     
     # Print log
-    printProgress(seq_count, rec_count, 0.05, start_time)
+    printProgress(seq_count, rec_count, 0.05, start_time=start_time)
     log = OrderedDict()
     for i, k in enumerate(handles_dict): 
         log['OUTPUT%i' % (i + 1)] = os.path.basename(handles_dict[k].name)
@@ -503,7 +503,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     seq_count = chunk_count = 0
     for key in sorted_keys:
         # Print progress for previous iteration and update count
-        printProgress(seq_count, rec_count, 0.05, start_time)
+        printProgress(seq_count, rec_count, 0.05, start_time=start_time)
         seq_count += 1
 
         # Write saved group of sequences when tag changes
@@ -545,7 +545,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
         last_tag = tag_dict[key]
         
     # Print log
-    printProgress(seq_count, rec_count, 0.05, start_time)
+    printProgress(seq_count, rec_count, 0.05, start_time=start_time)
     log = OrderedDict()
     for i, f in enumerate(out_files): 
         log['OUTPUT%i' % (i + 1)] = os.path.basename(f)
@@ -625,7 +625,7 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
     pass_count, fail_count, rec_count = 0, 0, 0
     value_set = set(value_list)
     for rec in seq_iter:
-        printProgress(rec_count, None, 1e5, start_time)
+        printCount(rec_count, 1e5, start_time=start_time)
         rec_count += 1
 
         # Parse annotations into a list of values
@@ -640,7 +640,7 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
         else:
             fail_count += 1
 
-    printProgress(rec_count, None, 1e5, start_time, end=True)
+    printCount(rec_count, 1e5, start_time=start_time, end=True)
 
     # Print log
     log = OrderedDict()

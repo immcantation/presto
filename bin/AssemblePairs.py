@@ -32,7 +32,7 @@ from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotatio
                               getCoordKey
 from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast
 from presto.IO import getFileType, readReferenceFile, readSeqFile, countSeqFile, \
-                      getOutputHandle, printLog, printProgress
+                      getOutputHandle, printLog, printProgress, printError, printWarning
 from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
 from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
 
@@ -251,7 +251,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_mi
             # Tail is a subsequence of head
             stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
         else:
-            sys.stderr.write('ERROR:  Invalid overlap condition for %s\n' % head_seq.id)
+            printWarning('Invalid overlap condition for %s' % head_seq.id)
 
         # Define stitch ID
         stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
@@ -476,7 +476,7 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
             # Tail is a subsequence of head
             stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
         else:
-            sys.stderr.write('ERROR:  Invalid overlap condition for %s\n' % head_seq.id)
+            printWarning('Invalid overlap condition for %s.' % head_seq.id)
 
 
         # Define best stitch ID
@@ -590,7 +590,7 @@ def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
             # Feed queue
             data_queue.put(SeqData(*data))
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
@@ -768,7 +768,7 @@ def collectPairQueue(alive, result_queue, collect_queue, result_count,
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(iter_count, result_count, 0.05, start_time)
+            printProgress(iter_count, result_count, 0.05, start_time=start_time)
     
             # Update counts for iteration
             iter_count += 1
@@ -786,12 +786,12 @@ def collectPairQueue(alive, result_queue, collect_queue, result_count,
                     SeqIO.write(result.data[0], fail_handle_1, out_type)
                     SeqIO.write(result.data[1], fail_handle_2, out_type)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
         
         # Print total counts
-        printProgress(iter_count, result_count, 0.05, start_time)
+        printProgress(iter_count, result_count, 0.05, start_time=start_time)
     
         # Update return values
         log = OrderedDict()

@@ -27,7 +27,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Annotation import parseAnnotation
 from presto.Applications import runMuscle
 from presto.Sequence import calculateDiversity, indexSeqSets
-from presto.IO import readPrimerFile, getOutputHandle, printLog
+from presto.IO import readPrimerFile, getOutputHandle, printLog, printWarning, printError
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
@@ -256,12 +256,12 @@ def processASQueue(alive, data_queue, result_queue, align_func, align_args={},
             # Feed results to result queue
             result_queue.put(result)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence set with ID: %s.\n' % data.id)
+        printError('Processing sequence set with ID: %s.' % data.id, exit=False)
         raise
     
     return None

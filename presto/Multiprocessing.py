@@ -17,7 +17,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from presto.IO import getFileType, readSeqFile, countSeqFile, countSeqSets, \
-                      getOutputHandle, printLog, printProgress
+                      getOutputHandle, printLog, printProgress, printWarning, printError
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -169,7 +169,7 @@ def manageProcesses(feed_func, work_func, collect_func,
 
     # Define function to terminate child processes
     def _terminate():
-        sys.stderr.write('Terminating child processes...')
+        sys.stderr.write('NOTICE> Terminating child processes...')
         # Terminate feeders
         feeder.terminate()
         feeder.join()
@@ -237,20 +237,20 @@ def manageProcesses(feed_func, work_func, collect_func,
         # Get collector return values
         collected = collect_queue.get()
     except (KeyboardInterrupt, SystemExit):
-        sys.stderr.write('Exit signal received\n')
+        sys.stderr.write('NOTICE> Exit signal received\n')
         _terminate()
         sys.exit()
     except Exception as e:
-        sys.stderr.write('ERROR:  %s\n' % e)
+        printError('%s.' % e, exit=False)
         _terminate()
         sys.exit()
     except:
-        sys.stderr.write('ERROR:  Exiting with unknown exception\n')
+        printError('Exiting with unknown exception.', exit=False)
         _terminate()
         sys.exit()
     else:
         if not alive.value:
-            sys.stderr.write('ERROR:  Exiting due to child process error\n')
+            printError('Exiting due to child process error.', exit=False)
             _terminate()
             sys.exit()
 
@@ -299,7 +299,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
             # Feed queue
             data_queue.put(SeqData(*data))
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
@@ -344,12 +344,12 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
             # Feed results to result queue
             result_queue.put(result)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence with ID: %s.\n' % data.id)
+        printError('Error processing sequence with ID: %s.' % data.id, exit=False)
         raise
 
     return None
@@ -424,7 +424,7 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file,
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(set_count, result_count, 0.05, start_time)
+            printProgress(set_count, result_count, 0.05, start_time=start_time)
 
             # Update counts for current iteration
             set_count += 1
@@ -442,12 +442,12 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file,
                 if fail_handle is not None:
                     SeqIO.write(result.data, fail_handle, out_type)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
 
         # Print total counts
-        printProgress(set_count, result_count, 0.05, start_time)
+        printProgress(set_count, result_count, 0.05, start_time=start_time)
 
         # Update return values
         log = OrderedDict()

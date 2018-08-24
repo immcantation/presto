@@ -365,7 +365,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
     seq_count = pass_count = fail_count = 0
     for seq in seq_iter:
         # Print progress for previous iteration and update count
-        printProgress(seq_count, result_count, 0.05, start_time)
+        printProgress(seq_count, result_count, 0.05, start_time=start_time)
         seq_count += 1
 
         # Convert header
@@ -384,7 +384,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
                 SeqIO.write(seq, fail_handle, out_args['out_type'])
 
     # Print counts
-    printProgress(seq_count, result_count, 0.05, start_time)
+    printProgress(seq_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['SEQUENCES'] = seq_count

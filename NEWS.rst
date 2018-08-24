@@ -1,6 +1,15 @@
 Release Notes
 ================================================================================
 
+Version 0.5.8.999:  August 24, 2018
+-------------------------------------------------------------------------------
+
++ Added ``IO.printWarning`` and ``IO.printError`` API functions for handling standard error
+  messaging.
++ Split ``IO.printProgress`` API function into ``IO.printProgress`` (percentage)
+  and ``IO.printCount`` (raw counts).
+
+
 Version 0.5.8:  July 13, 2018
 -------------------------------------------------------------------------------
 

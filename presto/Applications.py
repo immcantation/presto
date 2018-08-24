@@ -24,7 +24,7 @@ from Bio.SeqRecord import SeqRecord
 from presto.Defaults import default_muscle_exec, default_usearch_exec, \
                             default_blastn_exec, default_blastdb_exec, \
                             default_cdhit_exec
-from presto.IO import readReferenceFile
+from presto.IO import readReferenceFile, printError, printWarning
 
 # Defaults
 default_cluster_ident = 0.9
@@ -129,8 +129,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
     except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     # Parse the results of usearch
     # Output columns for the usearch 'uc' output format
@@ -208,8 +207,7 @@ def runCDHit(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
     except CalledProcessError as e:
-        sys.stderr.write('\nError running command: %s\n' % ' '.join(cmd))
-        sys.exit(e.output)
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     # Parse the results of CD-HIT
     # Output of the .clstr file

@@ -233,7 +233,7 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
     seq_count = 0
     for seq in seq_iter:
         # Print progress for previous iteration
-        printProgress(seq_count, result_count, 0.05, start_time)
+        printProgress(seq_count, result_count, 0.05, start_time=start_time)
         
         #Update counts
         seq_count += 1
@@ -248,7 +248,7 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
         SeqIO.write(seq, out_handle, out_args['out_type'])
         
     # print counts
-    printProgress(seq_count, result_count, 0.05, start_time)    
+    printProgress(seq_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['SEQUENCES'] = seq_count
@@ -296,7 +296,7 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     seq_count = pass_count = fail_count = 0
     for seq in seq_iter:
         # Print progress for previous iteration
-        printProgress(seq_count, result_count, 0.05, start_time)
+        printProgress(seq_count, result_count, 0.05, start_time=start_time)
         
         # Get annotations
         seq_count += 1
@@ -310,7 +310,7 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
             fail_count += 1
         
     # Print counts
-    printProgress(seq_count, result_count, 0.05, start_time)
+    printProgress(seq_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['SEQUENCES'] = seq_count

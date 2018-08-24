@@ -21,7 +21,8 @@ from time import time
 from presto.Defaults import default_barcode_field, default_missing_chars, \
                             default_min_freq, default_min_qual, default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress
+from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress, \
+                      printWarning, printError
 from presto.Sequence import getDNAScoreDict, calculateDiversity, qualityConsensus, \
                             frequencyConsensus, indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
@@ -189,12 +190,12 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             result.results.update(mismatch)
             result_queue.put(result)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
     except:
         alive.value = False
-        sys.stderr.write('Error processing sequence set with ID: %s.\n' % data.id)
+        printError('Error processing sequence set with ID: %s.' % data.id, exit=False)
         raise
 
     return None
@@ -263,7 +264,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             if result is None:  break
 
             # Print progress for previous iteration
-            printProgress(set_count, result_count, 0.05, start_time)
+            printProgress(set_count, result_count, 0.05, start_time=start_time)
             
             # Update counts for iteration
             set_count += 1
@@ -279,7 +280,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             # Write log
             printLog(result.log, handle=log_handle)
         else:
-            sys.stderr.write('PID %s:  Error in sibling process detected. Cleaning up.\n' \
+            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
             return None
         
@@ -297,7 +298,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         set_df = pd.DataFrame.from_dict(total_mismatch['set'])
 
         # Print final progress
-        printProgress(set_count, result_count, 0.05, start_time)
+        printProgress(set_count, result_count, 0.05, start_time=start_time)
         
         # Generate log
         log = OrderedDict()
