@@ -8,7 +8,6 @@ from presto import __version__, __date__
 
 # Imports
 import os
-import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import groupby

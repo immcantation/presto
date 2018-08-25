@@ -7,7 +7,6 @@ from presto import __version__, __date__
 
 # Imports
 import re
-import sys
 from collections import OrderedDict
 from itertools import product, zip_longest
 from Bio import pairwise2
@@ -21,7 +20,7 @@ from presto.Defaults import default_delimiter, default_barcode_field, default_pr
                             default_min_freq, default_min_qual, \
                             default_gap_penalty, default_max_error, default_max_len, default_start
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
-from presto.IO import printError, printWarning
+from presto.IO import printWarning, printError
 
 
 class PrimerAlignment:

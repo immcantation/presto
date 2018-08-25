@@ -8,7 +8,6 @@ from presto import __version__, __date__
 # Imports
 import math
 import os
-import re
 import sys
 from collections import OrderedDict
 from time import time, strftime
@@ -18,7 +17,6 @@ from Bio.Alphabet import IUPAC
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field
 from presto.Annotation import parseAnnotation
-from presto.Sequence import translateAmbigDNA
 
 
 def readPrimerFile(primer_file):
@@ -26,26 +24,14 @@ def readPrimerFile(primer_file):
     Processes primer sequences from file
 
     Arguments:
-      primer_file : name of file containing primer sequences
+      primer_file (str): name of the FASTA file containing primer sequences.
 
     Returns:
-      dict : Dictionary mapping primer id to primer sequence
+      dict: Dictionary mapping primer ID to sequence.
     """
-
-    # Parse primers from .fasta and .regex files
-    ext_name = os.path.splitext(primer_file)[1]
-    if ext_name == '.fasta':
-        with open(primer_file, 'r') as primer_handle:
-            primer_iter = SeqIO.parse(primer_handle, 'fasta', IUPAC.ambiguous_dna)
-            primers = {p.description: str(p.seq).upper()
-                        for p in primer_iter}
-    elif ext_name == '.regex':
-        with open(primer_file, 'r') as primer_handle:
-            primer_list = [a.split(':') for a in primer_handle]
-            primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateAmbigDNA, a[1].strip().upper())
-                        for a in primer_list}
-    else:
-        printError('The primer file %s is not a supported type.' % ext_name.upper())
+    with open(primer_file, 'r') as primer_handle:
+        primer_iter = SeqIO.parse(primer_handle, 'fasta', IUPAC.ambiguous_dna)
+        primers = {p.description: str(p.seq).upper() for p in primer_iter}
 
     return primers
 

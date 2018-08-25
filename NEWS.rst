@@ -1,13 +1,17 @@
 Release Notes
 ================================================================================
 
-Version 0.5.8.999:  August 24, 2018
+Version 0.5.8.999:  August 25, 2018
 -------------------------------------------------------------------------------
 
 + Added ``IO.printWarning`` and ``IO.printError`` API functions for handling standard error
   messaging.
 + Split ``IO.printProgress`` API function into ``IO.printProgress`` (percentage)
   and ``IO.printCount`` (raw counts).
+
+MaskPrimers:
+
++ Removed support for the regex primer file format.
 
 
 Version 0.5.8:  July 13, 2018

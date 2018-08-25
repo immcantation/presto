@@ -9,7 +9,6 @@ from presto import __version__, __date__
 import csv
 import os
 import re
-import sys
 import tempfile
 import pandas as pd
 from io import StringIO

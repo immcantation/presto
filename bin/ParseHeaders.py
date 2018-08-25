@@ -11,7 +11,6 @@ import csv
 import os
 from argparse import ArgumentParser
 from collections import OrderedDict
-
 from textwrap import dedent
 from time import time
 from Bio import SeqIO

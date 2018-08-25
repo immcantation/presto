@@ -13,7 +13,6 @@ import numpy as np
 import pandas as pd
 from argparse import ArgumentParser
 from collections import OrderedDict, Counter
-from itertools import permutations
 from textwrap import dedent
 from time import time
 
