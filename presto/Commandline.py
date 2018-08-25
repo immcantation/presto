@@ -42,25 +42,27 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
     pass
 
 
-def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_out=False,
-                       failed=True, log=True, annotation=True, multiproc=False, add_help=True):
+def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False, db_out=False,
+                       out_file=False, failed=True, log=True, annotation=True,
+                       multiproc=False, add_help=True):
     """
     Defines an ArgumentParser object with common pRESTO arguments
 
     Arguments: 
-      seq_in : If True include sequence input arguments.
-      seq_out : If True include sequence output arguments.
-      paired : If True defined paired-end sequence input and output arguments.
-      db_in : If True include tab delimited database input arguments.
-      db_out : If True include tab delimited database output arguments.
-      failed : If True include arguments for output of failed results.
-      log : If True include log arguments.
-      annotation : If True include annotation arguments.
-      multiproc : If True include multiprocessing arguments.
-      add_help : If True add help and version arguments.
+      seq_in (bool): if True include sequence input arguments.
+      seq_out (bool): if True include sequence output arguments.
+      seq_paired (bool): if True defined paired-end sequence input and output arguments.
+      db_in (bool): if True include tab-delimited database input arguments.
+      db_out (bool): if True include tab-delimited database output arguments.
+      out_file (bool): if True add explicit output file name arguments.
+      failed (bool): If True include arguments for output of failed results.
+      log (bool): If True include log arguments.
+      annotation (bool): If True include annotation arguments.
+      multiproc (bool): If True include multiprocessing arguments.
+      add_help (bool): If True add help and version arguments.
     
     Returns:
-      ArgumentParser : An ArgumentParser object.
+      argparse.ArgumentParser: ArgumentParser object.
     """
     parser = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
 
@@ -75,10 +77,10 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
     group = parser.add_argument_group('standard arguments')
 
     # Sequence input arguments
-    if seq_in and not paired:
+    if seq_in and not seq_paired:
         group.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
                             help='A list of FASTA/FASTQ files containing sequences to process.')
-    elif seq_in and paired:
+    elif seq_in and seq_paired:
         group.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
                             help='''An ordered list of FASTA/FASTQ files containing
                                  head/primary sequences.''')
@@ -94,17 +96,12 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
         # Place holder for the future
         pass
 
-    # Log arguments
-    if log:
-        group.add_argument('--log', action='store', dest='log_file', default=None,
-                            help='''Specify to write verbose logging to a file. May not be
-                                  specified with multiple input files.''')
-
-    # Failed result arguments
-    if failed:
-        group.add_argument('--failed', action='store_true', dest='failed',
-                            help='''If specified create files containing records that
-                                  fail processing.''')
+    # Output filename
+    if out_file:
+        group.add_argument('-o', nargs='+', action='store', dest='out_files', default=None,
+                           help='''Explicit output file name. Note, this argument cannot be used with 
+                                 the --failed, --outdir, or --outname arguments. If unspecified, then
+                                 the output filename will be based on the input filename(s).''')
 
     # Universal arguments
     group.add_argument('--outdir', action='store', dest='out_dir', default=None,
@@ -114,6 +111,17 @@ def getCommonArgParser(seq_in=True, seq_out=True, paired=False, db_in=False, db_
                         help='Changes the prefix of the successfully processed output file \
                               to the string specified. May not be specified with multiple \
                               input files.')
+
+    # Log arguments
+    if log:
+        group.add_argument('--log', action='store', dest='log_file', default=None,
+                            help='''Specify to write verbose logging to a file. May not be
+                                  specified with multiple input files.''')
+    # Failed result arguments
+    if failed:
+        group.add_argument('--failed', action='store_true', dest='failed',
+                            help='''If specified create files containing records that
+                                  fail processing.''')
 
     # Output format
     if seq_out:
@@ -159,34 +167,30 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
     args_dict = args.__dict__.copy()
     
     # Count input files
-    if 'db_files' in args_dict:      
-        input_count = len(args_dict['db_files'] or [])
-    elif 'seq_files' in args_dict:       
+    if 'seq_files' in args_dict:
         input_count = len(args_dict['seq_files']  or [])
+        input_files = args_dict['seq_files']
     elif all([k in args_dict for k in ('seq_files_1', 'seq_files_2')]):
         input_count = len(args_dict['seq_files_1']  or [])
-    elif 'primer_file' in args_dict:   
+        input_files = args_dict['seq_files_1'] + args_dict['seq_files_2']
+    elif 'db_files' in args_dict:
+        input_count = len(args_dict['db_files'] or [])
+        input_files = args_dict['db_files']
+    elif 'primer_file' in args_dict:
         input_count = 1
+        input_files = args_dict['primer_file']
     elif in_arg is not None and in_arg in args_dict: 
         input_count = len(args_dict[in_arg] or [])
+        input_files = args_dict[in_arg]
     else:
         printError('Cannot determine input file argument.')
-    
+
     # Exit if output names or log files are specified with multiple input files    
     if args_dict.get('out_name', None) is not None and input_count > 1:
         printError('The --outname argument may not be specified with multiple input files.')
     if args_dict.get('log_file', None) is not None and input_count > 1:
         printError('The --log argument may not be specified with multiple input files.')
-        
-    # Verify database files
-    if 'db_files' in args_dict and args_dict['db_files']:
-        for f in args_dict['db_files']:
-            if not os.path.isfile(f):
-                printError('Database file %s does not exist.' % f)
-            if getFileType(f) not in db_types:
-                printError('Database file %s is not a supported type. Must be one: %s.' \
-                           % (f, ', '.join(db_types)))
-    
+
     # Verify single-end sequence files
     if 'seq_files' in args_dict and args_dict['seq_files']:
         for f in args_dict['seq_files']:
@@ -209,7 +213,16 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
             if getFileType(f) not in seq_types:
                 printError('Sequence file %s is not a supported type. Must be one: %s.' \
                            % (f, ', '.join(seq_types)))
-                    
+
+    # Verify database files
+    if 'db_files' in args_dict and args_dict['db_files']:
+        for f in args_dict['db_files']:
+            if not os.path.isfile(f):
+                printError('Database file %s does not exist.' % f)
+            if getFileType(f) not in db_types:
+                printError('Database file %s is not a supported type. Must be one: %s.' \
+                           % (f, ', '.join(db_types)))
+
     # Verify primer file
     if 'primer_file' in args_dict and args_dict['primer_file']:
         primer_file = args_dict['primer_file']
@@ -218,7 +231,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
         if getFileType(primer_file) not in primer_types:
             printError('Primer file %s is not a supported type. Must be one: %s.' \
                        % (primer_file, ', '.join(primer_types)))
-    
+
     # Verify non-standard input files
     if in_arg is not None and in_arg in args_dict and args_dict[in_arg]:
         files = args_dict[in_arg] if isinstance(args_dict[in_arg], list) \
@@ -230,6 +243,30 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
                 printError('Input %s is not a supported type. Must be one: %s.' \
                            % (f, ', '.join(in_types)))
     
+    # Verify output file arguments and exit if anything is hinky
+    if args_dict.get('out_files', None) is not None \
+            or args_dict.get('out_file', None) is not None:
+        if args_dict.get('out_dir', None) is not None:
+            printError('The -o argument may not be specified with the --outdir argument.')
+        if args_dict.get('out_name', None) is not None:
+            printError('The -o argument may not be specified with the --outname argument.')
+        if args_dict.get('failed', False):
+            printError('The -o argument may not be specified with the --failed argument.')
+    if args_dict.get('out_files', None) is not None:
+        if len(args_dict['out_files']) != input_count:
+            printError('The -o argument requires one output file name per input file.')
+        for f in args_dict['out_files']:
+            if f in input_files:
+                printError('Output files and input files cannot have the same names.')
+        for f in args_dict['out_files']:
+            if os.path.isfile(f):
+                printWarning('Output file %s already exists and will be overwritten.' % f)
+    if args_dict.get('out_file', None) is not None:
+        if args_dict['out_file'] in input_files:
+            printError('Output files and input files cannot have the same names.')
+        if os.path.isfile(args_dict['out_file']):
+            printWarning('Output file %s already exists and will be overwritten.' % args_dict['out_file'])
+
     # Verify output directory
     if 'out_dir' in args_dict and args_dict['out_dir']:
         if os.path.exists(args_dict['out_dir']) and not os.path.isdir(args_dict['out_dir']):

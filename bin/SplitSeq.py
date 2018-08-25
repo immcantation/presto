@@ -749,7 +749,7 @@ def getArgParser():
     
     # Subparser to randomly sample from paired files
     parser_sampair = subparsers.add_parser('samplepair',
-                                           parents=[getCommonArgParser(failed=False, paired=True, log=False)],
+                                           parents=[getCommonArgParser(failed=False, seq_paired=True, log=False)],
                                            formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Randomly samples from paired-end sequences files.',
                                            description='Randomly samples from paired-end sequences files.')

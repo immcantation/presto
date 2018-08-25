@@ -979,7 +979,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser    
-    parent_parser = getCommonArgParser(paired=True, multiproc=True)
+    parent_parser = getCommonArgParser(seq_paired=True, multiproc=True)
     group_parser = parent_parser.add_argument_group('format arguments')
     group_parser.add_argument('--coord', action='store', dest='coord_type',
                               choices=choices_coord, default=default_coord,
