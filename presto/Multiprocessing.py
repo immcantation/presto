@@ -169,7 +169,7 @@ def manageProcesses(feed_func, work_func, collect_func,
 
     # Define function to terminate child processes
     def _terminate():
-        sys.stderr.write('NOTICE> Terminating child processes...')
+        sys.stderr.write('NOTICE> Terminating child processes...  ')
         # Terminate feeders
         feeder.terminate()
         feeder.join()
@@ -180,7 +180,7 @@ def manageProcesses(feed_func, work_func, collect_func,
         # Terminate collector
         collector.terminate()
         collector.join
-        sys.stderr.write('  Done.\n')
+        sys.stderr.write('Done.\n')
 
     # Raise SystemExit upon termination signal
     signal.signal(signal.SIGTERM, _signalHandler)
@@ -237,7 +237,7 @@ def manageProcesses(feed_func, work_func, collect_func,
         # Get collector return values
         collected = collect_queue.get()
     except (KeyboardInterrupt, SystemExit):
-        sys.stderr.write('NOTICE> Exit signal received\n')
+        sys.stderr.write('NOTICE> Exit signal received.\n')
         _terminate()
         sys.exit()
     except Exception as e:

@@ -175,7 +175,7 @@ def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None,
     try:
         cluster_func = map_cluster_tool.get(cluster_tool)
     except:
-        sys.exit('ERROR: Invalid clustering tool %s' % cluster_tool)
+        printError('Invalid clustering tool %s.' % cluster_tool)
 
     # Define cluster function parameters
     cluster_args = {'cluster_exec': cluster_exec,
@@ -269,7 +269,7 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
     try:
         cluster_func = map_cluster_tool.get(cluster_tool)
     except:
-        sys.exit('ERROR: Invalid clustering tool %s' % cluster_tool)
+        printError('Invalid clustering tool %s.' % cluster_tool)
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
@@ -386,7 +386,7 @@ def clusterBarcodes(seq_file, ident=default_ident,
     try:
         cluster_func = map_cluster_tool.get(cluster_tool)
     except:
-        sys.exit('ERROR: Invalid clustering tool %s' % cluster_tool)
+        printError('Invalid clustering tool %s.' % cluster_tool)
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)

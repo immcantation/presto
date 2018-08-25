@@ -166,7 +166,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_mi
     try:
         align_func = {'blastn': runBlastn, 'usearch': runUBlast}[aligner]
     except:
-        sys.exit('ERROR: Invalid alignment tool %s' % aligner)
+        printError('Invalid alignment tool %s.' % aligner)
 
     # Define general parameters
     head_len = len(head_seq)
@@ -875,7 +875,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     head_count = countSeqFile(head_file)
     tail_count = countSeqFile(tail_file)
     if head_count != tail_count:
-        sys.exit('Error: FILE1 (n=%i) and FILE2 (n=%i) must have the same number of records' \
+        printError('FILE1 (n=%i) and FILE2 (n=%i) must have the same number of records.' \
                  % (head_count, tail_count))
 
     # Setup for reference alignment
@@ -892,8 +892,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
             ref_db, db_handle = db_func(ref_file, db_exec)
             assemble_args['ref_db'] = ref_db
         except:
-            sys.exit('Error: Error building reference database for aligner %s with executable' \
-                     % (assemble_args['aligner'], db_exec))
+            printError('Error building reference database for aligner %s with executable %s.' \
+                       % (assemble_args['aligner'], db_exec))
 
     # Define feeder function and arguments
     feed_func = feedPairQueue
@@ -930,7 +930,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
         except AttributeError:
             db_handle.cleanup()
         except:
-            sys.exit('Error: Cannot close reference database file')
+            printError('Cannot close reference database file.')
 
     # Print log
     log = OrderedDict()

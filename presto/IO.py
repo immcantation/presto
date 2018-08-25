@@ -45,8 +45,7 @@ def readPrimerFile(primer_file):
             primers = {a[0].strip(): re.sub(r'\[([^\[^\]]+)\]', translateAmbigDNA, a[1].strip().upper())
                         for a in primer_list}
     else:
-        sys.exit('ERROR:  The primer file %s is not a supported type' % ext_name.upper())
-        primers = None
+        printError('The primer file %s is not a supported type.' % ext_name.upper())
 
     return primers
 
@@ -68,9 +67,10 @@ def getFileType(filename):
         elif file_type in ('fastq', 'fq'):  file_type = 'fastq'
         elif file_type in ('tab', 'tsv'):  file_type = 'tab'
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % filename)
+        printError('File %s cannot be read.' % filename)
     except Exception as e:
-        sys.exit('ERROR:  File %s is invalid with exception %s' % (filename, e))
+        printError('File %s is invalid with exception: %s.' % (filename, e))
+
     return file_type
 
 
@@ -93,7 +93,7 @@ def readSeqFile(seq_file, index=False, key_func=None):
     try:
         seq_type = getFileType(seq_file)
         if seq_type not in ('fasta', 'fastq'):
-           sys.exit('ERROR:  File %s has an unrecognized type' % seq_file)
+            printError('File %s has an unrecognized type.' % seq_file)
 
         if index:
             seq_records = SeqIO.index(seq_file, seq_type,
@@ -103,9 +103,9 @@ def readSeqFile(seq_file, index=False, key_func=None):
             seq_records = SeqIO.parse(seq_file, seq_type,
                                       alphabet=IUPAC.ambiguous_dna)
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % seq_file)
+        printError('File %s cannot be read.' % seq_file)
     except Exception as e:
-        sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
+        printError('File %s is invalid with exception: %s.' % (seq_file, e))
 
     return seq_records
 
@@ -145,11 +145,11 @@ def countSeqFile(seq_file):
     try:
         result_count = len(readSeqFile(seq_file, index=True))
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % seq_file)
+        printError('File %s cannot be read.' % seq_file)
     except Exception as e:
-        sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
+        printError('File %s is invalid with exception %s.' % (seq_file, e))
     else:
-        if result_count == 0:  sys.exit('ERROR:  File %s is empty' % seq_file)
+        if result_count == 0:  printError('File %s is empty.' % seq_file)
 
     return result_count
 
@@ -173,11 +173,11 @@ def countSeqSets(seq_file, field=default_barcode_field, delimiter=default_delimi
             id_set.add(parseAnnotation(seq.description, delimiter=delimiter)[field])
         result_count = len(id_set)
     except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % seq_file)
+        printError('File %s cannot be read.' % seq_file)
     except Exception as e:
-        sys.exit('ERROR:  File %s is invalid with exception %s' % (seq_file, e))
+        printError('File %s is invalid with exception %s.' % (seq_file, e))
     else:
-        if result_count == 0:  sys.exit('ERROR:  File %s is empty' % seq_file)
+        if result_count == 0:  printError('File %s is empty.' % seq_file)
 
     return result_count
 
@@ -226,7 +226,7 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
         # TODO:  mode may need to be 'wt'. or need universal_newlines=True all over the place. check tab file parsing.
         return open(out_file, 'w')
     except:
-        sys.exit('ERROR:  File %s cannot be opened' % out_file)
+        printError('File %s cannot be opened.' % out_file)
 
 
 def printLog(record, handle=sys.stdout, inset=None):

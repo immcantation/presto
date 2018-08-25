@@ -77,7 +77,7 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
             new_rec.seq += '-' * (max_len - len(new_rec.seq))
             align_list.append(new_rec)
     else:
-        sys.exit('offsettSeqList error:  invalid offset mode')
+        printError('Invalid offset mode.')
 
     # Convert list to MultipleSeqAlignment object
     align = MultipleSeqAlignment(align_list)

@@ -273,7 +273,7 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
                                   universal_newlines=True)
     except:
         seq_handle.close()
-        sys.exit('Error: failed to make usearch database')
+        printError('Failed to make usearch database.')
 
     # Close temporary sequence file
     seq_handle.close()
@@ -314,7 +314,7 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
                                   universal_newlines=True)
     except:
         seq_handle.close()
-        sys.exit('Error: failed to make blastn database')
+        printError('Failed to make blastn database.')
 
     # Close temporary sequence file
     seq_handle.close()

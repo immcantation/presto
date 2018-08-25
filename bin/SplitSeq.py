@@ -24,7 +24,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Sequence import indexSeqSets, subsetSeqIndex
 from presto.Annotation import parseAnnotation, getAnnotationValues, getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
-                      printLog, printMessage, printProgress, printCount
+                      printLog, printMessage, printProgress, printCount, printWarning, printError
 
  
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
@@ -144,11 +144,11 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                 #print file_limit, file_count
                 resource.setrlimit(resource.RLIMIT_NOFILE, (file_count, file_count))
             elif file_count > 8192:
-                e = '''ERROR: OS file limit would need to be set to %i.
+                e = '''OS file limit would need to be set to %i.
                     If you are sure you want to do this, then increase the 
                     file limit in the OS (via ulimit) and rerun this tool.
                     ''' % file_count
-                sys.exit(dedent(e))
+                printError(dedent(e))
             
         # Create output handles
         # out_label = '%s=%s' % (field, tag)
@@ -584,9 +584,9 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
                 for row in reader_dict:
                     field_list.append(row[field])
         except IOError:
-            sys.exit('ERROR:  File %s cannot be read' % value_file)
+            printError('File %s cannot be read.' % value_file)
         except:
-            sys.exit('ERROR:  File %s is invalid' % value_file)
+            printError('File %s is invalid.' % value_file)
             
         return field_list
 
@@ -605,7 +605,7 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
 
     # Read value_file
     if value_list is not None and value_file is not None:
-        sys.exit('ERROR:  specify only one of value_list and value_file')
+        printError('Specify only one of value_list and value_file.')
     elif value_file is not None:
         value_list = _read_file(value_file, field)
 

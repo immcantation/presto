@@ -470,7 +470,8 @@ def estimateError(seq_file, cons_func=frequencyConsensus, cons_args={},
     
     # Check input file type
     in_type = getFileType(seq_file)
-    if in_type != 'fastq':  sys.exit('ERROR:  Input file must be FASTQ')
+    if in_type != 'fastq':
+        printError('Input file must be FASTQ.')
     
         # Define feeder function and arguments
     index_args = {'field': set_field, 'delimiter': out_args['delimiter']}

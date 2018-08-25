@@ -20,7 +20,7 @@ from presto.Defaults import default_delimiter, default_barcode_field, \
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
                               annotationConsensus
-from presto.IO import getFileType, printLog, printWarning
+from presto.IO import getFileType, printLog, printWarning, printError
 from presto.Sequence import subsetSeqSet, calculateDiversity, \
                             qualityConsensus, frequencyConsensus, indexSeqSets, \
                             calculateSetError, deleteSeqPositions, findGapPositions
@@ -293,7 +293,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
         cons_func = frequencyConsensus
         cons_args = {'min_freq': min_freq}
     else:
-        sys.exit('ERROR:  Input file must be FASTA or FASTQ')
+        printError('Input file must be FASTA or FASTQ.')
     
     # Define feeder function and arguments
     index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}

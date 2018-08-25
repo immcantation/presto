@@ -20,7 +20,7 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_missing_chars, default_min_qual, default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.IO import getFileType, printLog
+from presto.IO import getFileType, printLog, printError, printWarning
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
 
@@ -318,7 +318,7 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     # Check input type
     in_type = getFileType(seq_file)
     if in_type != 'fastq' and filter_func in (filterQuality, maskQuality, trimQuality):
-        sys.exit('ERROR:  Input file must be FASTQ for %s mode' % cmd_dict[filter_func])
+        printError('Input file must be FASTQ for %s mode.' % cmd_dict[filter_func])
     
     # Define feeder function and arguments
     feed_func = feedSeqQueue

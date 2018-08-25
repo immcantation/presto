@@ -21,6 +21,7 @@ from presto.Defaults import default_delimiter, default_barcode_field, default_pr
                             default_min_freq, default_min_qual, \
                             default_gap_penalty, default_max_error, default_max_len, default_start
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+from presto.IO import printError, printWarning
 
 
 class PrimerAlignment:
@@ -264,8 +265,7 @@ def reverseComplement(seq):
     elif isinstance(seq, str):
         new_record = str(Seq(seq, IUPAC.ambiguous_dna).reverse_complement())
     else:
-        sys.exit('ERROR:  Invalid record type passed to reverseComplement')
-        new_record = None
+        printError('Invalid record type passed to reverseComplement.')
 
     return new_record
 
