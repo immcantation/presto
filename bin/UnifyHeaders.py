@@ -110,25 +110,25 @@ def deletionUnify(data, field, delimiter=default_delimiter):
 
 
 def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
-                  unify_field=default_unify_field,
-                  out_args=default_out_args, nproc=None,
-                  queue_size=None):
+                 unify_field=default_unify_field, out_file=None, out_args=default_out_args,
+                 nproc=None, queue_size=None):
     """
     Merges and filters annotation fields within groups
 
     Arguments:
-      seq_file : the sample sequence file name
-      collapse_func : the function to use for collapsing annotations
-      set_field : the annotation containing set IDs
-      unify_field : the field for collection criteria
-      out_args : common output argument dictionary from parseCommonArgs
+      seq_file : the sample sequence file name.
+      collapse_func : the function to use for collapsing annotations.
+      set_field : the annotation containing set IDs.
+      unify_field : the field for collection criteria.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
       nproc : the number of processQueue processes;
-              if None defaults to the number of CPUs
+              if None defaults to the number of CPUs.
       queue_size : maximum size of the argument queue;
-                   if None defaults to 2*nproc
+                   if None defaults to 2*nproc.
 
     Returns:
-      str : output file name
+      str: output file name.
     """
     # Print parameter info
     log = OrderedDict()
@@ -155,7 +155,8 @@ def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
-                    'task_label': 'unify',
+                    'label': 'unify',
+                    'out_file': out_file,
                     'out_args': out_args,
                     'index_field': set_field}
 
@@ -254,7 +255,10 @@ if __name__ == '__main__':
 
     # Call cluster for each input file
     del args_dict['seq_files']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         unifyHeaders(**args_dict)
 

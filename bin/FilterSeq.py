@@ -282,23 +282,25 @@ def maskQuality(data, min_qual=default_min_qual):
     return result
 
 
-def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args, 
+def filterSeq(seq_file, filter_func, filter_args={},
+              out_file=None, out_args=default_out_args,
               nproc=None, queue_size=None):
     """
     Filters sequences by fraction of ambiguous nucleotides
     
     Arguments: 
-    seq_file = the sequence file to filter
-    filter_func = the function to use for filtering sequences
-    filter_args = a dictionary of arguments to pass to filter_func
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
+      seq_file = the sequence file to filter
+      filter_func = the function to use for filtering sequences
+      filter_args = a dictionary of arguments to pass to filter_func
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
+      nproc = the number of processQueue processes;
+              if None defaults to the number of CPUs.
+      queue_size = maximum size of the argument queue;
+                   if None defaults to 2*nproc.
                  
     Returns:
-    a list of successful output file names
+      list: a list of successful output file names
     """
     # Define output file label dictionary
     cmd_dict = {filterLength:'length', filterMissing:'missing', 
@@ -329,7 +331,8 @@ def filterSeq(seq_file, filter_func, filter_args={}, out_args=default_out_args,
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
-                    'task_label': cmd_dict[filter_func],
+                    'label': cmd_dict[filter_func],
+                    'out_file': out_file,
                     'out_args': out_args}
     
     # Call process manager
@@ -489,6 +492,9 @@ if __name__ == '__main__':
     
     # Calls quality processing function
     del args_dict['seq_files']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         filterSeq(**args_dict)

@@ -305,18 +305,19 @@ def convertMIGECHeader(desc):
     return header
 
 
-def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out_args):
+def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_args=default_out_args):
     """
     Converts sequence headers to the pRESTO format
 
     Arguments:
-    seq_file = the sequence file name
-    convert_func = the function used to convert sequence headers
-    convert_args = a dictionary of arguments to pass to convert_func
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file = the sequence file name.
+      convert_func = the function used to convert sequence headers.
+      convert_args = a dictionary of arguments to pass to convert_func.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args = common output argument dictionary from parseCommonArgs.
 
     Returns:
-    the output sequence file name
+      str: the output sequence file name.
     """
     # Define subcommand label dictionary
     cmd_dict = {convertGenericHeader:'generic',
@@ -338,27 +339,27 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
     seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
+    # Wrapper for opening handles and writers
+    def _open(x, out_file=out_file):
+        if out_file is not None and x == 'pass':
+            handle = open(out_file, 'w')
+        else:
+            handle = getOutputHandle(seq_file,
+                                     'convert-%s' % x,
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type=out_args['out_type'])
+        return handle
+
     # Count records
     result_count = countSeqFile(seq_file)
 
-    # Open output file handles
-    pass_handle = getOutputHandle(seq_file,
-                                  'convert-pass',
-                                  out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'],
-                                  out_type=out_args['out_type'])
-    if out_args['failed']:
-        fail_handle = getOutputHandle(seq_file,
-                                      'convert-fail',
-                                      out_dir=out_args['out_dir'],
-                                      out_name=out_args['out_name'],
-                                      out_type=out_args['out_type'])
-    else:
-        fail_handle = None
-
     # Set additional conversion arguments
     if convert_func in [convertGenericHeader, convertGenbankHeader]:
-        convert_args.update({'delimiter':out_args['delimiter']})
+        convert_args.update({'delimiter': out_args['delimiter']})
+
+    # Intialize file handles
+    pass_handle, fail_handle = None, None
 
     # Iterate over sequences
     start_time = time()
@@ -376,17 +377,27 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
             pass_count += 1
             seq.id = seq.name = flattenAnnotation(header, out_args['delimiter'])
             seq.description = ''
-            SeqIO.write(seq, pass_handle, out_args['out_type'])
+            try:
+                SeqIO.write(seq, pass_handle, out_args['out_type'])
+            except AttributeError:
+                # Open output file
+                pass_handle = _open('pass')
+                SeqIO.write(seq, pass_handle, out_args['out_type'])
         else:
             fail_count += 1
-            if fail_handle is not None:
-                # Write successfully unconverted sequences
-                SeqIO.write(seq, fail_handle, out_args['out_type'])
+            if out_args['failed']:
+                # Write unconverted sequences
+                try:
+                    SeqIO.write(seq, fail_handle, out_args['out_type'])
+                except AttributeError:
+                    # Open output file
+                    pass_handle = _open('fail')
+                    SeqIO.write(seq, fail_handle, out_args['out_type'])
 
     # Print counts
     printProgress(seq_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(pass_handle.name)
+    log['OUTPUT'] = os.path.basename(pass_handle.name) if pass_handle is not None else None
     log['SEQUENCES'] = seq_count
     log['PASS'] = pass_count
     log['FAIL'] = fail_count
@@ -394,7 +405,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_args=default_out
     printLog(log)
 
     # Close file handles
-    pass_handle.close()
+    if fail_handle is not None:  pass_handle.close()
     if fail_handle is not None:  fail_handle.close()
 
     return pass_handle.name
@@ -523,6 +534,9 @@ if __name__ == '__main__':
 
     # Calls header conversion function
     del args_dict['seq_files']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         convertHeaders(**args_dict)

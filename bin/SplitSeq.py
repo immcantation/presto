@@ -560,7 +560,8 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
     return out_files
 
 
-def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=False, out_args=default_out_args):
+def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=False,
+                  out_file=None, out_args=default_out_args):
     """
     Select from a sequence file
 
@@ -570,10 +571,11 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
       value_list : a list of annotation values that a sample must contain one of.
       value_file : a tab delimited file containing values to select.
       negate : if True select entires that do not contain the specific values.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
-      str : output file name.
+      str: output file name.
     """
     # Reads value_file
     def _read_file(value_file, field):
@@ -615,10 +617,13 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Output output handle
-    out_handle = getOutputHandle(seq_file, 'selected',
-                                 out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'],
-                                 out_type=out_args['out_type'])
+    if out_file is not None:
+        out_handle = open(out_file, 'w')
+    else:
+        out_handle = getOutputHandle(seq_file, 'selected',
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type=out_args['out_type'])
 
     # Generate subset of records
     start_time = time()
@@ -703,7 +708,7 @@ def getArgParser():
 
     # Subparser to downsize files to a maximum count
     parser_downsize = subparsers.add_parser('count',
-                                            parents=[getCommonArgParser(failed=False, annotation=False, log=False)],
+                                            parents=[getCommonArgParser(failed=False, out_file=False, annotation=False, log=False)],
                                             formatter_class=CommonHelpFormatter, add_help=False,
                                             help='Splits sequences files by number of records.',
                                             description='Splits sequences files by number of records.')
@@ -714,7 +719,7 @@ def getArgParser():
     
     # Subparser to partition files by annotation
     parser_group = subparsers.add_parser('group',
-                                         parents=[getCommonArgParser(failed=False, log=False)],
+                                         parents=[getCommonArgParser(failed=False, out_file=False, log=False)],
                                          formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Splits sequences files by annotation.',
                                          description='Splits sequences files by annotation.')
@@ -728,7 +733,7 @@ def getArgParser():
 
     # Subparser to randomly sample from unpaired files
     parser_sample = subparsers.add_parser('sample',
-                                          parents=[getCommonArgParser(failed=False, log=False)],
+                                          parents=[getCommonArgParser(failed=False, out_file=False, log=False)],
                                           formatter_class=CommonHelpFormatter, add_help=False,
                                           help='Randomly samples from unpaired sequences files.',
                                           description='Randomly samples from unpaired sequences files.')
@@ -749,7 +754,7 @@ def getArgParser():
     
     # Subparser to randomly sample from paired files
     parser_sampair = subparsers.add_parser('samplepair',
-                                           parents=[getCommonArgParser(failed=False, seq_paired=True, log=False)],
+                                           parents=[getCommonArgParser(failed=False, out_file=False, seq_paired=True, log=False)],
                                            formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Randomly samples from paired-end sequences files.',
                                            description='Randomly samples from paired-end sequences files.')
@@ -775,7 +780,7 @@ def getArgParser():
     
     # Subparser to sort files
     parser_sort = subparsers.add_parser('sort',
-                                        parents=[getCommonArgParser(failed=False, log=False)],
+                                        parents=[getCommonArgParser(failed=False, out_file=False, log=False)],
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Sorts sequences files by annotation.',
                                         description='Sorts sequences files by annotation.')
@@ -830,19 +835,27 @@ if __name__ == '__main__':
        (args.values and not args.field):
             parser.error('Sampling modes requires -f to be specified with -u.')
     
-    # Call appropriate function for each sample file
+    # Clean arguments dictionary
     del args_dict['command']
     del args_dict['func']
+    if 'out_files' in args_dict:  del args_dict['out_files']
+
+    # Call appropriate function for each sample file
     if 'seq_files' in args_dict:
         del args_dict['seq_files']
-        for f in args.__dict__['seq_files']:
+        for i, f in enumerate(args.__dict__['seq_files']):
             args_dict['seq_file'] = f
+            if 'out_files' in args.__dict__:
+                args_dict['out_file'] = args.__dict__['out_files'][i] \
+                    if args.__dict__['out_files'] else None
             args.func(**args_dict)
     elif 'seq_files_1' in args_dict and 'seq_files_2' in args_dict:
         del args_dict['seq_files_1']
         del args_dict['seq_files_2']
-        for file_1, file_2 in zip(args.__dict__['seq_files_1'], 
-                                  args.__dict__['seq_files_2']):
+        for i, (file_1, file_2) in enumerate(zip(args.__dict__['seq_files_1'], args.__dict__['seq_files_2'])):
             args_dict['seq_file_1'] = file_1
             args_dict['seq_file_2'] = file_2
+            if 'out_files' in args.__dict__:
+                args_dict['out_file'] = args.__dict__['out_files'][i] \
+                    if args.__dict__['out_files'] else None
             args.func(**args_dict)

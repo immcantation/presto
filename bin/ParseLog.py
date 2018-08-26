@@ -39,17 +39,18 @@ def parseLogRecord(record):
     return record_dict
 
 
-def tableLog(record_file, fields, out_args=default_out_args):
+def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
     """
     Converts a pRESTO log to a table of annotations
 
     Arguments: 
-    record_file = the log file name
-    fields = the list of fields to output
-    out_args = common output argument dictionary from parseCommonArgs
+      record_file : the log file name.
+      fields : the list of fields to output.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-    the output table file name
+      str: the output table file name
     """
     log = OrderedDict()
     log['START'] = 'ParseLog'
@@ -58,11 +59,14 @@ def tableLog(record_file, fields, out_args=default_out_args):
     
     # Open file handles
     log_handle = open(record_file, 'rU')
-    out_handle = getOutputHandle(record_file, 
-                                 'table', 
-                                 out_dir=out_args['out_dir'], 
-                                 out_name=out_args['out_name'], 
-                                 out_type='tab')
+    if out_file is not None:
+        out_handle = open(out_file, 'w')
+    else:
+        out_handle = getOutputHandle(record_file,
+                                     'table',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type='tab')
         
     # Open csv writer and write header
     out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='', 
@@ -173,6 +177,9 @@ if __name__ == '__main__':
     
     # Call parseLog for each log file
     del args_dict['record_files']
-    for f in args.__dict__['record_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['record_files']):
         args_dict['record_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         tableLog(**args_dict)

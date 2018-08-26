@@ -554,6 +554,7 @@ def getArgParser():
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             parents=[getCommonArgParser(seq_out=False,
+                                                        out_file=False,
                                                         failed=False,
                                                         multiproc=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)

@@ -190,19 +190,19 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     Removes duplicate sequences from a file
 
     Arguments: 
-    seq_file = filename of the sequence file to sample from
-    max_missing = number of ambiguous characters to allow in a unique sequence
-    uniq_fields = a list of annotations that define a sequence as unique if they differ
-    copy_fields = a list of annotations to copy into unique sequence annotations
-    copy_actions = the list of collapseAnnotation actions to take on copy_fields 
-    max_field = a numeric field whose maximum value determines the retained sequence
-    min_field = a numeric field whose minimum value determines the retained sequence
-    inner = if True exclude consecutive outer ambiguous characters from iterations and matching
-    keep_missing = if True retain sequences with more ambiguous characters than max_missing as unique
-    out_args = common output argument dictionary from parseCommonArgs
+      seq_file : filename of the sequence file to sample from.
+      max_missing : number of ambiguous characters to allow in a unique sequence.
+      uniq_fields : a list of annotations that define a sequence as unique if they differ.
+      copy_fields : a list of annotations to copy into unique sequence annotations.
+      copy_actions : the list of collapseAnnotation actions to take on copy_fields.
+      max_field : a numeric field whose maximum value determines the retained sequence.
+      min_field : a numeric field whose minimum value determines the retained sequence.
+      inner : if True exclude consecutive outer ambiguous characters from iterations and matching.
+      keep_missing : if True retain sequences with more ambiguous characters than max_missing as unique.
+      out_args : common output argument dictionary from parseCommonArgs.
               
     Returns: 
-    the collapsed output file name
+      str: the collapsed output file name.
     """
     log = OrderedDict()
     log['START'] = 'CollapseSeq'
@@ -254,7 +254,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
                 
         # Break if no keys to search remain
         if len(search_keys) == 0:  break
-    
+
     # Write unique sequences
     with getOutputHandle(seq_file, 'collapse-unique', out_dir=out_args['out_dir'], 
                          out_name=out_args['out_name'], out_type=out_args['out_type']) \
@@ -366,7 +366,7 @@ def getArgParser():
     # TODO: write better algorithm for ambiguous character mode
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser()], 
+                            parents=[getCommonArgParser(out_file=False)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     # Collapse arguments

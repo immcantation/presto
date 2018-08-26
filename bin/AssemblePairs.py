@@ -9,32 +9,27 @@ from presto import __version__, __date__
 # Imports
 import os
 import shutil
-import sys
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
-from time import time
-from Bio import SeqIO
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_delimiter, choices_coord, \
-                            default_coord, default_missing_chars, \
-                            default_blastn_exec, default_blastdb_exec, \
+                            default_coord, default_blastdb_exec, \
                             default_usearch_exec, default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
-                              getCoordKey
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast
-from presto.IO import getFileType, readReferenceFile, readSeqFile, countSeqFile, \
-                      getOutputHandle, printLog, printProgress, printError, printWarning
-from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair
-from presto.Multiprocessing import SeqData, SeqResult, manageProcesses, processSeqQueue
+from presto.IO import readReferenceFile, countSeqFile, printLog, printError, printWarning
+from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair, overlapConsensus
+from presto.Multiprocessing import SeqResult, manageProcesses, \
+                                   processSeqQueue, feedPairQueue, collectPairQueue
 
 # Defaults
 choices_aligner = ['blastn', 'usearch']
@@ -224,7 +219,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_mi
 
     # Join sequences if head and tail do not overlap, otherwise assemble
     if a > b and x > y:
-        stitch = joinSeqPair(head_seq, tail_seq, gap=(a - b), insert_seq=None)
+        stitch = joinAssembly(head_seq, tail_seq, gap=(a - b), insert_seq=None)
     else:
         stitch = AssemblyRecord()
         stitch.gap = 0
@@ -278,68 +273,13 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_mi
     # Fill gap with reference if required
     if a > b and x > y and fill:
         insert_seq = ref_seq.seq[(b + head_shift):(a + head_shift)]
-        insert_rec = joinSeqPair(head_seq, tail_seq, gap=(a - b), insert_seq=insert_seq)
+        insert_rec = joinAssembly(head_seq, tail_seq, gap=(a - b), insert_seq=insert_seq)
         stitch.seq = insert_rec.seq
 
     return stitch
 
 
-def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
-    """
-    Creates a consensus overlap sequences from two segments
-
-    Arguments: 
-    head_seq = the overlap head SeqRecord
-    tail_seq = the overlap tail SeqRecord
-    ignore_chars = list of characters which do not contribute to consensus
-    
-    Returns:
-    A SeqRecord object with consensus characters and quality scores
-    """
-    # Initialize empty overlap character and quality score list
-    seq_cons, score_cons = [], []
-    # Define character and quality tuple iterators
-    chars = list(zip(head_seq, tail_seq))
-    quals = list(zip(head_seq.letter_annotations['phred_quality'], 
-                 tail_seq.letter_annotations['phred_quality']))
-
-    # Iterate over character and quality tuples and build consensus
-    for c, q in zip(chars, quals):
-        # Equivalent character case
-        if c[0] == c[1]:
-            c_cons = c[0]
-            q_cons = max(q)
-        # All ambiguous characters case
-        elif all([x in ignore_chars for x in c]):
-            c_cons = 'N'
-            q_cons = max(q)
-        # Some ambiguous characters case
-        elif any([x in ignore_chars for x in c]):
-            c_cons = [x for x in c if x not in ignore_chars][0]
-            q_cons = q[c.index(c_cons)]
-        # Conflicting character case        
-        else:
-            q_max = max(q)
-            c_cons = c[q.index(q_max)]
-            try:
-                q_cons = int(q_max**2 / sum(q))
-            except ZeroDivisionError:
-                q_cons = 0
-        # Append sequence and quality lists with consensus values
-        seq_cons.append(c_cons)
-        score_cons.append(q_cons)
-
-    # Define overlap SeqRecord
-    record = SeqRecord(Seq(''.join(seq_cons), IUPAC.ambiguous_dna), 
-                       id='', 
-                       name='', 
-                       description='', 
-                       letter_annotations={'phred_quality':score_cons})
-    
-    return record
-
-
-def joinSeqPair(head_seq, tail_seq, gap=default_gap, insert_seq=None):
+def joinAssembly(head_seq, tail_seq, gap=default_gap, insert_seq=None):
     """
     Concatenates two sequences 
 
@@ -491,11 +431,11 @@ def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max
 
 
 def sequentialAssembly(head_seq, tail_seq, ref_dict, ref_db,
-                    alpha=default_alpha, max_error=default_max_error,
-                    min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                    min_ident=default_min_ident, evalue=default_evalue, max_hits=default_max_hits,
-                    fill=False, aligner=default_aligner, aligner_exec=default_aligner_exec,
-                    assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
+                       alpha=default_alpha, max_error=default_max_error,
+                       min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
+                       min_ident=default_min_ident, evalue=default_evalue, max_hits=default_max_hits,
+                       fill=False, aligner=default_aligner, aligner_exec=default_aligner_exec,
+                       assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
     """
     Stitches sequences together by first attempting de novo assembly then falling back to reference guided assembly
 
@@ -539,86 +479,25 @@ def sequentialAssembly(head_seq, tail_seq, ref_dict, ref_db,
     return stitch
 
 
-def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
-                  coord_type=default_coord, delimiter=default_delimiter):
-    """
-    Feeds the data queue with sequence pairs for processQueue processes
-
-    Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing 
-            continues; when False function returns
-    data_queue = an multiprocessing.Queue to hold data for processing
-    seq_file_1 = the name of sequence file 1
-    seq_file_2 = the name of sequence file 2
-    coord_type = the sequence header format
-    delimiter =  a tuple of delimiters for (fields, values, value lists)
-
-    Returns: 
-    None
-    """
-    # Function to get coordinate info
-    def _key_func(x):
-        return getCoordKey(x, coord_type=coord_type, delimiter=delimiter)
-
-    # Generator function to read and check files
-    def _read_pairs(seq_file_1, seq_file_2):
-        iter_1 = readSeqFile(seq_file_1, index=False)
-        iter_2 = readSeqFile(seq_file_2, index=False)
-        for seq_1, seq_2 in zip(iter_1, iter_2):
-            key_1 = getCoordKey(seq_1.description, coord_type=coord_type,
-                                delimiter=delimiter)
-            key_2 = getCoordKey(seq_2.description, coord_type=coord_type,
-                                delimiter=delimiter)
-            if key_1 == key_2:
-                yield (key_1, [seq_1, seq_2])
-            else:
-                raise Exception('Coordinates for sequences %s and %s do not match' \
-                                 % (key_1, key_2))
-
-    try:
-        # Open and parse input files
-        data_iter = _read_pairs(seq_file_1, seq_file_2)
-
-        # Iterate over data_iter and feed data queue 
-        while alive.value:
-            # Get data from queue
-            if data_queue.full():  continue
-            else:  data = next(data_iter, None)
-            # Exit upon reaching end of iterator
-            if data is None:  break
-
-            # Feed queue
-            data_queue.put(SeqData(*data))
-        else:
-            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-    except:
-        alive.value = False
-        raise
-
-    return None
-
-
-def processAssembly(data, assemble_func, assemble_args={}, rc=None,
+def assemblyWorker(data, assemble_func, assemble_args={}, rc='tail',
                    fields_1=None, fields_2=None, delimiter=default_delimiter):
     """
     Performs assembly of a sequence pair
 
     Arguments:
-    data = a SeqData object with a list of exactly two SeqRecords
-    assemble_func = the function to use to assemble paired ends
-    assemble_args = a dictionary of arguments to pass to the assembly function
-    rc = Defines which sequences ('head', 'tail', 'both') to reverse complement
-         before assembly; if None do not reverse complement sequences
-    fields_1 = list of annotations in head SeqRecord to copy to assembled record;
-               if None do not copy an annotation
-    fields_2 = list of annotations in tail SeqRecord to copy to assembled record;
-               if None do not copy an annotation
-    delimiter = a tuple of delimiters for (fields, values, value lists)
+      data : a SeqData object with a list of exactly two SeqRecords.
+      assemble_func : the function to use to assemble paired ends.
+      assemble_args : a dictionary of arguments to pass to the assembly function.
+      rc : Defines which sequences ('head', 'tail', 'both', 'none') to reverse complement
+           before assembly; if None do not reverse complement sequences.
+      fields_1 : list of annotations in head SeqRecord to copy to assembled record;
+                 if None do not copy an annotation.
+      fields_2 : list of annotations in tail SeqRecord to copy to assembled record;
+                 if None do not copy an annotation.
+      delimiter : a tuple of delimiters for (fields, values, value lists).
 
     Returns:
-    a SeqResult object
+      SeqResult: a SeqResult object
     """
     # Define result object
     result = SeqResult(data.id, data.data)
@@ -695,156 +574,39 @@ def processAssembly(data, assemble_func, assemble_args={}, rc=None,
     return result
 
 
-def collectPairQueue(alive, result_queue, collect_queue, result_count,
-                     seq_file_1, seq_file_2, out_args):
-    """
-    Pulls from results queue, assembles results and manages log and file IO
-
-    Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing 
-            continues; when False function returns
-    result_queue = a multiprocessing.Queue holding worker results
-    collect_queue = a multiprocessing.Queue holding collector return values
-    result_count = the number of expected assembled sequences
-    seq_file_1 = the first sequence file name
-    seq_file_2 = the second sequence file name
-    out_args = common output argument dictionary from parseCommonArgs
-    
-    Returns: 
-    None
-    (adds a dictionary of {log: log object, out_files: output file names} to collect_queue)
-    """
-    try:
-        # Count records and define output format 
-        out_type = getFileType(seq_file_1) if out_args['out_type'] is None \
-                   else out_args['out_type']
-        
-        # Defined valid assembly output handle
-        pass_handle = getOutputHandle(seq_file_1, 
-                                      'assemble-pass', 
-                                      out_dir=out_args['out_dir'], 
-                                      out_name=out_args['out_name'], 
-                                      out_type=out_type)
-        # Defined failed assembly output handles
-        if out_args['failed']:
-            # Define output name
-            if out_args['out_name'] is None:
-                out_name_1 = out_name_2 = None
-            else:
-                out_name_1 = '%s-1' % out_args['out_name']
-                out_name_2 = '%s-2' % out_args['out_name']
-            fail_handle_1 = getOutputHandle(seq_file_1,
-                                            'assemble-fail',
-                                            out_dir=out_args['out_dir'],
-                                            out_name=out_name_1,
-                                            out_type=out_type)
-            fail_handle_2 = getOutputHandle(seq_file_2,
-                                            'assemble-fail',
-                                            out_dir=out_args['out_dir'],
-                                            out_name=out_name_2,
-                                            out_type=out_type)
-        else:
-            fail_handle_1 = None
-            fail_handle_2 = None
-
-        # Define log handle
-        if out_args['log_file'] is None:
-            log_handle = None
-        else:
-            log_handle = open(out_args['log_file'], 'w')
-    except:
-        alive.value = False
-        raise
-    
-    try:
-        # Iterator over results queue until sentinel object reached
-        start_time = time()
-        iter_count = pass_count = fail_count = 0
-        while alive.value:
-            # Get result from queue
-            if result_queue.empty():  continue
-            else:  result = result_queue.get()
-            # Exit upon reaching sentinel
-            if result is None:  break
-
-            # Print progress for previous iteration
-            printProgress(iter_count, result_count, 0.05, start_time=start_time)
-    
-            # Update counts for iteration
-            iter_count += 1
-    
-            # Write log
-            printLog(result.log, handle=log_handle)
-
-            # Write assembled sequences
-            if result:
-                pass_count += 1
-                SeqIO.write(result.results, pass_handle, out_type)
-            else:
-                fail_count += 1
-                if fail_handle_1 is not None and fail_handle_2 is not None:
-                    SeqIO.write(result.data[0], fail_handle_1, out_type)
-                    SeqIO.write(result.data[1], fail_handle_2, out_type)
-        else:
-            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
-        
-        # Print total counts
-        printProgress(iter_count, result_count, 0.05, start_time=start_time)
-    
-        # Update return values
-        log = OrderedDict()
-        log['OUTPUT'] = os.path.basename(pass_handle.name)
-        log['PAIRS'] = iter_count
-        log['PASS'] = pass_count
-        log['FAIL'] = fail_count
-        collect_dict = {'log':log, 'out_files': [pass_handle.name]}
-        collect_queue.put(collect_dict)
-        
-        # Close file handles
-        pass_handle.close()
-        if fail_handle_1 is not None:  fail_handle_1.close()
-        if fail_handle_2 is not None:  fail_handle_2.close()
-        if log_handle is not None:  log_handle.close()
-    except:
-        alive.value = False
-        raise
-    
-    return None
-
-
 def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
-                  coord_type=default_coord, rc=None,
+                  coord_type=default_coord, rc='tail',
                   head_fields=None, tail_fields=None,
-                  out_args=default_out_args, nproc=None, queue_size=None):
+                  out_file=None, out_args=default_out_args,
+                  nproc=None, queue_size=None):
     """
     Generates consensus sequences
 
     Arguments: 
-    head_file = the head sequence file name
-    tail_file = the tail sequence file name
-    assemble_func = the function to use to assemble paired ends
-    assemble_args = a dictionary of arguments to pass to the assembly function
-    coord_type = the sequence header format
-    rc = Defines which sequences ('head','tail','both') to reverse complement before assembly;
-         if None do not reverse complement sequences
-    head_fields = list of annotations in head_file records to copy to assembled record;
-                  if None do not copy an annotation
-    tail_fields = list of annotations in tail_file records to copy to assembled record;
-                  if None do not copy an annotation
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
+      head_file : the head sequence file name
+      tail_file : the tail sequence file name
+      assemble_func : the function to use to assemble paired ends
+      assemble_args : a dictionary of arguments to pass to the assembly function
+      coord_type : the sequence header format
+      rc : Defines which sequences ('head', 'tail', 'both', 'none') to reverse complement before assembly;
+           if 'none' do not reverse complement sequences
+      head_fields : list of annotations in head_file records to copy to assembled record;
+                    if None do not copy an annotation
+      tail_fields : list of annotations in tail_file records to copy to assembled record;
+                    if None do not copy an annotation
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs
+      nproc = the number of processQueue processes;
+              if None defaults to the number of CPUs
+      queue_size = maximum size of the argument queue;
+                   if None defaults to 2*nproc
                  
     Returns: 
-    a list of successful output file names
+      list: a list of successful output file names.
     """
     # Define subcommand label dictionary
     cmd_dict = {alignAssembly:'align',
-                joinSeqPair:'join',
+                joinAssembly: 'join',
                 referenceAssembly:'reference',
                 sequentialAssembly:'sequential'}
     cmd_name = cmd_dict.get(assemble_func, assemble_func.__name__)
@@ -909,13 +671,14 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                     'fields_2': tail_fields,
                     'delimiter': out_args['delimiter']}
     work_func = processSeqQueue
-    work_args = {'process_func': processAssembly,
+    work_args = {'process_func': assemblyWorker,
                  'process_args': process_args}
     # Define collector function and arguments
     collect_func = collectPairQueue
-    collect_args = {'result_count': head_count,
-                    'seq_file_1': head_file,
+    collect_args = {'seq_file_1': head_file,
                     'seq_file_2': tail_file,
+                    'label': 'assemble',
+                    'out_file': out_file,
                     'out_args': out_args}
 
     # Call process manager
@@ -924,7 +687,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                              nproc, queue_size)
 
     # Close reference database handle
-    if cmd_name in ('reference', 'twosep'):
+    if cmd_name in ('reference', 'sequential'):
         try:
             db_handle.close()
         except AttributeError:
@@ -985,8 +748,8 @@ def getArgParser():
                               choices=choices_coord, default=default_coord,
                               help='''The format of the sequence identifier which defines shared coordinate
                                    information across paired ends.''')
-    group_parser.add_argument('--rc', action='store', dest='rc', choices=('head', 'tail', 'both'),
-                              default=None, help='Specify to reverse complement sequences before stitching.')
+    group_parser.add_argument('--rc', action='store', dest='rc', choices=('tail', 'head', 'both', 'none'),
+                              default='tail', help='Specify which read to reverse complement before stitching.')
     group_parser.add_argument('--1f', nargs='+', action='store', dest='head_fields', type=str, default=None,
                               help='Specify annotation fields to copy from head records into assembled record.')
     group_parser.add_argument('--2f', nargs='+', action='store', dest='tail_fields', type=str, default=None,
@@ -1020,7 +783,7 @@ def getArgParser():
     parser_join.add_argument_group('join assembly arguments').add_argument('--gap', action='store', dest='gap',
                                                                            type=int, default=default_gap,
                                                                            help='Number of N characters to place between ends.')
-    parser_join.set_defaults(assemble_func=joinSeqPair)
+    parser_join.set_defaults(assemble_func=joinAssembly)
 
     # Reference alignment mode argument parser
     parent_ref = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
@@ -1089,7 +852,7 @@ if __name__ == '__main__':
     if args_dict['tail_fields']:  args_dict['tail_fields'] = list(map(str.upper, args_dict['tail_fields'])) 
     
     # Define assemble_args dictionary for join mode
-    if args_dict['assemble_func'] is joinSeqPair:
+    if args_dict['assemble_func'] is joinAssembly:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}
         del args_dict['gap']
 
@@ -1145,8 +908,10 @@ if __name__ == '__main__':
     del args_dict['command']
     del args_dict['seq_files_1']
     del args_dict['seq_files_2']
-    for head, tail in zip(args.__dict__['seq_files_1'], 
-                          args.__dict__['seq_files_2']):
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, (head, tail) in enumerate(zip(args.__dict__['seq_files_1'], args.__dict__['seq_files_2'])):
         args_dict['head_file'] = head
         args_dict['tail_file'] = tail
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         assemblePairs(**args_dict)

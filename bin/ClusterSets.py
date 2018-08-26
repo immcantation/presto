@@ -41,11 +41,12 @@ default_cluster_exec = default_usearch_exec
 default_ident = 0.9
 default_cluster_prefix=''
 
-def processCSQueue(alive, data_queue, result_queue,
-                   cluster_func, cluster_args={},
-                   cluster_field=default_cluster_field,
-                   cluster_prefix=default_cluster_prefix,
-                   delimiter=default_delimiter):
+
+def processQueue(alive, data_queue, result_queue,
+                 cluster_func, cluster_args={},
+                 cluster_field=default_cluster_field,
+                 cluster_prefix=default_cluster_prefix,
+                 delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -129,32 +130,33 @@ def processCSQueue(alive, data_queue, result_queue,
     return None
 
 
-def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None,
-                set_field=default_barcode_field,
+def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None, set_field=default_barcode_field,
                 cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                 cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
-                out_args=default_out_args, nproc=None,
-                queue_size=None):
+                out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
     """
     Performs clustering on sets of sequences
 
     Arguments:
-      seq_file : the sample sequence file name
-      ident : the identity threshold for clustering sequences
-      seq_start : the start position to trim sequences at before clustering
-      seq_end : the end position to trim sequences at before clustering
-      set_field : the annotation containing set IDs
-      cluster_field : the name of the output cluster field
+      seq_file : the sample sequence file name.
+      ident : the identity threshold for clustering sequences.
+      seq_start : the start position to trim sequences at before clustering.
+      seq_end : the end position to trim sequences at before clustering.
+      set_field : the annotation containing set IDs.
+      cluster_field : the name of the output cluster field.
       cluster_prefix : string defining a prefix for the cluster identifier.
-      cluster_exec : the path to the executable for usearch
+      cluster_exec : the path to the clustering executable.
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
+            out_file : output file name. Automatically generated from the input file if None.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
       nproc : the number of processQueue processes;
-              if None defaults to the number of CPUs
+              if None defaults to the number of CPUs.
       queue_size : maximum size of the argument queue;
-                   if None defaults to 2*nproc
+                   if None defaults to 2*nproc.
 
     Returns:
-      str : the clustered output file name
+      str: the clustered output file name.
     """
     # Print parameter info
     log = OrderedDict()
@@ -190,7 +192,7 @@ def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None,
                  'index_func': indexSeqSets,
                  'index_args': index_args}
     # Define worker function and arguments
-    work_func = processCSQueue
+    work_func = processQueue
     work_args = {'cluster_func': cluster_func,
                  'cluster_args': cluster_args,
                  'cluster_field': cluster_field,
@@ -199,7 +201,8 @@ def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None,
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
-                    'task_label': 'cluster',
+                    'label': 'cluster',
+                    'out_file': out_file,
                     'out_args': out_args,
                     'index_field': set_field}
 
@@ -221,7 +224,7 @@ def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None,
 def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
                cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
-               out_args=default_out_args, nproc=None):
+               out_file=None, out_args=default_out_args, nproc=None):
     """
     Performs clustering on sets of sequences
 
@@ -234,6 +237,7 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
       cluster_prefix : string defining a prefix for the cluster identifier.
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
       cluster_exec : the path to the executable for usearch.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : output arguments.
       nproc : the number of processQueue processes;
               if None defaults to the number of CPUs
@@ -288,11 +292,14 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
         out_args['out_type'] = getFileType(seq_file)
 
     # Open output file handles
-    pass_handle = getOutputHandle(seq_file,
-                                  'cluster-pass',
-                                  out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'],
-                                  out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(seq_file,
+                                      'cluster-pass',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type=out_args['out_type'])
 
     # Open indexed sequence file
     seq_dict = readSeqFile(seq_file, index=True)
@@ -334,7 +341,7 @@ def clusterBarcodes(seq_file, ident=default_ident,
                     barcode_field=default_barcode_field,
                     cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                     cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
-                    out_args=default_out_args, nproc=None):
+                    out_file=None, out_args=default_out_args, nproc=None):
     """
     Performs clustering on sets of sequences
 
@@ -348,6 +355,8 @@ def clusterBarcodes(seq_file, ident=default_ident,
       seq_end : the end position to trim sequences at before clustering.
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
       cluster_exec : the path to the executable for usearch.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : output arguments.
       nproc : the number of processQueue processes;
               if None defaults to the number of CPUs.
 
@@ -404,11 +413,14 @@ def clusterBarcodes(seq_file, ident=default_ident,
         out_args['out_type'] = getFileType(seq_file)
 
     # Open output file handles
-    pass_handle = getOutputHandle(seq_file,
-                                  'cluster-pass',
-                                  out_dir=out_args['out_dir'],
-                                  out_name=out_args['out_name'],
-                                  out_type=out_args['out_type'])
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(seq_file,
+                                      'cluster-pass',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type=out_args['out_type'])
 
     # Open indexed sequence file
     seq_dict = readSeqFile(seq_file, index=True)
@@ -586,8 +598,11 @@ if __name__ == '__main__':
     del args_dict['seq_files']
     del args_dict['func']
     del args_dict['command']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         args.func(**args_dict)
 
     # import cProfile

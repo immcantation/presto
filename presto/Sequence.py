@@ -3,7 +3,7 @@ Sequence processing functions
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import __version__, __date__
+from presto import __version__, __date__, default_missing_chars
 
 # Imports
 import re
@@ -982,3 +982,58 @@ def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_fie
     out_seq.description = ''
 
     return out_seq
+
+
+def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
+    """
+    Creates a consensus overlap sequences from two segments
+
+    Arguments:
+      head_seq : the overlap head SeqRecord.
+      tail_seq : the overlap tail SeqRecord.
+      ignore_chars : list of characters which do not contribute to consensus.
+
+    Returns:
+      SeqRecord: A SeqRecord object with consensus characters and quality scores.
+    """
+    # Initialize empty overlap character and quality score list
+    seq_cons, score_cons = [], []
+    # Define character and quality tuple iterators
+    chars = list(zip(head_seq, tail_seq))
+    quals = list(zip(head_seq.letter_annotations['phred_quality'],
+                 tail_seq.letter_annotations['phred_quality']))
+
+    # Iterate over character and quality tuples and build consensus
+    for c, q in zip(chars, quals):
+        # Equivalent character case
+        if c[0] == c[1]:
+            c_cons = c[0]
+            q_cons = max(q)
+        # All ambiguous characters case
+        elif all([x in ignore_chars for x in c]):
+            c_cons = 'N'
+            q_cons = max(q)
+        # Some ambiguous characters case
+        elif any([x in ignore_chars for x in c]):
+            c_cons = [x for x in c if x not in ignore_chars][0]
+            q_cons = q[c.index(c_cons)]
+        # Conflicting character case
+        else:
+            q_max = max(q)
+            c_cons = c[q.index(q_max)]
+            try:
+                q_cons = int(q_max**2 / sum(q))
+            except ZeroDivisionError:
+                q_cons = 0
+        # Append sequence and quality lists with consensus values
+        seq_cons.append(c_cons)
+        score_cons.append(q_cons)
+
+    # Define overlap SeqRecord
+    record = SeqRecord(Seq(''.join(seq_cons), IUPAC.ambiguous_dna),
+                       id='',
+                       name='',
+                       description='',
+                       letter_annotations={'phred_quality':score_cons})
+
+    return record

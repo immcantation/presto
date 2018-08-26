@@ -32,10 +32,10 @@ default_min_count = 1
 default_min_qual = 0
 
 
-def processBCQueue(alive, data_queue, result_queue, cons_func, cons_args={},
-                   min_count=default_min_count, primer_field=None, primer_freq=None,
-                   max_gap=None, max_error=None, max_diversity=None,
-                   copy_fields=None, copy_actions=None, delimiter=default_delimiter):
+def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
+                 min_count=default_min_count, primer_field=None, primer_freq=None,
+                 max_gap=None, max_error=None, max_diversity=None,
+                 copy_fields=None, copy_actions=None, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -229,39 +229,40 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                    min_qual=default_min_qual, primer_field=None, primer_freq=None,
                    max_gap=None, max_error=None, max_diversity=None,
                    copy_fields=None, copy_actions=None, dependent=False,
-                   out_args=default_out_args, nproc=None, queue_size=None):
+                   out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
     """
     Generates consensus sequences
 
     Arguments: 
-    seq_file = the sample sequence file name
-    barcode_field = the annotation field containing set IDs
-    min_count = threshold number of sequences to define a consensus 
-    min_freq = the frequency cutoff to assign a base 
-    min_qual = the quality cutoff to assign a base
-    primer_field = the annotation field containing primer tags;
-                   if None do not annotate with primer tags
-    primer_freq = the maximum primer tag frequency that must be meet to build a consensus;
-                  if None do not filter by primer frequency
-    max_gap = the maximum frequency of (., -) characters allowed before
-               deleting a position; if None do not delete positions
-    max_error = a threshold defining the maximum allowed error rate to retain a read group;
-                if None do not calculate error rate
-    max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
-                    if None do not calculate diversity
-    dependent = if False treat barcode group sequences as independent data
-    copy_fields = a list of annotations to copy into consensus sequence annotations;
-                  if None no additional annotations will be copied
-    copy_actions = the list of actions to take for each copy_fields;
-                   one of ['set', 'majority', 'min', 'max', 'sum']
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
+      seq_file : the sample sequence file name
+      barcode_field : the annotation field containing set IDs
+      min_count : threshold number of sequences to define a consensus
+      min_freq : the frequency cutoff to assign a base
+      min_qual : the quality cutoff to assign a base
+      primer_field : the annotation field containing primer tags;
+                     if None do not annotate with primer tags
+      primer_freq : the maximum primer tag frequency that must be meet to build a consensus;
+                    if None do not filter by primer frequency
+      max_gap : the maximum frequency of (., -) characters allowed before
+                deleting a position; if None do not delete positions
+      max_error : a threshold defining the maximum allowed error rate to retain a read group;
+                  if None do not calculate error rate
+      max_diversity : a threshold defining the average pairwise error rate required to retain a read group;
+                      if None do not calculate diversity
+      dependent : if False treat barcode group sequences as independent data
+      copy_fields : a list of annotations to copy into consensus sequence annotations;
+                    if None no additional annotations will be copied
+      copy_actions : the list of actions to take for each copy_fields;
+                     one of ['set', 'majority', 'min', 'max', 'sum']
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
+      nproc : the number of processQueue processes;
             if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
+      queue_size : maximum size of the argument queue;
                  if None defaults to 2*nproc
                     
     Returns: 
-    a list of successful output file names
+      list : a list of successful output file names.
     """
     # Print parameter info
     log = OrderedDict()
@@ -302,7 +303,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                  'index_func': indexSeqSets, 
                  'index_args': index_args}
     # Define worker function and arguments
-    work_func = processBCQueue
+    work_func = processQueue
     work_args = {'cons_func': cons_func, 
                  'cons_args': cons_args,
                  'min_count': min_count,
@@ -317,7 +318,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
-                    'task_label': 'consensus',
+                    'label': 'consensus',
+                    'out_file': out_file,
                     'out_args': out_args,
                     'index_field': barcode_field}
     
@@ -460,6 +462,9 @@ if __name__ == '__main__':
 
     # Call buildConsensus for each sample file    
     del args_dict['seq_files']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         buildConsensus(**args_dict)

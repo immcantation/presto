@@ -215,7 +215,7 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(seq_paired=True, failed=True, log=False)],
+                            parents=[getCommonArgParser(seq_paired=True, out_file=False, failed=True, log=False)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     group_pair = parser.add_argument_group('pairing arguments')

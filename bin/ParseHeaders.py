@@ -186,18 +186,19 @@ def renameHeader(header, fields, names, actions=None, delimiter=default_delimite
     return header
 
 
-def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args):
+def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=default_out_args):
     """
     Modifies sequence headers
 
     Arguments: 
-      seq_file : the sequence file name
-      modify_func : the function defining the modification operation
-      modify_args : a dictionary of arguments to pass to modify_func
-      out_args : common output argument dictionary from parseCommonArgs
+      seq_file : the sequence file name.
+      modify_func : the function defining the modification operation.
+      modify_args : a dictionary of arguments to pass to modify_func.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-      str : output file name
+      str: output file name
     """
     # Define subcommand label dictionary
     cmd_dict = {addHeader: 'add',
@@ -221,12 +222,17 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
     in_type = getFileType(seq_file)
     seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
-    out_handle = getOutputHandle(seq_file, 'reheader', out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
-
+    if out_file is not None:
+        out_handle = open(out_file, 'w')
+    else:
+        out_handle = getOutputHandle(seq_file,
+                                     'reheader',
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type=out_args['out_type'])
     # Count records
     result_count = countSeqFile(seq_file)
-    
+
     # Iterate over sequences
     start_time = time()
     seq_count = 0
@@ -260,17 +266,18 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_args=default_out_args)
     return out_handle.name
 
 
-def tableHeaders(seq_file, fields, out_args=default_out_args):
+def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
     """
     Builds a table of sequence header annotations
 
     Arguments: 
-      seq_file : the sequence file name
-      fields : the list of fields to output
-      out_args : common output argument dictionary from parseCommonArgs
+      seq_file : the sequence file name.
+      fields : the list of fields to output.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-      str : output table file name
+      str: output table file name
     """
     log = OrderedDict()
     log['START'] = 'ParseHeaders'
@@ -280,8 +287,14 @@ def tableHeaders(seq_file, fields, out_args=default_out_args):
     
     # Open file handles
     seq_iter = readSeqFile(seq_file)
-    out_handle = getOutputHandle(seq_file, out_label='headers', out_dir=out_args['out_dir'], 
-                                 out_name=out_args['out_name'], out_type='tab')
+    if out_file is not None:
+        out_handle = open(out_file, 'w')
+    else:
+        out_handle = getOutputHandle(seq_file,
+                                     'headers',
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type='tab')
     # Count records
     result_count = countSeqFile(seq_file)
     
@@ -568,6 +581,9 @@ if __name__ == '__main__':
     del args_dict['command']
     del args_dict['func']
     del args_dict['seq_files']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         args.func(**args_dict)

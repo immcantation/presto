@@ -1,17 +1,26 @@
 Release Notes
 ================================================================================
 
-Version 0.5.8.999:  August 25, 2018
+Version 0.5.8.999:  August 26, 2018
 -------------------------------------------------------------------------------
 
-+ Added ``IO.printWarning`` and ``IO.printError`` API functions for handling standard error
-  messaging.
++ Add the ``-o`` argument to most tools, which allows explicit declaration of
+  the output file name.
++ Added ``IO.printWarning`` and ``IO.printError`` API functions for handling
+  standard error messaging.
 + Split ``IO.printProgress`` API function into ``IO.printProgress`` (percentage)
   and ``IO.printCount`` (raw counts).
++ Add ``Sequence.overlapConsensus``, ``Multiprocessing.feedPairQueue``, and
+  ``Multiprocessing.collectPairQueue`` to the API.
 
 MaskPrimers:
 
 + Removed support for the regex primer file format.
+
+AssemblePairs:
+
++ Changed default of the ``--rc`` argument to ``tail`` and added ``none`` option for
+  previous default.
 
 
 Version 0.5.8:  July 13, 2018

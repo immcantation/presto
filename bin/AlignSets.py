@@ -135,19 +135,20 @@ def readOffsetFile(offset_file):
 
 
 def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
-                    reverse=False, out_args=default_out_args):
+                    reverse=False, out_file=None, out_args=default_out_args):
     """
     Generates an offset table from a sequence file
 
     Arguments: 
-    primer_file = name of file containing primer sequences
-    align_func = the function to use to align sequence sets
-    align_args = a dictionary of arguments to pass to align_func
-    reverse = if True count tail gaps; if False count head gaps
-    out_args = common output argument dictionary from parseCommonArgs
+      primer_file : name of file containing primer sequences.
+      align_func : the function to use to align sequence sets.
+      align_args : a dictionary of arguments to pass to align_func.
+      reverse : if True count tail gaps; if False count head gaps.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs.
         
     Returns: 
-    the name of the offset output file
+      str: the name of the offset output file.
     """
     log = OrderedDict()
     log['START'] = 'AlignSets'
@@ -169,24 +170,35 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
         log[s.id] = '%s %i' % (s.seq, offset_dict[s.id])
     printLog(log)
 
+    # Open output handle
+    if out_file is not None:
+        out_handle = open(out_file, 'w')
+    else:
+        out_tag = 'reverse' if reverse else 'forward'
+        out_handle = getOutputHandle(primer_file,
+                                     'offsets-%s' % out_tag,
+                                     out_dir=out_args['out_dir'],
+                                     out_name=out_args['out_name'],
+                                     out_type='tab')
+
     # Write offset table
-    out_tag = 'reverse' if reverse else 'forward'
-    with getOutputHandle(primer_file, 'offsets-%s' % out_tag, out_dir=out_args['out_dir'], 
-                         out_name=out_args['out_name'], out_type='tab') as out_handle:
-        for k, v in offset_dict.items():
-            out_handle.write('%s\t%i\n' % (k, v))
+    for k, v in offset_dict.items():
+        out_handle.write('%s\t%i\n' % (k, v))
     
     # Print final log
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['END'] = 'AlignSets'
     printLog(log)
-    
+
+    # Close handle
+    out_handle.close()
+
     return out_handle.name
 
 
-def processASQueue(alive, data_queue, result_queue, align_func, align_args={}, 
-                   calc_div=False, delimiter=default_delimiter):
+def processQueue(alive, data_queue, result_queue, align_func, align_args={},
+                 calc_div=False, delimiter=default_delimiter):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
@@ -268,24 +280,26 @@ def processASQueue(alive, data_queue, result_queue, align_func, align_args={},
 
 
 def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_field,
-              calc_div=False, out_args=default_out_args, nproc=None, queue_size=None):
+              calc_div=False, out_file=None, out_args=default_out_args,
+              nproc=None, queue_size=None):
     """
     Performs a multiple alignment on sets of sequences
 
-    Arguments: 
-    seq_file = the sample sequence file name
-    align_func = the function to use to align sequence sets
-    align_args = a dictionary of arguments to pass to align_func
-    barcode_field = the annotation containing set IDs
-    calc_div = if True calculate average pairwise error for each sequence set
-    out_args = common output argument dictionary from parseCommonArgs
-    nproc = the number of processQueue processes;
-            if None defaults to the number of CPUs
-    queue_size = maximum size of the argument queue;
-                 if None defaults to 2*nproc
-                      
+    Arguments:
+      seq_file : the sample sequence file name.
+      align_func : the function to use to align sequence sets.
+      align_args : a dictionary of arguments to pass to align_func.
+      barcode_field : the annotation containing set IDs.
+      calc_div : if True calculate average pairwise error for each sequence set.
+      out_file : output file name. Automatically generated from the input file if None.
+      out_args : common output argument dictionary from parseCommonArgs
+      nproc : the number of processQueue processes;
+              if None defaults to the number of CPUs
+      queue_size : maximum size of the argument queue;
+                   if None defaults to 2*nproc
+
     Returns: 
-    a tuple of (valid_file, invalid_file) names
+      tuple: a tuple of (passing, failing) filenames.
     """
     # Define subcommand label dictionary
     cmd_dict = {runMuscle:'muscle', offsetSeqSet:'offset'}
@@ -309,7 +323,7 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
                  'index_func': indexSeqSets, 
                  'index_args': index_args}
     # Define worker function and arguments
-    work_func = processASQueue
+    work_func = processQueue
     work_args = {'align_func': align_func, 
                  'align_args': align_args,
                  'calc_div': calc_div,
@@ -317,7 +331,8 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     # Define collector function and arguments
     collect_func = collectSeqQueue
     collect_args = {'seq_file': seq_file,
-                    'task_label': 'align',
+                    'label': 'align',
+                    'out_file': out_file,
                     'out_args': out_args,
                     'index_field': barcode_field}
     
@@ -413,18 +428,22 @@ def getArgParser():
     parser_offset.set_defaults(align_func=offsetSeqSet)
 
     # Offset table generation argument parser
-    parent_table = getCommonArgParser(seq_in=False, seq_out=False, log=False, multiproc=False)
+    parent_table = getCommonArgParser(seq_in=False, seq_out=False, out_file=None, log=False, multiproc=False)
     parser_table = subparsers.add_parser('table', parents=[parent_table],
                                          formatter_class=CommonHelpFormatter, add_help=False,
                                          help='Create a 5\' offset table by primer multiple alignment.',
                                          description='Create a 5\' offset table by primer multiple alignment.')
     group_table = parser_table.add_argument_group('alignment table generation arguments')
     group_table.add_argument('-p', action='store', dest='primer_file', required=True,
-                               help='A FASTA or REGEX file containing primer sequences')
+                               help='A FASTA file containing primer sequences.')
+    group_table.add_argument('-o', action='store', dest='out_file', default=None,
+                             help='''Explicit output file name. Note, this argument cannot be used with 
+                                  the --failed, --outdir, or --outname arguments. If unspecified, then
+                                  the output filename will be based on the input filename(s).''')
     group_table.add_argument('--reverse', action='store_true', dest='reverse',
                                help='If specified create a 3\' offset table instead')
     group_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
-                               help='The name or location of the muscle executable')
+                               help='The name or location of the muscle executable.')
     parser_table.set_defaults(align_func=runMuscle)
     
     return parser
@@ -452,22 +471,25 @@ if __name__ == '__main__':
     
     # Define align_args
     if args_dict['align_func'] is runMuscle:
-        args_dict['align_args'] = {'aligner_exec':args_dict['aligner_exec']}
+        args_dict['align_args'] = {'aligner_exec': args_dict['aligner_exec']}
         del args_dict['aligner_exec']
     elif args_dict['align_func'] is offsetSeqSet:
-        args_dict['align_args'] = {'offset_dict':readOffsetFile(args_dict['offset_table']),
-                                   'field':args_dict['primer_field'],
-                                   'mode':args_dict['offset_mode']}
+        args_dict['align_args'] = {'offset_dict': readOffsetFile(args_dict['offset_table']),
+                                   'field': args_dict['primer_field'],
+                                   'mode': args_dict['offset_mode']}
         del args_dict['offset_table']
         del args_dict['primer_field']
         del args_dict['offset_mode']
-        
+
     # Call alignSets or createOffsetTable for each input file
     del args_dict['command']
     if args.command in ['muscle', 'offset']: 
         del args_dict['seq_files']
-        for f in args.__dict__['seq_files']:
+        if 'out_files' in args_dict:  del args_dict['out_files']
+        for i, f in enumerate(args.__dict__['seq_files']):
             args_dict['seq_file'] = f
+            args_dict['out_file'] = args.__dict__['out_files'][i] \
+                if args.__dict__['out_files'] else None
             alignSets(**args_dict)
 
     elif args.command == 'table':

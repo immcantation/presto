@@ -43,7 +43,7 @@ class CommonHelpFormatter(RawDescriptionHelpFormatter, ArgumentDefaultsHelpForma
 
 
 def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False, db_out=False,
-                       out_file=False, failed=True, log=True, annotation=True,
+                       out_file=True, failed=True, log=True, annotation=True,
                        multiproc=False, add_help=True):
     """
     Defines an ArgumentParser object with common pRESTO arguments
@@ -99,7 +99,7 @@ def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False,
     # Output filename
     if out_file:
         group.add_argument('-o', nargs='+', action='store', dest='out_files', default=None,
-                           help='''Explicit output file name. Note, this argument cannot be used with 
+                           help='''Explicit output file name(s). Note, this argument cannot be used with 
                                  the --failed, --outdir, or --outname arguments. If unspecified, then
                                  the output filename will be based on the input filename(s).''')
 
