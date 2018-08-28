@@ -461,8 +461,6 @@ class TestEstimateError(unittest.TestCase):
         
         # True distance dict
         self.true_distance_dict = {
-              'dtn': 
-                  np.array([ 0,  1, 14, 10,  4,  0,  0,  0,  0,  0,  0,  0,  0]), 
               'all': 
                   np.array([  0,   1,  24,  70, 152, 133,  55,   0,   0,   0,   0,   0,   0])}
         
@@ -487,7 +485,6 @@ class TestEstimateError(unittest.TestCase):
     def test_calculateDistances(self):
         result = EstimateError.calculateDistances(self.records_dna, bin_count = len(self.records_original) + 1)
         np.allclose(self.true_distance_dict['all'], result['all'])
-        np.allclose(self.true_distance_dict['dtn'], result['dtn'])
         
 if __name__ == '__main__':
     unittest.main()

@@ -16,7 +16,6 @@ from collections import OrderedDict, Counter
 from textwrap import dedent
 from time import time
 from scipy.spatial.distance import pdist, squareform
-from scipy.cluster.vq import kmeans2
 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -36,42 +35,12 @@ from presto.Annotation import parseAnnotation
 default_bin_count = 50
 default_min_count = 10
 default_headers = ['mismatch', 'q_sum', 'total']
-default_headers_dist = ['all', 'dtn']
+default_headers_dist = ['all']
 default_nucleotides = ['A', 'C', 'G', 'T']
+    
 
 
-# Helper functions
-def findKmeansThreshold(pdf):
-    """
-    Finds the index of the boundary separating 2 clusters given a 1D pdf
-    
-    Arguments:
-        pdf : 1D pdf of the data
-    
-    Returns:
-        threshold : index (interger) of the boundary along the pdf 
-    """
-    #check that pdf is a pdf
-    pdf = [x/sum(pdf) for x in pdf]
-    
-    #convert pdf to sampling (KMeans cannot take a pdf as input)
-    sample_choices = np.arange(0, len(pdf))
-    sample = np.random.choice(sample_choices, p=pdf, size = 500).astype('float32')
-    
-    #fit to 2-cluster 1D KMeans 
-    label_dict = dict(zip(sample, kmeans2(sample, k=2)[1]))
-    
-    #find the boundary between the labels and report
-    empty_set = set()
-    for threshold in sample_choices:
-        if label_dict.get(threshold) is not None:
-            empty_set.add(label_dict.get(threshold))
-        if len(empty_set) > 1:
-            break
-
-    return int(threshold) - 1
-    
-    
+# Helper functions    
 def initializeMismatchDictionary(seq_len):
     """
     Generates empty mismatch dictionary
@@ -102,7 +71,6 @@ def initializeMismatchDictionary(seq_len):
     return { 'pos': pos_dict, 'nuc': nuc_dict, 'qual': qual_dict, 'set': set_dict, 'dist': dist_dict }
 
 
-
 def calculateDistances(seq_iter, bin_count):
     """
     Computes and histograms the pairwise distance matrix from a set of sequences
@@ -121,13 +89,10 @@ def calculateDistances(seq_iter, bin_count):
     
     # Compute distance to nearest and upper triangular of all pairwise distance matrix
     all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k=1)]
-    dtn = np.array([min(pairwise_dist[i, i + 1:]) for i in range(pairwise_dist.shape[0] - 1)])
 
     return { 
-        'all' : np.histogram(all_pairwise, bins=bin_count, range=(0.0, 1.0), density=False)[0],
-        'dtn' : np.histogram(dtn, bins=bin_count, range=(0.0, 1.0), density=False)[0] 
+        'all' : np.histogram(all_pairwise, bins=bin_count, range=(0.0, 1.0), density=False)[0]
     }
-
 
 
 def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars, 
@@ -190,7 +155,6 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     mismatch['dist'] = { header : distance_mismatch[header] for header in headers_dist }
 
     return mismatch
-
 
 
 def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
@@ -290,6 +254,7 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
         raise
 
     return None
+
 
 
 def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, cluster_field):
@@ -397,10 +362,12 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         dist_df = pd.DataFrame.from_dict(total_mismatch['dist'])
         dist_df.index = dist_df.index/len(dist_df.index)
 
-        # Calculate thresholds (halfway between 0.75 and the np.max index)
+        # find the threshold (average minimum between max and 0.75)
+        dist = total_mismatch['dist']['all']
+        dist = dist[np.argmax(dist):]
         thresh_df = pd.DataFrame.from_dict({ 'thresh' : { 
-                        'ALL': dist_df.index[int(np.mean([len(dist_df.index)*0.75, np.argmax(total_mismatch['dist']['all'])]))], 
-                        'DTN': dist_df.index[int(np.mean([len(dist_df.index)*0.75, np.argmax(total_mismatch['dist']['dtn'])]))] }
+                        'ALL': dist_df.index[np.argmax(dist) + \
+                            int(np.mean([index for index in np.argsort(dist[:int(len(dist)*0.75)]) if dist[index] == np.min(dist)]))]}
                     })
 
         # Print final progress
@@ -468,8 +435,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, clust
         log['NUCLEOTIDE_ERROR'] = '%.6f' % (nuc_error * 3)
         log['QUALITY_ERROR'] = '%.6f' % qual_error
         log['SET_ERROR'] = '%.6f' % set_error
-        # log['ALL_THRESH'] = '%.6f' % thresh_df['THRESH']['ALL']
-        # log['DTN_THRESH'] = '%.6f' % thresh_df['THRESH']['DTN']
+        log['ALL_THRESH'] = '%.6f' % thresh_df['thresh']['ALL']
 
         # Update collector results
         collect_dict = {'log':log, 'out_files': out_files}
@@ -505,7 +471,7 @@ def writeResults(results, seq_file, out_args):
     nuc_df[['mismatch', 'total']] = nuc_df[['mismatch', 'total']].astype(int) 
     qual_df[['mismatch', 'total']] = qual_df[['mismatch', 'total']].astype(int) 
     set_df[['mismatch', 'total']] = set_df[['mismatch', 'total']].astype(int)     
-    dist_df[['all', 'dtn']] = dist_df[['all', 'dtn']].astype(int)
+    dist_df[['all']] = dist_df[['all']].astype(int)
     
     # Write to tab delimited files
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
@@ -538,8 +504,8 @@ def writeResults(results, seq_file, out_args):
                       float_format='%.6f')
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
-                      columns=['all', 'dtn'],
-                      header=['ALL', 'DTN'],
+                      columns=['all'],
+                      header=['ALL'],
                       float_format='%.6f')
         thresh_df.to_csv(thresh_handle, sep='\t', na_rep='NA', index=True,
                       index_label='TYPE',
@@ -667,13 +633,14 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
     # Generate a df
     dist_df = pd.DataFrame.from_dict(mismatch['dist'])
     dist_df.index = dist_df.index/len(dist_df.index)
-    dist_df[['all', 'dtn']] = dist_df[['all', 'dtn']].astype(int)
+    dist_df[['all']] = dist_df[['all']].astype(int)
 
+    #find the threshold (average minimum between 0 and 0.75)
+    dist = mismatch['dist']['all']
     thresh_df = pd.DataFrame.from_dict({ 'thresh' : { 
-                    'ALL': dist_df.index[np.argmin(mismatch['dist']['all'])], 
-                    'DTN': dist_df.index[findKmeansThreshold(mismatch['dist']['dtn'])] }
-                })
-    
+                        'ALL': dist_df.index[int(np.mean([index for index in np.argsort(dist[:int(len(dist)*0.75)]) if dist[index] == np.min(dist)]))]}
+                    })
+
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
 
     # Output as tsv
@@ -682,8 +649,8 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
         
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
-                      columns=['all', 'dtn'],
-                      header=['ALL', 'DTN'],
+                      columns=['all'],
+                      header=['ALL'],
                       float_format='%.6f')
         thresh_df.to_csv(thresh_handle, sep='\t', na_rep='NA', index=True,
                       index_label='TYPE',
@@ -695,8 +662,7 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
     log['OUTPUT 1'] = os.path.basename(dist_handle.name)
     log['OUTPUT 2'] = os.path.basename(thresh_handle.name)
     log['SEQUENCES'] = result_count
-    # log['ALL_THRESH'] = '%.6f' % thresh_df['THRESH']['ALL']
-    # log['DTN_THRESH'] = '%.6f' % thresh_df['THRESH']['DTN']
+    log['ALL_THRESH'] = '%.6f' % thresh_df['thresh']['ALL']
     log['END'] = 'EstimateError'
     printLog(log)
 
