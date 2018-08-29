@@ -93,7 +93,7 @@ class TestBuildConsensus(unittest.TestCase):
         self.assertAlmostEqual(self.freq_error, error, places=4)
 
         print('Quality consensus error>')
-        cons = qualityConsensus(self.records_dna)
+        cons = qualityConsensus(self.records_dna, min_qual=20)
         error = calculateSetError(self.records_dna, cons)
         print('  REF> %s' % cons.seq)
         for x in self.records_dna:  print(' %s> %s' %(x.id, x.seq))
