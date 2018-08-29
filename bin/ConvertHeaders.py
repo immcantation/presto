@@ -8,7 +8,6 @@ from presto import __version__, __date__
 
 # Imports
 import os
-import re
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
@@ -16,293 +15,13 @@ from time import time
 from Bio import SeqIO
 
 # Presto imports
-from presto.Defaults import default_delimiter, default_out_args
-from presto.Annotation import parseAnnotation, flattenAnnotation
+from presto.Defaults import default_out_args
+from presto.Annotation import flattenAnnotation, convertGenericHeader, convert454Header, \
+                              convertGenbankHeader, convertIlluminaHeader, convertIMGTHeader, \
+                              convertSRAHeader, convertMIGECHeader
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
                       printLog, printProgress
-
-
-def convertGenericHeader(desc, delimiter=default_delimiter):
-    """
-    Converts any header to the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-    delimiter = a tuple of delimiters for (fields, values, value lists)
-
-    Returns:
-    a dictionary of header {field: value} pairs
-    """
-    # Replace whitespace and delimiter characters
-    sub_regex = '[%s\s]+' % re.escape(''.join(delimiter))
-    conv = re.sub(sub_regex, '_', desc)
-    try:
-        # Check if modified header is valid
-        header = parseAnnotation(conv, delimiter=delimiter)
-    except:
-        # Assign header to None if header cannot be converted
-        header = None
-
-    return header
-
-
-def convert454Header(desc):
-    """
-    Parses 454 headers into the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-
-    Returns:
-    a dictionary of header {field: value} pairs
-
-    New header example:
-        @GXGJ56Z01AE06X length=222
-        @<accession> <length=##>
-
-    Old header example:
-        @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
-        @<rank_x_y> <length=##> <uaccno=accession>
-    """
-    # Split description and assign field names
-    try:
-        # Build header dictionary
-        fields = desc.split(' ')
-        header = OrderedDict()
-        header['ID'] = fields[0]
-        header['LENGTH'] = fields[1].replace('length=', '')
-
-        # Check for old format
-        if len(fields) == 3:
-            header['UACCNO'] = fields[2].replace('uaccno=', '')
-        elif len(fields) != 2:
-            raise ValueError
-    except:
-        header = None
-
-    return header
-
-
-def convertGenbankHeader(desc, delimiter=default_delimiter):
-    """
-    Converts Genbank and RefSeq headers into the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-    delimiter = a tuple of delimiters for (fields, values, value lists)
-
-    Returns:
-    a dictionary of header {field: value} pairs
-
-    New header example:
-        >CM000663.2 Homo sapiens chromosome 1, GRCh38 reference primary assembly
-        <accession>.<version> <description>
-    Old header example:
-        >gi|568336023|gb|CM000663.2| Homo sapiens chromosome 1, GRCh38 reference primary assembly
-        gi|<GI record number>|<dbsrc>|<accession>.<version>|<description>
-    """
-    # Define special characters to replace
-    sub_regex = '[%s\s]+' % re.escape(''.join(delimiter[1:]))
-
-    # Split description and assign field names
-    try:
-        header = OrderedDict()
-
-        # Try old format and fallback to new format if that fails
-        fields = desc.split('|')
-        if len(fields) == 5:
-            header['ID'] = fields[3]
-            header['GI'] = fields[1]
-            header['SOURCE'] = fields[2]
-            header['DESC'] = re.sub(sub_regex, '_', fields[4].strip())
-        else:
-            fields = desc.split(' ')
-            header['ID'] = fields[0]
-            header['DESC'] = re.sub(sub_regex, '_', '_'.join(fields[1:]).strip())
-    except:
-        header = None
-
-    return header
-
-
-def convertIlluminaHeader(desc):
-    """
-    Converts Illumina headers into the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-
-    Returns:
-    a dictionary of header {field: value} pairs
-
-    New header example:
-        @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
-        @<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:<x-pos>:<y-pos> <read number>:<is filtered>:<control number>:<index sequence>
-    Old header example:
-        @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
-        @<instrument>:<flowcell lane>:<tile>:<x-pos>:<y-pos>#<index sequence>/<read number>
-    """
-    # Split description and assign field names
-    try:
-        # Try new format and fallback to old if that fails
-        fields = desc.split(' ')
-        if len(fields) == 2:
-            x = fields[1].split(':')
-            index = x[3]
-            read_num = x[0]
-        else:
-            fields = desc.split('#')
-            x = fields[1].split('/')
-            index = x[0]
-            read_num = x[1]
-
-        # Build header dictionary
-        header = OrderedDict()
-        header['ID'] = fields[0]
-        header['INDEX'] = index
-        header['READ'] = read_num
-    except:
-        header = None
-
-    return header
-
-
-def convertIMGTHeader(desc, simple=False):
-    """
-    Converts germline headers from IMGT/GENE-DB into the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-    simple = if True then the header will be converted to only the allele name
-
-    Returns:
-    a dictionary of header {field: value} pairs
-
-    Header specifications from http://imgt.org/genedb
-        The FASTA header contains 15 fields separated by '|':
-         1. IMGT/LIGM-DB accession number(s)
-         2. gene and allele name
-         3. species
-         4. functionality
-         5. exon(s), region name(s), or extracted label(s)
-         6. start and end positions in the IMGT/LIGM-DB accession number(s)
-         7. number of nucleotides in the IMGT/LIGM-DB accession number(s)
-         8. codon start, or 'NR' (not relevant) for non coding labels and
-            out-of-frame pseudogenes
-         9. +n: number of nucleotides (nt) added in 5' compared to the
-            corresponding label extracted from IMGT/LIGM-DB
-        10. +n or -n: number of nucleotides (nt) added or removed in 3'
-            compared to the corresponding label extracted from IMGT/LIGM-DB
-        11. +n, -n, and/or nS: number of added, deleted, and/or substituted
-            nucleotides to correct sequencing errors, or 'not corrected' if
-            non corrected sequencing errors
-        12. number of amino acids (AA): this field indicates that the
-            sequence is in amino acids
-        13. number of characters in the sequence: nt (or AA)+IMGT gaps=total
-        14. partial (if it is)
-        15. reverse complementary (if it is)
-
-    Header example:
-        >X60503|IGHV1-18*02|Homo sapiens|F|V-REGION|142..417|276 nt|1| | | | |276+24=300|partial in 3'| |
-    """
-    # Split description and assign field names
-    try:
-        fields = desc.split('|')
-
-        # Build header dictionary
-        header = OrderedDict()
-        header['ID'] = fields[1]
-
-        if not simple:
-            header['SPECIES'] = re.sub('\s', '_', fields[2])
-            header['REGION'] = fields[4]
-            header['FUNCTIONALITY'] = re.sub('[\(\)\[\]]', '', fields[3])
-            header['PARTIAL'] = 'FALSE' if re.sub('\s', '', fields[13]) == '' else 'TRUE'
-            header['ACCESSION'] = fields[0]
-
-        # Position and length data
-        #header['NUCLEOTIDES'] = re.sub('[^0-9]', '', fields[6])
-        #header['LENGTH'] = fields[12].split('=')[1]
-    except:
-        header = None
-
-    return header
-
-
-def convertSRAHeader(desc):
-    """
-    Parses NCBI SRA or EMBL-EBI ENA headers into the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-
-    Returns:
-    a dictionary of header {field: value} pairs
-
-    Header example from fastq-dump --split-files:
-        @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-        @SRR1383326.1 1 length=250
-        @<accession>.<spot> <original sequence description> <length=#>
-    Header example from fastq-dump --split-files -I:
-        @SRR1383326.1.1 1 length=250
-        @<accession>.<spot>.<read number> <original sequence description> <length=#>
-    Header example from ENA
-        @ERR220397.1 HKSQ1MM01DXT2W/3
-        @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/1
-        @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/2
-
-    """
-    # Split description and assign field names
-    try:
-        fields = desc.split(' ')
-
-        # Build header dictionary
-        header = OrderedDict()
-
-        # Check for read number if sequence id
-        read_id = fields[0].split('.')
-        if len(read_id) == 3:
-            header['ID'] = '.'.join(read_id[:2])
-            header['READ'] = read_id[2]
-        else:
-            header['ID'] = fields[0]
-
-        header['DESC'] = fields[1]
-        if len(fields) >= 3 and 'length' in fields[2]:
-            header['LENGTH'] = fields[2].replace('length=', '')
-    except:
-        header = None
-
-    return header
-
-
-def convertMIGECHeader(desc):
-    """
-    Parses headers from the MIGEC tool into the pRESTO format
-
-    Arguments:
-    desc = a sequence description string
-
-    Returns:
-    a dictionary of header {field: value} pairs
-
-    Header example:
-        @MIG UMI:TCGGCCAACAAA:8
-        @MIG UMI:<UMI sequence>:<consensus read count>
-    """
-    # Split description and assign field names
-    try:
-        fields = desc.split(':')
-
-        # Build header dictionary
-        header = OrderedDict()
-        header['ID'] = fields[1]
-        header['COUNT'] = fields[2]
-    except:
-        header = None
-
-    return header
 
 
 def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_args=default_out_args):
@@ -320,13 +39,13 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_a
       str: the output sequence file name.
     """
     # Define subcommand label dictionary
-    cmd_dict = {convertGenericHeader:'generic',
-                convert454Header:'454',
-                convertGenbankHeader:'genbank',
-                convertIlluminaHeader:'illumina',
-                convertIMGTHeader:'imgt',
+    cmd_dict = {convertGenericHeader: 'generic',
+                convert454Header: '454',
+                convertGenbankHeader: 'genbank',
+                convertIlluminaHeader: 'illumina',
+                convertIMGTHeader: 'imgt',
                 convertMIGECHeader: 'migec',
-                convertSRAHeader:'sra'}
+                convertSRAHeader: 'sra'}
 
     log = OrderedDict()
     log['START'] = 'ConvertHeaders'

@@ -9,475 +9,30 @@ from presto import __version__, __date__
 # Imports
 import os
 import shutil
-import numpy as np
-import pandas as pd
-import scipy.stats as stats
 from argparse import ArgumentParser
 from collections import OrderedDict
 from textwrap import dedent
-from Bio.Alphabet import IUPAC
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Defaults import default_delimiter, choices_coord, \
                             default_coord, default_blastdb_exec, \
+                            default_assembly_alpha, default_assembly_max_error, \
+                            default_assembly_min_ident, default_assembly_min_len, default_assembly_max_len, \
+                            default_assembly_gap, default_assembly_evalue, default_assembly_max_hits, \
                             default_usearch_exec, default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
-from presto.Applications import makeBlastnDb, makeUBlastDb, runBlastn, runUBlast
-from presto.IO import readReferenceFile, countSeqFile, printLog, printError, printWarning
-from presto.Sequence import getDNAScoreDict, reverseComplement, scoreSeqPair, overlapConsensus
+from presto.Applications import makeBlastnDb, makeUBlastDb
+from presto.IO import readReferenceFile, countSeqFile, printLog, printError
+from presto.Sequence import reverseComplement, AssemblyStats, \
+                            referenceAssembly, joinAssembly, alignAssembly, sequentialAssembly
 from presto.Multiprocessing import SeqResult, manageProcesses, \
                                    processSeqQueue, feedPairQueue, collectPairQueue
 
 # Defaults
-choices_aligner = ['blastn', 'usearch']
 default_aligner = 'usearch'
 default_aligner_exec = default_usearch_exec
-default_alpha = 1e-5
-default_max_error = 0.3
-default_min_ident = 0.5
-default_min_len = 8
-default_max_len = 1000
-default_gap = 0
-default_evalue = 1e-5
-default_max_hits = 100
-
-class AssemblyRecord:
-    """
-    A class defining a paired-end assembly result
-    """
-    # Instantiation
-    def __init__(self, seq=None):
-        self.seq = seq
-        self.ref_seq = None
-        self.head_pos = None
-        self.tail_pos = None
-        self.ref_pos = None
-        self.gap = None
-        self.zscore = float('-inf')
-        self.pvalue = None
-        self.evalue = None
-        self.error = None
-        self.ident = None
-        self.valid = False
-
-    # Set boolean evaluation to valid value
-    def __bool__(self):
-        return self.valid
-
-    # Set length evaluation to length of SeqRecord
-    def __len__(self):
-        if self.seq is None:
-            return 0
-        else:
-            return len(self.seq)
-
-    # Set overlap length to head_pos difference
-    @property
-    def overlap(self):
-        if self.head_pos is None:
-            return None
-        else:
-            return self.head_pos[1] - self.head_pos[0]
-
-
-class AssemblyStats:
-    """
-    Class containing p-value and z-score matrices for scoring assemblies
-    """
-    # Instantiation
-    def __init__(self, n):
-        self.p = AssemblyStats._getPMatrix(n)
-        self.z = AssemblyStats._getZMatrix(n)
-        #print self.z
-
-    @staticmethod
-    def _getPMatrix(n):
-        """
-        Generates a matrix of mid-p correct p-values from a binomial distribution
-
-        Arguments:
-        n = maximum trials
-
-        Returns:
-        a numpy.array of successes by trials p-values
-        """
-        p_matrix = np.empty([n, n], dtype=float)
-        p_matrix.fill(np.nan)
-        k = np.arange(n, dtype=int)
-        for i, x in enumerate(k):
-            p_matrix[x, i:] = 1 - stats.binom.cdf(x - 1, k[i:], 0.25) - stats.binom.pmf(x, k[i:], 0.25) / 2.0
-
-        return p_matrix
-
-    @staticmethod
-    def _getZMatrix(n):
-        """
-        Generates a matrix of z-score approximations for a binomial distribution
-
-        Arguments:
-        n = maximum trials
-
-        Returns:
-        a numpy.array of successes by trials z-scores
-        """
-        z_matrix = np.empty([n, n], dtype=float)
-        z_matrix.fill(np.nan)
-        k = np.arange(0, n, dtype=int)
-        for i, x in enumerate(k):
-            j = i + 1 if i == 0 else i
-            z_matrix[x, j:] = (x - k[j:]/4.0)/np.sqrt(3.0/16.0*k[j:])
-
-        return z_matrix
-
-
-def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_min_ident,
-                      evalue=default_evalue, max_hits=default_max_hits, fill=False,
-                      aligner=default_aligner, aligner_exec=default_aligner_exec,
-                      score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
-    """
-    Stitches two sequences together by aligning against a reference database
-
-    Arguments:
-    head_seq = the head SeqRecord
-    head_seq = the tail SeqRecord
-    ref_dict = a dictionary of reference SeqRecord objects
-    ref_db = the path and name of the reference database
-    min_ident = the minimum identity for a valid assembly
-    evalue = the E-value cut-off for ublast
-    max_hits = the maxhits output limit for ublast
-    fill = if False non-overlapping regions will be assigned Ns;
-           if True non-overlapping regions will be filled with the reference sequence.
-    aligner = the alignment tool; one of 'blastn' or 'usearch'
-    aligner_exec = the path to the alignment tool executable
-    score_dict = optional dictionary of character scores in the
-                 form {(char1, char2): score}
-
-    Returns:
-    an AssemblyRecord object
-    """
-    try:
-        align_func = {'blastn': runBlastn, 'usearch': runUBlast}[aligner]
-    except:
-        printError('Invalid alignment tool %s.' % aligner)
-
-    # Define general parameters
-    head_len = len(head_seq)
-    tail_len = len(tail_seq)
-
-    # Determine if quality scores are present
-    has_quality = hasattr(head_seq, 'letter_annotations') and \
-                  hasattr(tail_seq, 'letter_annotations') and \
-                  'phred_quality' in head_seq.letter_annotations and \
-                  'phred_quality' in tail_seq.letter_annotations
-
-    # Align against reference
-    head_df = align_func(head_seq, database=ref_db, evalue=evalue, max_hits=max_hits,
-                         aligner_exec=aligner_exec)
-    tail_df = align_func(tail_seq, database=ref_db, evalue=evalue, max_hits=max_hits,
-                         aligner_exec=aligner_exec)
-
-    # Subset results to matching reference assignments
-    align_df = pd.merge(head_df, tail_df, on='target', how='inner', suffixes=('_head', '_tail'))
-
-    # If no matching targets return failed results
-    if len(align_df) < 1:
-        return AssemblyRecord()
-
-    # Select top alignment
-    align_top = align_df.ix[0, :]
-    ref_id = align_top['target']
-    ref_seq = ref_dict[ref_id]
-
-    # Get offset of target and reference positions
-    head_shift = align_top['target_start_head'] - align_top['query_start_head']
-    tail_shift = align_top['target_start_tail'] - align_top['query_start_tail']
-
-    # Get positions of outer reference match in head (a, b) and tail (x, y) sequences
-    outer_start = align_top[['target_start_head', 'target_start_tail']].min()
-    outer_end = align_top[['target_end_head', 'target_end_tail']].max()
-    a_outer = outer_start - head_shift
-    b_outer = outer_end - head_shift
-    x_outer = outer_start - tail_shift
-    y_outer = outer_end - tail_shift
-
-    # Get positions of inner reference match in head (a,b) and tail (x,y) sequences
-    inner_start = align_top[['target_start_head', 'target_start_tail']].max()
-    inner_end = align_top[['target_end_head', 'target_end_tail']].min()
-    a_inner = inner_start - head_shift
-    b_inner = inner_end - head_shift
-    x_inner = inner_start - tail_shift
-    y_inner = inner_end - tail_shift
-
-    # Determine head (a, b) and tail (x, y) overlap positions
-    a = max(0, a_inner - x_inner)
-    b = min(b_inner + (tail_len - y_inner), head_len)
-    x = max(0, x_inner - a_inner)
-    y = min(y_inner + (head_len - b_inner), tail_len)
-
-    # Join sequences if head and tail do not overlap, otherwise assemble
-    if a > b and x > y:
-        stitch = joinAssembly(head_seq, tail_seq, gap=(a - b), insert_seq=None)
-    else:
-        stitch = AssemblyRecord()
-        stitch.gap = 0
-
-        # Define overlap sequence
-        if has_quality:
-            # Build quality consensus
-            overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
-        else:
-            # Assign head sequence to conflicts when no quality information is available
-            overlap_seq = head_seq[a:b]
-
-        # Assemble sequence
-        if a > 0 and y < tail_len:
-            # Tail overlaps end of head
-            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
-        elif b < head_len and x > 0:
-            # Head overlaps end of tail
-            stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
-        elif a == 0 and b == head_len:
-            # Head is a subsequence of tail
-            stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
-        elif x == 0 and y == tail_len:
-            # Tail is a subsequence of head
-            stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
-        else:
-            printWarning('Invalid overlap condition for %s' % head_seq.id)
-
-        # Define stitch ID
-        stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
-                                    else '+'.join([head_seq.id, tail_seq.id])
-        stitch.seq.name = stitch.seq.id
-        stitch.seq.description = ''
-
-    # Assign position info
-    stitch.head_pos = (a, b)
-    stitch.tail_pos = (x, y)
-
-    # Assign reference info
-    stitch.ref_seq = ref_seq[outer_start:outer_end]
-    stitch.ref_pos = (max(a_outer, x_outer), max(b_outer, y_outer))
-    stitch.evalue = tuple(align_top[['evalue_head', 'evalue_tail']])
-
-    # Calculate assembly error
-    score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
-                                        ref_seq.seq[outer_start:outer_end],
-                                        score_dict=score_dict)
-    stitch.ident = 1 - error
-    stitch.valid = bool(stitch.ident >= min_ident)
-
-    # Fill gap with reference if required
-    if a > b and x > y and fill:
-        insert_seq = ref_seq.seq[(b + head_shift):(a + head_shift)]
-        insert_rec = joinAssembly(head_seq, tail_seq, gap=(a - b), insert_seq=insert_seq)
-        stitch.seq = insert_rec.seq
-
-    return stitch
-
-
-def joinAssembly(head_seq, tail_seq, gap=default_gap, insert_seq=None):
-    """
-    Concatenates two sequences 
-
-    Arguments: 
-    head_seq = the head SeqRecord
-    tail_seq = the tail SeqRecord
-    gap = number of gap characters to insert between head and tail
-          ignored if insert_seq is not None.
-    insert_seq = a string or Bio.Seq.Seq object, to insert between the head and tail;
-                 if None insert with N characters
-
-    Returns: 
-    an AssemblyRecord object
-    """
-    # Define joined ID
-    join_id = head_seq.id if head_seq.id == tail_seq.id \
-              else '+'.join([head_seq.id, tail_seq.id])
-
-    # Join sequences
-    if insert_seq is None:
-        join_seq = str(head_seq.seq) + 'N' * gap + str(tail_seq.seq)
-    else:
-        gap = len(insert_seq)
-        join_seq = str(head_seq.seq) + str(insert_seq) + str(tail_seq.seq)
-    
-    # Define return record
-    record = SeqRecord(Seq(join_seq, IUPAC.ambiguous_dna), 
-                       id=join_id, 
-                       name=join_id, 
-                       description='')
-    
-    # Join quality score if present
-    has_quality = hasattr(head_seq, 'letter_annotations') and \
-                  hasattr(tail_seq, 'letter_annotations') and \
-                  'phred_quality' in head_seq.letter_annotations and \
-                  'phred_quality' in tail_seq.letter_annotations
-    if has_quality:
-        join_quality = head_seq.letter_annotations['phred_quality'] + \
-                       [0] * gap + \
-                       tail_seq.letter_annotations['phred_quality']
-        record.letter_annotations = {'phred_quality':join_quality}
-
-    stitch = AssemblyRecord(record)
-    stitch.valid = True
-    stitch.gap = gap
-
-    return stitch
-
-
-def alignAssembly(head_seq, tail_seq, alpha=default_alpha, max_error=default_max_error,
-                  min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                  assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
-    """
-    Stitches two sequences together by aligning the ends
-
-    Arguments:
-    head_seq = the head SeqRecord
-    head_seq = the tail SeqRecord
-    alpha = the minimum p-value for a valid assembly
-    max_error = the maximum error rate for a valid assembly
-    min_len = minimum length of overlap to test
-    max_len = maximum length of overlap to test
-    scan_reverse = if True allow the head sequence to overhang the end of the tail sequence
-                   if False end alignment scan at end of tail sequence or start of head sequence
-    assembly_stats = optional successes by trials numpy.array of p-values
-    score_dict = optional dictionary of character scores in the 
-                 form {(char1, char2): score}
-                     
-    Returns: 
-    an AssemblyRecord object
-    """
-    # Define general parameters
-    stitch = AssemblyRecord()
-    if assembly_stats is None:  assembly_stats = AssemblyStats(max_len + 1)
-    head_str = str(head_seq.seq)
-    tail_str = str(tail_seq.seq)
-    head_len = len(head_str)
-    tail_len = len(tail_str)
-
-    # Fail if sequences are too short
-    if head_len <= min_len or tail_len <= min_len:
-        return stitch
-
-    # Determine if quality scores are present
-    has_quality = hasattr(head_seq, 'letter_annotations') and \
-                  hasattr(tail_seq, 'letter_annotations') and \
-                  'phred_quality' in head_seq.letter_annotations and \
-                  'phred_quality' in tail_seq.letter_annotations
-
-    # Determine if sub-sequences are allowed and define scan range
-    if scan_reverse and max_len >= min(head_len, tail_len):
-        scan_len = head_len + tail_len - min_len
-    else:
-        scan_len = min(max(head_len, tail_len), max_len)
-
-    # Iterate and score overlap segments
-    for i in range(min_len, scan_len + 1):
-        a = max(0, head_len - i)
-        b = head_len - max(0, i - tail_len)
-        x = max(0, i - head_len)
-        y = min(tail_len, i)
-        score, weight, error = scoreSeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
-        z = assembly_stats.z[score, weight]
-        # Save stitch as optimal if z-score improves
-        if z > stitch.zscore:
-           stitch.head_pos = (a, b)
-           stitch.tail_pos = (x, y)
-           stitch.zscore = z
-           stitch.pvalue = assembly_stats.p[score, weight]
-           stitch.error = error
-
-    # Build stitched sequences and assign best_dict values
-    if stitch.head_pos is not None:
-        # Correct quality scores and resolve conflicts
-        a, b = stitch.head_pos
-        x, y = stitch.tail_pos
-        if has_quality:
-            # Build quality consensus
-            overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
-        else:
-            # Assign head sequence to conflicts when no quality information is available
-            overlap_seq = head_seq[a:b]
-
-        if a > 0 and y < tail_len:
-            # Tail overlaps end of head
-            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
-        elif b < head_len and x > 0:
-            # Head overlaps end of tail
-            stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
-        elif a == 0 and b == head_len:
-            # Head is a subsequence of tail
-            stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
-        elif x == 0 and y == tail_len:
-            # Tail is a subsequence of head
-            stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
-        else:
-            printWarning('Invalid overlap condition for %s.' % head_seq.id)
-
-
-        # Define best stitch ID
-        stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
-                              else '+'.join([head_seq.id, tail_seq.id])
-        stitch.seq.name = stitch.seq.id
-        stitch.seq.description = ''
-
-    stitch.valid = bool(stitch.pvalue <= alpha and stitch.error <= max_error)
-
-    return stitch
-
-
-def sequentialAssembly(head_seq, tail_seq, ref_dict, ref_db,
-                       alpha=default_alpha, max_error=default_max_error,
-                       min_len=default_min_len, max_len=default_max_len, scan_reverse=False,
-                       min_ident=default_min_ident, evalue=default_evalue, max_hits=default_max_hits,
-                       fill=False, aligner=default_aligner, aligner_exec=default_aligner_exec,
-                       assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
-    """
-    Stitches sequences together by first attempting de novo assembly then falling back to reference guided assembly
-
-    Arguments:
-      head_seq : the head SeqRecord
-      head_seq : the tail SeqRecord
-      ref_dict : a dictionary of reference SeqRecord objects
-      ref_db : the path and name of the reference database
-      alpha : the minimum p-value for a valid de novo assembly
-      max_error : the maximum error rate for a valid de novo assembly
-      min_len : minimum length of overlap to test for de novo assembly
-      max_len : maximum length of overlap to test for de novo assembly
-      scan_reverse : if True allow the head sequence to overhang the end of the tail sequence in de novo assembly
-                     if False end alignment scan at end of tail sequence or start of head sequence
-      min_ident : the minimum identity for a valid reference guided assembly
-      evalue : the E-value cut-off for reference guided assembly
-      max_hits : the maxhits output limit for reference guided assembly
-      fill : if False non-overlapping regions will be assigned Ns in reference guided assembly;
-             if True non-overlapping regions will be filled with the reference sequence.
-      aligner : the alignment tool; one of 'blastn' or 'usearch'
-      aligner_exec : the path to the alignment tool executable
-      assembly_stats : optional successes by trials numpy.array of p-values
-      score_dict : optional dictionary of character scores in the
-                 form {(char1, char2): score}
-
-    Returns:
-      AssemblyRecord : assembled sequence object
-    """
-    # First attempt align mode
-    stitch = alignAssembly(head_seq, tail_seq, alpha=alpha, max_error=max_error,
-                  min_len=min_len, max_len=max_len, scan_reverse=scan_reverse,
-                  assembly_stats=assembly_stats, score_dict=score_dict)
-
-    # Then try reference mode
-    if not stitch:
-        stitch = referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=min_ident,
-                                   evalue=evalue, max_hits=max_hits, fill=fill,
-                                   aligner=aligner, aligner_exec=aligner_exec,
-                                   score_dict=score_dict)
-
-    return stitch
-
+choices_aligner = ['blastn', 'usearch']
 
 def assemblyWorker(data, assemble_func, assemble_args={}, rc='tail',
                    fields_1=None, fields_2=None, delimiter=default_delimiter):
@@ -605,10 +160,10 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
       list: a list of successful output file names.
     """
     # Define subcommand label dictionary
-    cmd_dict = {alignAssembly:'align',
+    cmd_dict = {alignAssembly: 'align',
                 joinAssembly: 'join',
-                referenceAssembly:'reference',
-                sequentialAssembly:'sequential'}
+                referenceAssembly: 'reference',
+                sequentialAssembly: 'sequential'}
     cmd_name = cmd_dict.get(assemble_func, assemble_func.__name__)
 
     # Print parameter info
@@ -759,13 +314,13 @@ def getArgParser():
     parent_align = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
     group_align = parent_align.add_argument_group('de novo assembly arguments')
     group_align.add_argument('--alpha', action='store', dest='alpha', type=float,
-                              default=default_alpha, help='Significance threshold for de novo paired-end assembly.')
+                             default=default_assembly_alpha, help='Significance threshold for de novo paired-end assembly.')
     group_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                              default=default_max_error, help='Maximum allowable error rate for de novo assembly.')
+                             default=default_assembly_max_error, help='Maximum allowable error rate for de novo assembly.')
     group_align.add_argument('--minlen', action='store', dest='min_len', type=int,
-                              default=default_min_len, help='Minimum sequence length to scan for overlap in de novo assembly.')
+                             default=default_assembly_min_len, help='Minimum sequence length to scan for overlap in de novo assembly.')
     group_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
-                              default=default_max_len, help='Maximum sequence length to scan for overlap in de novo assembly.')
+                             default=default_assembly_max_len, help='Maximum sequence length to scan for overlap in de novo assembly.')
     group_align.add_argument('--scanrev', action='store_true', dest='scan_reverse',
                               help='''If specified, scan past the end of the tail sequence in de novo assembly to allow
                                       the head sequence to overhang the end of the tail sequence.''')
@@ -781,7 +336,7 @@ def getArgParser():
                                          help='Assemble pairs by concatenating ends.',
                                          description='Assemble pairs by concatenating ends.')
     parser_join.add_argument_group('join assembly arguments').add_argument('--gap', action='store', dest='gap',
-                                                                           type=int, default=default_gap,
+                                                                           type=int, default=default_assembly_gap,
                                                                            help='Number of N characters to place between ends.')
     parser_join.set_defaults(assemble_func=joinAssembly)
 
@@ -791,16 +346,16 @@ def getArgParser():
     group_ref.add_argument('-r', action='store', dest='ref_file', required=True,
                             help='''A FASTA file containing the reference sequence database.''')
     group_ref.add_argument('--minident', action='store', dest='min_ident', type=float,
-                            default=default_min_ident,
-                            help='''Minimum identity of the assembled sequence required to call a
+                           default=default_assembly_min_ident,
+                           help='''Minimum identity of the assembled sequence required to call a
                                  valid reference guided assembly (between 0 and 1).''')
     group_ref.add_argument('--evalue', action='store', dest='evalue', type=float,
-                            default=default_evalue,
-                            help='''Minimum E-value for reference alignment for both
+                           default=default_assembly_evalue,
+                           help='''Minimum E-value for reference alignment for both
                                  the head and tail sequence.''')
     group_ref.add_argument('--maxhits', action='store', dest='max_hits', type=int,
-                            default=default_max_hits,
-                            help='''Maximum number of hits from the reference alignment to check for
+                           default=default_assembly_max_hits,
+                           help='''Maximum number of hits from the reference alignment to check for
                                  matching head and tail sequence assignments.''')
     group_ref.add_argument('--fill', action='store_true', dest='fill',
                             help='''Specify to change the behavior of inserted characters when the head and tail

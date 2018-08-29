@@ -2,13 +2,18 @@
 Sequence processing functions
 """
 # Info
+from copy import deepcopy
+
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import __version__, __date__, default_missing_chars
+from presto import __version__, __date__, default_delimiter
 
 # Imports
+import numpy as np
+import pandas as pd
 import re
 from collections import OrderedDict
-from itertools import product, zip_longest
+from itertools import product, zip_longest, groupby
+from scipy import stats as stats
 from Bio import pairwise2
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
@@ -17,10 +22,19 @@ from Bio.SeqRecord import SeqRecord
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field, default_primer_field, \
                             default_gap_chars, default_mask_chars, default_missing_chars, \
-                            default_min_freq, default_min_qual, \
-                            default_gap_penalty, default_max_error, default_max_len, default_start
-from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
+                            default_consensus_min_freq, default_consensus_min_qual, \
+                            default_primer_gap_penalty, default_primer_max_error, \
+                            default_primer_max_len, default_primer_start, \
+                            default_filter_min_qual, default_filter_min_len, default_filter_max_missing, \
+                            default_filter_max_repeat, default_filter_window, \
+                            default_assembly_alpha, default_assembly_max_error, default_assembly_min_ident, \
+                            default_assembly_min_len, default_assembly_max_len, \
+                            default_assembly_gap, default_assembly_evalue, default_assembly_max_hits, \
+                            default_usearch_exec
+from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, annotationConsensus
+from presto.Applications import runBlastn, runUBlast
 from presto.IO import printWarning, printError
+from presto.Multiprocessing import SeqResult
 
 
 class PrimerAlignment:
@@ -71,6 +85,96 @@ class PrimerAlignment:
             return 0
         else:
             return len(self.align_seq)
+
+
+
+class AssemblyRecord:
+    """
+    A class defining a paired-end assembly result
+    """
+    # Instantiation
+    def __init__(self, seq=None):
+        self.seq = seq
+        self.ref_seq = None
+        self.head_pos = None
+        self.tail_pos = None
+        self.ref_pos = None
+        self.gap = None
+        self.zscore = float('-inf')
+        self.pvalue = None
+        self.evalue = None
+        self.error = None
+        self.ident = None
+        self.valid = False
+
+    # Set boolean evaluation to valid value
+    def __bool__(self):
+        return self.valid
+
+    # Set length evaluation to length of SeqRecord
+    def __len__(self):
+        if self.seq is None:
+            return 0
+        else:
+            return len(self.seq)
+
+    # Set overlap length to head_pos difference
+    @property
+    def overlap(self):
+        if self.head_pos is None:
+            return None
+        else:
+            return self.head_pos[1] - self.head_pos[0]
+
+
+class AssemblyStats:
+    """
+    Class containing p-value and z-score matrices for scoring assemblies
+    """
+    # Instantiation
+    def __init__(self, n):
+        self.p = AssemblyStats._getPMatrix(n)
+        self.z = AssemblyStats._getZMatrix(n)
+        #print self.z
+
+    @staticmethod
+    def _getPMatrix(n):
+        """
+        Generates a matrix of mid-p correct p-values from a binomial distribution
+
+        Arguments:
+        n = maximum trials
+
+        Returns:
+        a numpy.array of successes by trials p-values
+        """
+        p_matrix = np.empty([n, n], dtype=float)
+        p_matrix.fill(np.nan)
+        k = np.arange(n, dtype=int)
+        for i, x in enumerate(k):
+            p_matrix[x, i:] = 1 - stats.binom.cdf(x - 1, k[i:], 0.25) - stats.binom.pmf(x, k[i:], 0.25) / 2.0
+
+        return p_matrix
+
+    @staticmethod
+    def _getZMatrix(n):
+        """
+        Generates a matrix of z-score approximations for a binomial distribution
+
+        Arguments:
+        n = maximum trials
+
+        Returns:
+        a numpy.array of successes by trials z-scores
+        """
+        z_matrix = np.empty([n, n], dtype=float)
+        z_matrix.fill(np.nan)
+        k = np.arange(0, n, dtype=int)
+        for i, x in enumerate(k):
+            j = i + 1 if i == 0 else i
+            z_matrix[x, j:] = (x - k[j:]/4.0)/np.sqrt(3.0/16.0*k[j:])
+
+        return z_matrix
 
 
 def translateAmbigDNA(key):
@@ -448,7 +552,7 @@ def findGapPositions(seq_list, max_gap, gap_chars=default_gap_chars):
     return gap_positions
 
 
-def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_freq,
+def qualityConsensus(seq_list, min_qual=default_consensus_min_qual, min_freq=default_consensus_min_freq,
                      dependent=False, ignore_chars=default_missing_chars):
     """
     Builds a consensus sequence from a set of sequences
@@ -539,7 +643,7 @@ def qualityConsensus(seq_list, min_qual=default_min_qual, min_freq=default_min_f
     return record
 
 
-def frequencyConsensus(seq_list, min_freq=default_min_freq,
+def frequencyConsensus(seq_list, min_freq=default_consensus_min_freq,
                        ignore_chars=default_missing_chars):
     """
     Builds a consensus sequence from a set of sequences
@@ -669,9 +773,9 @@ def compilePrimers(primers):
     return primers_regex
 
 
-def localAlignment(seq_record, primers, primers_regex=None, max_error=default_max_error,
-                   max_len=default_max_len, rev_primer=False, skip_rc=False,
-                   gap_penalty=default_gap_penalty,
+def localAlignment(seq_record, primers, primers_regex=None, max_error=default_assembly_max_error,
+                   max_len=default_assembly_max_len, rev_primer=False, skip_rc=False,
+                   gap_penalty=default_primer_gap_penalty,
                    score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
@@ -796,7 +900,7 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_ma
     return align
 
 
-def scoreAlignment(seq_record, primers, start=default_start, rev_primer=False,
+def scoreAlignment(seq_record, primers, start=default_primer_start, rev_primer=False,
                    score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))):
     """
     Performs a simple fixed position alignment of primers
@@ -1037,3 +1141,684 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
                        letter_annotations={'phred_quality':score_cons})
 
     return record
+
+
+def filterLength(data, min_length=default_filter_min_len, inner=True,
+                 missing_chars=''.join(default_missing_chars)):
+    """
+    Filters sequences by length
+
+    Arguments:
+      data (SeqData): a SeqData object with a single SeqRecord to process.
+      min_length (int): the minimum length allowed.
+      inner (bool): if True exclude outer missing characters from calculation.
+      missing_chars (str): a string of missing character values.
+
+    Returns:
+      SeqResult: SeqResult object.
+    """
+    # Get SeqRecord
+    seq = data.data
+
+    # Remove outer missing characters if required
+    if inner:
+        seq_str = str(seq.seq).strip(missing_chars)
+        n = len(seq_str)
+    else:
+        n = len(seq)
+
+    # Build result object
+    valid = (n >= min_length)
+    result = SeqResult(data.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['LENGTH'] = n
+
+    return result
+
+
+def filterMissing(data, max_missing=default_filter_max_missing, inner=True,
+                  missing_chars=''.join(default_missing_chars)):
+    """
+    Filters sequences by number of missing nucleotides
+
+    Arguments:
+      data (SeqData): SeqData object with a single SeqRecord to process.
+      max_missing (int): the maximum number of allowed ambiguous characters.
+      inner (bool): if True exclude outer missing characters from calculation.
+      missing_chars (str): a string of missing character values.
+
+    Returns:
+      SeqResult: SeqResult object.
+    """
+    # Get SeqRecord
+    seq = data.data
+    seq_str = str(seq.seq)
+
+    # Remove outer missing character if required
+    if inner:  seq_str = seq_str.strip(missing_chars)
+    # Count missing characters
+    n = len([c for c in seq_str if c in missing_chars])
+
+    # Build result object
+    valid = (n <= max_missing)
+    result = SeqResult(data.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['MISSING'] = n
+
+    return result
+
+
+def filterRepeats(data, max_repeat=default_filter_max_repeat, include_missing=False, inner=True,
+                  missing_chars=''.join(default_missing_chars)):
+    """
+    Filters sequences by fraction of ambiguous nucleotides
+
+    Arguments:
+      data (SeqData): a SeqData object with a single SeqRecord to process.
+      max_repeat (int): the maximum number of allowed repeating characters.
+      include_missing (int): if True count ambiguous character repeats;
+                             if False do not consider ambiguous character repeats.
+      inner (int): if True exclude outer missing characters from calculation.
+      missing_chars (str): a string of missing character values.
+
+    Returns:
+      SeqResult: SeqResult object.
+    """
+    # Get SeqRecord
+    seq = data.data
+    seq_str = str(seq.seq)
+
+    # Remove outer missing character if required
+    if inner:  seq_str = seq_str.strip(missing_chars)
+    # Remove missing characters if required
+    if not include_missing:
+        seq_str = ''.join([c for c in seq_str if c not in missing_chars])
+
+    groups = ((c, len(list(g))) for c, g in groupby(seq_str))
+    __, n = max(groups, key=lambda x: x[1])
+
+    # Build result object
+    valid = (n <= max_repeat)
+    result = SeqResult(data.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['REPEATS'] = n
+
+    return result
+
+
+def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,
+                  missing_chars=''.join(default_missing_chars)):
+    """
+    Filters sequences by quality score
+
+    Arguments:
+      data (SeqData): a SeqData object with a single SeqRecord to process.
+      min_qual (int): minimum mean quality score for retained sequences.
+      inner (bool): if True exclude outer missing characters from calculation.
+      missing_chars (str): a string of missing character values.
+
+    Returns:
+      SeqResult: SeqResult object.
+    """
+    # Get SeqRecord
+    seq = data.data
+
+    if inner:
+        seq_str = str(seq.seq)
+        seq_cut = seq_str.strip(missing_chars)
+        s = seq_str.find(seq_cut)
+        quals =  seq.letter_annotations['phred_quality'][s:s + len(seq_cut)]
+    else:
+        quals = seq.letter_annotations['phred_quality']
+
+    q = sum(quals) / len(quals)
+
+    # Build result object
+    valid = (q >= min_qual)
+    result = SeqResult(data.id, seq)
+    if valid:
+        result.results = seq
+        result.valid = True
+
+    # Update result log
+    result.log['SEQ'] = seq.seq
+    result.log['QUALITY'] = q
+
+    return result
+
+
+def trimQuality(data, min_qual=default_consensus_min_qual, window=default_filter_window, reverse=False):
+    """
+    Cuts sequences using a moving mean quality score
+
+    Arguments:
+      data (SeqData): a SeqData object with a single SeqRecord to process.
+      min_qual (int): minimum mean quality to define a cut point.
+      window (int): nucleotide window size.
+      reverse (bool): if True cut the head of the sequence;
+                      if False cut the tail of the sequence
+
+    Returns:
+      SeqResult: SeqResult object.
+    """
+    # Get SeqRecord
+    seq = data.data
+
+    quals = seq.letter_annotations['phred_quality']
+    # Reverse quality scores if required
+    if reverse:  quals = quals[::-1]
+
+    # Scan across quality scores for first quality drop-off
+    end = len(quals)
+    for s in range(0, end, window):
+        q_win = quals[s:s + window]
+        q = sum(q_win) / len(q_win)
+        if q < min_qual:
+            end = s
+            break
+
+    # Define trimmed sequence
+    if not reverse:
+        trim_seq = seq[:end]
+        out_str = str(trim_seq.seq)
+    else:
+        trim_seq = seq[len(seq) - end:]
+        out_str =  ' ' * (len(seq) - end) + str(trim_seq.seq)
+
+    # Build result object
+    valid = (len(trim_seq) > 0)
+    result = SeqResult(data.id, seq)
+    if valid:
+        result.results = trim_seq
+        result.valid = True
+
+    # Update result log
+    result.log['INSEQ'] = seq.seq
+    result.log['OUTSEQ'] = out_str
+    result.log['LENGTH'] = len(trim_seq)
+
+    return result
+
+
+def maskQuality(data, min_qual=default_consensus_min_qual):
+    """
+    Masks characters by in sequence by quality score
+
+    Arguments:
+      data (SeqData): a SeqData object with a single SeqRecord to process.
+      min_qual (int): minimum quality for retained characters.
+
+    Returns:
+      SeqResult: SeqResult object.
+    """
+    # Get SeqRecord
+    seq = data.data
+    seq_str = str(seq.seq)
+    quals = seq.letter_annotations['phred_quality']
+
+    # Mask low quality nucleotides
+    mask_chars = [seq_str[i] if q >= min_qual else 'N' for i, q in enumerate(quals)]
+    mask_count = sum(1 for q in quals if q < min_qual)
+
+    # Define masked SeqRecord
+    mask_seq = SeqRecord(Seq(''.join(mask_chars), IUPAC.ambiguous_dna),
+                         id=seq.id,
+                         name=seq.name,
+                         description=seq.description,
+                         letter_annotations=seq.letter_annotations)
+
+    # Build result object
+    result = SeqResult(data.id, seq)
+    result.results = mask_seq
+    result.valid = True
+
+    # Update result log
+    result.log['INSEQ'] = seq.seq
+    result.log['OUTSEQ'] = mask_seq.seq
+    result.log['MASKED'] = mask_count
+
+    return result
+
+
+def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_assembly_min_ident,
+                      evalue=default_assembly_evalue, max_hits=default_assembly_max_hits, fill=False,
+                      aligner='usearch', aligner_exec=default_usearch_exec,
+                      score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
+    """
+    Stitches two sequences together by aligning against a reference database
+
+    Arguments:
+      head_seq : the head SeqRecord.
+      head_seq : the tail SeqRecord.
+      ref_dict : a dictionary of reference SeqRecord objects.
+      ref_db : the path and name of the reference database.
+      min_ident : the minimum identity for a valid assembly.
+      evalue : the E-value cut-off for ublast.
+      max_hits : the maxhits output limit for ublast.
+      fill : if False non-overlapping regions will be assigned Ns;
+             if True non-overlapping regions will be filled with the reference sequence.
+      aligner : the alignment tool; one of 'blastn' or 'usearch'.
+      aligner_exec : the path to the alignment tool executable.
+      score_dict : optional dictionary of character scores in the
+                   form {(char1, char2): score}.
+
+    Returns:
+      AssemblyRecord: assembled sequence object.
+    """
+    try:
+        align_func = {'blastn': runBlastn, 'usearch': runUBlast}[aligner]
+    except:
+        printError('Invalid alignment tool %s.' % aligner)
+
+    # Define general parameters
+    head_len = len(head_seq)
+    tail_len = len(tail_seq)
+
+    # Determine if quality scores are present
+    has_quality = hasattr(head_seq, 'letter_annotations') and \
+                  hasattr(tail_seq, 'letter_annotations') and \
+                  'phred_quality' in head_seq.letter_annotations and \
+                  'phred_quality' in tail_seq.letter_annotations
+
+    # Align against reference
+    head_df = align_func(head_seq, database=ref_db, evalue=evalue, max_hits=max_hits,
+                         aligner_exec=aligner_exec)
+    tail_df = align_func(tail_seq, database=ref_db, evalue=evalue, max_hits=max_hits,
+                         aligner_exec=aligner_exec)
+
+    # Subset results to matching reference assignments
+    align_df = pd.merge(head_df, tail_df, on='target', how='inner', suffixes=('_head', '_tail'))
+
+    # If no matching targets return failed results
+    if len(align_df) < 1:
+        return AssemblyRecord()
+
+    # Select top alignment
+    align_top = align_df.ix[0, :]
+    ref_id = align_top['target']
+    ref_seq = ref_dict[ref_id]
+
+    # Get offset of target and reference positions
+    head_shift = align_top['target_start_head'] - align_top['query_start_head']
+    tail_shift = align_top['target_start_tail'] - align_top['query_start_tail']
+
+    # Get positions of outer reference match in head (a, b) and tail (x, y) sequences
+    outer_start = align_top[['target_start_head', 'target_start_tail']].min()
+    outer_end = align_top[['target_end_head', 'target_end_tail']].max()
+    a_outer = outer_start - head_shift
+    b_outer = outer_end - head_shift
+    x_outer = outer_start - tail_shift
+    y_outer = outer_end - tail_shift
+
+    # Get positions of inner reference match in head (a,b) and tail (x,y) sequences
+    inner_start = align_top[['target_start_head', 'target_start_tail']].max()
+    inner_end = align_top[['target_end_head', 'target_end_tail']].min()
+    a_inner = inner_start - head_shift
+    b_inner = inner_end - head_shift
+    x_inner = inner_start - tail_shift
+    y_inner = inner_end - tail_shift
+
+    # Determine head (a, b) and tail (x, y) overlap positions
+    a = max(0, a_inner - x_inner)
+    b = min(b_inner + (tail_len - y_inner), head_len)
+    x = max(0, x_inner - a_inner)
+    y = min(y_inner + (head_len - b_inner), tail_len)
+
+    # Join sequences if head and tail do not overlap, otherwise assemble
+    if a > b and x > y:
+        stitch = joinAssembly(head_seq, tail_seq, gap=(a - b), insert_seq=None)
+    else:
+        stitch = AssemblyRecord()
+        stitch.gap = 0
+
+        # Define overlap sequence
+        if has_quality:
+            # Build quality consensus
+            overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
+        else:
+            # Assign head sequence to conflicts when no quality information is available
+            overlap_seq = head_seq[a:b]
+
+        # Assemble sequence
+        if a > 0 and y < tail_len:
+            # Tail overlaps end of head
+            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
+        elif b < head_len and x > 0:
+            # Head overlaps end of tail
+            stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
+        elif a == 0 and b == head_len:
+            # Head is a subsequence of tail
+            stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
+        elif x == 0 and y == tail_len:
+            # Tail is a subsequence of head
+            stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
+        else:
+            printWarning('Invalid overlap condition for %s' % head_seq.id)
+
+        # Define stitch ID
+        stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
+                                    else '+'.join([head_seq.id, tail_seq.id])
+        stitch.seq.name = stitch.seq.id
+        stitch.seq.description = ''
+
+    # Assign position info
+    stitch.head_pos = (a, b)
+    stitch.tail_pos = (x, y)
+
+    # Assign reference info
+    stitch.ref_seq = ref_seq[outer_start:outer_end]
+    stitch.ref_pos = (max(a_outer, x_outer), max(b_outer, y_outer))
+    stitch.evalue = tuple(align_top[['evalue_head', 'evalue_tail']])
+
+    # Calculate assembly error
+    score, weight, error = scoreSeqPair(stitch.seq.seq[stitch.ref_pos[0]:stitch.ref_pos[1]],
+                                        ref_seq.seq[outer_start:outer_end],
+                                        score_dict=score_dict)
+    stitch.ident = 1 - error
+    stitch.valid = bool(stitch.ident >= min_ident)
+
+    # Fill gap with reference if required
+    if a > b and x > y and fill:
+        insert_seq = ref_seq.seq[(b + head_shift):(a + head_shift)]
+        insert_rec = joinAssembly(head_seq, tail_seq, gap=(a - b), insert_seq=insert_seq)
+        stitch.seq = insert_rec.seq
+
+    return stitch
+
+
+def joinAssembly(head_seq, tail_seq, gap=default_assembly_gap, insert_seq=None):
+    """
+    Concatenates two sequences
+
+    Arguments:
+      head_seq : the head SeqRecord.
+      tail_seq : the tail SeqRecord.
+      gap : number of gap characters to insert between head and tail
+            ignored if insert_seq is not None.
+      insert_seq : a string or Bio.Seq.Seq object, to insert between the head and tail;
+                 if None insert with N characters.
+
+    Returns:
+      AssemblyRecord: assembled sequence object.
+    """
+    # Define joined ID
+    join_id = head_seq.id if head_seq.id == tail_seq.id \
+              else '+'.join([head_seq.id, tail_seq.id])
+
+    # Join sequences
+    if insert_seq is None:
+        join_seq = str(head_seq.seq) + 'N' * gap + str(tail_seq.seq)
+    else:
+        gap = len(insert_seq)
+        join_seq = str(head_seq.seq) + str(insert_seq) + str(tail_seq.seq)
+
+    # Define return record
+    record = SeqRecord(Seq(join_seq, IUPAC.ambiguous_dna),
+                       id=join_id,
+                       name=join_id,
+                       description='')
+
+    # Join quality score if present
+    has_quality = hasattr(head_seq, 'letter_annotations') and \
+                  hasattr(tail_seq, 'letter_annotations') and \
+                  'phred_quality' in head_seq.letter_annotations and \
+                  'phred_quality' in tail_seq.letter_annotations
+    if has_quality:
+        join_quality = head_seq.letter_annotations['phred_quality'] + \
+                       [0] * gap + \
+                       tail_seq.letter_annotations['phred_quality']
+        record.letter_annotations = {'phred_quality':join_quality}
+
+    stitch = AssemblyRecord(record)
+    stitch.valid = True
+    stitch.gap = gap
+
+    return stitch
+
+
+def alignAssembly(head_seq, tail_seq, alpha=default_assembly_alpha, max_error=default_assembly_max_error,
+                  min_len=default_assembly_min_len, max_len=default_assembly_max_len, scan_reverse=False,
+                  assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
+    """
+    Stitches two sequences together by aligning the ends
+
+    Arguments:
+      head_seq : the head SeqRecord.
+      head_seq : the tail SeqRecord.
+      alpha : the minimum p-value for a valid assembly.
+      max_error : the maximum error rate for a valid assembly.
+      min_len : minimum length of overlap to test.
+      max_len : maximum length of overlap to test.
+      scan_reverse : if True allow the head sequence to overhang the end of the tail sequence
+                     if False end alignment scan at end of tail sequence or start of head sequence.
+      assembly_stats : optional successes by trials numpy.array of p-values.
+      score_dict : optional dictionary of character scores in the .
+                   form {(char1, char2): score}.
+
+    Returns:
+      AssemblyRecord: assembled sequence object.
+    """
+    # Define general parameters
+    stitch = AssemblyRecord()
+    if assembly_stats is None:  assembly_stats = AssemblyStats(max_len + 1)
+    head_str = str(head_seq.seq)
+    tail_str = str(tail_seq.seq)
+    head_len = len(head_str)
+    tail_len = len(tail_str)
+
+    # Fail if sequences are too short
+    if head_len <= min_len or tail_len <= min_len:
+        return stitch
+
+    # Determine if quality scores are present
+    has_quality = hasattr(head_seq, 'letter_annotations') and \
+                  hasattr(tail_seq, 'letter_annotations') and \
+                  'phred_quality' in head_seq.letter_annotations and \
+                  'phred_quality' in tail_seq.letter_annotations
+
+    # Determine if sub-sequences are allowed and define scan range
+    if scan_reverse and max_len >= min(head_len, tail_len):
+        scan_len = head_len + tail_len - min_len
+    else:
+        scan_len = min(max(head_len, tail_len), max_len)
+
+    # Iterate and score overlap segments
+    for i in range(min_len, scan_len + 1):
+        a = max(0, head_len - i)
+        b = head_len - max(0, i - tail_len)
+        x = max(0, i - head_len)
+        y = min(tail_len, i)
+        score, weight, error = scoreSeqPair(head_str[a:b], tail_str[x:y], score_dict=score_dict)
+        z = assembly_stats.z[score, weight]
+        # Save stitch as optimal if z-score improves
+        if z > stitch.zscore:
+           stitch.head_pos = (a, b)
+           stitch.tail_pos = (x, y)
+           stitch.zscore = z
+           stitch.pvalue = assembly_stats.p[score, weight]
+           stitch.error = error
+
+    # Build stitched sequences and assign best_dict values
+    if stitch.head_pos is not None:
+        # Correct quality scores and resolve conflicts
+        a, b = stitch.head_pos
+        x, y = stitch.tail_pos
+        if has_quality:
+            # Build quality consensus
+            overlap_seq = overlapConsensus(head_seq[a:b], tail_seq[x:y])
+        else:
+            # Assign head sequence to conflicts when no quality information is available
+            overlap_seq = head_seq[a:b]
+
+        if a > 0 and y < tail_len:
+            # Tail overlaps end of head
+            stitch.seq = head_seq[:a] + overlap_seq + tail_seq[y:]
+        elif b < head_len and x > 0:
+            # Head overlaps end of tail
+            stitch.seq = tail_seq[:x] + overlap_seq + head_seq[b:]
+        elif a == 0 and b == head_len:
+            # Head is a subsequence of tail
+            stitch.seq = tail_seq[:x] + overlap_seq + tail_seq[y:]
+        elif x == 0 and y == tail_len:
+            # Tail is a subsequence of head
+            stitch.seq = head_seq[:a] + overlap_seq + head_seq[b:]
+        else:
+            printWarning('Invalid overlap condition for %s.' % head_seq.id)
+
+
+        # Define best stitch ID
+        stitch.seq.id = head_seq.id if head_seq.id == tail_seq.id \
+                              else '+'.join([head_seq.id, tail_seq.id])
+        stitch.seq.name = stitch.seq.id
+        stitch.seq.description = ''
+
+    stitch.valid = bool(stitch.pvalue <= alpha and stitch.error <= max_error)
+
+    return stitch
+
+
+def sequentialAssembly(head_seq, tail_seq, ref_dict, ref_db,
+                       alpha=default_assembly_alpha, max_error=default_assembly_max_error,
+                       min_len=default_assembly_min_len, max_len=default_assembly_max_len, scan_reverse=False,
+                       min_ident=default_assembly_min_ident, evalue=default_assembly_evalue, max_hits=default_assembly_max_hits,
+                       fill=False, aligner='usearch', aligner_exec=default_usearch_exec,
+                       assembly_stats=None, score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(0, 0))):
+    """
+    Stitches sequences together by first attempting de novo assembly then falling back to reference guided assembly
+
+    Arguments:
+      head_seq : the head SeqRecord
+      head_seq : the tail SeqRecord
+      ref_dict : a dictionary of reference SeqRecord objects
+      ref_db : the path and name of the reference database
+      alpha : the minimum p-value for a valid de novo assembly
+      max_error : the maximum error rate for a valid de novo assembly
+      min_len : minimum length of overlap to test for de novo assembly
+      max_len : maximum length of overlap to test for de novo assembly
+      scan_reverse : if True allow the head sequence to overhang the end of the tail sequence in de novo assembly
+                     if False end alignment scan at end of tail sequence or start of head sequence
+      min_ident : the minimum identity for a valid reference guided assembly
+      evalue : the E-value cut-off for reference guided assembly
+      max_hits : the maxhits output limit for reference guided assembly
+      fill : if False non-overlapping regions will be assigned Ns in reference guided assembly;
+             if True non-overlapping regions will be filled with the reference sequence.
+      aligner : the alignment tool; one of 'blastn' or 'usearch'
+      aligner_exec : the path to the alignment tool executable
+      assembly_stats : optional successes by trials numpy.array of p-values
+      score_dict : optional dictionary of character scores in the
+                   form {(char1, char2): score}.
+
+    Returns:
+      AssemblyRecord: assembled sequence object.
+    """
+    # First attempt align mode
+    stitch = alignAssembly(head_seq, tail_seq, alpha=alpha, max_error=max_error,
+                  min_len=min_len, max_len=max_len, scan_reverse=scan_reverse,
+                  assembly_stats=assembly_stats, score_dict=score_dict)
+
+    # Then try reference mode
+    if not stitch:
+        stitch = referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=min_ident,
+                                   evalue=evalue, max_hits=max_hits, fill=fill,
+                                   aligner=aligner, aligner_exec=aligner_exec,
+                                   score_dict=score_dict)
+
+    return stitch
+
+
+def consensusUnify(data, field, delimiter=default_delimiter):
+    """
+    Reassigns all annotations to the consensus annotation in group
+
+    Arguments:
+      data : SeqData object contain sequences to process.
+      field : field containing annotations to collapse.
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      SeqResult: modified sequences.
+    """
+    # Copy data into new object
+    records = deepcopy(data.data)
+
+    # Define result object
+    result = SeqResult(data.id, data.data)
+    result.log['SEQCOUNT'] = len(data)
+    #for i, seq in enumerate(records, start=1):
+    #    header = parseAnnotation(seq.description, delimiter=delimiter)
+    #    result.log['%s-%i' % (field, i)] = header[field]
+
+    # Get consensus annotation
+    cons_dict = annotationConsensus(records, field)
+    result.log['VALCOUNT'] = len(cons_dict['set'])
+    result.log['VALUES'] = ','.join(cons_dict['set'])
+    result.log['COUNTS'] = ','.join((str(x) for x in cons_dict['count']))
+    result.log['CONSFREQ'] = cons_dict['freq']
+    result.log['CONSENSUS'] = cons_dict['cons']
+
+    if cons_dict['freq'] != 1:
+        # Update sequence annotations with consensus annotation
+        for i, seq in enumerate(records):
+            header = parseAnnotation(seq.description, delimiter=delimiter)
+            header[field] = cons_dict['cons']
+            seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
+            seq.description = ''
+
+    # Check results
+    result.results = records
+    result.valid = True
+
+    return result
+
+
+def deletionUnify(data, field, delimiter=default_delimiter):
+    """
+    Removes all sequences with differing annotations in a group
+
+    Arguments:
+      data : SeqData object contain sequences to process.
+      field : field containing annotations to collapse.
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      SeqResult: modified sequences.
+    """
+    # Set reference to data
+    records = data.data
+
+    # Define result object
+    result = SeqResult(data.id, data.data)
+    result.log['SEQCOUNT'] = len(data)
+    # for i, seq in enumerate(records, start=1):
+    #     header = parseAnnotation(seq.description, delimiter=delimiter)
+    #     result.log['%s-%i' % (field, i)] = header[field]
+
+    # I the number of unique identities in the annotation field is not 1, then the group is invalid and should be removed
+    value_set = sorted(set(parseAnnotation(seq.description, delimiter=delimiter)[field] for seq in records))
+    if len(value_set) == 1:
+        result.valid = True
+    else:
+        result.valid = False
+    result.results = records
+
+    # Update log
+    result.log['VALCOUNT'] = len(value_set)
+    result.log['VALUES'] = ','.join(value_set)
+    result.log['RETAIN'] = result.valid
+
+    return result

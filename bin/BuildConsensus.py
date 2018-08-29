@@ -4,19 +4,18 @@ Builds a consensus sequence for each set of input sequences
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import __version__, __date__
+from presto import __version__, __date__, default_consensus_min_count
 
 # Imports
 import os
 import sys
 from argparse import ArgumentParser
 from collections import OrderedDict
-
 from textwrap import dedent
 
 # Presto imports
-from presto.Defaults import default_delimiter, default_barcode_field, \
-    default_min_freq, default_out_args
+from presto.Defaults import default_delimiter, default_barcode_field, default_out_args, \
+                            default_consensus_min_freq, default_consensus_min_qual
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import flattenAnnotation, mergeAnnotation, getAnnotationValues, \
                               annotationConsensus
@@ -27,13 +26,9 @@ from presto.Sequence import subsetSeqSet, calculateDiversity, \
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
-# Defaults
-default_min_count = 1
-default_min_qual = 0
-
 
 def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
-                 min_count=default_min_count, primer_field=None, primer_freq=None,
+                 min_count=default_consensus_min_count, primer_field=None, primer_freq=None,
                  max_gap=None, max_error=None, max_diversity=None,
                  copy_fields=None, copy_actions=None, delimiter=default_delimiter):
     """
@@ -224,9 +219,9 @@ def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
     return None
 
 
-def buildConsensus(seq_file, barcode_field=default_barcode_field, 
-                   min_count=default_min_count, min_freq=default_min_freq,
-                   min_qual=default_min_qual, primer_field=None, primer_freq=None,
+def buildConsensus(seq_file, barcode_field=default_barcode_field,
+                   min_count=default_consensus_min_count, min_freq=default_consensus_min_freq,
+                   min_qual=default_consensus_min_qual, primer_field=None, primer_freq=None,
                    max_gap=None, max_error=None, max_diversity=None,
                    copy_fields=None, copy_actions=None, dependent=False,
                    out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
@@ -378,15 +373,15 @@ def getArgParser():
 
     # Consensus arguments
     group_cons = parser.add_argument_group('consensus generation arguments')
-    group_cons.add_argument('-n', action='store', dest='min_count', type=int, default=default_min_count,
+    group_cons.add_argument('-n', action='store', dest='min_count', type=int, default=default_consensus_min_count,
                             help='The minimum number of sequences needed to define a valid consensus.')
     group_cons.add_argument('--bf', action='store', dest='barcode_field', type=str,
                             default=default_barcode_field,
                             help='Position of description barcode field to group sequences by.')
-    group_cons.add_argument('-q', action='store', dest='min_qual', type=int, default=default_min_qual,
+    group_cons.add_argument('-q', action='store', dest='min_qual', type=int, default=default_consensus_min_qual,
                             help='''Consensus quality score cut-off under which an ambiguous character is assigned;
                                  does not apply when quality scores are unavailable.''')
-    group_cons.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
+    group_cons.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_consensus_min_freq,
                             help='Fraction of character occurrences under which an ambiguous character is assigned.')
     group_cons.add_argument('--maxgap', action='store', dest='max_gap', type=float, default=None,
                             help='''If specified, this defines a cut-off for the frequency of allowed

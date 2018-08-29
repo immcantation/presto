@@ -18,7 +18,7 @@ from time import time
 
 # Presto imports
 from presto.Defaults import default_barcode_field, default_missing_chars, \
-                            default_min_freq, default_min_qual, default_out_args
+                            default_consensus_min_freq, default_consensus_min_qual, default_out_args
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, countSeqSets, getOutputHandle, printLog, printProgress, \
                       printWarning, printError
@@ -572,10 +572,10 @@ def getArgParser():
                                   common value.  The "qual" method will weight values by their
                                   quality scores to determine the consensus nucleotide at
                                   each position.''')
-    group_error.add_argument('-q', action='store', dest='min_qual', type=float, default=default_min_qual,
+    group_error.add_argument('-q', action='store', dest='min_qual', type=float, default=default_consensus_min_qual,
                              help='''Consensus quality score cut-off under which an ambiguous
                                   character is assigned.''')
-    group_error.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_min_freq,
+    group_error.add_argument('--freq', action='store', dest='min_freq', type=float, default=default_consensus_min_freq,
                              help='''Fraction of character occurrences under which an ambiguous
                                   character is assigned.''')
     group_error.add_argument('--maxdiv', action='store', dest='max_diversity', type=float, default=None,

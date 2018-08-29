@@ -13,7 +13,6 @@ import shutil
 import sys
 from argparse import ArgumentParser
 from collections import deque, OrderedDict
-
 from textwrap import dedent
 from Bio.Align import MultipleSeqAlignment
 from Bio.Alphabet import IUPAC
@@ -30,9 +29,6 @@ from presto.Sequence import calculateDiversity, indexSeqSets
 from presto.IO import readPrimerFile, getOutputHandle, printLog, printWarning, printError
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
-
-# Defaults
-default_aligner_exec = default_muscle_exec
 
 
 def offsetSeqSet(seq_list, offset_dict, field=default_primer_field, 
@@ -401,7 +397,7 @@ def getArgParser():
                               help='The annotation field containing barcode labels for sequence grouping.')
     group_muscle.add_argument('--div', action='store_true', dest='calc_div',
                               help='Specify to calculate nucleotide diversity of each set (average pairwise error rate).')
-    group_muscle.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
+    group_muscle.add_argument('--exec', action='store', dest='aligner_exec', default=default_muscle_exec,
                               help='The name or location of the muscle executable.')
     parser_muscle.set_defaults(align_func=runMuscle)
 
@@ -442,7 +438,7 @@ def getArgParser():
                                   the output filename will be based on the input filename(s).''')
     group_table.add_argument('--reverse', action='store_true', dest='reverse',
                                help='If specified create a 3\' offset table instead')
-    group_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_aligner_exec,
+    group_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_muscle_exec,
                                help='The name or location of the muscle executable.')
     parser_table.set_defaults(align_func=runMuscle)
     

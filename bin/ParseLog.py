@@ -4,7 +4,6 @@ Parses records in the console log of pRESTO modules
 """
 # Info
 __author__ = 'Jason Anthony Vander Heiden'
-from presto import __version__, __date__
 
 # Imports
 import csv
@@ -16,27 +15,9 @@ from time import time
 
 # Presto imports
 from presto.Defaults import default_out_args
+from presto.Annotation import parseLog
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getOutputHandle, printLog, printCount
-
-
-def parseLogRecord(record):
-    """
-    Parses an pRESTO log record
-
-    Arguments: 
-    record = a string of lines representing a log record
-                    
-    Returns: 
-    an OrderedDict of {field names: values}
-    """
-    record_dict = OrderedDict()
-    for line in record.split('\n'):
-        line = line.strip().split('> ')
-        if len(line) == 2:
-            record_dict[line[0]] = line[1]
-    
-    return record_dict
 
 
 def tableLog(record_file, fields, out_file=None, out_args=default_out_args):

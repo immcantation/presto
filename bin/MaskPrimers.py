@@ -13,8 +13,8 @@ from collections import OrderedDict
 from textwrap import dedent
 
 # Presto imports
-from presto.Defaults import default_delimiter, default_out_args, default_gap_penalty, default_max_error, \
-                            default_max_len, default_start, default_barcode_field, default_primer_field
+from presto.Defaults import default_delimiter, default_out_args, default_primer_gap_penalty, default_primer_max_error, \
+                            default_primer_max_len, default_primer_start, default_barcode_field, default_primer_field
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Sequence import localAlignment, compilePrimers, extractAlignment, getDNAScoreDict, \
                             maskSeq, reverseComplement, scoreAlignment
@@ -74,10 +74,10 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
     return result
 
 
-def alignPrimers(data, primers, primers_regex=None, max_error=default_max_error,
-                 max_len=default_max_len, rev_primer=False, skip_rc=False, mode='mask',
+def alignPrimers(data, primers, primers_regex=None, max_error=default_primer_max_error,
+                 max_len=default_primer_max_len, rev_primer=False, skip_rc=False, mode='mask',
                  barcode=False, barcode_field=default_barcode_field, primer_field=default_primer_field,
-                 gap_penalty=default_gap_penalty, score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
+                 gap_penalty=default_primer_gap_penalty, score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
                  delimiter=default_delimiter):
     """
     Performs pairwise local alignment of a list of short sequences against a long sequence
@@ -142,7 +142,7 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_max_error,
     return result
 
 
-def scorePrimers(data, primers, max_error=default_max_error, start=default_start, rev_primer=False, mode='mask',
+def scorePrimers(data, primers, max_error=default_primer_max_error, start=default_primer_start, rev_primer=False, mode='mask',
                  barcode=False, barcode_field=default_barcode_field, primer_field=default_primer_field,
                  score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
                  delimiter=default_delimiter):
@@ -343,13 +343,13 @@ def getArgParser():
     group_align.add_argument('-p', action='store', dest='primer_file', required=True,
                               help='A FASTA file containing primer sequences.')
     group_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                              default=default_max_error, help='Maximum allowable error rate.')
+                             default=default_primer_max_error, help='Maximum allowable error rate.')
     group_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
-                              default=default_max_len,
-                              help='''Length of the sequence window to scan for primers.''')
+                             default=default_primer_max_len,
+                             help='''Length of the sequence window to scan for primers.''')
     group_align.add_argument('--gap', nargs=2, action='store', dest='gap_penalty',
-                              type=float, default=default_gap_penalty,
-                              help='''A list of two positive values defining the gap open
+                             type=float, default=default_primer_gap_penalty,
+                             help='''A list of two positive values defining the gap open
                                    and gap extension penalties for aligning the primers.
                                    Note: the error rate is calculated as the percentage
                                    of mismatches from the primer sequence with gap
@@ -389,10 +389,10 @@ def getArgParser():
     group_score = parser_score.add_argument_group('primer scoring arguments')
     group_score.add_argument('-p', action='store', dest='primer_file', required=True,
                               help='A FASTA file containing primer sequences.')
-    group_score.add_argument('--start', action='store', dest='start', type=int, default=default_start,
-                              help='The starting position of the primer.')
+    group_score.add_argument('--start', action='store', dest='start', type=int, default=default_primer_start,
+                             help='The starting position of the primer.')
     group_score.add_argument('--maxerror', action='store', dest='max_error', type=float,
-                              default=default_max_error, help='Maximum allowable error rate.')
+                             default=default_primer_max_error, help='Maximum allowable error rate.')
     group_score.add_argument('--revpr', action='store_true', dest='rev_primer',
                               help='''Specify to match the tail-end of the sequence against the
                                    reverse complement of the primers. This also reverses the
@@ -422,7 +422,7 @@ def getArgParser():
                                            help='Remove and annotate a fixed sequence region.',
                                            description='Remove and annotate a fixed sequence region.')
     group_extract = parser_extract.add_argument_group('region extraction arguments')
-    group_extract.add_argument('--start', action='store', dest='start', type=int, default=default_start,
+    group_extract.add_argument('--start', action='store', dest='start', type=int, default=default_primer_start,
                                help='The starting position of the sequence region to extract.')
     group_extract.add_argument('--len', action='store', dest='length', type=int, required=True,
                                help='The length of the sequence to extract.')

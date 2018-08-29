@@ -34,13 +34,12 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
 # Defaults
 choices_cluster_tool = ['usearch', 'vsearch', 'cd-hit-est']
 default_cluster_tool = 'usearch'
+default_cluster_exec = default_usearch_exec
+default_cluster_ident = 0.9
+default_cluster_prefix=''
 map_cluster_tool = {'cd-hit-est': runCDHit,
                     'usearch': runUClust,
                     'vsearch': runUClust}
-default_cluster_exec = default_usearch_exec
-default_ident = 0.9
-default_cluster_prefix=''
-
 
 def processQueue(alive, data_queue, result_queue,
                  cluster_func, cluster_args={},
@@ -130,7 +129,7 @@ def processQueue(alive, data_queue, result_queue,
     return None
 
 
-def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None, set_field=default_barcode_field,
+def clusterSets(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None, set_field=default_barcode_field,
                 cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                 cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                 out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
@@ -221,7 +220,7 @@ def clusterSets(seq_file, ident=default_ident, seq_start=0, seq_end=None, set_fi
     return result['out_files']
 
 
-def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
+def clusterAll(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None,
                cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                out_file=None, out_args=default_out_args, nproc=None):
@@ -337,7 +336,7 @@ def clusterAll(seq_file, ident=default_ident, seq_start=0, seq_end=None,
     return pass_handle.name
 
 
-def clusterBarcodes(seq_file, ident=default_ident,
+def clusterBarcodes(seq_file, ident=default_cluster_ident,
                     barcode_field=default_barcode_field,
                     cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                     cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
@@ -503,7 +502,7 @@ def getArgParser():
                               help='''The name of the output annotation field to add with the
                                    cluster information for each sequence.''')
     group_parent.add_argument('--ident', action='store', dest='ident', type=float,
-                              default=default_ident,
+                              default=default_cluster_ident,
                               help='''The sequence identity threshold to use for clustering. 
                                    Note, how identity is calculated is specific to the clustering 
                                    application used.''')

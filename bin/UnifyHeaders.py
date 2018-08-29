@@ -10,103 +10,18 @@ from presto import __version__, __date__
 import os
 from argparse import ArgumentParser
 from collections import OrderedDict
-from copy import deepcopy
 from textwrap import dedent
 
 # Presto imports
-from presto.Defaults import default_delimiter, default_barcode_field, default_out_args
+from presto.Defaults import default_barcode_field, default_out_args
 from presto.Commandline import checkArgs, CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from presto.Annotation import parseAnnotation, flattenAnnotation, annotationConsensus
 from presto.IO import printLog
-from presto.Sequence import indexSeqSets
-from presto.Multiprocessing import SeqResult, manageProcesses, collectSeqQueue, feedSeqQueue, \
+from presto.Sequence import indexSeqSets, consensusUnify, deletionUnify
+from presto.Multiprocessing import manageProcesses, collectSeqQueue, feedSeqQueue, \
                                    processSeqQueue
 
 # Defaults
 default_unify_field = 'SAMPLE'
-
-
-def consensusUnify(data, field, delimiter=default_delimiter):
-    """
-    Reassigns all annotations to the consensus annotation in group
-
-    Arguments:
-      data : SeqData object contain sequences to process.
-      field : field containing annotations to collapse.
-      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
-
-    Returns:
-      SeqResult : modified sequences.
-    """
-    # Copy data into new object
-    records = deepcopy(data.data)
-
-    # Define result object
-    result = SeqResult(data.id, data.data)
-    result.log['SEQCOUNT'] = len(data)
-    #for i, seq in enumerate(records, start=1):
-    #    header = parseAnnotation(seq.description, delimiter=delimiter)
-    #    result.log['%s-%i' % (field, i)] = header[field]
-
-    # Get consensus annotation
-    cons_dict = annotationConsensus(records, field)
-    result.log['VALCOUNT'] = len(cons_dict['set'])
-    result.log['VALUES'] = ','.join(cons_dict['set'])
-    result.log['COUNTS'] = ','.join((str(x) for x in cons_dict['count']))
-    result.log['CONSFREQ'] = cons_dict['freq']
-    result.log['CONSENSUS'] = cons_dict['cons']
-
-    if cons_dict['freq'] != 1:
-        # Update sequence annotations with consensus annotation
-        for i, seq in enumerate(records):
-            header = parseAnnotation(seq.description, delimiter=delimiter)
-            header[field] = cons_dict['cons']
-            seq.id = seq.name = flattenAnnotation(header, delimiter=delimiter)
-            seq.description = ''
-
-    # Check results
-    result.results = records
-    result.valid = True
-
-    return result
-
-
-def deletionUnify(data, field, delimiter=default_delimiter):
-    """
-    Removes all sequences with differing annotations in a group
-
-    Arguments:
-      data : SeqData object contain sequences to process.
-      field : field containing annotations to collapse.
-      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
-
-    Returns:
-      SeqResult : modified sequences.
-    """
-    # Set reference to data
-    records = data.data
-
-    # Define result object
-    result = SeqResult(data.id, data.data)
-    result.log['SEQCOUNT'] = len(data)
-    # for i, seq in enumerate(records, start=1):
-    #     header = parseAnnotation(seq.description, delimiter=delimiter)
-    #     result.log['%s-%i' % (field, i)] = header[field]
-
-    # I the number of unique identities in the annotation field is not 1, then the group is invalid and should be removed
-    value_set = sorted(set(parseAnnotation(seq.description, delimiter=delimiter)[field] for seq in records))
-    if len(value_set) == 1:
-        result.valid = True
-    else:
-        result.valid = False
-    result.results = records
-
-    # Update log
-    result.log['VALCOUNT'] = len(value_set)
-    result.log['VALUES'] = ','.join(value_set)
-    result.log['RETAIN'] = result.valid
-
-    return result
 
 
 def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
