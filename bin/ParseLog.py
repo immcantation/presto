@@ -65,7 +65,7 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
             
             # Parse record block
             rec_count += 1
-            record_dict = parseLogRecord(record)
+            record_dict = parseLog(record)
 
             # Write records
             if any([f in fields for f in record_dict]):
@@ -82,7 +82,7 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
     else:
         # Write final record
         if record: 
-            record_dict = parseLogRecord(record)
+            record_dict = parseLog(record)
             if any([f in fields for f in record_dict]):
                 pass_count += 1
                 out_writer.writerow(record_dict)
