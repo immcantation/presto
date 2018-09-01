@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.8.999:  August 26, 2018
+Version 0.5.9:  September 2, 2018
 -------------------------------------------------------------------------------
 
 + Add the ``-o`` argument to most tools, which allows explicit declaration of
