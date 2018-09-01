@@ -185,7 +185,7 @@ def findUniqueSeq(uniq_dict, search_keys, seq_dict, max_missing=default_max_miss
 
 def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
                 copy_fields=None, copy_actions=None, max_field=None, min_field=None, 
-                inner=False, keep_missing=False, out_args=default_out_args):
+                inner=False, keep_missing=False, out_file=None, out_args=default_out_args):
     """
     Removes duplicate sequences from a file
 
@@ -199,6 +199,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
       min_field : a numeric field whose minimum value determines the retained sequence.
       inner : if True exclude consecutive outer ambiguous characters from iterations and matching.
       keep_missing : if True retain sequences with more ambiguous characters than max_missing as unique.
+      out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
               
     Returns: 
@@ -220,16 +221,23 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     log['KEEP_MISSING'] = keep_missing
     printLog(log)
     
-    # TODO:  storing all sequences in memory is faster
     # Read input file
     in_type = getFileType(seq_file)
-    #seq_dict = readSeqFile(seq_file, index=True)
     seq_dict = SeqIO.to_dict(readSeqFile(seq_file, index=False))
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
 
     # Count total sequences
     rec_count = len(seq_dict)
 
+    # Open unique record output handle
+    if out_file is not None:
+        pass_handle = open(out_file, 'w')
+    else:
+        pass_handle = getOutputHandle(seq_file,
+                                      'collapse-unique',
+                                      out_dir=out_args['out_dir'],
+                                      out_name=out_args['out_name'],
+                                      out_type=out_args['out_type'])
     # Define log handle
     if out_args['log_file'] is None:  
         log_handle = None
@@ -256,45 +264,42 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
         if len(search_keys) == 0:  break
 
     # Write unique sequences
-    with getOutputHandle(seq_file, 'collapse-unique', out_dir=out_args['out_dir'], 
-                         out_name=out_args['out_name'], out_type=out_args['out_type']) \
-            as uniq_handle:
-        for val in uniq_dict.values():
-            # Define output sequence
-            out_seq = val.seq
+    for val in uniq_dict.values():
+        # Define output sequence
+        out_seq = val.seq
+        out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
+        out_app = OrderedDict()
+        if copy_fields  is not None and copy_actions is not None:
+            for f, a in zip(copy_fields, copy_actions):
+                x = collapseAnnotation(val.annotations, a, f, delimiter=out_args['delimiter'])
+                out_app[f] = x[f]
+                out_ann.pop(f, None)
+        out_app['DUPCOUNT'] = val.count
+        out_ann = mergeAnnotation(out_ann, out_app, delimiter=out_args['delimiter'])
+        out_seq.id = out_seq.name = flattenAnnotation(out_ann, delimiter=out_args['delimiter'])
+        out_seq.description = ''
+        # Write unique sequence
+        SeqIO.write(out_seq, pass_handle, out_args['out_type'])
+
+        # Update log
+        log = OrderedDict()
+        log['HEADER'] = out_seq.id
+        log['DUPCOUNT'] = val.count
+        for i, k in enumerate(val.keys, start=1):
+            log['ID%i' % i] = k
+        for i, k in enumerate(val.keys, start=1):
+            log['SEQ%i' % i] = str(seq_dict[k].seq)
+        printLog(log, handle=log_handle)
+
+    # Write sequence with high missing character counts
+    if keep_missing:
+        for k in search_keys:
+            out_seq = seq_dict[k]
             out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
-            out_app = OrderedDict()
-            if copy_fields  is not None and copy_actions is not None:
-                for f, a in zip(copy_fields, copy_actions):
-                    x = collapseAnnotation(val.annotations, a, f, delimiter=out_args['delimiter'])
-                    out_app[f] = x[f]
-                    out_ann.pop(f, None)
-            out_app['DUPCOUNT'] = val.count
-            out_ann = mergeAnnotation(out_ann, out_app, delimiter=out_args['delimiter'])
+            out_ann = mergeAnnotation(out_ann, {'DUPCOUNT':1}, delimiter=out_args['delimiter'])
             out_seq.id = out_seq.name = flattenAnnotation(out_ann, delimiter=out_args['delimiter'])
             out_seq.description = ''
-            # Write unique sequence
-            SeqIO.write(out_seq, uniq_handle, out_args['out_type'])
-
-            # Update log
-            log = OrderedDict()
-            log['HEADER'] = out_seq.id
-            log['DUPCOUNT'] = val.count
-            for i, k in enumerate(val.keys, start=1):
-                log['ID%i' % i] = k
-            for i, k in enumerate(val.keys, start=1):
-                log['SEQ%i' % i] = str(seq_dict[k].seq)
-            printLog(log, handle=log_handle)
-
-        # Write sequence with high missing character counts
-        if keep_missing:
-            for k in search_keys:
-                out_seq = seq_dict[k]
-                out_ann = parseAnnotation(out_seq.description, delimiter=out_args['delimiter'])
-                out_ann = mergeAnnotation(out_ann, {'DUPCOUNT':1}, delimiter=out_args['delimiter'])
-                out_seq.id = out_seq.name = flattenAnnotation(out_ann, delimiter=out_args['delimiter'])
-                out_seq.description = ''
-                SeqIO.write(out_seq, uniq_handle, out_args['out_type'])
+            SeqIO.write(out_seq, pass_handle, out_args['out_type'])
 
     # Write sequence with high missing character counts
     if out_args['failed'] and not keep_missing:
@@ -314,7 +319,7 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
 
     # Print log
     log = OrderedDict()
-    log['OUTPUT'] = os.path.basename(uniq_handle.name)
+    log['OUTPUT'] = os.path.basename(pass_handle.name)
     log['SEQUENCES'] = rec_count
     log['UNIQUE'] = len(uniq_dict)
     log['DUPLICATE'] = len(dup_keys)
@@ -323,9 +328,11 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     printLog(log)
         
     # Close file handles
+    pass_file = pass_handle.name
+    if pass_handle is not None:  pass_handle.close()
     if log_handle is not None:  log_handle.close()
     
-    return uniq_handle.name
+    return pass_file
     
 
 def getArgParser():
@@ -366,7 +373,7 @@ def getArgParser():
     # TODO: write better algorithm for ambiguous character mode
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(out_file=False)],
+                            parents=[getCommonArgParser()],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     # Collapse arguments
@@ -438,6 +445,9 @@ if __name__ == '__main__':
     
     # Call appropriate function for each sample file
     del args_dict['seq_files']
-    for f in args.__dict__['seq_files']:
+    if 'out_files' in args_dict:  del args_dict['out_files']
+    for i, f in enumerate(args.__dict__['seq_files']):
         args_dict['seq_file'] = f
+        args_dict['out_file'] = args.__dict__['out_files'][i] \
+            if args.__dict__['out_files'] else None
         collapseSeq(**args_dict)
