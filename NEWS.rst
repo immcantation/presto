@@ -10,8 +10,8 @@ Version 0.5.9:  September 2, 2018
   standard error messaging.
 + Split ``IO.printProgress`` API function into ``IO.printProgress`` (percentage)
   and ``IO.printCount`` (raw counts).
-+ Add ``Sequence.overlapConsensus``, ``Multiprocessing.feedPairQueue``, and
-  ``Multiprocessing.collectPairQueue`` to the API.
++ Moved a significant number of functions and classes from the executable
+  scripts into the API.
 
 MaskPrimers:
 
@@ -19,8 +19,8 @@ MaskPrimers:
 
 AssemblePairs:
 
-+ Changed default of the ``--rc`` argument to ``tail`` and added ``none`` option for
-  previous default.
++ Changed default of the ``--rc`` argument to ``tail`` and added ``none``
+  option for previous default.
 
 
 Version 0.5.8:  July 13, 2018
