@@ -669,6 +669,8 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, out_args=defa
     return (dist_handle.name, thresh_handle.name)
 
 
+
+#TODO: yaml output with flag
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -676,7 +678,6 @@ def getArgParser():
     Returns: 
       ArgumentParser : ArgumentParser object
     """
-    # TODO: update with output of `barcode` subcommand
     # Define output file names and header fields
     fields = dedent(
              '''
