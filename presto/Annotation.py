@@ -314,13 +314,15 @@ def convert454Header(desc):
       dict: a dictionary of header field and value pairs.
 
     Examples:
-      _New style 454 header_
-      @<accession> <length=##>
-      @GXGJ56Z01AE06X length=222
+      New style 454 header::
 
-      _Old style 454 header_
-      @<rank_x_y> <length=##> <uaccno=accession>
-      @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
+        @<accession> <length=##>
+        @GXGJ56Z01AE06X length=222
+
+      Old style 454 header::
+
+        @<rank_x_y> <length=##> <uaccno=accession>
+        @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR
     """
     # Split description and assign field names
     try:
@@ -353,13 +355,15 @@ def convertGenbankHeader(desc, delimiter=default_delimiter):
       dict: a dictionary of header field and value pairs.
 
     Examples:
-      _New style GenBank header_
-      >CM000663.2 Homo sapiens chromosome 1, GRCh38 reference primary assembly
-      <accession>.<version> <description>
+      New style GenBank header::
 
-      _Old style GenBank header_
-      gi|<GI record number>|<dbsrc>|<accession>.<version>|<description>
-      >gi|568336023|gb|CM000663.2| Homo sapiens chromosome 1, GRCh38 reference primary assembly
+        <accession>.<version> <description>
+        >CM000663.2 Homo sapiens chromosome 1, GRCh38 reference primary assembly
+
+      Old style GenBank header::
+
+        gi|<GI record number>|<dbsrc>|<accession>.<version>|<description>
+        >gi|568336023|gb|CM000663.2| Homo sapiens chromosome 1, GRCh38 reference primary assembly
     """
     # Define special characters to replace
     sub_regex = '[%s\s]+' % re.escape(''.join(delimiter[1:]))
@@ -396,13 +400,15 @@ def convertIlluminaHeader(desc):
       dict: a dictionary of header field and value pairs.
 
     Examples:
-      _New style Illumina header_
-      @<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:<x-pos>:<y-pos> <read number>:<is filtered>:<control number>:<index sequence>
-      @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
+      New style Illumina header::
 
-      _Old style Illumina header_
-      @<instrument>:<flowcell lane>:<tile>:<x-pos>:<y-pos>#<index sequence>/<read number>
-      @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
+        @<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:<x-pos>:<y-pos> <read number>:<is filtered>:<control number>:<index sequence>
+        @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
+
+      Old style Illumina header::
+
+        @<instrument>:<flowcell lane>:<tile>:<x-pos>:<y-pos>#<index sequence>/<read number>
+        @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
     """
     # Split description and assign field names
     try:
@@ -441,34 +447,33 @@ def convertIMGTHeader(desc, simple=False):
       dict: a dictionary of header field and value pairs.
 
     Examples:
+      IMGT header::
 
-      _IMGT header_
-      Header specifications from http://imgt.org/genedb
-      The FASTA header contains 15 fields separated by '|':
+        >X60503|IGHV1-18*02|Homo sapiens|F|V-REGION|142..417|276 nt|1| | | | |276+24=300|partial in 3'| |
 
-         1. IMGT/LIGM-DB accession number(s)
-         2. gene and allele name
-         3. species
-         4. functionality
-         5. exon(s), region name(s), or extracted label(s)
-         6. start and end positions in the IMGT/LIGM-DB accession number(s)
-         7. number of nucleotides in the IMGT/LIGM-DB accession number(s)
-         8. codon start, or 'NR' (not relevant) for non coding labels and
-            out-of-frame pseudogenes
-         9. +n: number of nucleotides (nt) added in 5' compared to the
-            corresponding label extracted from IMGT/LIGM-DB
-        10. +n or -n: number of nucleotides (nt) added or removed in 3'
-            compared to the corresponding label extracted from IMGT/LIGM-DB
-        11. +n, -n, and/or nS: number of added, deleted, and/or substituted
+      Header contains 15 fields separated by ``|`` (http://imgt.org/genedb):
+
+        1. IMGT/LIGM-DB accession number(s).
+        2. Gene and allele name.
+        3. Species.
+        4. Functionality.
+        5. Exon(s), region name(s), or extracted label(s).
+        6. Start and end positions in the IMGT/LIGM-DB accession number(s).
+        7. Number of nucleotides in the IMGT/LIGM-DB accession number(s).
+        8. Codon start, or 'NR' (not relevant) for non coding labels and
+           out-of-frame pseudogenes.
+        9. Number of nucleotides added in ``5'`` compared to the
+           corresponding label extracted from IMGT/LIGM-DB.
+        10. Number of nucleotides added or removed in ``3'``
+            compared to the corresponding label extracted from IMGT/LIGM-DB.
+        11. Number of added, deleted, and/or substituted
             nucleotides to correct sequencing errors, or 'not corrected' if
-            non corrected sequencing errors
-        12. number of amino acids (AA): this field indicates that the
-            sequence is in amino acids
-        13. number of characters in the sequence: nt (or AA)+IMGT gaps=total
-        14. partial (if it is)
-        15. reverse complementary (if it is)
-
-      >X60503|IGHV1-18*02|Homo sapiens|F|V-REGION|142..417|276 nt|1| | | | |276+24=300|partial in 3'| |
+            non corrected sequencing errors.
+        12. Number of amino acids (AA). This field indicates that the
+            sequence is in amino acids.
+        13. Number of characters in the sequence. Nucleotides (or AA) plus IMGT gaps.
+        14. Partial (if it is).
+        15. Reverse complementary (if it is).
     """
     # Split description and assign field names
     try:
@@ -505,18 +510,23 @@ def convertSRAHeader(desc):
       dict: a dictionary of header field and value pairs.
 
     Examples:
-      _Header from fastq-dump --split-files_
-      @<accession>.<spot> <original sequence description> <length=#>
-      @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
-      @SRR1383326.1 1 length=250
-      _Header from fastq-dump --split-files -I_
-      @<accession>.<spot>.<read number> <original sequence description> <length=#>
-      @SRR1383326.1.1 1 length=250
-      _Header from ENA_
-      @<accession>.<spot> <original sequence description>
-      @ERR220397.1 HKSQ1MM01DXT2W/3
-      @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/1
-      @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/2
+      Header from ``fastq-dump --split-files``::
+
+        @<accession>.<spot> <original sequence description> <length=#>
+        @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
+        @SRR1383326.1 1 length=250
+
+      Header from ``fastq-dump --split-files -I``::
+
+        @<accession>.<spot>.<read number> <original sequence description> <length=#>
+        @SRR1383326.1.1 1 length=250
+
+      Header from ENA::
+
+        @<accession>.<spot> <original sequence description>
+        @ERR220397.1 HKSQ1MM01DXT2W/3
+        @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/1
+        @ERR346596.1 BS-DSFCONTROL04:4:000000000-A3F0Y:1:1101:12758:1640/2
     """
     # Split description and assign field names
     try:
@@ -553,9 +563,10 @@ def convertMIGECHeader(desc):
       dict: a dictionary of header field and value pairs.
 
     Examples:
-      _MIGEC header_
-      @MIG UMI:<UMI sequence>:<consensus read count>
-      @MIG UMI:TCGGCCAACAAA:8
+      MIGEC header::
+
+        @MIG UMI:<UMI sequence>:<consensus read count>
+        @MIG UMI:TCGGCCAACAAA:8
     """
     # Split description and assign field names
     try:
