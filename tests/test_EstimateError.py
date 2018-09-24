@@ -8,6 +8,7 @@ import time
 import unittest
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+import numpy as np
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -96,7 +97,8 @@ class TestEstimateError(unittest.TestCase):
         ref_seq = 'CATACAGTCAAA'
         self.records_original = ref_seq 
         
-        # True empty mismatch dict
+       # True empty mismatch dict
+
         self.empty_mismatch_dict = {'nuc': {'mismatch': {'A': {'A': 0, 'C': 0, 'G': 0, 'T': 0},
                'C': {'A': 0, 'C': 0, 'G': 0, 'T': 0},
                'G': {'A': 0, 'C': 0, 'G': 0, 'T': 0},
@@ -121,9 +123,11 @@ class TestEstimateError(unittest.TestCase):
              },
              'set': {'mismatch': None, 'q_sum': None, 'total': None}}
         
-        
+
         # True mismatch dict
-        self.true_mismatch_dict = {'nuc': {'mismatch': {'A': {'A': 116, 'C': 28, 'G': 15, 'T': 21},
+
+        self.true_mismatch_dict = {
+             'nuc': {'mismatch': {'A': {'A': 116, 'C': 28, 'G': 15, 'T': 21},
                'C': {'A': 12, 'C': 69, 'G': 5, 'T': 4},
                'G': {'A': 0, 'C': 1, 'G': 14, 'T': 15},
                'T': {'A': 9, 'C': 6, 'G': 5, 'T': 40}},
@@ -455,6 +459,10 @@ class TestEstimateError(unittest.TestCase):
                93: 0}},
              'set': {'mismatch': {30: 121}, 'q_sum': {30: 6912}, 'total': {30: 360}}}
         
+        # True distance dict
+        self.true_distance_dict = {
+              'all': 
+                  np.array([  0,   1,  24,  70, 152, 133,  55,   0,   0,   0,   0,   0,   0])}
         
         # Start clock
         self.start = time.time()
@@ -464,13 +472,19 @@ class TestEstimateError(unittest.TestCase):
         t = time.time() - self.start
         print('<- %s() %.3f' % (self._testMethodName, t))
 
-    def test_initializeMismatchDictionaries(self):
-        result = EstimateError.initializeMismatchDictionaries(self.records_original)
+    def test_initializeMismatchDictionary(self):
+        result = EstimateError.initializeMismatchDictionary(len(self.records_original))
+        del result['dist']
         self.assertEqual(self.empty_mismatch_dict, result)
     
     def test_countMismatches(self):
         result = EstimateError.countMismatches(self.records_dna, self.records_original)
+        del result['dist']
         self.assertEqual(self.true_mismatch_dict, result)
+
+    def test_calculateDistances(self):
+        result = EstimateError.calculateDistances(self.records_dna, bin_count = len(self.records_original) + 1)
+        np.allclose(self.true_distance_dict['all'], result['all'])
         
 if __name__ == '__main__':
     unittest.main()
