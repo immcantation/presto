@@ -27,8 +27,8 @@ if os.environ.get('READTHEDOCS', None) == 'True':
         @classmethod
         def __getattr__(cls, name):  return MagicMock()
 
-    mock_modules = ['numpy', 'scipy', 'scipy.stats', 'pandas',
-                    'Bio', 'Bio.Align', 'Bio.Alphabet', 'Bio.Seq', 'Bio.SeqRecord']
+    mock_modules = ['numpy', 'scipy', 'scipy.stats', 'scipy.spatial', 'scipy.spatial.distance',
+                    'pandas', 'Bio', 'Bio.Align', 'Bio.Alphabet', 'Bio.Seq', 'Bio.SeqRecord']
     sys.modules.update((mod_name, Mock()) for mod_name in mock_modules)
 
 # If extensions (or modules to document with autodoc) are in another directory,

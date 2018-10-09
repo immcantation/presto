@@ -293,11 +293,8 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments: 
-      None
-                      
-    Returns: 
-      argparse.ArgumentParser : argument parser.
+    Returns:
+      argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
     fields = dedent(

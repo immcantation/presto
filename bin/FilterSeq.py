@@ -31,14 +31,14 @@ def filterSeq(seq_file, filter_func, filter_args={},
     Filters sequences by fraction of ambiguous nucleotides
     
     Arguments: 
-      seq_file = the sequence file to filter
-      filter_func = the function to use for filtering sequences
-      filter_args = a dictionary of arguments to pass to filter_func
+      seq_file : the sequence file to filter.
+      filter_func : the function to use for filtering sequences.
+      filter_args : a dictionary of arguments to pass to filter_func.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
-      nproc = the number of processQueue processes;
+      nproc : the number of processQueue processes;
               if None defaults to the number of CPUs.
-      queue_size = maximum size of the argument queue;
+      queue_size : maximum size of the argument queue;
                    if None defaults to 2*nproc.
                  
     Returns:
@@ -93,11 +93,8 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments: 
-    None
-                      
-    Returns: 
-    an ArgumentParser object
+    Returns:
+      argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
     fields = dedent(

@@ -248,7 +248,6 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
     return None
 
 
-
 def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_field,
                    nucleotides=default_nucleotides, headers=default_headers,
                    distance_types=default_distance_types):
@@ -667,9 +666,9 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
 def getArgParser():
     """
     Defines the ArgumentParser
-                      
-    Returns: 
-      ArgumentParser : ArgumentParser object
+
+    Returns:
+      argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
     fields = dedent(

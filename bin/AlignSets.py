@@ -37,14 +37,14 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     Pads the head of a set of sequences with gaps according to an offset list
 
     Arguments: 
-    seq_list = a list of SeqRecord objects to offset
-    offset_dict = a dictionary of {set ID: offset values}
-    field = the field in sequence description containing set IDs
-    mode = defines the action taken; one of 'pad','cut'
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+      seq_list : a list of SeqRecord objects to offset
+      offset_dict : a dictionary of {set ID: offset values}
+      field : the field in sequence description containing set IDs
+      mode : defines the action taken; one of 'pad','cut'
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists)
         
     Returns: 
-    a MultipleSeqAlignment object containing the alignment
+      Bio.Align.MultipleSeqAlignment: object containing the alignment.
     """
     ann_list = [parseAnnotation(s.description, delimiter=delimiter) for s in seq_list]
     tag_list = [a[field] for a in ann_list]
@@ -86,13 +86,13 @@ def getOffsets(seq_list, align_func=runMuscle, align_args={}, reverse=False):
     Create an offset dictionary for a list of sequences
 
     Arguments: 
-    seq_list = a list of SeqRecord objects
-    align_func = the function to use to align sequence sets
-    align_args = a dictionary of arguments to pass to align_func
-    reverse = if True count tail gaps; if False count head gaps
+      seq_list : a list of SeqRecord objects.
+      align_func : the function to use to align sequence sets.
+      align_args : a dictionary of arguments to pass to align_func.
+      reverse : if True count tail gaps; if False count head gaps.
     
     Returns: 
-    a dictionary of {sequence ID: offset value}
+      dict: a dictionary of {sequence ID: offset value}.
     """
     # Perform alignment
     align_list = align_func(seq_list, **align_args)
@@ -118,10 +118,10 @@ def readOffsetFile(offset_file):
     Parses offset file
 
     Arguments: 
-    offset_file = a tab delimited file of set IDs and offset values
+      offset_file : a tab delimited file of set IDs and offset values.
     
     Returns: 
-    a dictionary of {annotation values: offset values}
+      dict: a dictionary of {annotation values: offset values}
     """
     with open(offset_file, 'r') as offset_handle:
         offset_iter = csv.reader(offset_handle, delimiter='\t')
@@ -199,17 +199,17 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments: 
-    alive = a multiprocessing.Value boolean controlling whether processing 
-            continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    align_func = the function to use for alignment
-    align_args = a dictionary of optional arguments for the alignment function
-    calc_div = if True perform diversity calculation
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists)
+      alive : a multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns
+      data_queue : a multiprocessing.Queue holding data to process
+      result_queue : a multiprocessing.Queue to hold processed results
+      align_func : the function to use for alignment
+      align_args : a dictionary of optional arguments for the alignment function
+      calc_div : if True perform diversity calculation
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists)
 
-    Returns: 
-    None
+    Returns:
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached
@@ -348,11 +348,8 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Arguments: 
-    None
-                      
     Returns: 
-    an ArgumentParser object
+      argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
     fields = dedent(
