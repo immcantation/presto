@@ -29,19 +29,19 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
     Syncronized paired end files and copies annotations between them
 
     Arguments: 
-      seq_file_1 : the file containing the grouped sequences and annotations
-      seq_file_2 : the file to assign annotations to from seq_file_1
+      seq_file_1 : the file containing the grouped sequences and annotations.
+      seq_file_2 : the file to assign annotations to from seq_file_1.
       fields_1 : list of annotations in seq_file_1 records to copy to seq_file_2 records;
-                 if None do not copy any annotations
+                 if None do not copy any annotations.
       fields_2 : list of annotations in seq_file_2 records to copy to seq_file_1 records;
-                 if None do not copy any annotations
+                 if None do not copy any annotations.
       action : the collapse action to take on all copied annotation if they already exist in the
                target header.
-      coord_type : the sequence header format
-      out_args : common output argument dictionary from parseCommonArgs
+      coord_type : the sequence header format.
+      out_args : common output argument dictionary from parseCommonArgs.
                     
     Returns: 
-      list : a list of tuples holding successfully paired filenames for (seq_file_1, seq_file_2)
+      list: a list of tuples holding successfully paired filenames for (seq_file_1, seq_file_2).
     """
     # Define private functions
     def _key_func(x):

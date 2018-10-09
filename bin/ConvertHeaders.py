@@ -29,11 +29,11 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_a
     Converts sequence headers to the pRESTO format
 
     Arguments:
-      seq_file = the sequence file name.
-      convert_func = the function used to convert sequence headers.
-      convert_args = a dictionary of arguments to pass to convert_func.
+      seq_file : the sequence file name.
+      convert_func : the function used to convert sequence headers.
+      convert_args : a dictionary of arguments to pass to convert_func.
       out_file : output file name. Automatically generated from the input file if None.
-      out_args = common output argument dictionary from parseCommonArgs.
+      out_args : common output argument dictionary from parseCommonArgs.
 
     Returns:
       str: the output sequence file name.

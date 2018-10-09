@@ -35,31 +35,31 @@ def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
     Pulls from data queue, performs calculations, and feeds results queue
 
     Arguments:
-    alive = a multiprocessing.Value boolean controlling whether processing 
-            continues; when False function returns
-    data_queue = a multiprocessing.Queue holding data to process
-    result_queue = a multiprocessing.Queue to hold processed results
-    cons_func = the function to use for consensus generation 
-    cons_args = a dictionary of optional arguments for the consensus function
-    min_count = threshold number of sequences to define a consensus 
-    primer_field = the annotation field containing primer names;
-                   if None do not annotate with primer names
-    primer_freq = the maximum primer frequency that must be meet to build a consensus;
-                  if None do not filter by primer frequency
-    max_gap = the maximum frequency of (., -) characters allowed before
-              deleting a position; if None do not delete positions
-    max_error = the minimum error rate to retain a set;
-                if None do not calculate error rate
-    max_diversity = a threshold defining the average pairwise error rate required to retain a read group;
-                    if None do not calculate diversity
-    copy_fields = a list of annotations to copy into consensus sequence annotations;
-                  if None no additional annotations will be copied
-    copy_actions = the list of actions to take for each copy_fields;
-                   one of ['set', 'majority', 'min', 'max', 'sum']
-    delimiter = a tuple of delimiters for (annotations, field/values, value lists) 
+      alive : a multiprocessing.Value boolean controlling whether processing
+              continues; when False function returns.
+      data_queue : a multiprocessing.Queue holding data to process.
+      result_queue : a multiprocessing.Queue to hold processed results.
+      cons_func : the function to use for consensus generation.
+      cons_args : a dictionary of optional arguments for the consensus function.
+      min_count : threshold number of sequences to define a consensus.
+      primer_field : the annotation field containing primer names;
+                     if None do not annotate with primer names.
+      primer_freq : the maximum primer frequency that must be meet to build a consensus;
+                    if None do not filter by primer frequency.
+      max_gap : the maximum frequency of (., -) characters allowed before
+                deleting a position; if None do not delete positions.
+      max_error : the minimum error rate to retain a set;
+                  if None do not calculate error rate.
+      max_diversity : a threshold defining the average pairwise error rate required to retain a read group;
+                      if None do not calculate diversity.
+      copy_fields : a list of annotations to copy into consensus sequence annotations;
+                    if None no additional annotations will be copied.
+      copy_actions : the list of actions to take for each copy_fields;
+                     one of ['set', 'majority', 'min', 'max', 'sum'].
+      delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
     Returns: 
-    None
+      None
     """
     try:
         # Iterator over data queue until sentinel object reached

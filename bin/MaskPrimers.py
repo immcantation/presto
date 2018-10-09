@@ -39,6 +39,9 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
       barcode_field : name of the output barcode annotation.
       primer_field : name of the output primer annotation.
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
+
+    Returns:
+      presto.Multiprocessing.SeqResult: result object.
     """
     # Define result object
     result = SeqResult(data.id, data.data)
@@ -99,7 +102,7 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_primer_max
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
     Returns:
-      presto.Multiprocessing.SeqResult : result object.
+      presto.Multiprocessing.SeqResult: result object.
     """
     # Define result object
     result = SeqResult(data.id, data.data)
@@ -163,7 +166,7 @@ def scorePrimers(data, primers, max_error=default_primer_max_error, start=defaul
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
     Returns:
-      presto.Multiprocessing.SeqResult : result object.
+      presto.Multiprocessing.SeqResult: result object.
     """
     # Define result object
     result = SeqResult(data.id, data.data)
@@ -223,7 +226,7 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
                    if None defaults to 2*nproc.
                  
     Returns:
-      list : a list of successful output file names.
+      list: a list of successful output file names.
     """
     # Define subcommand label dictionary
     cmd_dict = {alignPrimers: 'align', scorePrimers: 'score', extractPrimers: 'extract'}
