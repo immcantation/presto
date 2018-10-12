@@ -32,12 +32,12 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     Splits a FASTA/FASTQ file into segments with a limited number of records
 
     Arguments: 
-    seq_file : filename of the FASTA file to split
-    max_count : number of records in each output file
-    out_args : common output argument dictionary from parseCommonArgs
+      seq_file : filename of the FASTA file to split
+      max_count : number of records in each output file
+      out_args : common output argument dictionary from parseCommonArgs
 
     Returns: 
-      list : output file names
+      list: output file names
     """
     log = OrderedDict()
     log['START'] = 'SplitSeq'
@@ -108,7 +108,7 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
       out_args : common output argument dictionary from parseCommonArgs
 
     Returns: 
-      list : output file names
+      list: output file names
     """
     log = OrderedDict()
     log['START'] = 'SplitSeq'
@@ -218,7 +218,7 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
       out_args : common output argument dictionary from parseCommonArgs
               
     Returns: 
-      str : output file name
+      str: output file name
     """
     # Function to sample from a list of sequence indices
     def _sample_list(n, index_list):
@@ -321,7 +321,7 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
       out_args : common output argument dictionary from parseCommonArgs
               
     Returns: 
-      list : seq_file_1 and seq_file_2 output file names
+      list: seq_file_1 and seq_file_2 output file names
     """
     # Sequence index key function
     def _key_func(x):
@@ -459,7 +459,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
       out_args : common output argument dictionary from parseCommonArgs
     
     Returns: 
-      list : output file names
+      list: output file names
     """
     log = OrderedDict()
     log['START'] = 'SplitSeq'
@@ -663,7 +663,7 @@ def getArgParser():
     Defines the ArgumentParser
 
     Returns:
-      argparse.ArgumentParser : an ArgumentParser object
+      argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
     fields = dedent(

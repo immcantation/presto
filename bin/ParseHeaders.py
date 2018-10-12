@@ -179,9 +179,9 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
 def getArgParser():
     """
     Defines the ArgumentParser
-                      
-    Returns: 
-      argparse.ArgumentParser : ArgumentParser object
+
+    Returns:
+      argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
     fields = dedent(
