@@ -1,6 +1,16 @@
 Release Notes
 ================================================================================
 
+Version 0.5.10:  
+-------------------------------------------------------------------------------
+
++ Documentation added for barcode and sequence error correction 'Fixing UMI Problems'
+
+EstimateError:
+
++ subcommands added for ``set`` and ``barcode`` to identify thresholds 
+  for use with the corresponding subcommands in ClusterSets
+
 Version 0.5.9:  September 2, 2018
 -------------------------------------------------------------------------------
 
