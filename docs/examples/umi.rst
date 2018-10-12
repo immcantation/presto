@@ -222,7 +222,7 @@ To identify the ideal threshold at which to cluster similar barcode sequences, :
 
     EstimateError.py barcode -s reads.fastq -f BARCODE
 
-This outputs the following tables::
+This outputs the following tables:
 
 ============================== ===========================================
 File                           Error profile
@@ -240,14 +240,14 @@ Next, sequences within these larger barcode groups can be reassigned to avoid se
     
     EstimateError.py set -s reads_cluster-pass.fastq -f INDEX_UID
 
-This outputs the following tables::
+This outputs the following tables:
 
-=====================================    ===========================================
-File                                     Error profile
-=====================================    ===========================================
-reads_cluster-pass_distance-set.tab      Distribution of pairwise hamming distances
-reads_cluster-pass_threshold-set.tab     Recommended threshold 
-=====================================    ===========================================
+===================================== ===========================================
+File                                  Error profile
+===================================== ===========================================
+reads_cluster-pass_distance-set.tab   Distribution of pairwise hamming distances
+reads_cluster-pass_threshold-set.tab  Recommended threshold 
+===================================== ===========================================
 
 
 The row 'THRESH' under column 'ALL' in reads_cluster-pass_threshold-set.tab specifies a recommended threshold for resolving collisions. Here, the table specifies a threshold of 0.9 which we will use for :ref:`ClusterSets` using the threshold :option:`---ident 0.8 <ClusterSets set --ident>` and using :option:`-f INDEX_UID <ClusterSets set -f>` as the old barcode field and :option:`-k INDEX_SEQ <ClusterSets set -k>` as the new::
