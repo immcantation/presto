@@ -257,7 +257,7 @@ Clustering will be performed on the sequences in the UMI annotation field
 assigned to the annotation field ``INDEX_UMI`` via the argument
 :option:`-k INDEX_UMI <ClusterSets barcode -k>`::
 
-   ClusterSets.py barcode -s reads.fastq -f BARCODE -k INDEX_UMI --ident 0.9
+    ClusterSets.py barcode -s reads.fastq -f BARCODE -k INDEX_UMI --ident 0.9
 
 Clustering V(D)J sequences
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
