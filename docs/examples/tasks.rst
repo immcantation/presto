@@ -77,6 +77,8 @@ sequences with values greater than or equal to the threshold::
 
 Which will create two files with the labels ``atleast-2`` and ``under-2``.
 
+.. _Tasks-RandomSampling:
+
 Random sampling from sequence files
 --------------------------------------------------------------------------------
 

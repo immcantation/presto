@@ -192,9 +192,9 @@ from consensus should therefore be an accurate estimate of the error rate in
 the data. However, this is not guaranteed to be true, hence this approach can only
 be considered an estimate of a data set's error profile. The following command
 generates an error profile from UMI read groups with 50 or more sequences
-(:option:`-n 50 <EstimateError -n>`), using a majority rule consensus sequence
-(:option:`--mode freq <EstimateError --freq>`), and excluding UMI read groups
-with high nucleotide diversity (:option:`--maxdiv 0.1 <EstimateError --maxdiv>`)::
+(:option:`-n 50 <EstimateError set -n>`), using a majority rule consensus sequence
+(:option:`--mode freq <EstimateError set --freq>`), and excluding UMI read groups
+with high nucleotide diversity (:option:`--maxdiv 0.1 <EstimateError set --maxdiv>`)::
 
     EstimateError.py -s reads.fastq -n 50 --mode freq --maxdiv 0.1
 
@@ -211,34 +211,64 @@ reads_error-set.tab            Error rates by UMI read group size
 ============================== ==============================
 
 
-Correcting for Barcode and Sequence PCR and Sequencing Error
+Correcting for errors in the UMI region
 --------------------------------------------------------------------------------
 
-Depending on the protocol used for library preparation, PCR error and sequencer error can significantly affect barcode and sequence assignments. To account for this error, the following approach can be used. 
+Depending on the protocol used for library preparation, PCR error and sequencing
+error can significantly affect UMI and sequence assignments. To account for
+this error, the following approach can be used.
 
-First, error in barcode regions can be accounted for by reassigning barcode groups to new clusters of barcode that may differ at one or more nucleotide positions.  
+Clustering UMI sequences
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To identify the ideal threshold at which to cluster similar barcode sequences, :ref:`EstimateError` can be run as shown below with the barcode field specified as :option:`-f BARCODE <EstimateError barcode -f>` (subsampling at a depth of >5000 sequences is recommended to expedite this calculation) ::
+First, errors in the UMI region can be accounted for by reassigning UMI
+groups to new clusters of UMI sequence that may differ by one or more nucleotides.
+To identify the ideal threshold at which to cluster similar UMI sequences,
+:ref:`EstimateError` can be run on the UMI field (``BARCODE``)::
 
     EstimateError.py barcode -s reads.fastq -f BARCODE
 
-This outputs the following tables:
+The :option:`-f BARCODE <EstimateError barcode -f>` defines the header annotation
+containing the UMI sequence. This outputs the following tables:
 
 ============================== ===========================================
 File                           Error profile
 ============================== ===========================================
 reads_distance-barcode.tab     Distribution of pairwise hamming distances
-reads_threshold-barcode.tab    Recommended threshold 
+reads_threshold-barcode.tab    Recommended threshold
 ============================== ===========================================
 
+The value in the ``THRESHOLD`` column associated with the ``ALL`` row in
+``reads_threshold-barcode.tab`` specifies a recommended threshold for clustering
+the UMI sequences.
 
-The row 'THRESH' under column 'ALL' in reads_threshold-barcode.tab specifies a recommended threshold for clustering barcode sequences. Here, the table specifies a threshold of 0.9 which we will use for :ref:`ClusterSets` using the threshold :option:`--ident 0.9 <ClusterSets barcode --ident>` and using :option:`-f BARCODE <ClusterSets barcode -f>` as the old barcode field and :option:`-k INDEX_UID <ClusterSets barcode -k>` as the new::
+.. note::
 
-   ClusterSets.py barcode -s reads.fastq -f BARCODE -k INDEX_UID --ident 0.9
+    Subsampling at a depth to approximately 5,000 sequences is
+    recommended to expedite this calculation. See the
+    :ref:`random task <Tasks-RandomSampling>` for an example of how to use
+    :ref:`SplitSeq` to subsample sequence files.
 
-Next, sequences within these larger barcode groups can be reassigned to avoid sequence collisions, that is, sequences sharing the same barcode. Again, :ref:`EstimateError` can be run with the barcode field specified as :option:`-f INDEX_UID <EstimateError set -f>` (subsampling at a depth of >5000 sequences is again recommended to expedite this calculation)::
-    
-    EstimateError.py set -s reads_cluster-pass.fastq -f INDEX_UID
+The table specifies a threshold of ``0.9`` which will be used to cluster
+the UMI sequences via :ref:`ClusterSets`. The identity threshold is set
+via the argument :option:`--ident 0.9 <ClusterSets barcode --ident>`.
+Clustering will be performed on the sequences in the UMI annotation field
+(:option:`-f BARCODE <ClusterSets barcode -f>`) and UMI clusters will
+assigned to the annotation field ``INDEX_UMI`` via the argument
+:option:`-k INDEX_UMI <ClusterSets barcode -k>`::
+
+   ClusterSets.py barcode -s reads.fastq -f BARCODE -k INDEX_UMI --ident 0.9
+
+Clustering V(D)J sequences
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Next, sequences within these larger UMI clusters are clustered to avoid
+sequence collisions. Again, :ref:`EstimateError` is used to infer a clustering
+threshold, but instead of clustering UMI sequences the :program:`set` subcommand
+is used to cluster the reads (V(D)J sequences) *within* the newly assigned UMI
+clusters (:option:`-f INDEX_UMI <EstimateError set -f>`)::
+
+    EstimateError.py set -s reads_cluster-pass.fastq -f INDEX_UMI
 
 This outputs the following tables:
 
@@ -246,15 +276,43 @@ This outputs the following tables:
 File                                  Error profile
 ===================================== ===========================================
 reads_cluster-pass_distance-set.tab   Distribution of pairwise hamming distances
-reads_cluster-pass_threshold-set.tab  Recommended threshold 
+reads_cluster-pass_threshold-set.tab  Recommended threshold
 ===================================== ===========================================
 
+The value in the ``THRESHOLD`` column associated with the ``ALL`` row in
+``reads_cluster-pass_threshold-set.tab`` specifies a recommended threshold for
+resolving collisions.
 
-The row 'THRESH' under column 'ALL' in reads_cluster-pass_threshold-set.tab specifies a recommended threshold for resolving collisions. Here, the table specifies a threshold of 0.9 which we will use for :ref:`ClusterSets` using the threshold :option:`---ident 0.8 <ClusterSets set --ident>` and using :option:`-f INDEX_UID <ClusterSets set -f>` as the old barcode field and :option:`-k INDEX_SEQ <ClusterSets set -k>` as the new::
-    
-    ClusterSets.py set -s reads_cluster-pass.fastq -f INDEX_UID -k INDEX_SEQ --ident 0.8
+.. note::
 
-Finally, new barcode groups can be generated by combining the two new fields using :ref:`ParseHeaders` into a new barcode ID. Here, the previously generated new barcode and sequence fields (:option:`-f INDEX_UID INDEX_SEQ <ParseHeaders merge -f>`) are combined to generate the new cluster annotation (:option:`-k INDEX_NEW <ParseHeaders merge -k>`).::
+    Subsampling at a depth to approximately 5,000 sequences is
+    recommended to expedite this calculation. See the
+    :ref:`random task <Tasks-RandomSampling>` for an example of how to use
+    :ref:`SplitSeq` to subsample sequence files.
 
-    ParseHeaders.py merge -s reads_cluster-pass_cluster-pass.fastq -f INDEX_UID INDEX_SEQ -k INDEX_NEW
-    
+Using a recommended threshold of ``0.8``, V(D)J sequences are clustering in a
+similar way using the :program:`set` subcommand of :ref:`ClusterSets`::
+
+    ClusterSets.py set -s reads_cluster-pass.fastq -f INDEX_UMI -k INDEX_SEQ --ident 0.8
+
+Where the argument :option:`--ident 0.8 <ClusterSets set --ident>` specifies the clustering
+threshold, :option:`-f INDEX_UMI <ClusterSets set -f>` defines the UMI cluster group to
+cluster within, and :option:`-k INDEX_SEQ <ClusterSets set -k>` defines the V(D)J sequence
+cluster annotation to add to the output headers.
+
+Combining the UMI and V(D)J cluster annotations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Finally, new UMI groups can be generated by combining the two annotation fields
+generated during the clustering steps with the :program:`merge` subcommand of
+:ref:`ParseHeaders`. The :option:`-f INDEX_UMI INDEX_SEQ <ParseHeaders merge -f>`
+argument defines the fields to combine and the
+:option:`-k INDEX_MERGE <ParseHeaders merge -k>` argument defines the new field
+that will contain the corrected UMI clusters used for consensus generation::
+
+    ParseHeaders.py merge -s reads_cluster-pass_cluster-pass.fastq -f INDEX_UMI INDEX_SEQ \
+        -k INDEX_MERGE
+
+This combined UMI-V(D)J sequence cluster annotation can then be specified as the
+barcode field to :ref:`BuildConsensus` using the
+:option:`--bf INDEX_MERGE <BuildConsensus --bf>` argument.
