@@ -28,11 +28,16 @@ primers are sufficiently similar.
     correctly aligned and suitable for UMI consensus generation.
 
 This type of primer misalignment can be corrected using one of two approaches
-using the :ref:`AlignSets` tool. The first approach, which is conceptually
-simpler but computationally more expensive, is to perform a full multiple
-alignment of reach UMI read group using the :program:`muscle` subcommand of
-:ref:`AlignSets`. The :option:`--bf BARCODE <AlignSets muscle --bf>` argument tells
-:ref:`AlignSets` to multiple align reads sharing the same ``BARCODE`` annotation.
+using the :ref:`AlignSets` tool.
+
+Correcting via multiple alignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The first approach, which is conceptually simpler but computationally more expensive,
+is to perform a full multiple alignment of reach UMI read group using the
+:program:`muscle` subcommand of :ref:`AlignSets`. The
+:option:`--bf BARCODE <AlignSets muscle --bf>` argument tells :ref:`AlignSets` to
+multiple align reads sharing the same ``BARCODE`` annotation.
 The :option:`--exec ~/bin/muscle <AlignSets muscle --exec>` is a pointer to
 where the `MUSCLE <http://www.drive5.com/muscle>`__ executable is located::
 
@@ -56,6 +61,9 @@ positions with gap characters when generating a UMI consensus sequence.
     matter of taste. A multiple alignment may improve consensus quality in
     small UMI read groups (eg, less than 4 sequences), but the extent to which
     small UMI read groups should be trusted is debatable.
+
+Correcting via an offset table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The second approach will correct only the primer regions and will not address
 insertions/deletions within the sequence, but is much quicker to perform. The first
@@ -180,38 +188,7 @@ yielding UMI annotations suitable for input to :ref:`BuildConsensus`::
     >READ1|BARCODE=ATGTCGTTGGCTAGTC
     >READ2|BARCODE=ATGTCGTTGGCTAGTC
 
-
-Estimating sequencing and PCR error rates with UMI data
---------------------------------------------------------------------------------
-
-The :ref:`EstimateError` tool provides methods for estimating the combined
-PCR and sequencing error rates from large UMI read groups. The assumptions being,
-that consensus sequences generated from sufficiently large UMI read groups should
-be accurate representations of the true sequences, and that the rate of mismatches
-from consensus should therefore be an accurate estimate of the error rate in
-the data. However, this is not guaranteed to be true, hence this approach can only
-be considered an estimate of a data set's error profile. The following command
-generates an error profile from UMI read groups with 50 or more sequences
-(:option:`-n 50 <EstimateError set -n>`), using a majority rule consensus sequence
-(:option:`--mode freq <EstimateError set --freq>`), and excluding UMI read groups
-with high nucleotide diversity (:option:`--maxdiv 0.1 <EstimateError set --maxdiv>`)::
-
-    EstimateError.py -s reads.fastq -n 50 --mode freq --maxdiv 0.1
-
-This generates the following tab-delimited files containing error rates broken
-down by various criteria:
-
-============================== ==============================
-File                           Error profile
-============================== ==============================
-reads_error-position.tab       Error rates by read position
-reads_error-quality.tab        Error rates by quality score
-reads_error-nucleotide.tab     Error rates by nucleotide identity
-reads_error-set.tab            Error rates by UMI read group size
-============================== ==============================
-
-
-Correcting for errors in the UMI region
+Compensating for errors in the UMI region
 --------------------------------------------------------------------------------
 
 Depending on the protocol used for library preparation, PCR error and sequencing

@@ -1,16 +1,23 @@
 Release Notes
 ================================================================================
 
-Version 0.5.9.999:  October 12, 2018
+Version 0.5.10:  October 19, 2018
 -------------------------------------------------------------------------------
 
-+ Documentation added for barcode and sequence error correction 'Fixing UMI Problems'
++ Documentation added for UMI error correction.
++ Added ``IO.printDebug`` to the API.
 
 EstimateError:
 
-+ subcommands added for ``set`` and ``barcode`` to identify thresholds 
-  for use with the corresponding subcommands in ClusterSets
++ Added the subcommands ``set`` and ``barcode`` where ``set`` is the previous
+  error estimation method (using UMI read groups). The new ``barcode`` method
+  generates pairwise Hamming distance distributions for sequences containied in
+  header annotations (typically UMI barcode sequences).
++ Added ``distance`` and ``threshold`` output files containing pairwise
+  distance histograms and clustering thresholds for use with the corresponding
+  subcommands in ClusterSets.
 + Increased default minimum sequence count in the ``set`` subcommand to 20.
+
 
 Version 0.5.9:  September 2, 2018
 -------------------------------------------------------------------------------

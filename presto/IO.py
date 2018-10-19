@@ -401,3 +401,15 @@ def printError(message, exit=True):
         sys.exit('ERROR> %s\n' % message)
     else:
         sys.stderr.write('ERROR> %s\n' % message)
+
+
+def printDebug(message, debug=True):
+    """
+    Prints a debug message to standard error
+
+    Arguments:
+      message (str): message.
+      debug (bool): if True print the message.
+    """
+    if debug:
+        sys.stderr.write('DEBUG> %s\n' % message)
