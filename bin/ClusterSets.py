@@ -360,7 +360,7 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident,
               if None defaults to the number of CPUs.
 
     Returns:
-      str : the clustered output file name
+      str: the clustered output file name
     """
     # Function to modify SeqRecord header with cluster identifier
     def _header(seq, cluster, field=cluster_field, prefix=cluster_prefix,
@@ -491,8 +491,8 @@ def getArgParser():
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
-    # Parent parser
-    parent_parser = getCommonArgParser(multiproc=True)
+    # Parent parser of common arguments
+    parent_parser = ArgumentParser(formatter_class=CommonHelpFormatter, add_help=False)
     group_parent = parent_parser.add_argument_group('common clustering arguments')
     group_parent.add_argument('-k', action='store', dest='cluster_field', type=str,
                               default=default_cluster_field,
@@ -515,7 +515,8 @@ def getArgParser():
                               help='The name or path of the usearch, vsearch or cd-hit-est executable.')
 
     # Sequence set clustering arguments
-    parser_set = subparsers.add_parser('set', parents=[parent_parser],
+    parser_set = subparsers.add_parser('set',
+                                       parents=[getCommonArgParser(log=True, multiproc=True), parent_parser],
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Cluster sequences within annotation sets.',
                                        description='Cluster sequences within annotation sets.')
@@ -533,7 +534,8 @@ def getArgParser():
     parser_set.set_defaults(func=clusterSets)
 
     # Total sequence clustering arguments
-    parser_all = subparsers.add_parser('all', parents=[parent_parser],
+    parser_all = subparsers.add_parser('all',
+                                       parents=[getCommonArgParser(log=False, failed=False, multiproc=True), parent_parser],
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Cluster all sequences regardless of annotation.',
                                        description='Cluster all sequences regardless of annotation.')
@@ -547,7 +549,8 @@ def getArgParser():
     parser_all.set_defaults(func=clusterAll)
 
     # Sequence set clustering arguments
-    parser_barcode = subparsers.add_parser('barcode', parents=[parent_parser],
+    parser_barcode = subparsers.add_parser('barcode',
+                                           parents=[getCommonArgParser(log=False, failed=False, multiproc=True), parent_parser],
                                            formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Cluster reads by clustering barcode sequences.',
                                            description='Cluster reads by clustering barcode sequences.')
