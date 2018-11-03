@@ -70,7 +70,7 @@ def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False,
     if add_help:
         group_help = parser.add_argument_group('help')
         group_help.add_argument('--version', action='version',
-                                version='%(prog)s:' + ' %s-%s' %(__version__, __date__))
+                                version='%(prog)s:' + ' %s %s' %(__version__, __date__))
         group_help.add_argument('-h', '--help', action='help', help='show this help message and exit')
 
     # Set standard group

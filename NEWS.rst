@@ -4,6 +4,8 @@ Release Notes
 Version 0.5.10.999:  November 3, 2018
 -------------------------------------------------------------------------------
 
++ Slightly changed version number display in commandline help.
+
 ClusterSets:
 
 + Removed the ``--log`` and ``--failed`` arguments from the ``all`` and
