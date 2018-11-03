@@ -1,13 +1,15 @@
 Release Notes
 ================================================================================
 
-Version 0.5.10.999:  November 1, 2018
+Version 0.5.10.999:  November 3, 2018
 -------------------------------------------------------------------------------
 
 ClusterSets:
 
 + Removed the ``--log`` and ``--failed`` arguments from the ``all`` and
   ``barcode`` subcommands because they do nothing.
++ Added the ``--length`` argument to all subcommands which defines the ratio
+  of minimum sequence lengths allowed in a cluster.
 
 
 Version 0.5.10:  October 19, 2018

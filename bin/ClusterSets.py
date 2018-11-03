@@ -36,6 +36,7 @@ choices_cluster_tool = ['usearch', 'vsearch', 'cd-hit-est']
 default_cluster_tool = 'usearch'
 default_cluster_exec = default_usearch_exec
 default_cluster_ident = 0.9
+default_length_ratio = 0.0
 default_cluster_prefix=''
 map_cluster_tool = {'cd-hit-est': runCDHit,
                     'usearch': runUClust,
@@ -129,7 +130,8 @@ def processQueue(alive, data_queue, result_queue,
     return None
 
 
-def clusterSets(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None, set_field=default_barcode_field,
+def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_length_ratio,
+                seq_start=0, seq_end=None, set_field=default_barcode_field,
                 cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                 cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                 out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
@@ -139,6 +141,7 @@ def clusterSets(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None
     Arguments:
       seq_file : the sample sequence file name.
       ident : the identity threshold for clustering sequences.
+      length_ratio : minimum short/long length ratio allowed within a cluster.
       seq_start : the start position to trim sequences at before clustering.
       seq_end : the end position to trim sequences at before clustering.
       set_field : the annotation containing set IDs.
@@ -181,6 +184,7 @@ def clusterSets(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None
     # Define cluster function parameters
     cluster_args = {'cluster_exec': cluster_exec,
                     'ident': ident,
+                    'length_ratio': length_ratio,
                     'seq_start': seq_start,
                     'seq_end': seq_end}
 
@@ -220,7 +224,8 @@ def clusterSets(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None
     return result['out_files']
 
 
-def clusterAll(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None,
+def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_length_ratio,
+               seq_start=0, seq_end=None,
                cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
                cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                out_file=None, out_args=default_out_args, nproc=None):
@@ -230,6 +235,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None,
     Arguments:
       seq_file : the sample sequence file name.
       ident : the identity threshold for clustering sequences.
+      length_ratio : minimum short/long length ratio allowed within a cluster.
       seq_start : the start position to trim sequences at before clustering.
       seq_end : the end position to trim sequences at before clustering.
       cluster_field : the name of the output cluster field.
@@ -281,7 +287,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None,
     # Perform clustering
     start_time = time()
     printMessage('Running %s' % cluster_tool, start_time=start_time, width=25)
-    cluster_dict = cluster_func(seq_iter, ident=ident,
+    cluster_dict = cluster_func(seq_iter, ident=ident, length_ratio=length_ratio,
                                 seq_start=seq_start, seq_end=seq_end,
                                 threads=nproc, cluster_exec=cluster_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
@@ -336,9 +342,9 @@ def clusterAll(seq_file, ident=default_cluster_ident, seq_start=0, seq_end=None,
     return pass_handle.name
 
 
-def clusterBarcodes(seq_file, ident=default_cluster_ident,
-                    barcode_field=default_barcode_field,
-                    cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
+def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_length_ratio,
+                    barcode_field=default_barcode_field, cluster_field=default_cluster_field,
+                    cluster_prefix=default_cluster_prefix,
                     cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                     out_file=None, out_args=default_out_args, nproc=None):
     """
@@ -347,6 +353,7 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident,
     Arguments:
       seq_file : the sample sequence file name.
       ident : the identity threshold for clustering sequences.
+      length_ratio : minimum short/long length ratio allowed within a cluster.
       barcode_field : the annotation field containing barcode sequences.
       cluster_field : the name of the output cluster field.
       cluster_prefix : string defining a prefix for the cluster identifier.
@@ -403,7 +410,8 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident,
     # Perform clustering
     start_time = time()
     printMessage('Running %s' % cluster_tool, start_time=start_time, width=25)
-    cluster_dict = cluster_func(barcode_iter, ident=ident, seq_start=0, seq_end=None,
+    cluster_dict = cluster_func(barcode_iter, ident=ident, length_ratio=length_ratio,
+                                seq_start=0, seq_end=None,
                                 threads=nproc, cluster_exec=cluster_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
@@ -503,6 +511,12 @@ def getArgParser():
                               help='''The sequence identity threshold to use for clustering. 
                                    Note, how identity is calculated is specific to the clustering 
                                    application used.''')
+    group_parent.add_argument('--length', action='store', dest='length_ratio', type=float,
+                              default=default_length_ratio,
+                              help='''The minimum allowed shorter/longer sequence length ratio allowed 
+                                   within a cluster. Setting this value to 1.0 will require identical 
+                                   length matches within clusters. A value of 0.0 will allow clusters
+                                   containing any length of substring.''')
     group_parent.add_argument('--prefix', action='store', dest='cluster_prefix', type=str,
                               default=default_cluster_prefix,
                                help='''A string to use as the prefix for each cluster identifier.

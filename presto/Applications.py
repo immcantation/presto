@@ -27,6 +27,7 @@ from presto.IO import readReferenceFile, printError, printWarning
 
 # Defaults
 default_cluster_ident = 0.9
+default_length_ratio = 0.0
 default_align_ident = 0.5
 default_evalue = 1e-5
 default_max_hits = 100
@@ -72,21 +73,24 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
     return align
 
 
-def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
+def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length_ratio,
+              seq_start=0, seq_end=None,
               threads=1, cluster_exec=default_usearch_exec):
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
     Arguments:
-      seq_list : a list of SeqRecord objects to align.
-      ident : the sequence identity cutoff to be passed to usearch.
-      seq_start : the start position to trim sequences at before clustering.
-      seq_end : the end position to trim sequences at before clustering.
-      threads : number of threads for usearch.
-      cluster_exec : the path to the usearch executable.
+      seq_list (list): a list of SeqRecord objects to align.
+      ident (float): the sequence identity cutoff to be passed to usearch.
+      length_ratio (float): usearch parameter defining the minimum short/long length
+                            ratio allowed within a cluster.
+      seq_start (int): the start position to trim sequences at before clustering.
+      seq_end (int): the end position to trim sequences at before clustering.
+      threads (int): number of threads for usearch.
+      cluster_exec (str): the path to the usearch executable.
 
     Returns:
-      dict : {cluster id: list of sequence ids}.
+      dict: {cluster id: list of sequence ids}.
     """
     # Function to trim and mask sequences
     gap_trans = str.maketrans({'-': 'N', '.': 'N'})
@@ -115,6 +119,7 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
            '-cluster_fast', in_handle.name,
            '-uc', out_handle.name,
            '-id', str(ident),
+           '-minsl', str(length_ratio),
            '-qmask', 'none',
            '-minseqlength', '1',
            '-threads', str(threads)]
@@ -150,21 +155,24 @@ def runUClust(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
     return cluster_dict if cluster_dict else None
 
 
-def runCDHit(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
+def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_ratio,
+             seq_start=0, seq_end=None,
              threads=1, cluster_exec=default_cdhit_exec):
     """
     Cluster a set of sequences using CD-HIT
 
     Arguments:
-      seq_list : a list of SeqRecord objects to align.
-      ident : the sequence identity cutoff to be passed to usearch.
-      seq_start : the start position to trim sequences at before clustering.
-      seq_end : the end position to trim sequences at before clustering.
-      threads : number of threads for CD-HIT.
-      cluster_exec : the path to the CD-HIT executable.
+      seq_list (list): a list of SeqRecord objects to align.
+      ident (float): the sequence identity cutoff to be passed to cd-hit-est.
+      length_ratio (float): cd-hit-est parameter defining the minimum short/long length
+                            ratio allowed within a cluster.
+      seq_start (int): the start position to trim sequences at before clustering.
+      seq_end (int): the end position to trim sequences at before clustering.
+      threads (int): number of threads for cd-hit-est.
+      cluster_exec (str): the path to the cd-hit-est executable.
 
     Returns:
-      dict : {cluster id: list of sequence ids}.
+      dict: {cluster id: list of sequence ids}.
     """
     # Function to trim and mask sequences
     gap_trans = str.maketrans({'-': 'N', '.': 'N'})
@@ -193,8 +201,9 @@ def runCDHit(seq_list, ident=default_cluster_ident, seq_start=0, seq_end=None,
            '-i', in_handle.name,
            '-o', out_handle.name,
            '-c', str(ident),
-           '-d', '0',
+           '-s', str(length_ratio),
            '-n', '3',
+           '-d', '0',
            '-T', str(threads)]
 
     # Write usearch input fasta file
