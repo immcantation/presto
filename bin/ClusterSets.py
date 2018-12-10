@@ -41,6 +41,9 @@ default_cluster_prefix=''
 map_cluster_tool = {'cd-hit-est': runCDHit,
                     'usearch': runUClust,
                     'vsearch': runUClust}
+min_cluster_ident = {'cd-hit-est': 0.80,
+                    'usearch': 0.0,
+                    'vsearch': 0.0}
 
 def processQueue(alive, data_queue, result_queue,
                  cluster_func, cluster_args={},
@@ -280,6 +283,11 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
     except:
         printError('Invalid clustering tool %s.' % cluster_tool)
 
+    # ident check for algorithm
+
+    try: 
+
+
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
     seq_iter = readSeqFile(seq_file)
@@ -402,6 +410,10 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
         cluster_func = map_cluster_tool.get(cluster_tool)
     except:
         printError('Invalid clustering tool %s.' % cluster_tool)
+
+    # Check the minimum identity
+    if min_cluster_ident[cluster_tool] < ident: 
+        printError('Threshold too low for clustering tool %s.' % cluster_tool)
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
