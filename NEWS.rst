@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.10.999:  November 3, 2018
+Version 0.5.10.999:  December 10, 2018
 -------------------------------------------------------------------------------
 
 + Slightly changed version number display in commandline help.
@@ -12,7 +12,7 @@ ClusterSets:
   ``barcode`` subcommands because they do nothing.
 + Added the ``--length`` argument to all subcommands which defines the ratio
   of minimum sequence lengths allowed in a cluster.
-
++ Added error handling for when ``--ident`` is less than recommended value.
 
 Version 0.5.10:  October 19, 2018
 -------------------------------------------------------------------------------
