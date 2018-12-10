@@ -186,7 +186,7 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
 
     # Check the minimum identity
     if min_cluster_ident[cluster_tool] < ident: 
-        printError('Threshold too low for clustering tool %s.' % str(ident))
+        printError('Minimum identity %s too low for clustering tool %s.' % (str(ident), cluster_tool))
 
     # Define cluster function parameters
     cluster_args = {'cluster_exec': cluster_exec,
@@ -289,7 +289,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
 
     # Check the minimum identity
     if min_cluster_ident[cluster_tool] < ident: 
-        printError('Threshold too low for clustering tool %s.' % str(ident))
+        printError('Minimum identity %s too low for clustering tool %s.' % (str(ident), cluster_tool))
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
@@ -416,7 +416,7 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
 
     # Check the minimum identity
     if min_cluster_ident[cluster_tool] < ident: 
-        printError('Threshold too low for clustering tool %s.' % str(ident))
+        printError('Minimum identity %s too low for clustering tool %s.' % (str(ident), cluster_tool))
 
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
