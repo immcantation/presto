@@ -67,7 +67,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'presto'
-copyright = '2016, Jason Anthony Vander Heiden'
+copyright = 'Kleinstein Lab, Yale University, 2018'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
