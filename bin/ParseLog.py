@@ -39,7 +39,7 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
     printLog(log)
     
     # Open file handles
-    log_handle = open(record_file, 'rU')
+    log_handle = open(record_file)
     if out_file is not None:
         out_handle = open(out_file, 'w')
     else:
