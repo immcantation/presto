@@ -31,6 +31,7 @@ default_length_ratio = 0.0
 default_align_ident = 0.5
 default_evalue = 1e-5
 default_max_hits = 100
+default_max_memory = 3000
 
 
 def runMuscle(seq_list, aligner_exec=default_muscle_exec):
@@ -156,7 +157,7 @@ def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length
 
 
 def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_ratio,
-             seq_start=0, seq_end=None,
+             seq_start=0, seq_end=None, max_memory=default_max_memory,
              threads=1, cluster_exec=default_cdhit_exec):
     """
     Cluster a set of sequences using CD-HIT
@@ -168,6 +169,7 @@ def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_
                             ratio allowed within a cluster.
       seq_start (int): the start position to trim sequences at before clustering.
       seq_end (int): the end position to trim sequences at before clustering.
+      max_memory (int): cd-hit-est max memory limit (Mb)
       threads (int): number of threads for cd-hit-est.
       cluster_exec (str): the path to the cd-hit-est executable.
 
@@ -204,6 +206,7 @@ def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_
            '-s', str(length_ratio),
            '-n', '3',
            '-d', '0',
+           '-M', str(max_memory),
            '-T', str(threads)]
 
     # Write usearch input fasta file

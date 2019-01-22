@@ -219,6 +219,7 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             
             # Count mismatches against consensus
             mismatch = countMismatches(seq_list, ref_seq)
+
             
             # Calculate average reported and observed error
             reported_q = mismatch['set']['q_sum'][len(seq_list)] / mismatch['set']['total'][len(seq_list)]
