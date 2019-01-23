@@ -1,10 +1,12 @@
 Release Notes
 ================================================================================
 
-Version 0.5.10.999:  December 10, 2018
+Version 0.5.10.999:  January 22, 2019
 -------------------------------------------------------------------------------
 
 + Slightly changed version number display in commandline help.
+
+
 
 ClusterSets:
 
@@ -13,6 +15,7 @@ ClusterSets:
 + Added the ``--length`` argument to all subcommands which defines the ratio
   of minimum sequence lengths allowed in a cluster.
 + Added error handling for when ``--ident`` is less than recommended value.
++ Increased maximum memory allocation for runCDHit ``--max_memory`` to 3000 Mb
 
 Version 0.5.10:  October 19, 2018
 -------------------------------------------------------------------------------
