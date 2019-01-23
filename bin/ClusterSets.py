@@ -42,8 +42,8 @@ map_cluster_tool = {'cd-hit-est': runCDHit,
                     'usearch': runUClust,
                     'vsearch': runUClust}
 min_cluster_ident = {'cd-hit-est': 0.80,
-                    'usearch': 0.0,
-                    'vsearch': 0.0}
+                     'usearch': 0.0,
+                     'vsearch': 0.0}
 
 def processQueue(alive, data_queue, result_queue,
                  cluster_func, cluster_args={},
@@ -185,7 +185,7 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
         printError('Invalid clustering tool %s.' % cluster_tool)
 
     # Check the minimum identity
-    if min_cluster_ident[cluster_tool] < ident: 
+    if ident < min_cluster_ident[cluster_tool]:
         printError('Minimum identity %s too low for clustering tool %s.' % (str(ident), cluster_tool))
 
     # Define cluster function parameters
@@ -288,7 +288,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
         printError('Invalid clustering tool %s.' % cluster_tool)
 
     # Check the minimum identity
-    if min_cluster_ident[cluster_tool] < ident: 
+    if ident < min_cluster_ident[cluster_tool]:
         printError('Minimum identity %s too low for clustering tool %s.' % (str(ident), cluster_tool))
 
     # Count sequence file and parse into a list of SeqRecords
@@ -415,7 +415,7 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
         printError('Invalid clustering tool %s.' % cluster_tool)
 
     # Check the minimum identity
-    if min_cluster_ident[cluster_tool] < ident: 
+    if ident < min_cluster_ident[cluster_tool]:
         printError('Minimum identity %s too low for clustering tool %s.' % (str(ident), cluster_tool))
 
     # Count sequence file and parse into a list of SeqRecords
