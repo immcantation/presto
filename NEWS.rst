@@ -1,12 +1,10 @@
 Release Notes
 ================================================================================
 
-Version 0.5.10.999:  January 22, 2019
+Version 0.5.11:  January 29, 2019
 -------------------------------------------------------------------------------
 
 + Slightly changed version number display in commandline help.
-
-
 
 ClusterSets:
 
@@ -15,7 +13,8 @@ ClusterSets:
 + Added the ``--length`` argument to all subcommands which defines the ratio
   of minimum sequence lengths allowed in a cluster.
 + Added error handling for when ``--ident`` is less than recommended value.
-+ Increased maximum memory allocation for runCDHit ``--max_memory`` to 3000 Mb
++ Increased maximum memory allocation for cd-hit-est to 3GB.
+
 
 Version 0.5.10:  October 19, 2018
 -------------------------------------------------------------------------------

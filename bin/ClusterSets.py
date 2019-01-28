@@ -539,7 +539,8 @@ def getArgParser():
     group_parent.add_argument('--cluster', action='store', dest='cluster_tool',
                               choices=choices_cluster_tool, default=default_cluster_tool,
                               help='''The clustering tool to use for assigning clusters. 
-                                   Must be one of usearch, vsearch or cd-hit-est.''')
+                                   Must be one of usearch, vsearch or cd-hit-est. Note, for 
+                                   cd-hit-est the maximum memory limit is set to 3GB.''')
     group_parent.add_argument('--exec', action='store', dest='cluster_exec', default=None,
                               help='The name or path of the usearch, vsearch or cd-hit-est executable.')
 
