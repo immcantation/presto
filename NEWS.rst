@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.11:  January 29, 2019
+Version 0.5.11:  January 30, 2019
 -------------------------------------------------------------------------------
 
 + Slightly changed version number display in commandline help.
