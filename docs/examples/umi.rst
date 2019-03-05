@@ -163,7 +163,7 @@ and can be copied to other read by a simple invocation of :ref:`PairSeq`.
 But in some cases, the UMI may be split such that there are two UMIs, each located on a
 different mate-pair. To deal with these sorts of UMIs, you would first employ
 :ref:`PairSeq` similarly to how you would in the
-:ref:`single UMI case <Stern2014-PairSeq-1>`:
+:ref:`single UMI case <Stern2014-PairSeq-1>`::
 
     PairSeq.py -1 reads-1.fastq -2 reads-2.fastq --1f BARCODE --2f BARCODE \
         --coord illumina
