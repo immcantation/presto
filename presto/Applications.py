@@ -390,7 +390,7 @@ def runUBlast(seq, database, evalue=default_evalue, max_hits=default_max_hits,
     field_names = ['query', 'target', 'query_start', 'query_end',
                    'target_start', 'target_end',
                    'length', 'evalue', 'identity']
-    align_df = pd.read_table(out_handle, header=None, names=field_names, encoding='utf-8')
+    align_df = pd.read_csv(out_handle, header=None, names=field_names, encoding='utf-8', sep='\t')
     # Convert to base-zero indices
     align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
 
@@ -452,7 +452,7 @@ def runBlastn(seq, database, evalue=default_evalue, max_hits=default_max_hits,
     # Parse blastn output
     field_names = ['query', 'target', 'query_start', 'query_end', 'target_start', 'target_end',
                    'length', 'evalue', 'identity']
-    align_df = pd.read_table(out_handle, header=None, names=field_names)
+    align_df = pd.read_csv(out_handle, header=None, names=field_names, sep='\t')
     # Convert to base-zero indices
     align_df[['query_start', 'query_end', 'target_start', 'target_end']] -= 1
 
