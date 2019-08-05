@@ -288,7 +288,9 @@ texinfo_documents = [
 #texinfo_no_detailmenu = False
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
+                       'changeo': ('https://changeo.readthedocs.io/en/stable', None),
+                       'immcantation': ('https://immcantation.readthedocs.io/en/stable', None)}
 
 # Napoleon settings
 napoleon_google_docstring = True

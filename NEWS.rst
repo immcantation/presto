@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.5.11.999:  June 13, 2019
+Version 0.5.12:  August 5, 2019
 -------------------------------------------------------------------------------
 
 + Increased pandas version requirement to v0.24+ with compatibility fixes for
