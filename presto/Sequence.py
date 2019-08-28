@@ -1449,7 +1449,7 @@ def referenceAssembly(head_seq, tail_seq, ref_dict, ref_db, min_ident=default_as
         return AssemblyRecord()
 
     # Select top alignment
-    align_top = align_df.ix[0, :]
+    align_top = align_df.iloc[0, :]
     ref_id = align_top['target']
     ref_seq = ref_dict[ref_id]
 
