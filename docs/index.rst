@@ -3,6 +3,11 @@
 .. include:: ../README.rst
 
 .. toctree::
+    :maxdepth: 1
+
+    Immcantation Portal <http://immcantation.readthedocs.io>
+
+.. toctree::
     :maxdepth: 2
     :caption: Getting Started
 
@@ -31,16 +36,6 @@
  
     news
     info
-
-.. toctree::
-    :maxdepth: 1
-    :caption: Related Projects
-
-    Immcantation Portal <http://immcantation.readthedocs.io>
-    Change-O <http://changeo.readthedocs.io>
-    Alakazam <http://alakazam.readthedocs.io>
-    SHazaM <http://shazam.readthedocs.io>
-    TIgGER <http://tigger.readthedocs.io>
 
 Indices
 --------------------------------------------------------------------------------
