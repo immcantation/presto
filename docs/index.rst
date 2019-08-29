@@ -3,7 +3,7 @@
 .. include:: ../README.rst
 
 .. toctree::
-    :maxdepth: 1
+    :hidden:
 
     Immcantation Portal <http://immcantation.readthedocs.io>
 
