@@ -1286,7 +1286,10 @@ def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,
     else:
         quals = seq.letter_annotations['phred_quality']
 
-    q = sum(quals) / len(quals)
+    if len(quals) > 0:
+        q = sum(quals) / len(quals)
+    else:
+        q = 0
 
     # Build result object
     valid = (q >= min_qual)
