@@ -1,6 +1,15 @@
 Release Notes
 ================================================================================
 
+Version 0.5.13.999:  April 13, 2020
+-------------------------------------------------------------------------------
+
+FilterSeq
+
++ Fixed a bug in the ``quality`` subcommand that caused the program to exit 
+  when encountering zero length sequences.
+
+
 Version 0.5.13:  August 29, 2019
 -------------------------------------------------------------------------------
 
