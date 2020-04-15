@@ -15,14 +15,16 @@ Tool	Subcommand	Description
 	set	Cluster reads by sequence data within barcode groups
 :ref:`CollapseSeq`		Removes duplicate sequences
 :ref:`ConvertHeaders`		Converts sequence headers to the pRESTO format
-	generic	Converts sequence headers with an unknown annotation system
 	454	Converts Roche 454 sequence headers
+	generic	Converts sequence headers with an unknown annotation system
 	genbank	Converts NCBI GenBank and RefSeq sequence headers
 	illumina	Converts Illumina sequence headers
 	imgt	Converts sequence headers output by IMGT/GENE-DB
 	migec	Converts sequence headers output by MIGEC
 	sra	Converts NCBI SRA or EMBL-EBI ENA sequence headers
 :ref:`EstimateError`		Estimates error rates for UMI data
+	barcode Calculates pairwise distance metrics of barcode sequences
+	set Estimates error statistics within annotation sets
 :ref:`FilterSeq`		Removes or modifies low quality reads
 	length	Removes sequences under a defined length
 	maskqual	Masks low Phred quality score positions with Ns
@@ -32,6 +34,7 @@ Tool	Subcommand	Description
 	trimqual	Trims sequences to segments with high Phred quality scores
 :ref:`MaskPrimers`		Identifies and removes primer regions, MIDs and UMI barcodes
 	align	Matches primers by local alignment and reorients sequences
+	extract Removes and annotates a fixed sequence region
 	score	Matches primers at a fixed user-defined start position
 :ref:`PairSeq`		Sorts paired-end reads and copies annotations between them
 :ref:`ParseHeaders`		Manipulates sequence annotations
