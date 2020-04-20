@@ -16,21 +16,21 @@ def getCoordKey(header, coord_type=default_coord, delimiter=default_delimiter):
     Return the coordinate identifier for a sequence description
 
     Arguments:
-      header : Sequence header string
-      coord_type : Sequence header format;
-                   one of ['illumina', 'solexa', 'sra', '454', 'presto'];
-                   if unrecognized type or None return sequence ID.
-      delimiter : Tuple of delimiters for (fields, values, value lists)
+      header (str): Sequence header string
+      coord_type (str): Sequence header format;
+                   one of 'illumina', 'solexa', 'sra', 'ena', '454', or 'presto';
+                   if unrecognized type or None, then return the input header.
+      delimiter (tuple): Tuple of delimiters for (fields, values, value lists)
 
     Returns:
-      str : Coordinate identifier as a string
+      str: Coordinate identifier as a string.
     """
     if coord_type in ('illumina', 'solexa'):
         return header.split()[0].split('/')[0].split('#')[0]
+    elif coord_type in ('sra', 'ena'):
+        return '.'.join(header.split()[0].split('.')[:2])
     elif coord_type == '454':
         return header.split()[0]
-    elif coord_type == 'sra':
-        return '.'.join(header.split()[0].split('.')[:2])
     elif coord_type == 'presto':
         return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
