@@ -25,16 +25,14 @@ def getCoordKey(header, coord_type=default_coord, delimiter=default_delimiter):
     Returns:
       str : Coordinate identifier as a string
     """
-    #header = seq.id
-    ident = parseAnnotation(header, delimiter=delimiter)['ID']
     if coord_type in ('illumina', 'solexa'):
-        return convertIlluminaHeader(ident)['ID']
+        return header.split()[0].split('/')[0].split('#')[0]
     elif coord_type == '454':
-        return convert454Header(ident)['ID']
+        return header.split()[0]
     elif coord_type == 'sra':
-        return convertSRAHeader(ident)['ID']
+        return '.'.join(header.split()[0].split('.')[:2])
     elif coord_type == 'presto':
-        return ident
+        return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
         return header
 
