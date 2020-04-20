@@ -23,6 +23,7 @@ class TestAnnotation(unittest.TestCase):
     Notes:
       illumina  @MISEQ:132:000000000-A2F3U:1:1101:14340:1555 2:N:0:ATCACG
                 @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
+                @MS6_33112:1:1101:18371:1066/1
       sra       @SRR001666.1 071112_SLXA-EAS1_s_7:5:1:817:345 length=36
                 @SRR001666.1.2 1 length=250
       454       @000034_0199_0169 length=437 uaccno=GNDG01201ARRCR

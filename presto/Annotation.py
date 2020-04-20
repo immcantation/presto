@@ -27,11 +27,11 @@ def getCoordKey(header, coord_type=default_coord, delimiter=default_delimiter):
     """
     #header = seq.id
     if coord_type in ('illumina', 'solexa'):
-        return header.split()[0].split('#')[0]
+        return convertIlluminaHeader(header)['ID']
     elif coord_type == '454':
-        return header.split()[0]
+        return convert454Header(header)['ID']
     elif coord_type == 'sra':
-        return '.'.join(header.split()[0].split('.')[:2])
+        return convertSRAHeader(header)['ID']
     elif coord_type == 'presto':
         return parseAnnotation(header, delimiter=delimiter)['ID']
     else:
@@ -409,6 +409,7 @@ def convertIlluminaHeader(desc):
 
         @<instrument>:<flowcell lane>:<tile>:<x-pos>:<y-pos>#<index sequence>/<read number>
         @HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1
+        @MS6_33112:1:1101:18371:1066/1
     """
     # Split description and assign field names
     try:
@@ -418,16 +419,20 @@ def convertIlluminaHeader(desc):
             x = fields[1].split(':')
             index = x[3]
             read_num = x[0]
-        else:
+        elif '#' in desc:
             fields = desc.split('#')
             x = fields[1].split('/')
             index = x[0]
             read_num = x[1]
+        else:
+            fields = desc.split('/')
+            index = None
+            read_num = fields[1]
 
         # Build header dictionary
         header = OrderedDict()
         header['ID'] = fields[0]
-        header['INDEX'] = index
+        if index is not None:  header['INDEX'] = index
         header['READ'] = read_num
     except:
         header = None

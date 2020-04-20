@@ -41,7 +41,8 @@ class TestConvertHeaders(unittest.TestCase):
                          'GXGJ56Z01AE06X length=222']
 
         self.desc_illumina = ['MISEQ:132:000000000-A2F3U:1:1101:14340:1555 1:N:0:ATCACG',
-                              'HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1']
+                              'HWI-EAS209_0006_FC706VJ:5:58:5894:21141#ATCACG/1',
+                              'MS6_33112:1:1101:18371:1066/1']
 
         # Start clock
         self.start = time.time()

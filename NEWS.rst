@@ -1,13 +1,28 @@
 Release Notes
 ================================================================================
 
-Version 0.5.13.999:  April 13, 2020
+Version 0.5.13.999:  April 20, 2020
 -------------------------------------------------------------------------------
+
+ConvertHeaders
+
++ Added support for older Illumina headers without and index read to the
+  ``illumina`` subcommand.
+
+AssemblePairs
+
++ Added support for older Illumina headers without an index read when
+  specifying ``--coord illumina``.
 
 FilterSeq
 
 + Fixed a bug in the ``quality`` subcommand that caused the program to exit 
   when encountering sequences that are entirely ``N`` characters.
+
+PairSeq
+
++ Added support for older Illumina headers without an index read when
+  specifying ``--coord illumina``.
 
 
 Version 0.5.13:  August 29, 2019
