@@ -1,8 +1,9 @@
 """
 Version and authorship information
 """
+
 __author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2019 Kleinstein Lab, Yale University. All rights reserved.'
-__license__   = 'Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)'
-__version__   = '0.5.14'
-__date__      = '2020.05.01'
+__copyright__ = 'Copyright 2020 Kleinstein Lab, Yale University. All rights reserved.'
+__license__   = 'GNU Affero General Public License 3 (AGPL-3)'
+__version__   = '0.6.0'
+__date__      = '2020.05.05'
