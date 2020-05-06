@@ -8,7 +8,7 @@ simple manipulations of sequence headers that are format in the
 :ref:`pRESTO annotation scheme <AnnotationScheme>`.
 
 For converting sequence headers into the pRESTO format see the
-:ref:`Import Task <Tasks-ImportingData>` documentation.
+:ref:`Importing Data <ImportData>` documentation.
 
 Adding a sample annotation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

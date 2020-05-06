@@ -84,5 +84,5 @@ can be redefined using the command line options.
      :ref:`Usage` documentation for each tool.
    * The :ref:`ParseHeaders` tool provides a number of options for manipulating annotations
      in the pRESTO format.
-   * The :ref:`ConvertHeaders` tool allows you :ref:`convert <Tasks-ImportingData>` several
+   * The :ref:`ConvertHeaders` tool allows you :ref:`convert <ImportData>` several
      common annotation schemes into the pRESTO annotation format.

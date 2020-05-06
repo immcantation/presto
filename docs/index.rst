@@ -16,12 +16,23 @@
 
 .. toctree::
     :maxdepth: 2
-    :caption: Examples
+    :caption: Example Workflows
 
-    examples/workflows
-    examples/umi
+    workflows/Jiang2013_Workflow
+    workflows/Greiff2014_Workflow
+    workflows/Stern2014_Workflow
+    workflows/VanderHeiden2017_Workflow
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Example Tasks
+
+    examples/import
     examples/annotations
-    examples/tasks
+    examples/filter
+    examples/primers
+    examples/assembly
+    examples/umi
 
 .. toctree::
     :maxdepth: 2
