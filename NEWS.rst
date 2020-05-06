@@ -1,27 +1,27 @@
 Release Notes
 ================================================================================
 
-Version 0.6.0:  May 5, 2020
+Version 0.6.0:  May 6, 2020
 -------------------------------------------------------------------------------
 
 + License changed to AGPL-3.
 
-ConvertHeaders
-
-+ Added support for older Illumina headers without and index read to the
-  ``illumina`` subcommand.
-
-AssemblePairs
+AssemblePairs:
 
 + Added support for older Illumina headers without an index read when
   specifying ``--coord illumina``.
 
-FilterSeq
+ConvertHeaders:
+
++ Added support for older Illumina headers without and index read to the
+  ``illumina`` subcommand.
+
+FilterSeq:
 
 + Fixed a bug in the ``quality`` subcommand that caused the program to exit 
   when encountering sequences that are entirely ``N`` characters.
 
-PairSeq
+PairSeq:
 
 + Added support for older Illumina headers without an index read when
   specifying ``--coord illumina``.
