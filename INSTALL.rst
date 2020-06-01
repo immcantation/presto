@@ -5,7 +5,7 @@ The simplest way to install the latest stable release of pRESTO is via pip::
 
     > pip3 install presto --user
 
-The current development build can be installed using pip and mercurial in
+The current development build can be installed using pip and Mercurial in
 similar fashion::
 
     > pip3 install hg+https://bitbucket.org/kleinstein/presto@default --user
@@ -17,17 +17,17 @@ pip3 command.
 Requirements
 --------------------------------------------------------------------------------
 
-+  `Python 3.4.0 <http://python.org>`__
-+  `setuptools 2.0 <http://bitbucket.org/pypa/setuptools>`__
-+  `NumPy 1.8 <http://numpy.org>`__
-+  `SciPy 0.14 <http://scipy.org>`__
-+  `pandas 0.15 <http://pandas.pydata.org>`__
-+  `Biopython 1.65 <http://biopython.org>`__
-+  AlignSets requires `MUSCLE v3.8 <http://www.drive5.com/muscle>`__
-+  ClusterSets `USEARCH v7.0 <http://www.drive5.com/usearch>`__,
++  `Python 3.4.0 <https://python.org>`__
++  `setuptools 2.0 <https://bitbucket.org/pypa/setuptools>`__
++  `NumPy 1.8 <https://numpy.org>`__
++  `SciPy 0.14 <https://scipy.org>`__
++  `pandas 0.15 <https://pandas.pydata.org>`__
++  `Biopython 1.65 <https://biopython.org>`__
++  AlignSets requires `MUSCLE v3.8 <https://www.drive5.com/muscle>`__
++  ClusterSets requires `USEARCH v7.0 <https://www.drive5.com/usearch>`__,
    `vsearch v2.3.2 <https://github.com/torognes/vsearch>`__, or
-   `CD-HIT v4.6.8 <http://weizhongli-lab.org/cd-hit>`__
-+  AssemblePairs-reference requires `USEARCH v7.0 <http://www.drive5.com/usearch>`__
+   `CD-HIT v4.6.8 <https://weizhongli-lab.org/cd-hit>`__
++  AssemblePairs-reference requires `USEARCH v7.0 <https://www.drive5.com/usearch>`__
    or `BLAST+ 2.5 <ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST>`__
 
 Linux
@@ -35,9 +35,9 @@ Linux
 
 1. The simplest way to install all Python dependencies is to install the
    full SciPy stack using the
-   `instructions <http://scipy.org/install.html>`__, then install
+   `instructions <https://scipy.org/install.html>`__, then install
    Biopython according to its
-   `instructions <http://biopython.org/DIST/docs/install/Installation.html>`__.
+   `instructions <https://biopython.org/DIST/docs/install/Installation.html>`__.
 
 2. Download the pRESTO bundle and run::
 
@@ -46,14 +46,14 @@ Linux
 Mac OS X
 --------------------------------------------------------------------------------
 
-1. Install Xcode. Available from the Apple store or
-   `developer downloads <http://developer.apple.com/downloads>`__.
+1. Install Xcode, which is available from the Apple store or
+   `developer downloads <https://developer.apple.com/downloads>`__.
 
-2. Older versions Mac OS X will require you to install XQuartz 2.7.5. Available
-   from the `XQuartz project <http://xquartz.macosforge.org/landing>`__.
+2. Older versions Mac OS X will require you to install XQuartz 2.7.5, which is available
+   from the `XQuartz project <https://xquartz.macosforge.org/landing>`__.
 
 3. Install Homebrew following the installation and post-installation
-   `instructions <http://brew.sh>`__.
+   `instructions <https://brew.sh>`__.
 
 4. Install Python 3.4.0+ and set the path to the python3 executable::
 
@@ -73,12 +73,12 @@ Mac OS X
 
    > brew install --env=std gfortran
 
-7. Install NumPy, SciPy, pandas and Biopyton using the Python package
+7. Install NumPy, SciPy, pandas and Biopython using the Python package
    manager::
 
    > pip3 install numpy scipy pandas biopython
 
-8. Download pRESTO bundle, open a terminal window, change directories
+8. Download the pRESTO bundle, open a terminal window, change directories
    to download location, and run::
 
    > pip3 install presto-x.y.z.tar.gz
@@ -86,15 +86,15 @@ Mac OS X
 Windows
 --------------------------------------------------------------------------------
 
-1. Install Python 3.4.0+ from `Python <http://python.org/downloads>`__,
+1. Install Python 3.4.0+ from `Python <https://python.org/downloads>`__,
    selecting both the options 'pip' and 'Add python.exe to Path'.
 
 2. Install NumPy, SciPy, pandas and Biopython using the packages
    available from the
-   `Unofficial Windows binary <http://www.lfd.uci.edu/~gohlke/pythonlibs>`__
+   `Unofficial Windows binary <https://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Download pRESTO bundle, open a Command Prompt, change directories to
+3. Download the pRESTO bundle, open a Command Prompt, change directories to
    the download folder, and run::
 
    > pip install presto-x.y.z.tar.gz
