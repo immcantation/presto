@@ -8,7 +8,7 @@ The simplest way to install the latest stable release of pRESTO is via pip::
 The current development build can be installed using pip and Mercurial in
 similar fashion::
 
-    > pip3 install hg+https://bitbucket.org/kleinstein/presto@default --user
+    > pip3 install git+https://bitbucket.org/kleinstein/presto@master --user
 
 If you currently have a development version installed, then you will likely
 need to add the arguments ``--upgrade --no-deps --force-reinstall`` to the
