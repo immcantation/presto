@@ -16,8 +16,8 @@ Tool	Subcommand	Description
 :ref:`CollapseSeq`		Removes duplicate sequences
 :ref:`ConvertHeaders`		Converts sequence headers to the pRESTO format
 	454	Converts Roche 454 sequence headers
-	generic	Converts sequence headers with an unknown annotation system
 	genbank	Converts NCBI GenBank and RefSeq sequence headers
+	generic	Converts sequence headers with an unknown annotation system
 	illumina	Converts Illumina sequence headers
 	imgt	Converts sequence headers output by IMGT/GENE-DB
 	migec	Converts sequence headers output by MIGEC
@@ -29,8 +29,8 @@ Tool	Subcommand	Description
 	length	Removes sequences under a defined length
 	maskqual	Masks low Phred quality score positions with Ns
 	missing	Removes sequences with a high number of Ns
-	repeats	Removes sequences with long repeats of a single nucleotide
 	quality	Removes sequences with low Phred quality scores
+	repeats	Removes sequences with long repeats of a single nucleotide
 	trimqual	Trims sequences to segments with high Phred quality scores
 :ref:`MaskPrimers`		Identifies and removes primer regions, MIDs and UMI barcodes
 	align	Matches primers by local alignment and reorients sequences
