@@ -55,7 +55,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
 
     # Convert sequences to FASTA and write to string
     stdin_handle = StringIO()
-    SeqIO.write(seq_list, stdin_handle, 'fasta')
+    SeqIO.write(seq_list, stdin_handle, 'fasta-2line')
     stdin_str = stdin_handle.getvalue()
     stdin_handle.close()
 
@@ -126,7 +126,7 @@ def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length
            '-threads', str(threads)]
 
     # Write usearch input fasta file
-    SeqIO.write(seq_trimmed, in_handle, 'fasta')
+    SeqIO.write(seq_trimmed, in_handle, 'fasta-2line')
     in_handle.seek(0)
 
     # Run usearch uclust algorithm
@@ -210,7 +210,7 @@ def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_
            '-T', str(threads)]
 
     # Write usearch input fasta file
-    SeqIO.write(seq_trimmed, in_handle, 'fasta')
+    SeqIO.write(seq_trimmed, in_handle, 'fasta-2line')
     in_handle.seek(0)
 
     # Run CD-HIT
@@ -269,8 +269,7 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
 
     # Write temporary ungapped reference file
     ref_dict = readReferenceFile(ref_file)
-    writer = SeqIO.FastaIO.FastaWriter(seq_handle, wrap=None)
-    writer.write_file(ref_dict.values())
+    SeqIO.write(ref_dict.values(), seq_handle, format='fasta-2line')
     seq_handle.seek(0)
 
     # Define usearch command
@@ -309,8 +308,7 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
 
     # Write temporary ungapped reference file
     ref_dict = readReferenceFile(ref_file)
-    writer = SeqIO.FastaIO.FastaWriter(seq_handle, wrap=None)
-    writer.write_file(ref_dict.values())
+    SeqIO.write(ref_dict.values(), seq_handle, format='fasta-2line')
     seq_handle.seek(0)
 
     # Define usearch command
@@ -369,7 +367,7 @@ def runUBlast(seq, database, evalue=default_evalue, max_hits=default_max_hits,
            '-threads', '1']
 
     # Write usearch input fasta file
-    SeqIO.write(seq, in_handle, 'fasta')
+    SeqIO.write(seq, in_handle, format='fasta-2line')
     in_handle.seek(0)
 
     # Run ublast algorithm

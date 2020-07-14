@@ -1,6 +1,13 @@
 Release Notes
 ================================================================================
 
+Version 0.6.0.999:  July 13, 2020
+-------------------------------------------------------------------------------
+
++ Fixed a bug in the blast wrappers caused by ``SeqIO.FastaIO.FastaWriter``
+  deprecation and increased the biopython dependency to v1.77.
+
+
 Version 0.6.0:  May 6, 2020
 -------------------------------------------------------------------------------
 
