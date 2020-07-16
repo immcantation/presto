@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.6.0.999:  July 13, 2020
+Version 0.6.1:  July 15, 2020
 -------------------------------------------------------------------------------
 
 + Fixed a bug in the blast wrappers caused by ``SeqIO.FastaIO.FastaWriter``

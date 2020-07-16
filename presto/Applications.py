@@ -293,7 +293,7 @@ def makeUBlastDb(ref_file, db_exec=default_usearch_exec):
 
 def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
     """
-    Makes a ublast database file
+    Makes a blastn database file
 
     Arguments:
       ref_file : the path to the reference database file
