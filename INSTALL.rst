@@ -21,8 +21,8 @@ Requirements
 +  `setuptools 2.0 <https://bitbucket.org/pypa/setuptools>`__
 +  `NumPy 1.8 <https://numpy.org>`__
 +  `SciPy 0.14 <https://scipy.org>`__
-+  `pandas 0.15 <https://pandas.pydata.org>`__
-+  `Biopython 1.65 <https://biopython.org>`__
++  `pandas 0.24 <https://pandas.pydata.org>`__
++  `Biopython 1.71 <https://biopython.org>`__
 +  AlignSets requires `MUSCLE v3.8 <https://www.drive5.com/muscle>`__
 +  ClusterSets requires `USEARCH v7.0 <https://www.drive5.com/usearch>`__,
    `vsearch v2.3.2 <https://github.com/torognes/vsearch>`__, or
