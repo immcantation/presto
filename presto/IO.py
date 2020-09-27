@@ -12,7 +12,6 @@ import sys
 from collections import OrderedDict
 from time import time, strftime
 from Bio import SeqIO
-from Bio.Alphabet import IUPAC
 
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field
@@ -30,7 +29,7 @@ def readPrimerFile(primer_file):
       dict: Dictionary mapping primer ID to sequence.
     """
     with open(primer_file, 'r') as primer_handle:
-        primer_iter = SeqIO.parse(primer_handle, 'fasta', IUPAC.ambiguous_dna)
+        primer_iter = SeqIO.parse(primer_handle, 'fasta')
         primers = {p.description: str(p.seq).upper() for p in primer_iter}
 
     return primers
@@ -82,12 +81,9 @@ def readSeqFile(seq_file, index=False, key_func=None):
             printError('File %s has an unrecognized type.' % seq_file)
 
         if index:
-            seq_records = SeqIO.index(seq_file, seq_type,
-                                      alphabet=IUPAC.ambiguous_dna,
-                                      key_function=key_func)
+            seq_records = SeqIO.index(seq_file, seq_type, key_function=key_func)
         else:
-            seq_records = SeqIO.parse(seq_file, seq_type,
-                                      alphabet=IUPAC.ambiguous_dna)
+            seq_records = SeqIO.parse(seq_file, seq_type)
     except IOError:
         printError('File %s cannot be read.' % seq_file)
     except Exception as e:

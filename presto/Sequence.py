@@ -15,7 +15,6 @@ from collections import OrderedDict
 from itertools import product, zip_longest, groupby
 from scipy import stats as stats
 from Bio import pairwise2
-from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -366,7 +365,7 @@ def reverseComplement(seq):
     elif isinstance(seq, Seq):
         new_record = seq.reverse_complement()
     elif isinstance(seq, str):
-        new_record = str(Seq(seq, IUPAC.ambiguous_dna).reverse_complement())
+        new_record = str(Seq(seq).reverse_complement())
     else:
         printError('Invalid record type passed to reverseComplement.')
 
@@ -510,8 +509,7 @@ def deleteSeqPositions(seq, positions):
       SeqRecord : Modified SeqRecord with the specified positions removed
     """
     seq_del = ''.join([x for i, x in enumerate(seq.seq) if i not in positions])
-    record = SeqRecord(Seq(seq_del, IUPAC.ambiguous_dna),
-                       id=seq.id, name=seq.name, description=seq.description)
+    record = SeqRecord(Seq(seq_del), id=seq.id, name=seq.name, description=seq.description)
 
     if 'phred_quality' in seq.letter_annotations:
         qual_del = [x for i, x in enumerate(seq.letter_annotations['phred_quality']) \
@@ -574,7 +572,7 @@ def qualityConsensus(seq_list, min_qual=default_consensus_min_qual, min_freq=def
         seq_str = str(seq.seq)
         quals = seq.letter_annotations['phred_quality']
         seq_mask = [seq_str[i] if q >= min_qual else 'N' for i, q in enumerate(quals)]
-        seq = SeqRecord(Seq(''.join(seq_mask), IUPAC.ambiguous_dna),
+        seq = SeqRecord(Seq(''.join(seq_mask)),
                         id=seq.id,
                         name=seq.name,
                         description=seq.description,
@@ -634,7 +632,7 @@ def qualityConsensus(seq_list, min_qual=default_consensus_min_qual, min_freq=def
         consensus_qual.append(cons[1])
 
     # Define return SeqRecord
-    record = SeqRecord(Seq(''.join(consensus_seq), IUPAC.ambiguous_dna),
+    record = SeqRecord(Seq(''.join(consensus_seq)),
                        id='consensus',
                        name='consensus',
                        description='',
@@ -684,7 +682,7 @@ def frequencyConsensus(seq_list, min_freq=default_consensus_min_freq,
         consensus_seq.append(cons)
 
     # Define return SeqRecord
-    record = SeqRecord(Seq(''.join(consensus_seq), IUPAC.ambiguous_dna),
+    record = SeqRecord(Seq(''.join(consensus_seq)),
                        id='consensus',
                        name='consensus',
                        description='')
@@ -1134,7 +1132,7 @@ def overlapConsensus(head_seq, tail_seq, ignore_chars=default_missing_chars):
         score_cons.append(q_cons)
 
     # Define overlap SeqRecord
-    record = SeqRecord(Seq(''.join(seq_cons), IUPAC.ambiguous_dna),
+    record = SeqRecord(Seq(''.join(seq_cons)),
                        id='',
                        name='',
                        description='',
@@ -1379,7 +1377,7 @@ def maskQuality(data, min_qual=default_consensus_min_qual):
     mask_count = sum(1 for q in quals if q < min_qual)
 
     # Define masked SeqRecord
-    mask_seq = SeqRecord(Seq(''.join(mask_chars), IUPAC.ambiguous_dna),
+    mask_seq = SeqRecord(Seq(''.join(mask_chars)),
                          id=seq.id,
                          name=seq.name,
                          description=seq.description,
@@ -1571,7 +1569,7 @@ def joinAssembly(head_seq, tail_seq, gap=default_assembly_gap, insert_seq=None):
         join_seq = str(head_seq.seq) + str(insert_seq) + str(tail_seq.seq)
 
     # Define return record
-    record = SeqRecord(Seq(join_seq, IUPAC.ambiguous_dna),
+    record = SeqRecord(Seq(join_seq),
                        id=join_id,
                        name=join_id,
                        description='')

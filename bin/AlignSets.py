@@ -15,7 +15,6 @@ from argparse import ArgumentParser
 from collections import deque, OrderedDict
 from textwrap import dedent
 from Bio.Align import MultipleSeqAlignment
-from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -157,7 +156,7 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
     primers = readPrimerFile(primer_file)
 
     # Get offset dictionary
-    seq_list = [SeqRecord(Seq(v, IUPAC.ambiguous_dna), id=k) for k, v in primers.items()]
+    seq_list = [SeqRecord(Seq(v), id=k) for k, v in primers.items()]
     offset_dict = getOffsets(seq_list, align_func, align_args, reverse)
 
     # Print log and write offsets to file
