@@ -1,10 +1,10 @@
 Release Notes
 ================================================================================
 
-Version 0.6.1.999:  September 27, 2020
+Version 0.6.2:  October 13, 2020
 -------------------------------------------------------------------------------
 
-+ Updated to support biopython v1.78.
++ Updated to support Biopython v1.78.
 
 
 Version 0.6.1:  July 15, 2020
