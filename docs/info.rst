@@ -1,7 +1,7 @@
 Contact
 --------------------------------------------------------------------------------
 
-If you have questions you can email the
+If you have questions, you can email the
 `Immcantation Group <mailto:immcantation@googlegroups.com>`__.
 
 If you've discovered a bug or have a feature request, you can create an issue

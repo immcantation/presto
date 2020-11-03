@@ -18,7 +18,7 @@ Read Configuration
     performed using an uneven number of cycles for read 1 and read 2 using a 2x300 kit.
     The V(D)J reading frame proceeds from the start of read 2 to the start of read 1.
     Read 1 is in the opposite orientation (reverse complement), contains a partial C-region,
-    and is 325 nucletoides in length. Read 2 contains the 5'RACE template switch site
+    and is 325 nucleotides in length. Read 2 contains the 5'RACE template switch site
     with a 17 nucleotide UMI barcode preceding it, and is 275 nucleotides in length.
 
 Example Data
