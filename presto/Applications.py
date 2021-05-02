@@ -75,7 +75,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
 
 
 def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length_ratio,
-              seq_start=0, seq_end=None,
+              seq_start=0, seq_end=None, max_memory=default_max_memory,
               threads=1, cluster_exec=default_usearch_exec):
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
@@ -87,6 +87,7 @@ def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length
                             ratio allowed within a cluster.
       seq_start (int): the start position to trim sequences at before clustering.
       seq_end (int): the end position to trim sequences at before clustering.
+      max_memory (int): currently ignored.
       threads (int): number of threads for usearch.
       cluster_exec (str): the path to the usearch executable.
 

@@ -24,7 +24,7 @@ from presto.Defaults import default_delimiter, default_barcode_field, \
                             default_usearch_exec, default_vsearch_exec, default_cdhit_exec
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
-from presto.Applications import runCDHit, runUClust
+from presto.Applications import runCDHit, runUClust, default_max_memory
 from presto.IO import countSeqFile, getFileType, getOutputHandle, printLog, printMessage, \
                       printProgress, readSeqFile, printError, printWarning
 from presto.Sequence import indexSeqSets
@@ -134,8 +134,8 @@ def processQueue(alive, data_queue, result_queue,
 
 
 def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_length_ratio,
-                seq_start=0, seq_end=None, set_field=default_barcode_field,
-                cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
+                seq_start=0, seq_end=None, set_field=default_barcode_field, cluster_field=default_cluster_field,
+                cluster_prefix=default_cluster_prefix, cluster_memory=default_max_memory,
                 cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                 out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
     """
@@ -150,6 +150,7 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
       set_field : the annotation containing set IDs.
       cluster_field : the name of the output cluster field.
       cluster_prefix : string defining a prefix for the cluster identifier.
+      cluster_memory : cd-hit-est max memory limit (Mb)
       cluster_exec : the path to the clustering executable.
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
             out_file : output file name. Automatically generated from the input file if None.
@@ -193,7 +194,8 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
                     'ident': ident,
                     'length_ratio': length_ratio,
                     'seq_start': seq_start,
-                    'seq_end': seq_end}
+                    'seq_end': seq_end,
+                    'max_memory': cluster_memory}
 
     # Define feeder function and arguments
     index_args = {'field': set_field, 'delimiter': out_args['delimiter']}
@@ -232,12 +234,12 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
 
 
 def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_length_ratio,
-               seq_start=0, seq_end=None,
-               cluster_field=default_cluster_field, cluster_prefix=default_cluster_prefix,
+               seq_start=0, seq_end=None, cluster_field=default_cluster_field,
+               cluster_prefix=default_cluster_prefix, cluster_memory=default_max_memory,
                cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                out_file=None, out_args=default_out_args, nproc=None):
     """
-    Performs clustering on sets of sequences
+    Performs clustering on all sequences
 
     Arguments:
       seq_file : the sample sequence file name.
@@ -247,6 +249,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
       seq_end : the end position to trim sequences at before clustering.
       cluster_field : the name of the output cluster field.
       cluster_prefix : string defining a prefix for the cluster identifier.
+      cluster_memory : cd-hit-est max memory limit (Mb)
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
       cluster_exec : the path to the executable for usearch.
       out_file : output file name. Automatically generated from the input file if None.
@@ -300,6 +303,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
     printMessage('Running %s' % cluster_tool, start_time=start_time, width=25)
     cluster_dict = cluster_func(seq_iter, ident=ident, length_ratio=length_ratio,
                                 seq_start=seq_start, seq_end=seq_end,
+                                max_memory=cluster_memory,
                                 threads=nproc, cluster_exec=cluster_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
@@ -355,7 +359,7 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
 
 def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_length_ratio,
                     barcode_field=default_barcode_field, cluster_field=default_cluster_field,
-                    cluster_prefix=default_cluster_prefix,
+                    cluster_prefix=default_cluster_prefix, cluster_memory=default_max_memory,
                     cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
                     out_file=None, out_args=default_out_args, nproc=None):
     """
@@ -368,6 +372,7 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
       barcode_field : the annotation field containing barcode sequences.
       cluster_field : the name of the output cluster field.
       cluster_prefix : string defining a prefix for the cluster identifier.
+      cluster_memory : cd-hit-est max memory limit (Mb)
       seq_start : the start position to trim sequences at before clustering.
       seq_end : the end position to trim sequences at before clustering.
       cluster_tool : the clustering tool to use; one of cd-hit or usearch.
@@ -426,7 +431,7 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
     start_time = time()
     printMessage('Running %s' % cluster_tool, start_time=start_time, width=25)
     cluster_dict = cluster_func(barcode_iter, ident=ident, length_ratio=length_ratio,
-                                seq_start=0, seq_end=None,
+                                seq_start=0, seq_end=None, max_memory=cluster_memory,
                                 threads=nproc, cluster_exec=cluster_exec)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
@@ -540,7 +545,11 @@ def getArgParser():
                               choices=choices_cluster_tool, default=default_cluster_tool,
                               help='''The clustering tool to use for assigning clusters. 
                                    Must be one of usearch, vsearch or cd-hit-est. Note, for 
-                                   cd-hit-est the maximum memory limit is set to 3GB.''')
+                                   cd-hit-est the default maximum memory limit is set to 3GB.''')
+    group_parent.add_argument('--mem', action='store', dest='cluster_memory',
+                              default=default_max_memory,
+                              help='''The maximum memory limit for cd-hit-est in MB. 
+                                   Ignored if using usearch or vsearch.''')
     group_parent.add_argument('--exec', action='store', dest='cluster_exec', default=None,
                               help='The name or path of the usearch, vsearch or cd-hit-est executable.')
 
