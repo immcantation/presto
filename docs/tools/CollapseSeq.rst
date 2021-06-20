@@ -1,5 +1,5 @@
 .. _CollapseSeq:
 
 .. autoprogram:: CollapseSeq:getArgParser()
-   :prog: CollapseSeq
+   :prog: CollapseSeq.py
 

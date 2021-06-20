@@ -1,5 +1,5 @@
 .. _BuildConsensus:
 
 .. autoprogram:: BuildConsensus:getArgParser()
-   :prog: BuildConsensus
+   :prog: BuildConsensus.py
 

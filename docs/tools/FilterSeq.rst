@@ -1,5 +1,5 @@
 .. _FilterSeq:
 
 .. autoprogram:: FilterSeq:getArgParser()
-   :prog: FilterSeq
+   :prog: FilterSeq.py
 

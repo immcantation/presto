@@ -1,4 +1,4 @@
 .. _ConvertHeaders:
 
 .. autoprogram:: ConvertHeaders:getArgParser()
-   :prog: ConvertHeaders
+   :prog: ConvertHeaders.py

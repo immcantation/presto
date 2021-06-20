@@ -1,4 +1,4 @@
 .. _SplitSeq:
 
 .. autoprogram:: SplitSeq:getArgParser()
-   :prog: SplitSeq
+   :prog: SplitSeq.py

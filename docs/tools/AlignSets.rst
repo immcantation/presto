@@ -1,4 +1,4 @@
 .. _AlignSets:
 
 .. autoprogram:: AlignSets:getArgParser()
-    :prog: AlignSets
+    :prog: AlignSets.py

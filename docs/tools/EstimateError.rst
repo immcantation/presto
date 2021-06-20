@@ -1,5 +1,5 @@
 .. _EstimateError:
 
 .. autoprogram:: EstimateError:getArgParser()
-   :prog: EstimateError
+   :prog: EstimateError.py
 

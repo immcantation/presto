@@ -1,4 +1,4 @@
 .. _ParseHeaders:
 
 .. autoprogram:: ParseHeaders:getArgParser()
-   :prog: ParseHeaders
+   :prog: ParseHeaders.py
