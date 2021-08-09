@@ -1,13 +1,23 @@
 Release Notes
 ================================================================================
 
-Version 0.6.2.999:  May 2, 2021
+Version 0.6.2.999:  August 8, 2021
 -------------------------------------------------------------------------------
+
++ Updated dependencies to biopython >= v1.77.
 
 ClusterSets:
 
 + Updated to the ``--mem`` argument to control the memory allocation for
   cd-hit-est.
+
+EstimateError:
+
++ Fixed a bug in the ``set`` command causing a NaN to integer conversion error
+  with some data sets.
++ Forced the ``barcode`` command to only calculate distances on identical
+  length sequences by automatically filtering out barcodes shorter than the
+  maximum length barcode.
 
 
 Version 0.6.2:  October 13, 2020

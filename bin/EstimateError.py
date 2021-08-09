@@ -78,11 +78,13 @@ def calculateDistances(seq_iter, bin_count=default_bin_count):
     Returns: 
       dict: np.arrays for {all:all pairwise, dtn:distance to nearest}
     """
-
+    # Define 2d unicode array of strings
+    seq_array = [[ord(x) for x in seq] for seq in seq_iter]
+    # Filter to max length sequences
+    seq_length = max(map(len, seq_array))
+    seq_array = list(filter(lambda x: len(x) == seq_length, seq_array))
     # Compute the distance matrix
-    seq_array = np.array([[ord(nt) for nt in seq] for seq in seq_iter])
-    pairwise_dist = squareform(pdist(seq_array, metric='hamming'))
-    
+    pairwise_dist = squareform(pdist(np.array(seq_array), metric='hamming'))
     # Compute distance to nearest and upper triangular of all pairwise distance matrix
     all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k=1)]
 
@@ -360,12 +362,13 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         dist_df = pd.DataFrame.from_dict(total_mismatch['dist'])
         dist_df.index = dist_df.index/len(dist_df.index)
 
-        # find the threshold (average minimum between max and 0.75)
+        # Find the threshold (average minimum between max and 0.75)
         dist = total_mismatch['dist']['all']
         dist = dist[np.argmax(dist):]
+        window = dist[:int(len(dist) * 0.75)]
         thresh_df = pd.DataFrame.from_dict({'thresh': {'ALL': dist_df.index[np.argmax(dist) + \
-                                           int(np.mean([index for index in np.argsort(dist[:int(len(dist)*0.75)]) \
-                                                        if dist[index] == np.min(dist)]))]}
+                                           int(np.mean([index for index in np.argsort(window) \
+                                                        if dist[index] == np.min(window)]))]}
                                             })
 
         # Generate console log
@@ -631,10 +634,11 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     dist_df.index = dist_df.index/len(dist_df.index)
     dist_df[['all']] = dist_df[['all']].astype(int)
 
-    #find the threshold (average minimum between 0 and 0.75)
+    # Find the threshold (average minimum between 0 and 0.75)
     dist = mismatch['dist']['all']
-    thresh_df = pd.DataFrame.from_dict({'thresh': {'ALL': dist_df.index[int(np.mean([index for index in np.argsort(dist[:int(len(dist)*0.75)]) \
-                                                                                     if dist[index] == np.min(dist)]))]}
+    window = dist[:int(len(dist) * 0.75)]
+    thresh_df = pd.DataFrame.from_dict({'thresh': {'ALL': dist_df.index[int(np.mean([index for index in np.argsort(window) \
+                                                                                     if dist[index] == np.min(window)]))]}
                                         })
     file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
 
@@ -773,8 +777,10 @@ def getArgParser():
                                            help='Calculates pairwise distance metrics of barcode sequences.',
                                            description='Calculates pairwise distance metrics of barcode sequences.')
     group_barcode = parser_barcode.add_argument_group('distance calculation arguments')
-    group_barcode.add_argument('-f', action='store', dest='barcode_field', type=str,
-                               default=default_barcode_field, help='The name of the barcode field.')
+    group_barcode.add_argument('-f', action='store', dest='barcode_field', type=str, default=default_barcode_field,
+                               help='''The name of the barcode field. Note, barcodes are expected to all be identical 
+                                    length. Barcode sequences shorter than the maximum barcode length will be excluded
+                                    from the distance calculations.''')
     parser_barcode.set_defaults(func=estimateBarcode)
     
     return parser
