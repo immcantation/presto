@@ -1,10 +1,15 @@
 Release Notes
 ================================================================================
 
-Version 0.6.2.999:  August 8, 2021
+Version 0.6.2.999:  August 23, 2021
 -------------------------------------------------------------------------------
 
 + Updated dependencies to biopython >= v1.77.
+
+AssemblePairs:
+
++ Fixed a bug causing execution failures in the ``sequential`` and
+  ``reference`` commands when passing multiple input file sets.
 
 ClusterSets:
 
