@@ -35,7 +35,6 @@ default_headers = ['mismatch', 'q_sum', 'total']
 default_distance_types = ['all']
 default_nucleotides = ['A', 'C', 'G', 'T']
 
-
 def initializeMismatchDictionary(seq_len, nucleotides=default_nucleotides,
                                  headers=default_headers, distance_types=default_distance_types,
                                  bin_count=default_bin_count):
@@ -67,24 +66,36 @@ def initializeMismatchDictionary(seq_len, nucleotides=default_nucleotides,
     return {'pos': pos_dict, 'nuc': nuc_dict, 'qual': qual_dict, 'set': set_dict, 'dist': dist_dict}
 
 
-def calculateDistances(seq_iter, bin_count=default_bin_count):
+def calculateDistances(seq_iter, bin_count=default_bin_count, pad_ends='none'):
     """
     Computes and histograms the pairwise distance matrix from a set of sequences
 
     Arguments: 
-      seq_iter : an iterable of strings.
-      bin_count : number of bins to use when computing histogram.
+      seq_iter (iter): an iterable of strings.
+      bin_count (int): number of bins to use when computing histogram.
+      pad_ends (str): action to take for truncated barcode sequences. "none" excludes truncated barcodes from
+                      the calculations. "head" or "tail" will add N characters to the respective end.
 
     Returns: 
       dict: np.arrays for {all:all pairwise, dtn:distance to nearest}
     """
     # Define 2d unicode array of strings
     seq_array = [[ord(x) for x in seq] for seq in seq_iter]
-    # Filter to max length sequences
+
+    # Filter or pad truncated sequences: ord('N') = 78
     seq_length = max(map(len, seq_array))
-    seq_array = list(filter(lambda x: len(x) == seq_length, seq_array))
+    if pad_ends == 'none':
+        seq_array = list(filter(lambda x: len(x) == seq_length, seq_array))
+    elif pad_ends == 'head':
+        seq_array = list(map(lambda x: [78]*(seq_length - len(x)) + x, seq_array))
+    elif pad_ends == 'tail':
+        seq_array = list(map(lambda x: x + [78]*(seq_length - len(x)), seq_array))
+    else:
+        exit('Invalid pad_ends argument %s' % pad_ends)
+
     # Compute the distance matrix
     pairwise_dist = squareform(pdist(np.array(seq_array), metric='hamming'))
+
     # Compute distance to nearest and upper triangular of all pairwise distance matrix
     all_pairwise = pairwise_dist[np.triu_indices_from(pairwise_dist, k=1)]
 
@@ -590,7 +601,7 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
 
 
 def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_types=default_distance_types,
-                    out_args=default_out_args):
+                    pad_ends='none', out_args=default_out_args):
     """
     Calculates error rates of barcode sequences
 
@@ -598,6 +609,8 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
       seq_file : the sample sequence file name
       barcode_field : the annotation field containing barcode sequences.
       distance_types : distance types to include.
+      pad_ends (str): action to take for truncated barcode sequences. "none" excludes truncated barcodes from
+                      the calculations. "head" or "tail" will add N characters to the respective end.
       out_args : common output argument dictionary from parseCommonArgs
                         
     Returns: 
@@ -615,6 +628,7 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     log['COMMAND'] = 'barcode'
     log['FILE'] = os.path.basename(seq_file)
     log['BARCODE_FIELD'] = barcode_field
+    log['PAD'] = pad_ends
     printLog(log)
     
     # Count sequence file and parse into a list of SeqRecords
@@ -626,7 +640,7 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     mismatch = initializeMismatchDictionary(0, distance_types=distance_types, bin_count=bin_count)
 
     # Calculate distances
-    distance_mismatch = calculateDistances(barcode_iter, bin_count=bin_count)
+    distance_mismatch = calculateDistances(barcode_iter, bin_count=bin_count, pad_ends=pad_ends)
     mismatch['dist'] = {header: distance_mismatch[header] for header in distance_types}
 
     # Generate a df
@@ -781,6 +795,14 @@ def getArgParser():
                                help='''The name of the barcode field. Note, barcodes are expected to all be identical 
                                     length. Barcode sequences shorter than the maximum barcode length will be excluded
                                     from the distance calculations.''')
+    group_barcode.add_argument('--pad', action='store', dest='pad_ends', type=str,
+                               choices=['none', 'head', 'tail'], default='none',
+                               help='''Specifies the action to take for barcode sequences shorter than the maximum 
+                                    barcode length. The "none" action will exclude truncated barcodes from the distance 
+                                    calculations. The "head" and "tail" actions will add N characters to either the 
+                                    front or back, respectively, of truncated barcode sequence to give all barcodes 
+                                    identical length. N characters will be treated as mismatches in the distance 
+                                    calculation.''')
     parser_barcode.set_defaults(func=estimateBarcode)
     
     return parser
@@ -821,4 +843,3 @@ if __name__ == '__main__':
     for f in args.__dict__['seq_files']:
         args_dict['seq_file'] = f
         args.func(**args_dict)
-

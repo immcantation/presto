@@ -20,9 +20,11 @@ EstimateError:
 
 + Fixed a bug in the ``set`` command causing a NaN to integer conversion error
   with some data sets.
-+ Forced the ``barcode`` command to only calculate distances on identical
-  length sequences by automatically filtering out barcodes shorter than the
-  maximum length barcode.
++ Added the the ``--pad`` argument to the ``barcode`` command to control
+  how to deal with truncated barcode sequences. Barcode sequences have to be
+  identical in length, so ``--pad`` provides a mechanism to either pad the
+  ends or short barcodes with N characters or exclude barcodes shorter than the
+  maximum length barcode from the distance calculations.
 
 
 Version 0.6.2:  October 13, 2020
