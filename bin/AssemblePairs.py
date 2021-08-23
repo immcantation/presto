@@ -195,7 +195,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
         printError('FILE1 (n=%i) and FILE2 (n=%i) must have the same number of records.' \
                  % (head_count, tail_count))
 
-    # Setup for reference alignment
+    # Setup reference alignment arguments
+    assemble_args = assemble_args.copy()
     if cmd_name in ('reference', 'sequential'):
         ref_file = assemble_args.pop('ref_file')
         db_exec = assemble_args.pop('db_exec')
