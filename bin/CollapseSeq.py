@@ -378,7 +378,9 @@ def getArgParser():
     group_dedup.add_argument('-n', action='store', dest='max_missing', type=int, default=default_max_missing,
                              help='''Maximum number of missing nucleotides to consider for collapsing
                                    sequences. A sequence will be considered undetermined if it contains too
-                                   many missing nucleotides.''')
+                                   many missing nucleotides. Note, setting a value above 0 will consider 
+                                   ambiguous/missing nucleotides via a distance calculation, but is considerably 
+                                   more computationally expensive, especially on large data sets.''')
     group_dedup.add_argument('--uf', nargs='+', action='store', dest='uniq_fields', type=str, default=None,
                              help='''Specifies a set of annotation fields that must match for sequences
                                   to be considered duplicates.''')
