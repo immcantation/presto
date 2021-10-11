@@ -76,7 +76,7 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
 
 def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length_ratio,
               seq_start=0, seq_end=None, max_memory=default_max_memory,
-              threads=1, cluster_exec=default_usearch_exec):
+              threads=1, cluster_exec=default_usearch_exec, min_word_match=12):
     """
     Cluster a set of sequences using the UCLUST algorithm from USEARCH
 
@@ -90,6 +90,7 @@ def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length
       max_memory (int): currently ignored.
       threads (int): number of threads for usearch.
       cluster_exec (str): the path to the usearch executable.
+      min_word_match (int): minimum number of words that must match to be clustered.
 
     Returns:
       dict: {cluster id: list of sequence ids}.
@@ -124,7 +125,8 @@ def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length
            '-minsl', str(length_ratio),
            '-qmask', 'none',
            '-minseqlength', '1',
-           '-threads', str(threads)]
+           '-threads', str(threads),
+           '-minwordmatches', str(min_word_match)]
 
     # Write usearch input fasta file
     SeqIO.write(seq_trimmed, in_handle, 'fasta-2line')
@@ -159,7 +161,7 @@ def runUClust(seq_list, ident=default_cluster_ident, length_ratio=default_length
 
 def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_ratio,
              seq_start=0, seq_end=None, max_memory=default_max_memory,
-             threads=1, cluster_exec=default_cdhit_exec):
+             threads=1, cluster_exec=default_cdhit_exec, min_word_match=12):
     """
     Cluster a set of sequences using CD-HIT
 
@@ -173,6 +175,7 @@ def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_
       max_memory (int): cd-hit-est max memory limit (Mb)
       threads (int): number of threads for cd-hit-est.
       cluster_exec (str): the path to the cd-hit-est executable.
+      min_word_match (int): (not used for this function, see runUClust)
 
     Returns:
       dict: {cluster id: list of sequence ids}.

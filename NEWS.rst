@@ -15,6 +15,10 @@ ClusterSets:
 
 + Updated to the ``--mem`` argument to control the memory allocation for
   cd-hit-est.
++ Updated runUClust to take variable minwordmatches arguments. Otherwise
+  the deffault parameters of usearch/vsearch automatically excluded short
+  sequence matches. ``barcode`` now requires 1 word match, while ``set`` still
+  requires the default 12.
 
 EstimateError:
 

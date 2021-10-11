@@ -427,12 +427,14 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
     result_count = countSeqFile(seq_file)
     barcode_iter = (_barcode(x) for x in readSeqFile(seq_file))
 
-    # Perform clustering
+    # Perform clustering, note reduced min_word_match compared to cluster sets
+    # see https://github.com/torognes/vsearch/issues/328
     start_time = time()
     printMessage('Running %s' % cluster_tool, start_time=start_time, width=25)
     cluster_dict = cluster_func(barcode_iter, ident=ident, length_ratio=length_ratio,
                                 seq_start=0, seq_end=None, max_memory=cluster_memory,
-                                threads=nproc, cluster_exec=cluster_exec)
+                                threads=nproc, cluster_exec=cluster_exec,
+                                min_word_match=1)
     printMessage('Done', start_time=start_time, end=True, width=25)
 
     # Determine file type
