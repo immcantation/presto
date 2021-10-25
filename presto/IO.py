@@ -375,37 +375,43 @@ def printProgress(current, total, step, start_time=None, task=None, end=False):
         sys.stdout.flush()
 
 
-def printWarning(message):
+def printWarning(message, newline=False):
     """
     Prints a warning to standard error
 
     Arguments:
       message (str): warning message.
+      newline (bool): prefix with a newline if True.
     """
-    sys.stderr.write('WARNING> %s\n' % message)
+    prefix = '\n' if newline else ''
+    sys.stderr.write('%sWARNING> %s\n' % (prefix, message))
 
 
-def printError(message, exit=True):
+def printError(message, exit=True, newline=False):
     """
     Prints an error to standard error and exits
 
     Arguments:
       message (str): error message.
       exit (bool): if True exit after the message.
+      newline (bool): prefix with a newline if True.
     """
+    prefix = '\n' if newline else ''
     if exit:
-        sys.exit('ERROR> %s\n' % message)
+        sys.exit('%sERROR> %s\n' % (prefix, message))
     else:
-        sys.stderr.write('ERROR> %s\n' % message)
+        sys.stderr.write('%sERROR> %s\n' % (prefix, message))
 
 
-def printDebug(message, debug=True):
+def printDebug(message, debug=True, newline=False):
     """
     Prints a debug message to standard error
 
     Arguments:
       message (str): message.
       debug (bool): if True print the message.
+      newline (bool): prefix with a newline if True.
     """
     if debug:
-        sys.stderr.write('DEBUG> %s\n' % message)
+        prefix = '\n' if newline else ''
+        sys.stderr.write('%sDEBUG> %s\n' % (prefix, message))
