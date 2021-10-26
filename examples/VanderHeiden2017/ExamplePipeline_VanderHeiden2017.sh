@@ -6,12 +6,12 @@
 # Date:    2017.08.21
 
 # Define run parameters and input files
-R1_FILE=$(readlink -f SRR4026043_1.fastq)
-R2_FILE=$(readlink -f SRR4026043_2.fastq)
-R1_PRIMERS=$(readlink -f AbSeq_R1_Human_IG_Primers.fasta)
-R2_PRIMERS=$(readlink -f AbSeq_R2_TS.fasta)
-CREGION_FILE=$(readlink -f AbSeq_Human_IG_InternalCRegion.fasta)
-VREF_FILE=$(readlink -f IMGT_Human_IG_V.fasta)
+R1_FILE=$(realpath SRR4026043_1.fastq)
+R2_FILE=$(realpath SRR4026043_2.fastq)
+R1_PRIMERS=$(realpath AbSeq_R1_Human_IG_Primers.fasta)
+R2_PRIMERS=$(realpath AbSeq_R2_TS.fasta)
+CREGION_FILE=$(realpath AbSeq_Human_IG_InternalCRegion.fasta)
+VREF_FILE=$(realpath IMGT_Human_IG_V.fasta)
 OUTDIR="output"
 OUTNAME="HD09N"
 NPROC=4

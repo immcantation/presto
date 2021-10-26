@@ -6,10 +6,10 @@
 # Date:    2018.03.14
 
 # Define run parameters and input files
-R1_FILE=$(readlink -f ERR346600_1.fastq)
-R2_FILE=$(readlink -f ERR346600_2.fastq)
-R1_PRIMERS=$(readlink -f Greiff2014_CPrimers.fasta)
-R2_PRIMERS=$(readlink -f Greiff2014_VPrimers.fasta)
+R1_FILE=$(realpath ERR346600_1.fastq)
+R2_FILE=$(realpath ERR346600_2.fastq)
+R1_PRIMERS=$(realpath Greiff2014_CPrimers.fasta)
+R2_PRIMERS=$(realpath Greiff2014_VPrimers.fasta)
 OUTDIR="output"
 OUTNAME="M1"
 NPROC=4

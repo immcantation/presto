@@ -6,10 +6,10 @@
 # Date:    2016.03.04
 
 # Define run parameters and input files
-R1_FILE=$(readlink -f SRR1383456_1.fastq)
-R2_FILE=$(readlink -f SRR1383456_2.fastq)
-R1_PRIMERS=$(readlink -f Stern2014_CPrimers.fasta)
-R2_PRIMERS=$(readlink -f Stern2014_VPrimers.fasta)
+R1_FILE=$(realpath SRR1383456_1.fastq)
+R2_FILE=$(realpath SRR1383456_2.fastq)
+R1_PRIMERS=$(realpath Stern2014_CPrimers.fasta)
+R2_PRIMERS=$(realpath Stern2014_VPrimers.fasta)
 OUTDIR="output"
 OUTNAME="MS12"
 NPROC=4

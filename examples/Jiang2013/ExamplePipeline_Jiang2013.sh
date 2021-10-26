@@ -6,10 +6,10 @@
 # Date:    2018.03.14
 
 # Define run parameters and input files
-READ_FILE=$(readlink -f SRR765688.fastq)
-MID_PRIMERS=$(readlink -f SRR765688_MIDs.fasta)
-FWD_PRIMERS=$(readlink -f SRX190717_VPrimers.fasta)
-REV_PRIMERS=$(readlink -f SRX190717_CPrimers.fasta)
+READ_FILE=$(realpath SRR765688.fastq)
+MID_PRIMERS=$(realpath SRR765688_MIDs.fasta)
+FWD_PRIMERS=$(realpath SRX190717_VPrimers.fasta)
+REV_PRIMERS=$(realpath SRX190717_CPrimers.fasta)
 OUTDIR="output"
 OUTNAME="S43"
 NPROC=4
