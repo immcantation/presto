@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.6.2.999:  August 23, 2021
+Version 0.6.2.999:  October 26, 2021
 -------------------------------------------------------------------------------
 
 + Updated dependencies to biopython >= v1.77.
@@ -25,6 +25,12 @@ EstimateError:
   identical in length, so ``--pad`` provides a mechanism to either pad the
   ends or short barcodes with N characters or exclude barcodes shorter than the
   maximum length barcode from the distance calculations.
+
+MaskPrimers:
+
++ Will now modify the identifiers for primers specified via ``-p`` to avoid
+  downstream issues parsing sequence headers. Whitespace and the default
+  annotation delimiters (|=,) are now replaced with underscore characters (_).
 
 
 Version 0.6.2:  October 13, 2020
