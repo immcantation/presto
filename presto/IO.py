@@ -7,6 +7,7 @@ from presto import __version__, __date__
 
 # Imports
 import math
+import re
 import os
 import sys
 from collections import OrderedDict
@@ -18,19 +19,24 @@ from presto.Defaults import default_delimiter, default_barcode_field
 from presto.Annotation import parseAnnotation
 
 
-def readPrimerFile(primer_file):
+def readPrimerFile(primer_file, replace_special=True):
     """
     Processes primer sequences from file
 
     Arguments:
       primer_file (str): name of the FASTA file containing primer sequences.
+      replace_special (bool): if True replace whitespace and pRESTO annotation
+                              delimiters with an underscore.
 
     Returns:
       dict: Dictionary mapping primer ID to sequence.
     """
+    if replace_special:  parse_id = lambda x: re.sub('[\s,=|]+', '_', x)
+    else:  parse_id = lambda x: x
+
     with open(primer_file, 'r') as primer_handle:
         primer_iter = SeqIO.parse(primer_handle, 'fasta')
-        primers = {p.description: str(p.seq).upper() for p in primer_iter}
+        primers = {parse_id(p.description): str(p.seq).upper() for p in primer_iter}
 
     return primers
 
