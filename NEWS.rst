@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.6.2.999:  October 26, 2021
+Version 0.7.0:  October 28, 2021
 -------------------------------------------------------------------------------
 
 + Updated dependencies to biopython >= v1.77.
@@ -13,16 +13,17 @@ AssemblePairs:
 
 ClusterSets:
 
-+ Updated to the ``--mem`` argument to control the memory allocation for
++ Added the ``--mem`` argument to control the memory allocation for
   cd-hit-est.
-+ Updated runUClust to take variable minwordmatches arguments. Otherwise
-  the deffault parameters of usearch/vsearch automatically excluded short
-  sequence matches. ``barcode`` now requires 1 word match, while ``set`` still
-  requires the default 12.
++ Updated the default usearch/vsearch clustering parameters for the
+  ``barcode`` subcommand to only require 1 word match (see the
+  ``minwordmatches`` argument to usearch/vsearch), as the default value of
+  12 was automatically excluding short sequence matches.
+  The ``set`` subcommand retains the default ``minwordmatches`` value of 12.
 
 EstimateError:
 
-+ Fixed a bug in the ``set`` command causing a NaN to integer conversion error
++ Fixed a bug in the ``set`` command causing an NaN to integer conversion error
   with some data sets.
 + Added the the ``--pad`` argument to the ``barcode`` command to control
   how to deal with truncated barcode sequences. Barcode sequences have to be
