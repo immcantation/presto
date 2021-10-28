@@ -13,6 +13,7 @@
 
     overview
     install
+    news
 
 .. toctree::
     :maxdepth: 2
@@ -44,8 +45,7 @@
 .. toctree::
     :maxdepth: 1
     :caption: About
- 
-    news
+
     info
 
 Indices
