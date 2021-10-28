@@ -28,7 +28,7 @@ EstimateError:
 + Added the the ``--pad`` argument to the ``barcode`` command to control
   how to deal with truncated barcode sequences. Barcode sequences have to be
   identical in length, so ``--pad`` provides a mechanism to either pad the
-  ends or short barcodes with N characters or exclude barcodes shorter than the
+  ends of short barcodes with N characters or exclude barcodes shorter than the
   maximum length barcode from the distance calculations.
 
 MaskPrimers:
