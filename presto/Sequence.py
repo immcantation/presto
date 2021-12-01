@@ -11,6 +11,7 @@ from presto import __version__, __date__, default_delimiter
 import numpy as np
 import pandas as pd
 import re
+import math
 from collections import OrderedDict
 from itertools import product, zip_longest, groupby
 from scipy import stats as stats
@@ -1285,7 +1286,19 @@ def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,
         quals = seq.letter_annotations['phred_quality']
 
     if len(quals) > 0:
-        q = sum(quals) / len(quals)
+        # Phred scores are a logarithmic score.
+        # See formulas here:
+        # https://en.wikipedia.org/wiki/Phred_quality_score#Definition
+
+        # Instead of dividing every qual by -10 (multiply by -0.1)
+        # we precalculate here, as rules for power calculation say:
+        # 10 ** (qual * -0.1) == (10 ** -0.1) ** qual.
+        phred_constant = 10 ** -0.1
+        qual_sum = 0.0
+        for qual in quals:
+            qual_sum += phred_constant ** qual
+        qual_mean = qual_sum / len(quals)
+        q = -10 * math.log10(qual_mean)
     else:
         q = 0
 
