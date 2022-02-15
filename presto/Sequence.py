@@ -1259,6 +1259,28 @@ def filterRepeats(data, max_repeat=default_filter_max_repeat, include_missing=Fa
 
     return result
 
+def meanQuality(qual):
+    """
+    Calculate mean quality score
+
+    Arguments:
+      qual (list): numeric Phred quality scores.
+
+    Returns:
+      int: floor of the mean Phred quality score.
+    """
+    # Assign 0 to empty list
+    if len(qual) == 0:
+        return 0
+
+    # Instead of dividing every qual by -10 (multiply by -0.1)
+    # we precalculate here, as rules for power calculation say:
+    # 10 ** (qual * -0.1) == (10 ** -0.1) ** qual.
+    phred_constant = 10 ** -0.1
+    p = sum([phred_constant ** q for q in qual]) / len(qual)
+
+    return math.floor(-10 * math.log10(p))
+
 
 def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,
                   missing_chars=''.join(default_missing_chars)):
@@ -1285,25 +1307,11 @@ def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,
     else:
         quals = seq.letter_annotations['phred_quality']
 
-    if len(quals) > 0:
-        # Phred scores are a logarithmic score.
-        # See formulas here:
-        # https://en.wikipedia.org/wiki/Phred_quality_score#Definition
-
-        # Instead of dividing every qual by -10 (multiply by -0.1)
-        # we precalculate here, as rules for power calculation say:
-        # 10 ** (qual * -0.1) == (10 ** -0.1) ** qual.
-        phred_constant = 10 ** -0.1
-        qual_sum = 0.0
-        for qual in quals:
-            qual_sum += phred_constant ** qual
-        qual_mean = qual_sum / len(quals)
-        q = -10 * math.log10(qual_mean)
-    else:
-        q = 0
+    # Calculate mean quality
+    mean_qual = meanQuality(quals)
 
     # Build result object
-    valid = (q >= min_qual)
+    valid = (mean_qual >= min_qual)
     result = SeqResult(data.id, seq)
     if valid:
         result.results = seq
@@ -1311,7 +1319,7 @@ def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,
 
     # Update result log
     result.log['SEQ'] = seq.seq
-    result.log['QUALITY'] = q
+    result.log['QUALITY'] = mean_qual
 
     return result
 

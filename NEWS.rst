@@ -1,6 +1,15 @@
 Release Notes
 ================================================================================
 
+
+Version 0.7.1:  February 15, 2022
+-------------------------------------------------------------------------------
+
+FilterSeq:
+
++ Changed average quality score calculation to use the probability calculation
+  instead of a simple mean on the scores.
+
 Version 0.7.0:  October 28, 2021
 -------------------------------------------------------------------------------
 

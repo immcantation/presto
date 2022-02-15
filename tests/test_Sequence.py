@@ -5,6 +5,7 @@ Unit tests for Sequence module
 __author__ = 'Jason Anthony Vander Heiden'
 
 # Imports
+import math
 import os
 import sys
 import time
@@ -15,7 +16,8 @@ from Bio.SeqRecord import SeqRecord
 
 # Presto imports
 from presto.Sequence import getDNAScoreDict, scoreDNA, scoreSeqPair, weightSeq, \
-                            calculateSetError
+                            calculateSetError, meanQuality, filterQuality
+from presto.Multiprocessing import SeqData
 
 # Paths
 test_path = os.path.dirname(os.path.realpath(__file__))
@@ -36,10 +38,24 @@ class TestSequence(unittest.TestCase):
                    Seq('CG------')]
         ref_dna = [Seq('CGGCGTAA'),
                    Seq('NNNNNNNN')]
+        qual_dna = [[30, 30, 20, 20, 30, 30, 40, 40],
+                    [30, 30,  0,  0, 30, 30, 20, 20],
+                    [ 0,  0,  0,  0,  0,  0,  0,  0]]
         self.records_dna = [SeqRecord(s, id='SEQ%i' % i, name='SEQ%i' % i, description='')
                             for i, s in enumerate(seq_dna, start=1)]
         self.reference_dna = [SeqRecord(s, id='REF%i' % i, name='REF%i' % i, description='')
                               for i, s in enumerate(ref_dna, start=1)]
+        self.phred_dna = [SeqRecord(seq_dna[i], id='SEQ%i' % i, name='SEQ%i' % i, description='',
+                                    letter_annotations={'phred_quality':qual_dna[i]})
+                          for i in range(len(qual_dna))]
+
+        # Mean quality
+        self.qual_mean = list()
+        for qual in qual_dna:
+            p = [10 ** (-q/10) for q in qual]
+            m = sum(p) / len(qual)
+            q = math.floor(-10 * math.log10(m))
+            self.qual_mean.append(q)
 
         # Make sequence pairs
         self.seq_pairs = list(combinations(self.records_dna, 2))
@@ -220,6 +236,19 @@ class TestSequence(unittest.TestCase):
             print('REF>', r.seq, result)
             self.assertAlmostEqual(e, result, places=4)
 
+    def test_meanQuality(self):
+        for r, q in zip(self.phred_dna, self.qual_mean):
+            result = meanQuality(r.letter_annotations['phred_quality'])
+            print('RESULT>', result, r.letter_annotations['phred_quality'])
+            self.assertEqual(q, result)
+
+    def test_filterQuality(self):
+        seq_data = [SeqData(i, x) for i, x in enumerate(self.phred_dna)]
+        for r, q in zip(seq_data, self.qual_mean):
+            result = filterQuality(r, min_qual=20, inner=False)
+            print('RESULT>', result.valid, result.log['QUALITY'])
+            self.assertEqual(q, result.log['QUALITY'])
+            self.assertEqual(q >= 20, result.valid)
 
 if __name__ == '__main__':
     unittest.main()
