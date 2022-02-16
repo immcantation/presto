@@ -2,8 +2,11 @@ Release Notes
 ================================================================================
 
 
-Version 0.7.1:  February 15, 2022
+Version 0.7.1:  February 16, 2022
 -------------------------------------------------------------------------------
+
++ Adding permission of ``U`` characters in nucleotide distance calculations
+  with equivalence to ``T``.
 
 FilterSeq:
 

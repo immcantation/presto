@@ -110,7 +110,9 @@ class TestSequence(unittest.TestCase):
 
         # Test DNA characters
         self.pairs_dna_chars = [('A', 'A'),
-                                ('A', 'C'),
+                                ('A', 'T'),
+                                ('A', 'R'),
+                                ('U', 'T'),
                                 ('A', 'N'),
                                 ('N', 'A'),
                                 ('A', '-'),
@@ -119,17 +121,19 @@ class TestSequence(unittest.TestCase):
         # Test amino acid characters
         self.pairs_aa_chars = [('P', 'P'),
                                ('P', 'Q'),
+                               ('R', 'B'),
+                               ('R', 'N'),
                                ('P', 'X'),
                                ('X', 'P'),
                                ('P', '-'),
                                ('-', 'P')]
 
         # Character pair scores for default case
-        self.pairs_scores_def = [1, 0, 1, 1, 0, 0]
+        self.pairs_scores_def = [1, 0, 1, 1, 1, 1, 0, 0]
         # Character pair scores for symmetric case
-        self.pairs_scores_sym = [1, 0, 1, 1, 1, 1]
+        self.pairs_scores_sym = [1, 0, 1, 1, 1, 1, 1, 1]
         # Character pair scores for asymmetric case where N/gaps in character one are a mismatch
-        self.pairs_scores_asym = [1, 0, 1, 0, 1, 0]
+        self.pairs_scores_asym = [1, 0, 1, 1, 1, 0, 1, 0]
 
         # Start clock
         self.start = time.time()

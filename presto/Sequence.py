@@ -179,7 +179,7 @@ class AssemblyStats:
 
 def translateAmbigDNA(key):
     """
-    Translates IUPAC Ambiguous Nucleotide characters to or from character sets
+    Translates IUPAC ambiguous nucleotide characters to or from character sets
 
     Arguments:
       key : String or re.search object containing the character set to translate
@@ -189,10 +189,10 @@ def translateAmbigDNA(key):
     """
     # Define valid characters and character translations
     IUPAC_uniq = '-.ACGT'
-    IUPAC_ambig = 'BDHKMNRSVWY'
+    IUPAC_ambig = 'UBDHKMNRSVWY'
     IUPAC_trans = {'AG':'R', 'CT':'Y', 'CG':'S', 'AT':'W', 'GT':'K', 'AC':'M',
-                  'CGT':'B', 'AGT':'D', 'ACT':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
-                  '-.':'.'}
+                   'CGT':'B', 'AGT':'D', 'ACT':'H', 'ACG':'V', 'ACGTUBDHKMRSVWY':'N',
+                   'T':'U', '-.':'.'}
 
     # Convert passed regular expression match to a string
     if hasattr(key, 'group'): key = key.group(1)
@@ -215,10 +215,10 @@ def translateAmbigDNA(key):
 
 def scoreDNA(a, b, mask_score=None, gap_score=None):
     """
-    Returns the score for a pair of IUPAC Ambiguous Nucleotide characters
+    Returns the score for a pair of IUPAC ambiguous nucleotide characters
 
     Arguments:
-      a : First characters
+      a : First character
       b : Second character
       n_score : Tuple of length two defining scores for all matches against an N
                 character for (a, b), with the score for character (a) taking precedence;
@@ -231,9 +231,9 @@ def scoreDNA(a, b, mask_score=None, gap_score=None):
       int : Score for the character pair
     """
     # Define ambiguous character translations
-    IUPAC_trans = {'AGWSKMBDHV':'R', 'CTSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATKMBDHV':'W', 'GTBDHV':'K',
-                   'ACBDHV':'M', 'CGTDHV':'B', 'AGTHV':'D', 'ACTV':'H', 'ACG':'V', 'ABCDGHKMRSTVWY':'N',
-                   '-.':'.'}
+    IUPAC_trans = {'AGWSKMBDHV':'R', 'CTUSWKMBDHV':'Y', 'CGKMBDHV':'S', 'ATUKMBDHV':'W', 'GTUBDHV':'K',
+                   'ACBDHV':'M', 'CGTUDHV':'B', 'AGTUHV':'D', 'ACTUV':'H', 'ACG':'V', 'ACGTUBDHKMRSVWY':'N',
+                   'T':'U', '-.':'.'}
 
     # Create list of tuples of synonymous character pairs
     IUPAC_matches = [p for k, v in IUPAC_trans.items() for p in list(product(k, v))]
@@ -318,7 +318,7 @@ def getDNAScoreDict(mask_score=None, gap_score=None):
     Returns:
       dict : Score dictionary with keys (char1, char2) mapping to scores
     """
-    chars = '-.ACGTRYSWKMBDHVN'
+    chars = '-.ACGTURYSWKMBDHVN'
     score_dict = {k:scoreDNA(*k, mask_score=mask_score, gap_score=gap_score)
                   for k in product(chars, repeat=2)}
 
