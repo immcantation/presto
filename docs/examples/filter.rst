@@ -1,6 +1,6 @@
 .. _Filter:
 
-Filtering and Subsetting
+Filtering, Subsetting and Converting
 ================================================================================
 
 Cleaning or removing poor quality sequences
@@ -75,6 +75,30 @@ the :program:`samplepair` subcommand::
     Both the :option:`-f <SplitSeq sample -f>` and :option:`-n <SplitSeq sample -n>`
     arguments will accept a list of values (eg, ``-n 1000 100 10``), allowing you to
     sample multiple times from multiple files in one command.
+    
+Converting to FASTA for IMGT/HighV-QUEST or IgBLAST
+--------------------------------------------------------------------------------
+
+`IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__ and `IgBLAST <http://ncbi.github.io/igblast>`__
+require sequences in FASTA format. You can use the Immcantation script `fastq2fasta.py` to
+convert `.fastq` to `.fasta`. The script is `available from the 
+repository<http://bitbucket.org/kleinstein/immcantation/src/master/scripts/fastq2fasta.py>`__ 
+and is installed in the Docker container.
+
+.. code-block:: none
+
+    fastq2fasta.py reads.fastq
+    
+Alternatively, you can request :ref:`SplitSeq.py` to output FASTA files by using
+the flag :option:`--fasta`. In the Example Workflows, a common last step 
+in the data processing pipeline includes filtering sequences with at least two 
+representative reads. By adding :option:`--fasta` to the command, the output 
+file will be a `.fasta` file.
+
+.. code-block:: none
+
+    SplitSeq.py group -s reads.fastq -f DUPCOUNT --num 2 --fasta
+    
 
 Reducing file size for submission to IMGT/HighV-QUEST
 --------------------------------------------------------------------------------
