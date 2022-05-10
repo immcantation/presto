@@ -81,8 +81,8 @@ Converting to FASTA for IMGT/HighV-QUEST or IgBLAST
 
 `IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__ and `IgBLAST <http://ncbi.github.io/igblast>`__
 require sequences in FASTA format. You can use the Immcantation script `fastq2fasta.py` to
-convert `.fastq` to `.fasta`. The script is `available from the 
-repository<http://bitbucket.org/kleinstein/immcantation/src/master/scripts/fastq2fasta.py>`__ 
+convert `.fastq` to `.fasta`. The script is available from the
+`repository <http://bitbucket.org/kleinstein/immcantation/src/master/scripts/fastq2fasta.py>`__
 and is installed in the Docker container.
 
 .. code-block:: none
@@ -90,7 +90,7 @@ and is installed in the Docker container.
     fastq2fasta.py reads.fastq
     
 Alternatively, you can request :ref:`SplitSeq.py` to output FASTA files by using
-the flag :option:`--fasta`. In the Example Workflows, a common last step 
+the flag :option:`--fasta`. In the example workflows, a common last step 
 in the data processing pipeline includes filtering sequences with at least two 
 representative reads. By adding :option:`--fasta` to the command, the output 
 file will be a `.fasta` file.
