@@ -36,6 +36,9 @@ from presto.Applications import runBlastn, runUBlast
 from presto.IO import printWarning, printError
 from presto.Multiprocessing import SeqResult
 
+# Constants
+qual_to_prob = tuple(10 ** (-qual / 10) for qual in range(128))
+
 
 class PrimerAlignment:
     """
@@ -1259,16 +1262,13 @@ def filterRepeats(data, max_repeat=default_filter_max_repeat, include_missing=Fa
 
     return result
 
-
-QUAL_TO_PROBABILITY = tuple(10 ** (-qual / 10) for qual in range(128))
-
-
-def meanQuality(qual):
+def meanQuality(qual, prob=qual_to_prob):
     """
     Calculate mean quality score
 
     Arguments:
       qual (list): numeric Phred quality scores.
+      prob (list): mapping of Phred score (index) to probability values
 
     Returns:
       int: floor of the mean Phred quality score.
@@ -1277,13 +1277,8 @@ def meanQuality(qual):
     if len(qual) == 0:
         return 0
 
-    # Perform only one global lookup and assign it to a local variable.
-    qual_to_probability = QUAL_TO_PROBABILITY
-
     qual_sum = 0.0
-    for q in qual:  # For loop is faster than a list comprehension.
-        qual_sum += qual_to_probability[q]
-
+    for q in qual:  qual_sum += prob[q]
     p = qual_sum / len(qual)
 
     return math.floor(-10 * math.log10(p))
