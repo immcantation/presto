@@ -1259,6 +1259,10 @@ def filterRepeats(data, max_repeat=default_filter_max_repeat, include_missing=Fa
 
     return result
 
+
+QUAL_TO_PROBABILITY = tuple(10 ** (-qual / 10) for qual in range(128))
+
+
 def meanQuality(qual):
     """
     Calculate mean quality score
@@ -1273,11 +1277,14 @@ def meanQuality(qual):
     if len(qual) == 0:
         return 0
 
-    # Instead of dividing every qual by -10 (multiply by -0.1)
-    # we precalculate here, as rules for power calculation say:
-    # 10 ** (qual * -0.1) == (10 ** -0.1) ** qual.
-    phred_constant = 10 ** -0.1
-    p = sum([phred_constant ** q for q in qual]) / len(qual)
+    # Perform only one global lookup and assign it to a local variable.
+    qual_to_probability = QUAL_TO_PROBABILITY
+
+    qual_sum = 0.0
+    for q in qual:  # For loop is faster than a list comprehension.
+        qual_sum += qual_to_probability[q]
+
+    p = qual_sum / len(qual)
 
     return math.floor(-10 * math.log10(p))
 
