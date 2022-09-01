@@ -30,19 +30,19 @@ from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
 
-def offsetSeqSet(seq_list, offset_dict, field=default_primer_field, 
+def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
                  mode='pad', delimiter=default_delimiter):
     """
     Pads the head of a set of sequences with gaps according to an offset list
 
-    Arguments: 
+    Arguments:
       seq_list : a list of SeqRecord objects to offset
       offset_dict : a dictionary of {set ID: offset values}
       field : the field in sequence description containing set IDs
       mode : defines the action taken; one of 'pad','cut'
       delimiter : a tuple of delimiters for (annotations, field/values, value lists)
-        
-    Returns: 
+
+    Returns:
       Bio.Align.MultipleSeqAlignment: object containing the alignment.
     """
     ann_list = [parseAnnotation(s.description, delimiter=delimiter) for s in seq_list]
@@ -51,7 +51,7 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     # Pad sequences with offsets
     align_list = []
     if mode == 'pad':
-        max_len = max([len(s) + offset_dict[t] 
+        max_len = max([len(s) + offset_dict[t]
                   for s, t in zip(seq_list, tag_list)])
         for rec, tag in zip(seq_list, tag_list):
             new_rec = rec[:]
@@ -63,7 +63,7 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
     elif mode == 'cut':
         max_offset = max(offset_dict.values())
         cut_dict = {k:(max_offset - v) for k, v in offset_dict.items()}
-        max_len = max([len(s) - cut_dict[t] 
+        max_len = max([len(s) - cut_dict[t]
                   for s, t in zip(seq_list, tag_list)])
         for rec, tag in zip(seq_list, tag_list):
             new_rec = rec[:]
@@ -76,7 +76,7 @@ def offsetSeqSet(seq_list, offset_dict, field=default_primer_field,
 
     # Convert list to MultipleSeqAlignment object
     align = MultipleSeqAlignment(align_list)
-    
+
     return align
 
 
@@ -84,18 +84,18 @@ def getOffsets(seq_list, align_func=runMuscle, align_args={}, reverse=False):
     """
     Create an offset dictionary for a list of sequences
 
-    Arguments: 
+    Arguments:
       seq_list : a list of SeqRecord objects.
       align_func : the function to use to align sequence sets.
       align_args : a dictionary of arguments to pass to align_func.
       reverse : if True count tail gaps; if False count head gaps.
-    
-    Returns: 
+
+    Returns:
       dict: a dictionary of {sequence ID: offset value}.
     """
     # Perform alignment
     align_list = align_func(seq_list, **align_args)
-    
+
     # Create offset dictionary
     offsets = OrderedDict()
     for aln in align_list:
@@ -105,10 +105,10 @@ def getOffsets(seq_list, align_func=runMuscle, align_args={}, reverse=False):
                           else seq.lstrip('-').count('-')
 
     # Correct reverse mode offsets
-    if reverse:  
+    if reverse:
         max_offset = max(offsets.values())
         for k in offsets:  offsets[k] = max_offset - offsets[k]
-        
+
     return offsets
 
 
@@ -116,16 +116,16 @@ def readOffsetFile(offset_file):
     """
     Parses offset file
 
-    Arguments: 
+    Arguments:
       offset_file : a tab delimited file of set IDs and offset values.
-    
-    Returns: 
+
+    Returns:
       dict: a dictionary of {annotation values: offset values}
     """
     with open(offset_file, 'r') as offset_handle:
         offset_iter = csv.reader(offset_handle, delimiter='\t')
         offset_dict = {r[0]:int(r[1]) for r in offset_iter}
-    
+
     return offset_dict
 
 
@@ -134,15 +134,15 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
     """
     Generates an offset table from a sequence file
 
-    Arguments: 
+    Arguments:
       primer_file : name of file containing primer sequences.
       align_func : the function to use to align sequence sets.
       align_args : a dictionary of arguments to pass to align_func.
       reverse : if True count tail gaps; if False count head gaps.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
-        
-    Returns: 
+
+    Returns:
       str: the name of the offset output file.
     """
     log = OrderedDict()
@@ -151,7 +151,7 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
     log['FILE'] = os.path.basename(primer_file)
     log['REVERSE'] = reverse
     printLog(log)
-    
+
     # Read primer file
     primers = readPrimerFile(primer_file)
 
@@ -179,7 +179,7 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
     # Write offset table
     for k, v in offset_dict.items():
         out_handle.write('%s\t%i\n' % (k, v))
-    
+
     # Print final log
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
@@ -197,7 +197,7 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
-    Arguments: 
+    Arguments:
       alive : a multiprocessing.Value boolean controlling whether processing
               continues; when False function returns
       data_queue : a multiprocessing.Queue holding data to process
@@ -218,23 +218,23 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
             else:  data = data_queue.get()
             # Exit upon reaching sentinel
             if data is None:  break
-            
+
             # Define result object
             result = SeqResult(data.id, data.data)
             result.log['BARCODE'] = data.id
             result.log['SEQCOUNT'] = len(data)
-    
+
             # Perform alignment
             seq_list = data.data
             align_list = align_func(seq_list, **align_args)
-    
+
             # Process alignment
             if align_list is not None:
                 # Calculate diversity
                 if calc_div:
                     diversity = calculateDiversity(align_list)
                     result.log['DIVERSITY'] = diversity
-                
+
                 # Restore quality scores
                 has_quality = hasattr(seq_list[0], 'letter_annotations') and \
                               'phred_quality' in seq_list[0].letter_annotations
@@ -245,7 +245,7 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
                         qual = deque(qual_dict[seq.id])
                         qual_new = [0 if c == '-' else qual.popleft() for c in seq.seq]
                         seq.letter_annotations['phred_quality'] = qual_new
-    
+
                 # Add alignment to log
                 if 'field' in align_args:
                     for i, seq in enumerate(align_list):
@@ -253,13 +253,13 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
                         primer = ann[align_args['field']]
                         result.log['ALIGN%i:%s' % (i + 1, primer)] = seq.seq
                 else:
-                    for i, seq in enumerate(align_list):  
+                    for i, seq in enumerate(align_list):
                         result.log['ALIGN%i' % (i + 1)] = seq.seq
-                
+
                 # Add alignment to results
                 result.results = align_list
                 result.valid = True
-                        
+
             # Feed results to result queue
             result_queue.put(result)
         else:
@@ -270,7 +270,7 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
         alive.value = False
         printError('Processing sequence set with ID: %s.' % data.id, exit=False)
         raise
-    
+
     return None
 
 
@@ -293,12 +293,12 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
       queue_size : maximum size of the argument queue;
                    if None defaults to 2*nproc
 
-    Returns: 
+    Returns:
       tuple: a tuple of (passing, failing) filenames.
     """
     # Define subcommand label dictionary
     cmd_dict = {runMuscle:'muscle', offsetSeqSet:'offset'}
-    
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'AlignSets'
@@ -310,16 +310,16 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     log['CALC_DIV'] = calc_div
     log['NPROC'] = nproc
     printLog(log)
- 
+
     # Define feeder function and arguments
     index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
-                 'index_func': indexSeqSets, 
+                 'index_func': indexSeqSets,
                  'index_args': index_args}
     # Define worker function and arguments
     work_func = processQueue
-    work_args = {'align_func': align_func, 
+    work_args = {'align_func': align_func,
                  'align_args': align_args,
                  'calc_div': calc_div,
                  'delimiter': out_args['delimiter']}
@@ -330,16 +330,16 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
                     'out_file': out_file,
                     'out_args': out_args,
                     'index_field': barcode_field}
-    
+
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
-        
+
     # Print log
     result['log']['END'] = 'AlignSets'
     printLog(result['log'])
-        
+
     return result['out_files']
 
 
@@ -347,7 +347,7 @@ def getArgParser():
     """
     Defines the ArgumentParser
 
-    Returns: 
+    Returns:
       argparse.ArgumentParser: argument parser object.
     """
     # Define output file names and header fields
@@ -409,10 +409,10 @@ def getArgParser():
                                default=default_barcode_field,
                                help='The annotation field containing barcode labels for sequence grouping.')
     group_offset.add_argument('--pf', action='store', dest='primer_field', type=str,
-                               default=default_primer_field, 
+                               default=default_primer_field,
                                help='The primer field to use for offset assignment.')
     group_offset.add_argument('--mode', action='store', dest='offset_mode',
-                               choices=('pad', 'cut'), default='pad', 
+                               choices=('pad', 'cut'), default='pad',
                                help='''Specifies whether or align sequence by padding with gaps or by cutting the 5\'
                                      sequence to a common start position.''')
     group_offset.add_argument('--div', action='store_true', dest='calc_div',
@@ -429,7 +429,7 @@ def getArgParser():
     group_table.add_argument('-p', action='store', dest='primer_file', required=True,
                                help='A FASTA file containing primer sequences.')
     group_table.add_argument('-o', action='store', dest='out_file', default=None,
-                             help='''Explicit output file name. Note, this argument cannot be used with 
+                             help='''Explicit output file name. Note, this argument cannot be used with
                                   the --failed, --outdir, or --outname arguments. If unspecified, then
                                   the output filename will be based on the input filename(s).''')
     group_table.add_argument('--reverse', action='store_true', dest='reverse',
@@ -437,7 +437,7 @@ def getArgParser():
     group_table.add_argument('--exec', action='store', dest='aligner_exec', default=default_muscle_exec,
                                help='The name or location of the muscle executable.')
     parser_table.set_defaults(align_func=runMuscle)
-    
+
     return parser
 
 
@@ -456,11 +456,11 @@ if __name__ == '__main__':
         args_dict['barcode_field'] = args_dict['barcode_field'].upper()
     if 'primer_field' in args_dict and args_dict['primer_field']:
         args_dict['primer_field'] = args_dict['primer_field'].upper()
-    
+
     # Check if a valid MUSCLE executable was specified for muscle mode
     if args.command in ['muscle', 'table'] and not shutil.which(args.aligner_exec):
         parser.error('%s does not exist' % args.aligner_exec)
-    
+
     # Define align_args
     if args_dict['align_func'] is runMuscle:
         args_dict['align_args'] = {'aligner_exec': args_dict['aligner_exec']}
@@ -475,7 +475,7 @@ if __name__ == '__main__':
 
     # Call alignSets or createOffsetTable for each input file
     del args_dict['command']
-    if args.command in ['muscle', 'offset']: 
+    if args.command in ['muscle', 'offset']:
         del args_dict['seq_files']
         if 'out_files' in args_dict:  del args_dict['out_files']
         for i, f in enumerate(args.__dict__['seq_files']):

@@ -29,8 +29,8 @@ def filterSeq(seq_file, filter_func, filter_args={},
               nproc=None, queue_size=None):
     """
     Filters sequences by fraction of ambiguous nucleotides
-    
-    Arguments: 
+
+    Arguments:
       seq_file : the sequence file to filter.
       filter_func : the function to use for filtering sequences.
       filter_args : a dictionary of arguments to pass to filter_func.
@@ -40,7 +40,7 @@ def filterSeq(seq_file, filter_func, filter_args={},
               if None defaults to the number of CPUs.
       queue_size : maximum size of the argument queue;
                    if None defaults to 2*nproc.
-                 
+
     Returns:
       list: a list of successful output file names
     """
@@ -48,7 +48,7 @@ def filterSeq(seq_file, filter_func, filter_args={},
     cmd_dict = {filterLength: 'length', filterMissing: 'missing',
                 filterRepeats: 'repeats', filterQuality: 'quality',
                 maskQuality: 'maskqual', trimQuality: 'trimqual'}
-    
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'FilterSeq'
@@ -57,18 +57,18 @@ def filterSeq(seq_file, filter_func, filter_args={},
     for k in sorted(filter_args):  log[k.upper()] = filter_args[k]
     log['NPROC'] = nproc
     printLog(log)
-    
+
     # Check input type
     in_type = getFileType(seq_file)
     if in_type != 'fastq' and filter_func in (filterQuality, maskQuality, trimQuality):
         printError('Input file must be FASTQ for %s mode.' % cmd_dict[filter_func])
-    
+
     # Define feeder function and arguments
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file}
     # Define worker function and arguments
     work_func = processSeqQueue
-    work_args = {'process_func': filter_func, 
+    work_args = {'process_func': filter_func,
                  'process_args': filter_args}
     # Define collector function and arguments
     collect_func = collectSeqQueue
@@ -76,16 +76,16 @@ def filterSeq(seq_file, filter_func, filter_args={},
                     'label': cmd_dict[filter_func],
                     'out_file': out_file,
                     'out_args': out_args}
-    
+
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
-        
+
     # Print log
     result['log']['END'] = 'FilterSeq'
     printLog(result['log'])
-        
+
     return result['out_files']
 
 
@@ -125,7 +125,7 @@ def getArgParser():
 
     # Parent parser
     parser_parent = getCommonArgParser(annotation=False, log=True, multiproc=True)
-    
+
     # Length filter mode argument parser
     parser_length = subparsers.add_parser('length', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter, add_help=False,
@@ -139,7 +139,7 @@ def getArgParser():
                                help='''If specified exclude consecutive missing characters
                                     at either end of the sequence.''')
     parser_length.set_defaults(filter_func=filterLength)
-    
+
     # Missing character filter mode argument parser
     parser_missing = subparsers.add_parser('missing', parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter, add_help=False,
@@ -153,7 +153,7 @@ def getArgParser():
                                 help='''If specified exclude consecutive missing characters
                                      at either end of the sequence.''')
     parser_missing.set_defaults(filter_func=filterMissing)
-    
+
     # Continuous repeating character filter mode argument parser
     parser_repeats = subparsers.add_parser('repeats', parents=[parser_parent],
                                            formatter_class=CommonHelpFormatter, add_help=False,
@@ -170,7 +170,7 @@ def getArgParser():
                                help='''If specified exclude consecutive missing characters
                                     at either end of the sequence.''')
     parser_repeats.set_defaults(filter_func=filterRepeats)
-    
+
     # Quality filter mode argument parser
     parser_quality = subparsers.add_parser('quality', parents=[parser_parent],
                                           formatter_class=CommonHelpFormatter, add_help=False,
@@ -185,7 +185,7 @@ def getArgParser():
     parser_quality.set_defaults(filter_func=filterQuality)
 
     # Mask mode argument parser
-    parser_maskqual = subparsers.add_parser('maskqual', parents=[parser_parent], 
+    parser_maskqual = subparsers.add_parser('maskqual', parents=[parser_parent],
                                         formatter_class=CommonHelpFormatter, add_help=False,
                                         help='Masks low quality positions.',
                                         description='Masks low quality positions.')
@@ -195,7 +195,7 @@ def getArgParser():
     parser_maskqual.set_defaults(filter_func=maskQuality)
 
     # Trim mode argument parser
-    parser_trimqual = subparsers.add_parser('trimqual', parents=[parser_parent], 
+    parser_trimqual = subparsers.add_parser('trimqual', parents=[parser_parent],
                                             formatter_class=CommonHelpFormatter, add_help=False,
                                             help='Trims sequences by quality score decay.',
                                             description='Trims sequences by quality score decay.')
@@ -209,7 +209,7 @@ def getArgParser():
                                 help='''Specify to trim the head of the sequence rather
                                      than the tail.''')
     parser_trimqual.set_defaults(filter_func=trimQuality)
-    
+
     return parser
 
 
@@ -222,13 +222,13 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
-    
+
     # Create filter_args
-    filter_keys = ['min_qual', 'max_repeat', 'max_missing', 'min_length', 'inner', 
+    filter_keys = ['min_qual', 'max_repeat', 'max_missing', 'min_length', 'inner',
                    'include_missing', 'window', 'reverse']
     args_dict['filter_args'] = dict((k, args_dict[k]) for k in args_dict if k in filter_keys)
     for k in args_dict['filter_args']:  del args_dict[k]
-    
+
     # Calls quality processing function
     del args_dict['seq_files']
     if 'out_files' in args_dict:  del args_dict['out_files']

@@ -28,7 +28,7 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
     """
     Syncronized paired end files and copies annotations between them
 
-    Arguments: 
+    Arguments:
       seq_file_1 : the file containing the grouped sequences and annotations.
       seq_file_2 : the file to assign annotations to from seq_file_1.
       fields_1 : list of annotations in seq_file_1 records to copy to seq_file_2 records;
@@ -39,8 +39,8 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
                target header.
       coord_type : the sequence header format.
       out_args : common output argument dictionary from parseCommonArgs.
-                    
-    Returns: 
+
+    Returns:
       list: a list of tuples holding successfully paired filenames for (seq_file_1, seq_file_2).
     """
     # Define private functions
@@ -60,13 +60,13 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
     if out_args['out_type'] is None:
         out_type_1 = getFileType(seq_file_1)
         out_type_2 = getFileType(seq_file_2)
-    else: 
+    else:
         out_type_1 = out_type_2 = out_args['out_type']
 
     # Define output name
     if out_args['out_name'] is None:
         out_name_1 = out_name_2 = None
-    else: 
+    else:
         out_name_1 = '%s-1' % out_args['out_name']
         out_name_2 = '%s-2' % out_args['out_name']
 
@@ -82,9 +82,9 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
     printMessage("Done", start_time=start_time, end=True)
 
     # Open output file handles
-    pass_handle_1 = getOutputHandle(seq_file_1, 'pair-pass', out_args['out_dir'], 
+    pass_handle_1 = getOutputHandle(seq_file_1, 'pair-pass', out_args['out_dir'],
                                     out_name=out_name_1, out_type=out_type_1)
-    pass_handle_2 = getOutputHandle(seq_file_2, 'pair-pass', out_args['out_dir'], 
+    pass_handle_2 = getOutputHandle(seq_file_2, 'pair-pass', out_args['out_dir'],
                                     out_name=out_name_2, out_type=out_type_2)
 
     if out_args['failed']:
@@ -181,7 +181,7 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
     log['PASS'] = pair_count
     log['END'] = 'PairSeq'
     printLog(log)
-   
+
     # Close file handles
     pass_handle_1.close()
     pass_handle_2.close()
@@ -228,20 +228,20 @@ def getArgParser():
                                 to the end of the existing annotation.''')
     group_pair.add_argument('--act', action='store', dest='action', required=False,
                             choices=['min', 'max', 'sum', 'set', 'cat'],
-                            help='''The collapse actions to take on all fields copied 
-                                 between files to combine duplicate fields into a single value. 
+                            help='''The collapse actions to take on all fields copied
+                                 between files to combine duplicate fields into a single value.
                                  The actions "min", "max", "sum" perform the corresponding
                                  mathematical operation on numeric annotations. The action
                                  "set" collapses annotations into a comma delimited
                                  list of unique values. The action "cat" concatenates
                                  the values together into a single string. Only applies
-                                 if the field already exists in the header before being copying 
+                                 if the field already exists in the header before being copying
                                  from the other file.''')
     group_pair.add_argument('--coord', action='store', dest='coord_type',
                             choices=choices_coord, default=default_coord,
                             help='''The format of the sequence identifier which defines shared
                                  coordinate information across mate pairs.''')
-    
+
     return parser
 
 
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     # Call pairSeq
     del args_dict['seq_files_1']
     del args_dict['seq_files_2']
-    for file_1, file_2 in zip(args.__dict__['seq_files_1'], 
+    for file_1, file_2 in zip(args.__dict__['seq_files_1'],
                               args.__dict__['seq_files_2']):
         args_dict['seq_file_1'] = file_1
         args_dict['seq_file_2'] = file_2

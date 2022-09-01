@@ -137,7 +137,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     """
     Generates consensus sequences
 
-    Arguments: 
+    Arguments:
       head_file : the head sequence file name
       tail_file : the tail sequence file name
       assemble_func : the function to use to assemble paired ends
@@ -155,8 +155,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
               if None defaults to the number of CPUs
       queue_size = maximum size of the argument queue;
                    if None defaults to 2*nproc
-                 
-    Returns: 
+
+    Returns:
       list: a list of successful output file names.
     """
     # Define subcommand label dictionary
@@ -170,7 +170,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     log = OrderedDict()
     log['START'] = 'AssemblePairs'
     log['COMMAND'] = cmd_name
-    log['FILE1'] = os.path.basename(head_file) 
+    log['FILE1'] = os.path.basename(head_file)
     log['FILE2'] = os.path.basename(tail_file)
     log['COORD_TYPE'] = coord_type
     if 'ref_file' in assemble_args:  log['REFFILE'] = assemble_args['ref_file']
@@ -238,8 +238,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                     'out_args': out_args}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
 
     # Close reference database handle
@@ -257,10 +257,10 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     for k, v in result['log'].items():  log[k] = v
     log['END'] = 'AssemblePairs'
     printLog(log)
-    
+
     return result['out_files']
-        
-        
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -294,7 +294,7 @@ def getArgParser():
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
 
-    # Parent parser    
+    # Parent parser
     parent_parser = getCommonArgParser(seq_paired=True, multiproc=True)
     group_parser = parent_parser.add_argument_group('format arguments')
     group_parser.add_argument('--coord', action='store', dest='coord_type',
@@ -327,7 +327,7 @@ def getArgParser():
                                          help='Assemble pairs by aligning ends.',
                                          description='Assemble pairs by aligning ends.')
     parser_align.set_defaults(assemble_func=alignAssembly)
-    
+
     # Paired end concatenation mode argument parser
     parser_join = subparsers.add_parser('join', parents=[parent_parser],
                                          formatter_class=CommonHelpFormatter, add_help=False,
@@ -399,11 +399,11 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args, in_arg='ref_file')
-    
+
     # Convert case of fields
-    if args_dict['head_fields']:  args_dict['head_fields'] = list(map(str.upper, args_dict['head_fields'])) 
-    if args_dict['tail_fields']:  args_dict['tail_fields'] = list(map(str.upper, args_dict['tail_fields'])) 
-    
+    if args_dict['head_fields']:  args_dict['head_fields'] = list(map(str.upper, args_dict['head_fields']))
+    if args_dict['tail_fields']:  args_dict['tail_fields'] = list(map(str.upper, args_dict['tail_fields']))
+
     # Define assemble_args dictionary for join mode
     if args_dict['assemble_func'] is joinAssembly:
         args_dict['assemble_args'] = {'gap':args_dict['gap']}

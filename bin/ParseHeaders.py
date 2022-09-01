@@ -29,14 +29,14 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=de
     """
     Modifies sequence headers
 
-    Arguments: 
+    Arguments:
       seq_file : the sequence file name.
       modify_func : the function defining the modification operation.
       modify_args : a dictionary of arguments to pass to modify_func.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
-                    
-    Returns: 
+
+    Returns:
       str: output file name.
     """
     # Define subcommand label dictionary
@@ -46,17 +46,17 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=de
                 deleteHeader: 'delete',
                 expandHeader: 'expand',
                 renameHeader: 'rename'}
-    
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'ParseHeaders'
     log['COMMAND'] = cmd_dict.get(modify_func, modify_func.__name__)
     log['FILE'] = os.path.basename(seq_file)
-    for k in sorted(modify_args):  
+    for k in sorted(modify_args):
         v = modify_args[k]
         log[k.upper()] = ','.join(v) if isinstance(v, list) else v
     printLog(log)
-    
+
     # Open file handles
     in_type = getFileType(seq_file)
     seq_iter = readSeqFile(seq_file)
@@ -78,30 +78,30 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=de
     for seq in seq_iter:
         # Print progress for previous iteration
         printProgress(seq_count, result_count, 0.05, start_time=start_time)
-        
+
         #Update counts
         seq_count += 1
-        
+
         # Modify header
         header = parseAnnotation(seq.description, delimiter=out_args['delimiter'])
         header = modify_func(header, delimiter=out_args['delimiter'], **modify_args)
-        
+
         # Write new sequence
         seq.id = seq.name = flattenAnnotation(header, delimiter=out_args['delimiter'])
         seq.description = ''
         SeqIO.write(seq, out_handle, out_args['out_type'])
-        
+
     # print counts
     printProgress(seq_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
     log['OUTPUT'] = os.path.basename(out_handle.name)
     log['SEQUENCES'] = seq_count
-    log['END'] = 'ParseHeaders'               
+    log['END'] = 'ParseHeaders'
     printLog(log)
 
     # Close file handles
     out_handle.close()
- 
+
     return out_handle.name
 
 
@@ -109,13 +109,13 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
     """
     Builds a table of sequence header annotations
 
-    Arguments: 
+    Arguments:
       seq_file : the sequence file name.
       fields : the list of fields to output.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
-                    
-    Returns: 
+
+    Returns:
       str: output table file name
     """
     log = OrderedDict()
@@ -123,7 +123,7 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
     log['COMMAND'] = 'table'
     log['FILE'] = os.path.basename(seq_file)
     printLog(log)
-    
+
     # Open file handles
     seq_iter = readSeqFile(seq_file)
     if out_file is not None:
@@ -136,19 +136,19 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
                                      out_type='tab')
     # Count records
     result_count = countSeqFile(seq_file)
-    
+
     # Open csv writer and write header
-    out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='', 
+    out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='',
                                 delimiter='\t', fieldnames=fields)
     out_writer.writeheader()
-    
+
     # Iterate over sequences
     start_time = time()
     seq_count = pass_count = fail_count = 0
     for seq in seq_iter:
         # Print progress for previous iteration
         printProgress(seq_count, result_count, 0.05, start_time=start_time)
-        
+
         # Get annotations
         seq_count += 1
         ann = parseAnnotation(seq.description, fields, delimiter=out_args['delimiter'])
@@ -159,7 +159,7 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
             out_writer.writerow(ann)
         else:
             fail_count += 1
-        
+
     # Print counts
     printProgress(seq_count, result_count, 0.05, start_time=start_time)
     log = OrderedDict()
@@ -172,7 +172,7 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
 
     # Close file handles
     out_handle.close()
- 
+
     return out_handle.name
 
 
@@ -314,13 +314,13 @@ def getArgParser():
                              choices=['min', 'max', 'sum', 'set', 'cat'],
                              help='''List of collapse actions to take on the new field
                                   following the merge defining how to combine the annotations
-                                  into a single value. The actions "min", "max", "sum" perform 
-                                  the corresponding mathematical operation on numeric annotations. 
+                                  into a single value. The actions "min", "max", "sum" perform
+                                  the corresponding mathematical operation on numeric annotations.
                                   The action "set" collapses annotations into a comma delimited
                                   list of unique values. The action "cat" concatenates
                                   the values together into a single string.''')
     group_merge.add_argument('--delete', action='store_true', dest='delete',
-                             help='''If specified, delete the field that were merged from the 
+                             help='''If specified, delete the field that were merged from the
                                   output header.''')
     parser_merge.set_defaults(func=modifyHeaders)
     parser_merge.set_defaults(modify_func=mergeHeader)
@@ -351,7 +351,7 @@ def getArgParser():
                                    the values together into a single string.''')
     parser_rename.set_defaults(func=modifyHeaders)
     parser_rename.set_defaults(modify_func=renameHeader)
-            
+
     # Subparser to create a header table
     parser_table = subparsers.add_parser('table', parents=[getCommonArgParser(seq_out=False, log=False)],
                                          formatter_class=CommonHelpFormatter, add_help=False,
@@ -365,7 +365,7 @@ def getArgParser():
 
     return parser
 
-    
+
 if __name__ == '__main__':
     """
     Parses command line arguments and calls main function
@@ -377,7 +377,7 @@ if __name__ == '__main__':
     args_dict = parseCommonArgs(args)
 
     # Convert case of fields
-    if 'fields' in args_dict and args_dict['fields']:  
+    if 'fields' in args_dict and args_dict['fields']:
         args_dict['fields'] = list(map(str.upper, args_dict['fields']))
 
     # Built modify_args dictionary
@@ -397,14 +397,14 @@ if __name__ == '__main__':
             modify_args['name'] = str.upper(args_dict.pop('name'))
         if 'names' in args_dict:
             modify_args['names'] = list(map(str.upper, args_dict.pop('names')))
-        if 'values' in args_dict: 
+        if 'values' in args_dict:
             modify_args['values'] = args_dict.pop('values')
-        if 'separator' in args_dict: 
+        if 'separator' in args_dict:
             modify_args['separator'] = args_dict.pop('separator')
         if 'delete' in args_dict:
                 modify_args['delete'] = args_dict.pop('delete')
         args_dict['modify_args'] = modify_args
-        
+
     # Check modify_args arguments
     if args.command == 'add' and len(modify_args['fields']) != len(modify_args['values']):
         parser.error('You must specify exactly one value (-u) per field (-f)')

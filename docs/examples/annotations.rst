@@ -4,10 +4,10 @@ Manipulating Annotations
 ================================================================================
 
 The :ref:`ParseHeaders` tool provides a collection of methods for performing
-simple manipulations of sequence headers that are format in the
+simple manipulations of sequence headers that are formatted in the
 :ref:`pRESTO annotation scheme <AnnotationScheme>`.
 
-For converting sequence headers into the pRESTO format see the
+For converting sequence headers into the pRESTO format, see the
 :ref:`Importing Data <ImportData>` documentation.
 
 Adding a sample annotation
@@ -18,18 +18,18 @@ of :ref:`ParseHeaders`::
 
     ParseHeaders.py add -s reads.fastq -f SAMPLE -u A1
 
-Which will add the annotation ``SAMPLE=A1`` to each sequence of the input file.
+which will add the annotation ``SAMPLE=A1`` to each sequence of the input file.
 
 Expanding and renaming annotations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, pRESTO will not delete annotations. If a sequence header already
-contains an annotation that a tool is trying to add it will not overwrite that
+contains an annotation that a tool is trying to add, it will not overwrite that
 annotation. Instead, it will append the annotation value to the values already
 present in a comma delimited form. For example, after two interations of
-:ref:`MaskPrimers` with the default primer field name (``PRIMER``), you will have
-an annotation in the following form, reflecting a match against primer ``VH3`` in
-the first iteration and primer ``IGHM`` in the second::
+:ref:`MaskPrimers` with the default primer field name ``PRIMER``, you will have
+an annotation in the following form (reflecting a match against primer ``VH3`` in
+the first iteration and primer ``IGHM`` in the second)::
 
     PRIMER=VH3,IGHM
 
@@ -42,7 +42,7 @@ Resulting in the annotations::
 
     PRIMER1=VH3|PRIMER2=IGHM
 
-Which may then be renamed via the :program:`rename` subcommand:
+which may then be renamed via the :program:`rename` subcommand:
 :program:`expand` subcommand of :ref:`ParseHeaders`::
 
     ParseHeaders.py rename -s reads_reheader.fastq -f PRIMER1 PRIMER2 \
@@ -51,7 +51,7 @@ Which may then be renamed via the :program:`rename` subcommand:
 Copying, merging and collapsing annotations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Nested annotation can be generated using the :program:`copy` or :program:`merge`
+Nested annotations can be generated using the :program:`copy` or :program:`merge`
 subcommands of :ref:`ParseHeaders`. The examples that follow will use the starting
 annotation::
 
@@ -63,7 +63,7 @@ annotation using the following command::
     ParseHeaders.py merge -s reads.fasta -f UMI CELL -k INDEX --delete
     # result> COUNT=10,2|INDEX=ATGC,GGCC
 
-Without the :option:`--delete <ParseHeaders merge --delete>` argument the
+Without the :option:`--delete <ParseHeaders merge --delete>` argument, the
 original ``UMI`` and ``CELL`` annotations would be kept in the header.
 
 The nested annotation values can then be combined
@@ -81,7 +81,7 @@ using the :program:`collapse` subcommand to create various effects::
     ParseHeaders.py collapse -s reads_reheader.fasta -f COUNT --act min
     # result> COUNT=2
 
-Where the :option:`--act <ParseHeaders collapse --act>` argument specifies
+where the :option:`--act <ParseHeaders collapse --act>` argument specifies
 the type of collapse action to perform.
 
 The :program:`copy` subcommand is normally used to create duplicate annotations
@@ -110,4 +110,4 @@ of :ref:`ParseHeaders`::
 
     ParseHeaders.py delete -s reads.fastq -f PRIMER
 
-Which will remove the ``PRIMER`` field from each sequence header.
+which will remove the ``PRIMER`` field from each sequence header.

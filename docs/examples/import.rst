@@ -3,14 +3,14 @@
 Importing Data
 ================================================================================
 
-Importing data from SRA, ENA or GenBank
+Importing data from SRA, ENA, or GenBank
 --------------------------------------------------------------------------------
 
-If you have download a data set from GenBank, SRA or ENA the format of the
+If you have downloaded a data set from GenBank, SRA, or ENA, the format of the
 sequences headers are different from the raw Roche 454 and Illumina header
-format. As such, they may or may not be compatible with pRESTO, depending on
-how the headers have been modified by the sequence archive. The
-:ref:`ConvertHeaders` allow you to change incompatible header formats into
+format. As such, they may or may not be compatible with pRESTO (depending on
+how the headers have been modified by the sequence archive). :ref:`ConvertHeaders`
+allows you to change incompatible header formats into
 the pRESTO format. For example, to convert from SRA or ENA headers the
 :program:`sra` subcommand would be used:
 
@@ -28,5 +28,6 @@ generic       Headers with an unknown annotation system
 genbank       NCBI GenBank and RefSeq
 illumina      Illumina HiSeq or MiSeq
 imgt          IMGT/GENE-DB
+migec         Molecular Identifier Guided Error Correction
 sra           NCBI SRA or EMBL-EBI ENA
 ============  =================

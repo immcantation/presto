@@ -58,7 +58,7 @@ def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                      one of ['set', 'majority', 'min', 'max', 'sum'].
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
 
-    Returns: 
+    Returns:
       None
     """
     try:
@@ -69,18 +69,18 @@ def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             else:  data = data_queue.get()
             # Exit upon reaching sentinel
             if data is None:  break
-            
+
             # Define result dictionary for iteration
             result = SeqResult(data.id, data.data)
             result.log['BARCODE'] = data.id
             result.log['SEQCOUNT'] = len(data)
-    
+
             # Define primer annotations and consensus primer if applicable
             if primer_field is None:
                 primer_ann = None
                 seq_list = data.data
             else:
-                # Calculate consensus primer            
+                # Calculate consensus primer
                 primer_ann = OrderedDict()
                 prcons = annotationConsensus(data.data, primer_field, delimiter=delimiter)
                 result.log['PRIMER'] = ','.join(prcons['set'])
@@ -90,23 +90,23 @@ def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                 if primer_freq is None:
                     # Retain full sequence set if not in primer consensus mode
                     seq_list = data.data
-                    primer_ann = mergeAnnotation(primer_ann, {'PRIMER':prcons['set']}, 
+                    primer_ann = mergeAnnotation(primer_ann, {'PRIMER':prcons['set']},
                                                  delimiter=delimiter)
-                    primer_ann = mergeAnnotation(primer_ann, {'PRCOUNT':prcons['count']}, 
+                    primer_ann = mergeAnnotation(primer_ann, {'PRCOUNT':prcons['count']},
                                                  delimiter=delimiter)
                 elif prcons['freq'] >= primer_freq:
                     # Define consensus subset
-                    seq_list = subsetSeqSet(data.data, primer_field, prcons['cons'], 
+                    seq_list = subsetSeqSet(data.data, primer_field, prcons['cons'],
                                             delimiter=delimiter)
-                    primer_ann = mergeAnnotation(primer_ann, {'PRCONS':prcons['cons']}, 
+                    primer_ann = mergeAnnotation(primer_ann, {'PRCONS':prcons['cons']},
                                                  delimiter=delimiter)
-                    primer_ann = mergeAnnotation(primer_ann, {'PRFREQ':prcons['freq']}, 
+                    primer_ann = mergeAnnotation(primer_ann, {'PRFREQ':prcons['freq']},
                                                  delimiter=delimiter)
                 else:
                     # If set fails primer consensus, feed result queue and continue
                     result_queue.put(result)
                     continue
-    
+
             # Check count threshold
             cons_count = len(seq_list)
             result.log['CONSCOUNT'] = cons_count
@@ -215,7 +215,7 @@ def processQueue(alive, data_queue, result_queue, cons_func, cons_args={},
         alive.value = False
         printError('Processing sequence set with ID: %s' % data.id, exit=False)
         raise
-    
+
     return None
 
 
@@ -228,7 +228,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     """
     Generates consensus sequences
 
-    Arguments: 
+    Arguments:
       seq_file : the sample sequence file name
       barcode_field : the annotation field containing set IDs
       min_count : threshold number of sequences to define a consensus
@@ -255,8 +255,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
             if None defaults to the number of CPUs
       queue_size : maximum size of the argument queue;
                  if None defaults to 2*nproc
-                    
-    Returns: 
+
+    Returns:
       list : a list of successful output file names.
     """
     # Print parameter info
@@ -277,29 +277,29 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     log['COPY_ACTIONS'] = ','.join(copy_actions) if copy_actions is not None else None
     log['NPROC'] = nproc
     printLog(log)
-    
+
     # Set consensus building function
     in_type = getFileType(seq_file)
     if in_type == 'fastq':
         cons_func = qualityConsensus
-        cons_args = {'min_qual': min_qual, 
+        cons_args = {'min_qual': min_qual,
                      'min_freq': min_freq,
                      'dependent': dependent}
-    elif in_type == 'fasta':  
+    elif in_type == 'fasta':
         cons_func = frequencyConsensus
         cons_args = {'min_freq': min_freq}
     else:
         printError('Input file must be FASTA or FASTQ.')
-    
+
     # Define feeder function and arguments
     index_args = {'field': barcode_field, 'delimiter': out_args['delimiter']}
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
-                 'index_func': indexSeqSets, 
+                 'index_func': indexSeqSets,
                  'index_args': index_args}
     # Define worker function and arguments
     work_func = processQueue
-    work_args = {'cons_func': cons_func, 
+    work_args = {'cons_func': cons_func,
                  'cons_args': cons_args,
                  'min_count': min_count,
                  'primer_field': primer_field,
@@ -317,19 +317,19 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                     'out_file': out_file,
                     'out_args': out_args,
                     'index_field': barcode_field}
-    
+
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
-        
+
     # Print log
     result['log']['END'] = 'BuildConsensus'
     printLog(result['log'])
-        
+
     return result['out_files']
-        
-        
+
+
 def getArgParser():
     """
     Defines the ArgumentParser
@@ -365,7 +365,7 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(multiproc=True)], 
+                            parents=[getCommonArgParser(multiproc=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     # Consensus arguments
@@ -428,7 +428,7 @@ def getArgParser():
 
     return parser
 
-        
+
 if __name__ == '__main__':
     """
     Parses command line arguments and calls main function
@@ -438,11 +438,11 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
-    
+
     # Convert case of fields
     if args_dict['barcode_field']:  args_dict['barcode_field'] = args_dict['barcode_field'].upper()
     if args_dict['primer_field']:  args_dict['primer_field'] = args_dict['primer_field'].upper()
-    
+
     # Check prcons argument dependencies
     if args.primer_freq and not args.primer_field:
         parser.error('You must define a primer field with --pf to use the --prcons option')
@@ -452,7 +452,7 @@ if __name__ == '__main__':
        len((args_dict['copy_fields'] or '')) != len((args_dict['copy_actions'] or '')):
             parser.error('You must specify exactly one copy action (--act) per copy field (--cf)')
 
-    # Call buildConsensus for each sample file    
+    # Call buildConsensus for each sample file
     del args_dict['seq_files']
     if 'out_files' in args_dict:  del args_dict['out_files']
     for i, f in enumerate(args.__dict__['seq_files']):

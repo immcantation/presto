@@ -24,20 +24,20 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
     """
     Converts a pRESTO log to a table of annotations
 
-    Arguments: 
+    Arguments:
       record_file : the log file name.
       fields : the list of fields to output.
       out_file : output file name. Automatically generated from the input file if None.
       out_args : common output argument dictionary from parseCommonArgs.
-                    
-    Returns: 
+
+    Returns:
       str: the output table file name
     """
     log = OrderedDict()
     log['START'] = 'ParseLog'
     log['FILE'] = os.path.basename(record_file)
     printLog(log)
-    
+
     # Open file handles
     log_handle = open(record_file)
     if out_file is not None:
@@ -48,12 +48,12 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
                                       out_type='tab')
-        
+
     # Open csv writer and write header
-    out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='', 
+    out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='',
                                 delimiter='\t', fieldnames=fields)
     out_writer.writeheader()
-    
+
     # Iterate over log records
     start_time = time()
     record = ''
@@ -62,7 +62,7 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
         if line.strip() == '' and record:
             # Print progress for previous iteration
             printCount(rec_count, 1e5, start_time=start_time)
-            
+
             # Parse record block
             rec_count += 1
             record_dict = parseLog(record)
@@ -73,7 +73,7 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
                 out_writer.writerow(record_dict)
             elif record_dict:
                 fail_count += 1
-                
+
             # Empty record string
             record = ''
         else:
@@ -81,14 +81,14 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
             record += line
     else:
         # Write final record
-        if record: 
+        if record:
             record_dict = parseLog(record)
             if any([f in fields for f in record_dict]):
                 pass_count += 1
                 out_writer.writerow(record_dict)
             elif record_dict:
                 fail_count += 1
-    
+
     # Print counts
     printCount(rec_count, 1e5, start_time, end=True)
     log = OrderedDict()
@@ -102,7 +102,7 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
     # Close file handles
     log_handle.close()
     out_handle.close()
- 
+
     return log_handle.name
 
 
@@ -137,10 +137,10 @@ def getArgParser():
     group_log.add_argument('-f', nargs='+', action='store', dest='fields', required=True,
                            help='''List of fields to collect. The sequence identifier may
                                 be specified using the hidden field name "ID".''')
-    
+
     return parser
 
-    
+
 if __name__ == '__main__':
     """
     Parses command line arguments and calls main function
@@ -151,8 +151,8 @@ if __name__ == '__main__':
     checkArgs(parser)
     args_dict = parseCommonArgs(args, in_arg='record_files')
     # Convert case of fields
-    if args_dict['fields']:  args_dict['fields'] = list(map(str.upper, args_dict['fields'])) 
-    
+    if args_dict['fields']:  args_dict['fields'] = list(map(str.upper, args_dict['fields']))
+
     # Call parseLog for each log file
     del args_dict['record_files']
     if 'out_files' in args_dict:  del args_dict['out_files']

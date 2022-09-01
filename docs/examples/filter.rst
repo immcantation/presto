@@ -39,7 +39,7 @@ splitting one file with multiple ``SAMPLE`` annotations into separate files
 
     SplitSeq.py group -s reads.fastq -f SAMPLE
 
-Which will create a set of files labelled ``SAMPLE-M1`` and ``SAMPLE-M2``, if samples are
+which will create a set of files labelled ``SAMPLE-M1`` and ``SAMPLE-M2`` if samples are
 named ``M1`` and ``M2``.
 
 If you wanted to split based on a numeric value, rather than a set of categorical values,
@@ -50,7 +50,7 @@ sequences with values greater than or equal to the threshold::
 
     SplitSeq.py group -s reads.fastq -f DUPCOUNT --num 2
 
-Which will create two files with the labels ``atleast-2`` and ``under-2``.
+which will create two files with the labels ``atleast-2`` and ``under-2``.
 
 .. _Filter-RandomSampling:
 
@@ -75,30 +75,30 @@ the :program:`samplepair` subcommand::
     Both the :option:`-f <SplitSeq sample -f>` and :option:`-n <SplitSeq sample -n>`
     arguments will accept a list of values (eg, ``-n 1000 100 10``), allowing you to
     sample multiple times from multiple files in one command.
-    
+
 Converting to FASTA for IMGT/HighV-QUEST or IgBLAST
 --------------------------------------------------------------------------------
 
 `IMGT/HighV-QUEST <http://imgt.org/HighV-QUEST>`__ and `IgBLAST <http://ncbi.github.io/igblast>`__
-require sequences in FASTA format. You can use the Immcantation script `fastq2fasta.py` to
+both require sequences in FASTA format. You can use the Immcantation script `fastq2fasta.py` to
 convert `.fastq` to `.fasta`. The script is available from the
 `repository <http://bitbucket.org/kleinstein/immcantation/src/master/scripts/fastq2fasta.py>`__
-and is installed in the Docker container.
+and is pre-installed in the Docker container.
 
 .. code-block:: none
 
     fastq2fasta.py reads.fastq
-    
+
 Alternatively, you can request :ref:`SplitSeq.py` to output FASTA files by using
-the flag :option:`--fasta`. In the example workflows, a common last step 
-in the data processing pipeline includes filtering sequences with at least two 
-representative reads. By adding :option:`--fasta` to the command, the output 
+the flag :option:`--fasta`. In the example workflows, a common last step
+in the data processing pipelines is filtering sequences with at least two
+representative reads. By adding :option:`--fasta` to the command, the output
 file will be a `.fasta` file.
 
 .. code-block:: none
 
     SplitSeq.py group -s reads.fastq -f DUPCOUNT --num 2 --fasta
-    
+
 
 Reducing file size for submission to IMGT/HighV-QUEST
 --------------------------------------------------------------------------------

@@ -5,7 +5,7 @@ The simplest way to install the latest stable release of pRESTO is via pip::
 
     > pip3 install presto --user
 
-The current development build can be installed using pip and git in
+The current development build can be installed using pip and git in a
 similar fashion::
 
     > pip3 install git+https://bitbucket.org/kleinstein/presto@master --user

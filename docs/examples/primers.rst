@@ -9,7 +9,7 @@ Assigning isotype annotations from the constant region sequence
 :ref:`MaskPrimers` is usually used to remove primer regions and annotate
 sequences with primer identifiers. However, it can be used for any other case
 where you need to align a set of short sequences against the reads. One example
-alternate use is where you either do not know the C-region primer sequences
+of an alternate use is where you either do not know the C-region primer sequences
 or do not trust the primer region to provide an accurate isotype assignment.
 
 If you build a FASTA file containing the reverse-complement of short sequences
@@ -19,7 +19,7 @@ way you would C-region specific primers::
     MaskPrimers.py align -s reads.fastq -p IGHC.fasta --maxlen 100 --maxerror 0.3 \
         --mode cut --revpr --pf C_CALL
 
-Where :option:`--revpr <MaskPrimers align --revpr>` tells :ref:`MaskPrimers` to
+where :option:`--revpr <MaskPrimers align --revpr>` tells :ref:`MaskPrimers` to
 reverse-complement the "primer" sequences and look for them at the end of the reads,
 :option:`--maxlen 100 <MaskPrimers align --maxlen>` restricts the search to the last
 100 bp, :option:`--maxerror 0.3 <MaskPrimers align --maxerror>` allows for up to
@@ -40,6 +40,6 @@ headers as the ``C_CALL`` annotation, where the field name is specified by the
     reformated using the :program:`imgt` subcommand of :ref:`ConvertHeaders`.
     Note, you may need to clean-up the reference sequences a bit
     before running :ref:`ConvertHeaders` if you receive an error about duplicate sequence names
-    (eg, remove duplicate allele with different artificial splicing). To cut and
-    reverse-complement the constant region sequences use something like
+    (e.g., remove duplicate allele with different artificial splicing). To cut and
+    reverse-complement the constant region sequences, use something like
     `seqmagick <http://seqmagick.readthedocs.io>`__.

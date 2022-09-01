@@ -173,4 +173,3 @@ if __name__ == '__main__':
         args_dict['out_file'] = args.__dict__['out_files'][i] \
             if args.__dict__['out_files'] else None
         unifyHeaders(**args_dict)
-

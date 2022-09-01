@@ -41,7 +41,7 @@ multiple align reads sharing the same ``BARCODE`` annotation.
 The :option:`--exec ~/bin/muscle <AlignSets muscle --exec>` is a pointer to
 where the `MUSCLE <http://www.drive5.com/muscle>`__ executable is located::
 
-        AlignSets.py muscle -s reads.fastq --bf BARCODE --exec ~/bin/muscle
+    AlignSets.py muscle -s reads.fastq --bf BARCODE --exec ~/bin/muscle
 
 The above approach will also insert gaps into the sequences where an
 insertion/deletion has occured in the reads. As such, you will need to provide
@@ -54,7 +54,7 @@ positions with gap characters when generating a UMI consensus sequence.
     Using the :program:`muscle` subcommand, along with the
     :option:`--maxgap <BuildConsensus --maxgap>` argument to :ref:`BuildConsensus`
     will also address issue with insertions/deletions in UMI read groups.
-    Though, in UMI read groups with a sufficient number of reads consensus generation
+    Although in UMI read groups with a sufficient number of reads consensus generation
     will resolve insertions/deletions without the need for multiple alignment,
     as any misaligned reads will simply be washed out by the majority.
     Whether to perform a multiple alignment prior to consensus generation is a
@@ -72,7 +72,7 @@ step involves creation of a primer offset table using the :program:`table` subco
 
     AlignSets.py table -p primers.fasta --exec ~/bin/muscle
 
-Which performs a multiple alignment on sequences in ``primers.fasta``
+which performs a multiple alignment on sequences in ``primers.fasta``
 (sequences shown in the :ref:`primer alignment figure <UMI-AlignmentFigure>` above)
 to generate a file containing a primer offset table:
 
@@ -138,7 +138,7 @@ fields can be merged using the :program:`copy` operation of :ref:`ParseHeaders`:
 
     ParseHeaders.py copy -s reads_cluster-pass.fastq -f BARCODE -k CLUSTER --act cat
 
-Which will copy the UMI annotation (:option:`-f BARCODE <ParseHeaders copy -f>`) into
+which will copy the UMI annotation (:option:`-f BARCODE <ParseHeaders copy -f>`) into
 the cluster annotation (:option:`-k CLUSTER <ParseHeaders copy -k>`) and concatenate
 them together (:option:`--act cat <ParseHeaders copy --act>`). Thus converting the
 annotations from::
@@ -146,7 +146,7 @@ annotations from::
     >SEQ1|BARCODE=ATGTCG|CLUSTER=1
     >SEQ2|BARCODE=ATGTCG|CLUSTER=2
 
-To::
+to::
 
     >SEQ1|BARCODE=ATGTCG|CLUSTER=1ATGTCG
     >SEQ2|BARCODE=ATGTCG|CLUSTER=2ATGTCG
@@ -182,7 +182,7 @@ Alternatively, these annotations can be combined upon copy using the
     PairSeq.py -1 reads-1.fastq -2 reads-2.fastq --1f BARCODE --2f BARCODE \
         --coord illumina --act cat
 
-Which concatenates the two values in the ``BARCODE`` field,
+which concatenates the two values in the ``BARCODE`` field,
 yielding UMI annotations suitable for input to :ref:`BuildConsensus`::
 
     >READ1|BARCODE=ATGTCGTTGGCTAGTC
@@ -272,7 +272,7 @@ similar way using the :program:`set` subcommand of :ref:`ClusterSets`::
 
     ClusterSets.py set -s reads_cluster-pass.fastq -f INDEX_UMI -k INDEX_SEQ --ident 0.8
 
-Where the argument :option:`--ident 0.8 <ClusterSets set --ident>` specifies the clustering
+where the argument :option:`--ident 0.8 <ClusterSets set --ident>` specifies the clustering
 threshold, :option:`-f INDEX_UMI <ClusterSets set -f>` defines the UMI cluster group to
 cluster within, and :option:`-k INDEX_SEQ <ClusterSets set -k>` defines the V(D)J sequence
 cluster annotation to add to the output headers.

@@ -41,14 +41,14 @@ def initializeMismatchDictionary(seq_len, nucleotides=default_nucleotides,
     """
     Generates empty mismatch dictionary
 
-    Arguments: 
+    Arguments:
       seq_len : the nt length of sequences in the set
       nucleotides : valid nucloetide characters.
       headers : distance DataFrame headers.
       distance_types : distance types to include.
       bin_count : histogram bin count.
 
-    Returns: 
+    Returns:
       dict: pandas.DataFrame objects containing [mismatch, qsum, total] counts
             for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set}
     """
@@ -58,7 +58,7 @@ def initializeMismatchDictionary(seq_len, nucleotides=default_nucleotides,
                 for header in headers}
     qual_dict = {header: {quality:0 for quality in range(94)} for header in headers}
     set_dict = {header: None for header in headers}
-    
+
     # initialize the pairwise-distance mismatch dictionary
     dist_dict = {header: np.zeros(bin_count) for header in distance_types}
 
@@ -70,13 +70,13 @@ def calculateDistances(seq_iter, bin_count=default_bin_count, pad_ends='none'):
     """
     Computes and histograms the pairwise distance matrix from a set of sequences
 
-    Arguments: 
+    Arguments:
       seq_iter (iter): an iterable of strings.
       bin_count (int): number of bins to use when computing histogram.
       pad_ends (str): action to take for truncated barcode sequences. "none" excludes truncated barcodes from
                       the calculations. "head" or "tail" will add N characters to the respective end.
 
-    Returns: 
+    Returns:
       dict: np.arrays for {all:all pairwise, dtn:distance to nearest}
     """
     # Define 2d unicode array of strings
@@ -102,14 +102,14 @@ def calculateDistances(seq_iter, bin_count=default_bin_count, pad_ends='none'):
     return {'all' : np.histogram(all_pairwise, bins=bin_count, range=(0.0, 1.0), density=False)[0]}
 
 
-def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars, 
+def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
                     score_dict=getDNAScoreDict(mask_score=(1, 1), gap_score=(1, 1)),
                     headers=default_headers, distance_types=default_distance_types,
                     bin_count=default_bin_count):
     """
     Counts the occurrence of nucleotide mismatches in a set of sequences
 
-    Arguments: 
+    Arguments:
       seq_list : a list of SeqRecord objects with aligned sequences
       ref_seq : a SeqRecord object containing the reference sequence to match against
       ignore_chars : list of characters to exclude from mismatch counts
@@ -118,7 +118,7 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
       distance_types : distance types to include.
       bin_count : histogram bin count.
 
-    Returns: 
+    Returns:
       dict: dictionaries containing [mismatch, qsum, total] counts
             for {pos:sequence position, nuc:nucleotide pairs, qual:quality score, set:sequence set, dist:sequence distances}
     """
@@ -132,19 +132,19 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
         for i, b in enumerate(seq):
             a = ref_seq[i]
             q = qual[i]
-            
+
             if a not in ignore_chars and b not in ignore_chars:
                 mismatch['pos']['total'][i] += 1
                 mismatch['pos']['q_sum'][i] += q
-                
+
                 # Add nt counts, including for mismatches
                 mismatch['nuc']['mismatch'][b][b] += 1
                 for a_i in mismatch['nuc']['total'][b]: mismatch['nuc']['total'][b][a_i] += 1
                 for a_i in mismatch['nuc']['q_sum'][b]: mismatch['nuc']['q_sum'][b][a_i] += q
-            
+
                 mismatch['qual']['total'][q] += 1
                 mismatch['qual']['q_sum'][q] += q
-            
+
             if score_dict[(a, b)] == 0:
                 mismatch['pos']['mismatch'][i] += 1
                 mismatch['nuc']['mismatch'][a][b] += 1
@@ -154,7 +154,7 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
 
     # Generate the set counter (for a given number of sequences in umi group, these are the mismatch values)
     mismatch['set'] = {header: {len(seq_list): sum(mismatch['pos'][header].values())} for header in headers}
-    
+
     # Calculate distances
     distance_mismatch = calculateDistances(seq_list, bin_count=bin_count)
     mismatch['dist'] = {header: distance_mismatch[header] for header in distance_types}
@@ -162,23 +162,23 @@ def countMismatches(seq_list, ref_seq, ignore_chars=default_missing_chars,
     return mismatch
 
 
-def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={}, 
+def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                    min_count=default_min_count, max_diversity=None):
     """
     Pulls from data queue, performs calculations, and feeds results queue
 
-    Arguments: 
-      alive : a multiprocessing.Value boolean controlling whether processing 
+    Arguments:
+      alive : a multiprocessing.Value boolean controlling whether processing
               continues; when False function returns
       data_queue : a multiprocessing.Queue holding data to process
       result_queue : a multiprocessing.Queue to hold processed results
-      cons_func : the function to use for consensus generation 
+      cons_func : the function to use for consensus generation
       cons_args : a dictionary of optional arguments for the consensus function
       min_count : threshold number of sequences to retain a set
       max_diversity : the minimum diversity score to retain a set;
                     if None do not calculate diversity
-                        
-    Returns: 
+
+    Returns:
       None
     """
     try:
@@ -189,35 +189,35 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
             else:  data = data_queue.get()
             # Exit upon reaching sentinel
             if data is None:  break
-            
+
             # Define result dictionary for iteration
             result = SeqResult(data.id, data.data)
-            result.results = {'pos':None, 
-                              'nuc':None, 
-                              'qual':None, 
+            result.results = {'pos':None,
+                              'nuc':None,
+                              'qual':None,
                               'set':None}
-            
+
             # Define sequences set
             seq_list = data.data
             seq_count = len(data)
-            
+
             # Update log
             result.log['SET'] = data.id
             result.log['SEQCOUNT'] = seq_count
             for i, s in enumerate(seq_list):
                 result.log['SEQ%i' % (i + 1)] = str(s.seq)
-            
+
             # Check count threshold and continue if failed
             if len(data) < min_count:
                 result_queue.put(result)
                 continue
-                
+
             #@ Check all sequences in group have the same length and continue if failed
             init_len = len(seq_list[0])
             if any(len(seq) != init_len for seq in seq_list):
                 result_queue.put(result)
                 continue
-                
+
             # Calculate average pairwise error rate
             if max_diversity is not None:
                 diversity = calculateDiversity(seq_list)
@@ -226,18 +226,18 @@ def processEEQueue(alive, data_queue, result_queue, cons_func, cons_args={},
                 if diversity > max_diversity:
                     result_queue.put(result)
                     continue
-                
+
             # Define reference sequence by consensus
             ref_seq = cons_func(seq_list, **cons_args)
-            
+
             # Count mismatches against consensus
             mismatch = countMismatches(seq_list, ref_seq)
 
-            
+
             # Calculate average reported and observed error
             reported_q = mismatch['set']['q_sum'][len(seq_list)] / mismatch['set']['total'][len(seq_list)]
             error_rate = mismatch['set']['mismatch'][len(seq_list)] / mismatch['set']['total'][len(seq_list)]
-    
+
             # Update log
             result.log['REFERENCE'] = str(ref_seq.seq)
             result.log['MISMATCH'] = ''.join(['*' if x > 0 else ' ' \
@@ -268,8 +268,8 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
     """
     Pulls from results queue, assembles results and manages log and file IO
 
-    Arguments: 
-      alive : a multiprocessing.Value boolean controlling whether processing 
+    Arguments:
+      alive : a multiprocessing.Value boolean controlling whether processing
             continues; when False function returns.
       result_queue : a multiprocessing.Queue holding worker results.
       collect_queue : a multiprocessing.Queue to store collector return values.
@@ -304,13 +304,13 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
                 _addCounterDict(total_mismatch['nuc'][head][nucleotide], mismatch['nuc'][head][nucleotide])
         for head in distance_types:
             total_mismatch['dist'][head] = total_mismatch['dist'][head] + mismatch['dist'][head]
-        
+
         return total_mismatch
 
     try:
         # Count sets
         result_count = countSeqSets(seq_file, set_field, out_args['delimiter'])
-        
+
         # Define empty DataFrames to store assembled results
         total_mismatch = initializeMismatchDictionary(0, nucleotides=nucleotides, headers=headers,
                                                       distance_types=distance_types)
@@ -323,7 +323,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
     except:
         alive.value = False
         raise
-    
+
     try:
         # Iterator over results queue until sentinel object reached
         start_time = time()
@@ -337,7 +337,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
 
             # Print progress for previous iteration
             printProgress(set_count, result_count, 0.05, start_time=start_time)
-            
+
             # Update counts for iteration
             set_count += 1
             seq_count += result.data_count
@@ -348,7 +348,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
                 total_mismatch = _updateTotalMismatch(total_mismatch, result.results)
             else:
                 fail_count += 1
-                
+
             # Write log
             printLog(result.log, handle=log_handle)
         else:
@@ -401,7 +401,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
             collect_dict = {'log': log, 'out_files': None}
             collect_queue.put(collect_dict)
             return None
-    
+
         # Calculate error rates
         pos_df['error'] = pos_df['mismatch'] / pos_df['total']
         nuc_df['error'] = nuc_df['mismatch'] / nuc_df['total']
@@ -419,19 +419,19 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
         nuc_df['emp_q'] = -10 * np.log10(nuc_df['error'])
         qual_df['emp_q'] = -10 * np.log10(qual_df['error'])
         set_df['emp_q'] = -10 * np.log10(set_df['error'])
-    
+
         # Calculate reported quality means
-        pos_df['rep_q'] = pos_df['q_sum'] / pos_df['total'] 
+        pos_df['rep_q'] = pos_df['q_sum'] / pos_df['total']
         nuc_df['rep_q'] = nuc_df['q_sum'] / nuc_df['total']
         qual_df['rep_q'] = qual_df['q_sum'] / qual_df['total']
         set_df['rep_q'] = set_df['q_sum'] / set_df['total']
-            
+
         # Calculate overall error rate
-        pos_error = pos_df['mismatch'].sum() / pos_df['total'].sum() 
-        qual_error = qual_df['mismatch'].sum() / qual_df['total'].sum() 
+        pos_error = pos_df['mismatch'].sum() / pos_df['total'].sum()
+        qual_error = qual_df['mismatch'].sum() / qual_df['total'].sum()
         nuc_error = nuc_df['mismatch'].sum() / nuc_df['total'].sum()
-        set_error = set_df['mismatch'].sum() / set_df['total'].sum() 
-    
+        set_error = set_df['mismatch'].sum() / set_df['total'].sum()
+
         # Build results dictionary
         assembled = {'pos': pos_df, 'qual': qual_df, 'nuc': nuc_df, 'set': set_df,
                      'dist': dist_df, 'thresh': thresh_df}
@@ -454,7 +454,7 @@ def collectEEQueue(alive, result_queue, collect_queue, seq_file, out_args, set_f
     except:
         alive.value = False
         raise
-    
+
     return None
 
 
@@ -462,7 +462,7 @@ def writeResults(results, seq_file, out_args):
     """
     Formats results and writes to output files
 
-    Arguments: 
+    Arguments:
       results : assembled results dictionary.
       seq_file : the sample sequence file name.
       out_args : common output argument dictionary from parseCommonArgs.
@@ -478,12 +478,12 @@ def writeResults(results, seq_file, out_args):
     thresh_df = results['thresh']
 
     # Type conversion to int of mismatch and total columns
-    pos_df[['mismatch', 'total']] = pos_df[['mismatch', 'total']].astype(int) 
-    nuc_df[['mismatch', 'total']] = nuc_df[['mismatch', 'total']].astype(int) 
-    qual_df[['mismatch', 'total']] = qual_df[['mismatch', 'total']].astype(int) 
-    set_df[['mismatch', 'total']] = set_df[['mismatch', 'total']].astype(int)     
+    pos_df[['mismatch', 'total']] = pos_df[['mismatch', 'total']].astype(int)
+    nuc_df[['mismatch', 'total']] = nuc_df[['mismatch', 'total']].astype(int)
+    qual_df[['mismatch', 'total']] = qual_df[['mismatch', 'total']].astype(int)
+    set_df[['mismatch', 'total']] = set_df[['mismatch', 'total']].astype(int)
     dist_df[['all']] = dist_df[['all']].astype(int)
-    
+
     # Write to tab delimited files
     file_args = {'out_dir': out_args['out_dir'], 'out_name': out_args['out_name'], 'out_type': 'tab'}
     with getOutputHandle(seq_file, 'error-position', **file_args) as pos_handle, \
@@ -528,15 +528,15 @@ def writeResults(results, seq_file, out_args):
             dist_handle.name, thresh_handle.name)
 
 
-def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={}, 
+def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
                  set_field=default_barcode_field, min_count=default_min_count, max_diversity=None,
                  out_args=default_out_args, nproc=None, queue_size=None):
     """
     Calculates error rates of sequence sets
 
-    Arguments: 
+    Arguments:
       seq_file : the sample sequence file name
-      cons_func : the function to use for consensus generation 
+      cons_func : the function to use for consensus generation
       cons_args : a dictionary of arguments for the consensus function
       set_field : the annotation field containing set IDs
       min_count : threshold number of sequences to consider a set
@@ -547,13 +547,13 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
             if None defaults to the number of CPUs
       queue_size : maximum size of the argument queue;
                  if None defaults to 2*nproc
-                    
-    Returns: 
+
+    Returns:
       tuple : (position error, quality error, nucleotide pairwise error) output file names
     """
     # Define subcommand label dictionary
     cmd_dict = {frequencyConsensus:'freq', qualityConsensus:'qual'}
-    
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'EstimateError'
@@ -564,21 +564,21 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
     log['MAX_DIVERSITY'] = max_diversity
     log['NPROC'] = nproc
     printLog(log)
-    
+
     # Check input file type
     in_type = getFileType(seq_file)
     if in_type != 'fastq':
         printError('Input file must be FASTQ.')
-    
+
     # Define feeder function and arguments
     index_args = {'field': set_field, 'delimiter': out_args['delimiter']}
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
-                 'index_func': indexSeqSets, 
+                 'index_func': indexSeqSets,
                  'index_args': index_args}
     # Define worker function and arguments
     work_func = processEEQueue
-    work_args = {'cons_func': cons_func, 
+    work_args = {'cons_func': cons_func,
                  'cons_args': cons_args,
                  'min_count': min_count,
                  'max_diversity': max_diversity}
@@ -589,14 +589,14 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
                     'set_field': set_field}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
-        
+
     # Print log
     result['log']['END'] = 'EstimateError'
     printLog(result['log'])
-        
+
     return result['out_files']
 
 
@@ -605,18 +605,18 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     """
     Calculates error rates of barcode sequences
 
-    Arguments: 
+    Arguments:
       seq_file : the sample sequence file name
       barcode_field : the annotation field containing barcode sequences.
       distance_types : distance types to include.
       pad_ends (str): action to take for truncated barcode sequences. "none" excludes truncated barcodes from
                       the calculations. "head" or "tail" will add N characters to the respective end.
       out_args : common output argument dictionary from parseCommonArgs
-                        
-    Returns: 
+
+    Returns:
       tuple: names of the output files.
     """
-    
+
     # Function to extract to make SeqRecord object from a barcode annotation
     def _barcode(seq, field=barcode_field, delimiter=out_args['delimiter']):
         header = parseAnnotation(seq.description, delimiter=delimiter)
@@ -630,11 +630,11 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     log['BARCODE_FIELD'] = barcode_field
     log['PAD'] = pad_ends
     printLog(log)
-    
+
     # Count sequence file and parse into a list of SeqRecords
     result_count = countSeqFile(seq_file)
     barcode_iter = (_barcode(x) for x in readSeqFile(seq_file))
-    
+
     # Compute bin_count defaults to the length of the barcode + 1
     bin_count = len(_barcode(next(readSeqFile(seq_file)))) + 1
     mismatch = initializeMismatchDictionary(0, distance_types=distance_types, bin_count=bin_count)
@@ -659,7 +659,7 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     # Output as tsv
     with getOutputHandle(seq_file, 'distance-barcode', **file_args) as dist_handle, \
         getOutputHandle(seq_file, 'threshold-barcode', **file_args) as thresh_handle:
-        
+
         dist_df.to_csv(dist_handle, sep='\t', na_rep='NA', index=True,
                       index_label='DISTANCE',
                       columns=['all'],
@@ -670,7 +670,7 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
                       columns=['thresh'],
                       header=['THRESHOLD'],
                       float_format='%.6f')
-                      
+
     # Update log
     log['OUTPUT1'] = os.path.basename(dist_handle.name)
     log['OUTPUT2'] = os.path.basename(thresh_handle.name)
@@ -741,7 +741,7 @@ def getArgParser():
                  DISTANCE
                      length normalized hamming distance.
              ''')
-    
+
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
                             formatter_class=CommonHelpFormatter, add_help=False)
@@ -753,7 +753,7 @@ def getArgParser():
                                        help='Estimation method')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
-    
+
     # Error profiling arguments for sets
     parent_set = getCommonArgParser(failed=False, seq_out=False, log=True, out_file=False, multiproc=True)
     parser_set = subparsers.add_parser('set', parents=[parent_set],
@@ -792,19 +792,19 @@ def getArgParser():
                                            description='Calculates pairwise distance metrics of barcode sequences.')
     group_barcode = parser_barcode.add_argument_group('distance calculation arguments')
     group_barcode.add_argument('-f', action='store', dest='barcode_field', type=str, default=default_barcode_field,
-                               help='''The name of the barcode field. Note, barcodes are expected to all be identical 
+                               help='''The name of the barcode field. Note, barcodes are expected to all be identical
                                     length. Barcode sequences shorter than the maximum barcode length will be excluded
                                     from the distance calculations.''')
     group_barcode.add_argument('--pad', action='store', dest='pad_ends', type=str,
                                choices=['none', 'head', 'tail'], default='none',
-                               help='''Specifies the action to take for barcode sequences shorter than the maximum 
-                                    barcode length. The "none" action will exclude truncated barcodes from the distance 
-                                    calculations. The "head" and "tail" actions will add N characters to either the 
-                                    front or back, respectively, of truncated barcode sequence to give all barcodes 
-                                    identical length. N characters will be treated as mismatches in the distance 
+                               help='''Specifies the action to take for barcode sequences shorter than the maximum
+                                    barcode length. The "none" action will exclude truncated barcodes from the distance
+                                    calculations. The "head" and "tail" actions will add N characters to either the
+                                    front or back, respectively, of truncated barcode sequence to give all barcodes
+                                    identical length. N characters will be treated as mismatches in the distance
                                     calculation.''')
     parser_barcode.set_defaults(func=estimateBarcode)
-    
+
     return parser
 
 
@@ -822,21 +822,21 @@ if __name__ == '__main__':
     if args_dict['command'] == 'set':
         if args_dict['set_field']:
               args_dict['set_field'] = args_dict['set_field'].upper()
-    
+
         # Define cons_func and cons_args
         if args_dict['mode'] == 'freq':
             args_dict['cons_func'] = frequencyConsensus
             args_dict['cons_args'] = {'min_freq':args_dict['min_freq']}
         elif args_dict['mode'] == 'qual':
             args_dict['cons_func'] = qualityConsensus
-            args_dict['cons_args'] = {'min_qual':args_dict['min_qual'], 
-                                      'min_freq':args_dict['min_freq'], 
+            args_dict['cons_args'] = {'min_qual':args_dict['min_qual'],
+                                      'min_freq':args_dict['min_freq'],
                                       'dependent':False}
         del args_dict['mode']
         if 'min_freq' in args_dict:  del args_dict['min_freq']
         if 'min_qual' in args_dict:  del args_dict['min_qual']
-    
-    # Call estimateError for each sample file    
+
+    # Call estimateError for each sample file
     del args_dict['seq_files']
     del args_dict['func']
     del args_dict['command']

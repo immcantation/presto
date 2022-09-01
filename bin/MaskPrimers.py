@@ -213,7 +213,7 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
     """
     Masks or cuts primers from sample sequences using local alignment
 
-    Arguments: 
+    Arguments:
       seq_file : name of file containing sample sequences.
       primer_file : name of the file containing primer sequences.
       align_func : the function to call for alignment.
@@ -224,13 +224,13 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
               if None defaults to the number of CPUs.
       queue_size : maximum size of the argument queue;
                    if None defaults to 2*nproc.
-                 
+
     Returns:
       list: a list of successful output file names.
     """
     # Define subcommand label dictionary
     cmd_dict = {alignPrimers: 'align', scorePrimers: 'score', extractPrimers: 'extract'}
-    
+
     # Print parameter info
     log = OrderedDict()
     log['START'] = 'MaskPrimers'
@@ -279,16 +279,16 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
                     'label': 'primers',
                     'out_file': out_file,
                     'out_args': out_args}
-    
+
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func, 
-                             feed_args, work_args, collect_args, 
+    result = manageProcesses(feed_func, work_func, collect_func,
+                             feed_args, work_args, collect_args,
                              nproc, queue_size)
 
     # Print log
     result['log']['END'] = 'MaskPrimers'
     printLog(result['log'])
-        
+
     return result['out_files']
 
 
@@ -330,7 +330,7 @@ def getArgParser():
                                        help='Alignment method')
     # TODO:  This is a temporary fix for Python issue 9253
     subparsers.required = True
-    
+
     # Parent parser
     parent_parser = getCommonArgParser(multiproc=True)
 
@@ -396,7 +396,7 @@ def getArgParser():
     group_score.add_argument('--revpr', action='store_true', dest='rev_primer',
                               help='''Specify to match the tail-end of the sequence against the
                                    reverse complement of the primers. This also reverses the
-                                   behavior of the --start argument, such that start position is 
+                                   behavior of the --start argument, such that start position is
                                    relative to the tail-end of the sequence.''')
     group_score.add_argument('--mode', action='store', dest='mode',
                               choices=('cut', 'mask', 'trim', 'tag'), default='mask',
@@ -432,10 +432,10 @@ def getArgParser():
     group_extract.add_argument('--mode', action='store', dest='mode',
                                choices=('cut', 'mask', 'trim', 'tag'), default='mask',
                                help='''Specifies the action to take with the sequence region.
-                                    The "cut" mode will remove the region. 
+                                    The "cut" mode will remove the region.
                                     The "mask" mode will replace the specified region with Ns.
                                     The "trim" mode will remove the sequence preceding the specified region,
-                                    but leave the region intact. 
+                                    but leave the region intact.
                                     The "tag" mode will leave the input sequence unmodified.''')
     group_extract.add_argument('--barcode', action='store_true', dest='barcode',
                                help='''Specify to remove the sequence preceding the extracted region and
@@ -459,7 +459,7 @@ if __name__ == '__main__':
     checkArgs(parser)
     args = parser.parse_args()
     args_dict = parseCommonArgs(args)
-    
+
     # Define align_args dictionary to pass to maskPrimers
     if args_dict['align_func'] is alignPrimers:
         args_dict['align_args'] = {'max_error': args_dict['max_error'],
@@ -521,4 +521,3 @@ if __name__ == '__main__':
         args_dict['out_file'] = args.__dict__['out_files'][i] \
             if args.__dict__['out_files'] else None
         maskPrimers(**args_dict)
-    
