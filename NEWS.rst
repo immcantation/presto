@@ -1,17 +1,17 @@
 Release Notes
 ================================================================================
 
-
-Version 0.7.1:  August 19, 2022
+Version 0.7.1:  October 2, 2022
 -------------------------------------------------------------------------------
 
-+ Adding alloance of ``U`` characters in nucleotide distance calculations
++ Added allowance of ``U`` characters in nucleotide distance calculations
   with equivalence to ``T``.
 
 FilterSeq:
 
 + Changed average quality score calculation to use the probability calculation
   instead of a simple mean on the scores.
+
 
 Version 0.7.0:  October 28, 2021
 -------------------------------------------------------------------------------
