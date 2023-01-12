@@ -331,7 +331,7 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
     def _sample_list(n, index_1, index_2):
         key_set = set(index_1).intersection(index_2)
         max_n = len(key_set)
-        return random.sample(key_set, min(n, max_n))
+        return random.sample(list(key_set), min(n, max_n))
 
     # Function to sample from two dictionaries of grouped sequence indices
     def _sample_dict(n, index_1, index_2):
@@ -340,7 +340,7 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
         for k in group_set:
             key_set = set(index_1[k]).intersection(index_2[k])
             max_n = len(key_set)
-            sample_list.extend(random.sample(key_set, min(n, max_n)))
+            sample_list.extend(random.sample(list(key_set), min(n, max_n)))
         return sample_list
 
     # Print console log
