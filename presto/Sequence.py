@@ -15,7 +15,7 @@ import math
 from collections import OrderedDict
 from itertools import product, zip_longest, groupby
 from scipy import stats as stats
-from Bio import pairwise2
+from Bio import Align
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -851,9 +851,12 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
         scan_seq = str(rec.seq)
         scan_seq = scan_seq[:max_len] if not rev_primer else scan_seq[-max_len:]
         for adpt_id, adpt_seq in primers.items():
-            pw2_align = pairwise2.align.localds(scan_seq, adpt_seq, score_dict,
-                                                -gap_penalty[0], -gap_penalty[1],
-                                                one_alignment_only=True)
+            pw_aligner = Align.PairwiseAligner( mode = 'local', 
+                                                substitution_matrix=score_dict,
+                                                open_gap_score = -gap_penalty[0],
+                                                extend_gap_score = -gap_penalty[1]
+                                            )
+            pw2_align = pw_aligner.align(scan_seq, adpt_seq)
             if pw2_align:
                 this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
