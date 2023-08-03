@@ -110,7 +110,7 @@ def readReferenceFile(ref_file):
              with the key as the sequence ID and value as a Bio.SeqRecord for each reference sequence.
     """
     def _clean(rec):
-        rec.seq = rec.seq.ungap('-').ungap('.').upper()
+        rec.seq = rec.seq.replace('-','').replace('.','').upper()
         rec.name = rec.description = ''
         return rec
 
