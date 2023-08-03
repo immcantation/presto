@@ -325,9 +325,11 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
     try:
         stdout_str = check_output(cmd, stderr=STDOUT, shell=False,
                                   universal_newlines=True)
-    except:
+    except CalledProcessError as e:
         seq_handle.close()
-        printError('Failed to make blastn database.')
+        db_exec_error = e.output.splitlines()
+        error_message =  db_exec_error[len(db_exec_error)-1]
+        raise ValueError('Failed to make blastn database. ' + error_message)
 
     # Close temporary sequence file
     seq_handle.close()

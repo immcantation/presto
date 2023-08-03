@@ -209,6 +209,10 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
             db_func = {'blastn': makeBlastnDb, 'usearch': makeUBlastDb}[assemble_args['aligner']]
             ref_db, db_handle = db_func(ref_file, db_exec)
             assemble_args['ref_db'] = ref_db
+        except ValueError as e:
+            printError('Error building reference database for aligner %s with executable %s.' \
+                       % (assemble_args['aligner'], db_exec) \
+                       +  ' ' + str(e) )
         except:
             printError('Error building reference database for aligner %s with executable %s.' \
                        % (assemble_args['aligner'], db_exec))
