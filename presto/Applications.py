@@ -315,7 +315,7 @@ def makeBlastnDb(ref_file, db_exec=default_blastdb_exec):
     SeqIO.write(ref_dict.values(), seq_handle, format='fasta-2line')
     seq_handle.seek(0)
 
-    # Define usearch command
+    # Define makeblastdb command
     cmd = [db_exec,
            '-in', seq_handle.name,
            '-out', os.path.join(db_handle.name, 'reference'),
