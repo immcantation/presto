@@ -18,6 +18,7 @@ from Bio import AlignIO, SeqIO
 from Bio.Align import MultipleSeqAlignment
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from packaging import version
 
 # Presto imports
 from presto.Defaults import default_muscle_exec, default_usearch_exec, \
@@ -33,6 +34,31 @@ default_evalue = 1e-5
 default_max_hits = 100
 default_max_memory = 3000
 
+def getMuscleVersion(exec=default_muscle_exec):
+    """
+    Gets the version of the Muscle executable
+
+    Arguments:
+      exec (str): the name or path to the Muscle executable.
+
+    Returns:
+      str: version number.
+    """
+    # Build commandline
+    cmd = [exec, '-version']
+
+    # Run
+    try:
+        stdout_str = check_output(cmd, stderr=STDOUT, shell=False, universal_newlines=True)
+    except CalledProcessError as e:
+        printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
+
+    # Extract version number
+    # 'muscle 5.1.linux64 [12f0e2]\nBuilt Jan 13 2022 23:17:13\n\n'
+    match = re.search('(muscle )(.+)(\.linux.+)', stdout_str)
+    version = match.group(2)
+
+    return version
 
 def runMuscle(seq_list, aligner_exec=default_muscle_exec):
     """
@@ -51,7 +77,14 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
         return align
 
     # Set MUSCLE command
-    cmd = [aligner_exec, '-diags', '-maxiters', '2']
+    muscle_version = getMuscleVersion(aligner_exec)
+    if ( version.parse(muscle_version) >= version.parse('5.0') ):
+      printError('Muscle5 is not supported. Detected muscle version ' + muscle_version)
+      # TODO: update command and output. Muscle5 doesn't output results
+      # to stdout, it requires `-output output_file.fasta``
+      # cmd = [aligner_exec, '-align']
+    else:
+      cmd = [aligner_exec, '-diags', '-maxiters', '2']
 
     # Convert sequences to FASTA and write to string
     stdin_handle = StringIO()
