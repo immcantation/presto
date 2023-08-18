@@ -54,9 +54,11 @@ def getMuscleVersion(exec=default_muscle_exec):
         printError('Running command: %s\n%s' % (' '.join(cmd), e.output))
 
     # Extract version number
-    # 'muscle 5.1.linux64 [12f0e2]\nBuilt Jan 13 2022 23:17:13\n\n'
-    match = re.search('(muscle )(.+)(\.linux.+)', stdout_str)
-    version = match.group(2)
+    # stdout_str='MUSCLE v3.8.425 by Robert C. Edgar\n'
+    # stdout_str='muscle 5.1.linux64 [12f0e2]\nBuilt Jan 13 2022 23:17:13\n\n'
+    version = stdout_str.split()[1]
+    version = re.sub('^v','',version)
+    version = re.sub('\.linux.*$','',version)
 
     return version
 
