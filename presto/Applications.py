@@ -80,31 +80,47 @@ def runMuscle(seq_list, aligner_exec=default_muscle_exec):
 
     # Set MUSCLE command
     muscle_version = getMuscleVersion(aligner_exec)
-    if ( version.parse(muscle_version) >= version.parse('5.0') ):
+    if ( version.parse(muscle_version) >= version.parse('5.0') ):    
       printError('Muscle5 is not supported. Detected muscle version ' + muscle_version)
-      # TODO: update command and output. Muscle5 doesn't output results
-      # to stdout, it requires `-output output_file.fasta``
-      # cmd = [aligner_exec, '-align']
+      # Commented out because very slow
+      # Muscle5 requires in and out .fasta
+      #in_handle  = tempfile.NamedTemporaryFile(suffix='.fasta', mode='w+t', encoding='utf-8')
+      #out_handle = tempfile.NamedTemporaryFile(suffix='.fasta', mode='w+t', encoding='utf-8')
+
+      # Convert sequences to FASTA and write to file
+      #SeqIO.write(seq_list, in_handle.name, 'fasta-2line')  
+      #cmd = [aligner_exec, '-align', in_handle.name,'-output', out_handle.name]
+
+      # Open MUSCLE process
+      #child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+      #              universal_newlines=True)
+      
+      #stdout_str, __ = child.communicate()
+
+      # Read sequences from MUSCLE output
+      #align = AlignIO.read(out_handle.name, 'fasta')
+      #out_handle.close()
+  
     else:
       cmd = [aligner_exec, '-diags', '-maxiters', '2']
 
-    # Convert sequences to FASTA and write to string
-    stdin_handle = StringIO()
-    SeqIO.write(seq_list, stdin_handle, 'fasta-2line')
-    stdin_str = stdin_handle.getvalue()
-    stdin_handle.close()
+      # Convert sequences to FASTA and write to string
+      stdin_handle = StringIO()
+      SeqIO.write(seq_list, stdin_handle, 'fasta-2line')
+      stdin_str = stdin_handle.getvalue()
+      stdin_handle.close()
 
-    # Open MUSCLE process
-    child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                  universal_newlines=True)
+      # Open MUSCLE process
+      child = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                    universal_newlines=True)
 
-    # Send sequences to MUSCLE stdin and retrieve stdout, stderr
-    stdout_str, __ = child.communicate(stdin_str)
+      # Send sequences to MUSCLE stdin and retrieve stdout, stderr
+      stdout_str, __ = child.communicate(stdin_str)
 
-    # Capture sequences from MUSCLE stdout
-    stdout_handle = StringIO(stdout_str)
-    align = AlignIO.read(stdout_handle, 'fasta')
-    stdout_handle.close()
+      # Capture sequences from MUSCLE stdout
+      stdout_handle = StringIO(stdout_str)
+      align = AlignIO.read(stdout_handle, 'fasta')
+      stdout_handle.close()
 
     return align
 
