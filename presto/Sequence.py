@@ -16,6 +16,7 @@ from collections import OrderedDict
 from itertools import product, zip_longest, groupby
 from scipy import stats as stats
 from Bio import pairwise2
+from Bio import Align
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
@@ -39,6 +40,8 @@ from presto.Multiprocessing import SeqResult
 # Constants
 qual_to_prob = tuple(10 ** (-qual / 10) for qual in range(128))
 
+# default_dna_matrix = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
+# default_aa_matrix = getAAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 
 class PrimerAlignment:
     """
@@ -845,6 +848,7 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
                 return align
 
     # Perform local alignment if regular expression match fails
+    sub_matrix = Align.substitution_matrices.Array(data=score_dict)
     best_align, best_rec, best_adpt, best_error = None, None, None, None
     for rec in seq_list:
         this_align = dict()
@@ -854,6 +858,11 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
             pw2_align = pairwise2.align.localds(scan_seq, adpt_seq, score_dict,
                                                 -gap_penalty[0], -gap_penalty[1],
                                                 one_alignment_only=True)
+            # pw_aligner = Align.PairwiseAligner(mode='local',
+            #                                    substitution_matrix=sub_matrix,
+            #                                    open_gap_score = -gap_penalty[0],
+            #                                    extend_gap_score = -gap_penalty[1])
+            # pw2_align = pw_aligner.align(scan_seq, adpt_seq)
             if pw2_align:
                 this_align.update({adpt_id: pw2_align[0]})
         if not this_align:  continue
@@ -861,6 +870,7 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
         # Determine alignment with lowest error rate
         for x_adpt, x_align in this_align.items():
             x_error = 1.0 - x_align[2] / len(primers[x_adpt])
+            # x_error = 1.0 - x_align.score / len(primers[x_adpt])
             # x_gaps = len(x_align[1]) - max_len
             # x_error = 1.0 - (x_align[2] + x_gaps) / primers[x_adpt])
             if best_error is None or x_error < best_error:
@@ -876,6 +886,7 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
     if best_align:
         # Define input alignment string and gap count
         align_primer = best_align[best_adpt][1]
+        # align_primer = best_align[best_adpt].query
         align_len = len(align_primer)
         align_gaps = align_len - max_len
 
@@ -883,21 +894,31 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
         align.seq = best_rec
         align.primer = best_adpt
         align.align_seq = str(best_align[best_adpt][0])
+        # align.align_seq = str(best_align[best_adpt].target)
         align.align_primer = align_primer
         align.gaps = align_gaps
         align.error = best_error
         align.valid = True
 
         # Determine start and end positions
+        # pairwise2 return = seqA, seqB, score, begin, end
+        # np.array(best_align[best_adpt].path).transpose()
+        # np.array(y.path).transpose()
         if not rev_primer:
             # TODO:  need to switch to an aligner that outputs start/end for both sequences in alignment
             align.start = align_len - len(align_primer.lstrip('-'))
             align.end = best_align[best_adpt][4] - align_gaps
+            # align.end = best_align[best_adpt].aligned[0][0][1] - align_gaps
+            # align.start = best_align[best_adpt].aligned[0][0][0]
+            # align.end = best_align[best_adpt].aligned[0][0][1]
         else:
             # Count position from tail and end gaps
             rev_pos = rec_len - align_len
             align.start = rev_pos + best_align[best_adpt][3] + align_gaps
             align.end = rev_pos + len(align_primer.rstrip('-'))
+            # align.start = rev_pos + best_align[best_adpt].aligned[0][0][0] + align_gaps
+            # align.start = rev_pos + best_align[best_adpt].aligned[0][0][0]
+            # align.end = rev_pos + best_align[best_adpt].aligned[0][0][1]
 
     return align
 
