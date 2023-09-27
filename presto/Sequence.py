@@ -15,7 +15,7 @@ import math
 from collections import OrderedDict
 from itertools import product, zip_longest, groupby
 from scipy import stats as stats
-from Bio import pairwise2
+# from Bio import pairwise2
 from Bio import Align
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
