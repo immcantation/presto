@@ -28,7 +28,7 @@ We have hosted a small subset of the data (Accession: SRR1383456) on the
 pRESTO website in FASTQ format with accompanying primer files. The sample data
 set and workflow script may be downloaded from here:
 
-`Vander Heiden et al, 2017 Example Files <http://clip.med.yale.edu/immcantation/examples/VanderHeiden2017_Example.tar.gz>`__
+`Vander Heiden et al, 2017 Example Files <https://zenodo.org/records/10527842>`__
 
 Overview of the Workflow
 --------------------------------------------------------------------------------
