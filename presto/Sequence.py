@@ -1020,7 +1020,7 @@ def extractAlignment(seq_record, start, length, rev_primer=False):
     return align
 
 
-def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_field,
+def maskSeq(align, mode='mask', barcode=False, barcode_length=None, barcode_field=default_barcode_field,
             primer_field=default_primer_field, delimiter=default_delimiter):
     """
     Create an output sequence with primers masked or cut
@@ -1029,6 +1029,7 @@ def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_fie
       align : a PrimerAlignment object.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
+      barcode_length: length of barcode to extract. If None (default), use the whole sequence preceding the primer.
       barcode_field : name of the output barcode annotation.
       primer_field : name of the output primer annotation.
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
@@ -1084,8 +1085,12 @@ def maskSeq(align, mode='mask', barcode=False, barcode_field=default_barcode_fie
 
     # Add ID sequence to description
     if barcode:
-        seq_code = seq[:align.start].seq if not align.rev_primer \
-            else seq[align.end:].seq
+        if barcode_length is None:
+            seq_code = seq[:align.start].seq if not align.rev_primer \
+                else seq[align.end:].seq
+        else:
+            seq_code = seq[(align.start-barcode_length):align.start].seq if not align.rev_primer \
+                else seq[align.end:(align.end+barcode_length)].seq
         out_seq.annotations['barcode'] = seq_code
         out_ann[barcode_field] = seq_code
 
