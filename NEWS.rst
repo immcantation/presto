@@ -1,6 +1,20 @@
 Release Notes
 ================================================================================
 
+Version 0.7.2:  January 23, 2024
+-------------------------------------------------------------------------------
+
++ Fixed several deprecation warnings and incompatibilities with newer versions
+  of biopython and pandas.
+
+MaskPrimers:
+
++ As a result of updating biopython compatibility, the output of the ``align``
+  subcommand may differ slightly in terms of the alignment start position when
+  the alignment starts with a mismatch and which alignment is selected from
+  the set of equally scoring alignments.
+
+
 Version 0.7.1:  October 2, 2022
 -------------------------------------------------------------------------------
 
