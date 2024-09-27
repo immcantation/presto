@@ -1086,9 +1086,11 @@ def maskSeq(align, mode='mask', barcode=False, barcode_length=None, barcode_fiel
     # Add ID sequence to description
     if barcode:
         if barcode_length is None:
+            # Extract all sequence preceding the primer
             seq_code = seq[:align.start].seq if not align.rev_primer \
                 else seq[align.end:].seq
         else:
+            # Extract sequence preceding the primer up to barcode_length
             seq_code = seq[(align.start-barcode_length):align.start].seq if not align.rev_primer \
                 else seq[align.end:(align.end+barcode_length)].seq
         out_seq.annotations['barcode'] = seq_code

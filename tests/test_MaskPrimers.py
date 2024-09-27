@@ -113,6 +113,7 @@ class TestMaskPrimers(unittest.TestCase):
         self.mask_seq_mask = SeqRecord(Seq('NNNNNNAGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
         self.mask_seq_trim = SeqRecord(Seq('CGTTTTAGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
         self.mask_seq_tag = SeqRecord(Seq('CCACGTTTTAGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CCA')
+        self.mask_seq_cut_barcodelen = SeqRecord(Seq('AGTAATTAATA'), id='SEQ|PRIMER=A|BARCODE=CA')
 
         # Start clock
         self.start = time.time()
@@ -228,6 +229,13 @@ class TestMaskPrimers(unittest.TestCase):
         print('SEQ> %s\n' % result.seq)
         self.assertEqual(str(self.mask_seq_tag.seq), str(result.seq))
         self.assertEqual(self.mask_seq_tag.id, result.id)
+
+        print('TEST CUT>')
+        result = maskSeq(self.mask_primer, mode='cut', barcode=True, barcode_length=2)
+        print(' ID> %s' % result.id)
+        print('SEQ> %s\n' % result.seq)
+        self.assertEqual(str(self.mask_seq_cut_barcodelen.seq), str(result.seq))
+        self.assertEqual(self.mask_seq_cut_barcodelen.id, result.id)
 
 if __name__ == '__main__':
     unittest.main()

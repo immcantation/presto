@@ -377,7 +377,7 @@ def getArgParser():
     group_align.add_argument('--barcode', action='store_true', dest='barcode',
                               help='''Specify to annotate reads sequences with barcode sequences
                                    (unique molecular identifiers) found preceding the primer.''')
-    group_align.add_argument('--bl', action='store', dest='barcode_length', type=int,
+    group_align.add_argument('--barcodelen', action='store', dest='barcode_length', type=int,
                              help='''Length of the barcode sequence. If not specified, the
                                    barcode sequence is the full sequence preceding the primer.''')
     group_align.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
@@ -415,6 +415,9 @@ def getArgParser():
     group_score.add_argument('--barcode', action='store_true', dest='barcode',
                               help='''Specify to annotate reads sequences with barcode sequences
                                    (unique molecular identifiers) found preceding the primer.''')
+    group_score.add_argument('--barcodelen', action='store', dest='barcode_length', type=int,
+                             help='''Length of the barcode sequence. If not specified, the
+                                   barcode sequence is the full sequence preceding the primer.''')
     group_score.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
                              help='''Name of the barcode annotation field.''')
     group_score.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
@@ -445,6 +448,9 @@ def getArgParser():
     group_extract.add_argument('--barcode', action='store_true', dest='barcode',
                                help='''Specify to remove the sequence preceding the extracted region and
                                     annotate the read with that sequence.''')
+    group_extract.add_argument('--barcodelen', action='store', dest='barcode_length', type=int,
+                                help='''Length of the barcode sequence. If not specified, the
+                                        barcode sequence is the full sequence preceding the primer.''')
     group_extract.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
                                help='''Name of the barcode annotation field.''')
     group_extract.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
@@ -495,6 +501,7 @@ if __name__ == '__main__':
                                    'mode': args_dict['mode'],
                                    'barcode': args_dict['barcode'],
                                    'barcode_field': args_dict['barcode_field'],
+                                   'barcode_length': args_dict['barcode_length'],
                                    'primer_field': args_dict['primer_field']}
         del args_dict['max_error']
         del args_dict['start']
@@ -502,6 +509,7 @@ if __name__ == '__main__':
         del args_dict['mode']
         del args_dict['barcode']
         del args_dict['barcode_field']
+        del args_dict['barcode_length']
         del args_dict['primer_field']
     elif args_dict['align_func'] is extractPrimers:
         args_dict['primer_file'] = None
@@ -511,12 +519,14 @@ if __name__ == '__main__':
                                    'mode':args_dict['mode'],
                                    'barcode': args_dict['barcode'],
                                    'barcode_field': args_dict['barcode_field'],
+                                   'barcode_length': args_dict['barcode_length'],
                                    'primer_field': args_dict['primer_field']}
         del args_dict['start']
         del args_dict['length']
         del args_dict['rev_primer']
         del args_dict['mode']
         del args_dict['barcode']
+        del args_dict['barcode_length']
         del args_dict['barcode_field']
         del args_dict['primer_field']
 
