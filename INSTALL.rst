@@ -8,7 +8,7 @@ The simplest way to install the latest stable release of pRESTO is via pip::
 The current development build can be installed using pip and git in a
 similar fashion::
 
-    > pip3 install git+https://bitbucket.org/kleinstein/presto@master --user
+    > pip3 install git+https://github.com/immcantation/presto@master --user
 
 If you currently have a development version installed, then you will likely
 need to add the arguments ``--upgrade --no-deps --force-reinstall`` to the
@@ -39,7 +39,7 @@ Linux
    Biopython according to its
    `instructions <https://biopython.org/DIST/docs/install/Installation.html>`__.
 
-2. Download the `pRESTO bundle <https://bitbucket.org/kleinstein/presto/downloads>`__ and run::
+2. Download the `pRESTO bundle <https://github.com/immcantation/presto/releases>`__ and run::
 
    > pip3 install presto-x.y.z.tar.gz --user
 
@@ -78,7 +78,7 @@ Mac OS X
 
    > pip3 install numpy scipy pandas biopython
 
-8. Download the `pRESTO bundle <https://bitbucket.org/kleinstein/presto/downloads>`__,
+8. Download the `pRESTO bundle <https://github.com/immcantation/presto/releases>`__,
    open a terminal window, change directories
    to download location, and run::
 
@@ -95,7 +95,7 @@ Windows
    `Unofficial Windows binary <https://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Download the `pRESTO bundle <https://bitbucket.org/kleinstein/presto/downloads>`__,
+3. Download the `pRESTO bundle <https://github.com/immcantation/presto/releases>`__,
    open a Command Prompt, change directories to
    the download folder, and run::
 
