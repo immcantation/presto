@@ -230,7 +230,7 @@ class TestMaskPrimers(unittest.TestCase):
         self.assertEqual(str(self.mask_seq_tag.seq), str(result.seq))
         self.assertEqual(self.mask_seq_tag.id, result.id)
 
-        print('TEST CUT>')
+        print('TEST CUT BARCODLEN>')
         result = maskSeq(self.mask_primer, mode='cut', barcode=True, barcode_length=2)
         print(' ID> %s' % result.id)
         print('SEQ> %s\n' % result.seq)
