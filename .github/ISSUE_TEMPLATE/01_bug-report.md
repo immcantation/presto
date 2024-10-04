@@ -7,23 +7,18 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+A clear and concise description of what the bug is, what you expected to happen, and the actual result.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Load package '...'
-2. Load data '....'
-3. Run commands '....'
-4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Steps to reproduce**
+Describe the process to produce the behavior. If possible, include a minimal example.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
 **Environment and versions:**
- - Version [e.g. 22]
+- OS:
+- Relevant immcantation packages and versions:
+- If used, the version of the Immcantation container (in the container, use `builds report`):
 
 **Additional context**
 Add any other context about the problem here.
