@@ -4,7 +4,7 @@ about: Create a bug report
 title: "[BUG]"
 labels: bug
 assignees: ''
-
+customfield: 'test'
 ---
 
 **Describe the bug**
