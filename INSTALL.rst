@@ -39,7 +39,7 @@ Linux
    Biopython according to its
    `instructions <https://biopython.org/DIST/docs/install/Installation.html>`__.
 
-2. Download the `pRESTO bundle <https://github.com/immcantation/presto/releases>`__ and run::
+2. Download the `pRESTO bundle <https://github.com/immcantation/presto/tags>`__ and run::
 
    > pip3 install presto-x.y.z.tar.gz --user
 
@@ -78,7 +78,7 @@ Mac OS X
 
    > pip3 install numpy scipy pandas biopython
 
-8. Download the `pRESTO bundle <https://github.com/immcantation/presto/releases>`__,
+8. Download the `pRESTO bundle <https://github.com/immcantation/presto/tags>`__,
    open a terminal window, change directories
    to download location, and run::
 
@@ -95,7 +95,7 @@ Windows
    `Unofficial Windows binary <https://www.lfd.uci.edu/~gohlke/pythonlibs>`__
    collection.
 
-3. Download the `pRESTO bundle <https://github.com/immcantation/presto/releases>`__,
+3. Download the `pRESTO bundle <https://github.com/immcantation/presto/tags>`__,
    open a Command Prompt, change directories to
    the download folder, and run::
 

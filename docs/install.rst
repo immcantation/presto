@@ -5,7 +5,7 @@ Download
 
 The latest stable release of pRESTO may be downloaded from
 `PyPI <https://pypi.python.org/pypi/presto>`__ or
-`GitHub <https://github.com/immcantation/presto/releases>`__.
+`GitHub <https://github.com/immcantation/presto/tags>`__.
 
 Development versions and source code are available on
 `GitHub <https://github.com/immcantation/presto>`__.
