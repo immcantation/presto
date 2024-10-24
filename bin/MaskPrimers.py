@@ -79,7 +79,7 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
 
 def alignPrimers(data, primers, primers_regex=None, max_error=default_primer_max_error,
                  max_len=default_primer_max_len, rev_primer=False, skip_rc=False, mode='mask',
-                 barcode=False, barcode_field=default_barcode_field, primer_field=default_primer_field,
+                 barcode=False, barcode_length=None, barcode_field=default_barcode_field, primer_field=default_primer_field,
                  gap_penalty=default_primer_gap_penalty, score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
                  delimiter=default_delimiter):
     """
@@ -95,6 +95,8 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_primer_max
       skip_rc : if True do not check reverse complement sequences.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
+      barcode_length : length of the barcode sequence. If None (default), the barcode
+                       sequence is the full sequence preceding the primer sequence.
       barcode_field : name of the output barcode annotation.
       primer_field : name of the output primer annotation.
       gap_penalty : a tuple of positive (gap open, gap extend) penalties.
@@ -117,7 +119,7 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_primer_max
         return result
 
     # Create output sequence
-    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_length=barcode_length, barcode_field=barcode_field,
                       primer_field=primer_field, delimiter=delimiter)
     result.results = out_seq
     result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
@@ -375,6 +377,9 @@ def getArgParser():
     group_align.add_argument('--barcode', action='store_true', dest='barcode',
                               help='''Specify to annotate reads sequences with barcode sequences
                                    (unique molecular identifiers) found preceding the primer.''')
+    group_align.add_argument('--barcodelen', action='store', dest='barcode_length', type=int,
+                             help='''Length of the barcode sequence. If not specified, the
+                                   barcode sequence is the full sequence preceding the primer.''')
     group_align.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
                              help='''Name of the barcode annotation field.''')
     group_align.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
@@ -410,6 +415,9 @@ def getArgParser():
     group_score.add_argument('--barcode', action='store_true', dest='barcode',
                               help='''Specify to annotate reads sequences with barcode sequences
                                    (unique molecular identifiers) found preceding the primer.''')
+    group_score.add_argument('--barcodelen', action='store', dest='barcode_length', type=int,
+                             help='''Length of the barcode sequence. If not specified, the
+                                   barcode sequence is the full sequence preceding the primer.''')
     group_score.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
                              help='''Name of the barcode annotation field.''')
     group_score.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
@@ -440,6 +448,9 @@ def getArgParser():
     group_extract.add_argument('--barcode', action='store_true', dest='barcode',
                                help='''Specify to remove the sequence preceding the extracted region and
                                     annotate the read with that sequence.''')
+    group_extract.add_argument('--barcodelen', action='store', dest='barcode_length', type=int,
+                                help='''Length of the barcode sequence. If not specified, the
+                                        barcode sequence is the full sequence preceding the primer.''')
     group_extract.add_argument('--bf', action='store', dest='barcode_field', default=default_barcode_field,
                                help='''Name of the barcode annotation field.''')
     group_extract.add_argument('--pf', action='store', dest='primer_field', default=default_primer_field,
@@ -469,6 +480,7 @@ if __name__ == '__main__':
                                    'gap_penalty':args_dict['gap_penalty'],
                                    'mode': args_dict['mode'],
                                    'barcode': args_dict['barcode'],
+                                   'barcode_length': args_dict['barcode_length'],
                                    'barcode_field': args_dict['barcode_field'],
                                    'primer_field': args_dict['primer_field']}
 
@@ -479,6 +491,7 @@ if __name__ == '__main__':
         del args_dict['gap_penalty']
         del args_dict['mode']
         del args_dict['barcode']
+        del args_dict['barcode_length']
         del args_dict['barcode_field']
         del args_dict['primer_field']
     elif args_dict['align_func'] is scorePrimers:
@@ -488,6 +501,7 @@ if __name__ == '__main__':
                                    'mode': args_dict['mode'],
                                    'barcode': args_dict['barcode'],
                                    'barcode_field': args_dict['barcode_field'],
+                                   'barcode_length': args_dict['barcode_length'],
                                    'primer_field': args_dict['primer_field']}
         del args_dict['max_error']
         del args_dict['start']
@@ -495,6 +509,7 @@ if __name__ == '__main__':
         del args_dict['mode']
         del args_dict['barcode']
         del args_dict['barcode_field']
+        del args_dict['barcode_length']
         del args_dict['primer_field']
     elif args_dict['align_func'] is extractPrimers:
         args_dict['primer_file'] = None
@@ -504,12 +519,14 @@ if __name__ == '__main__':
                                    'mode':args_dict['mode'],
                                    'barcode': args_dict['barcode'],
                                    'barcode_field': args_dict['barcode_field'],
+                                   'barcode_length': args_dict['barcode_length'],
                                    'primer_field': args_dict['primer_field']}
         del args_dict['start']
         del args_dict['length']
         del args_dict['rev_primer']
         del args_dict['mode']
         del args_dict['barcode']
+        del args_dict['barcode_length']
         del args_dict['barcode_field']
         del args_dict['primer_field']
 
