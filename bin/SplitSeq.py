@@ -483,7 +483,7 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
 
     # Determine total numbers of records
     rec_count = len(seq_dict)
-    if max_count >= rec_count:  max_count = None
+    if max_count it not None and max_count >= rec_count:  max_count = None
 
     # Open initial output file handles
     file_count = 1
