@@ -1042,7 +1042,7 @@ def maskSeq(align, mode='mask', barcode=False, barcode_length=None, barcode_fiel
     # Build output sequence
     if mode == 'tag' or not align.align_primer:
         # Do not modify sequence
-        out_seq = seq
+        out_seq = seq[:]
     elif mode == 'trim':
         # Remove region before primer
         if not align.rev_primer:
@@ -1091,8 +1091,8 @@ def maskSeq(align, mode='mask', barcode=False, barcode_length=None, barcode_fiel
                 else seq[align.end:].seq
         else:
             # Extract sequence preceding the primer up to barcode_length
-            seq_code = seq[(align.start-barcode_length):align.start].seq if not align.rev_primer \
-                else seq[align.end:(align.end+barcode_length)].seq
+            seq_code = seq[(align.start - barcode_length):align.start].seq if not align.rev_primer \
+                else seq[align.end:(align.end + barcode_length)].seq
         out_seq.annotations['barcode'] = seq_code
         out_ann[barcode_field] = seq_code
 
