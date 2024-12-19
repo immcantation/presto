@@ -26,7 +26,7 @@ pRESTO website in FASTQ format, with accompanying primer and sample
 barcode (MID) files. The sample data set and workflow script may be downloaded
 from here:
 
-`Jiang, He and Weinstein et al, 2013 Example Files <http://clip.med.yale.edu/immcantation/examples/Jiang2013_Example.tar.gz>`__
+`Jiang, He and Weinstein et al, 2013 Example Files <https://doi.org/10.5281/zenodo.14532472>`__
 
 Overview of the Workflow
 --------------------------------------------------------------------------------
