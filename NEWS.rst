@@ -6,7 +6,14 @@ Version 0.7.3dev: Unreleased
 
 MaskPrimers:
 
-+ Added parameter for setting the barcode length.
++ Added the ``--barcodelen`` argument for setting the length of the barcode
+  sequence. If not specified, the barcode sequence is the full sequence
+  preceding the primer.
+
+SplitSeq:
+
++ Fixed a bug that caused SplitSeq to exit when the maximum number of sequences
+  was not set.
 
 Version 0.7.2:  January 23, 2024
 -------------------------------------------------------------------------------
