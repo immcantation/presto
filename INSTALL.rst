@@ -90,10 +90,7 @@ Windows
 1. Install Python 3.4.0+ from `Python <https://python.org/downloads>`__,
    selecting both the options 'pip' and 'Add python.exe to Path'.
 
-2. Install NumPy, SciPy, pandas and Biopython using the packages
-   available from the
-   `Unofficial Windows binary <https://www.lfd.uci.edu/~gohlke/pythonlibs>`__
-   collection.
+2. Install NumPy, SciPy, pandas and Biopython.
 
 3. Download the `pRESTO bundle <https://github.com/immcantation/presto/tags>`__,
    open a Command Prompt, change directories to
