@@ -22,9 +22,8 @@ from presto.IO import readPrimerFile, printLog
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
 
-
 def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=False,
-                   barcode_field=default_barcode_field, primer_field=default_primer_field,
+                   barcode_length=None, barcode_field=default_barcode_field, primer_field=default_primer_field,
                    delimiter=default_delimiter):
     """
     Extracts primer sequences directly
@@ -36,6 +35,8 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
       rev_primer : if True extract relative to the tail end of the sequence.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
+      barcode_length : length of the barcode sequence. If None (default), the barcode
+                       sequence is the full sequence preceding the primer sequence.
       barcode_field : name of the output barcode annotation.
       primer_field : name of the output primer annotation.
       delimiter : a tuple of delimiters for (annotations, field/values, value lists).
@@ -43,6 +44,7 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
     Returns:
       presto.Multiprocessing.SeqResult: result object.
     """
+
     # Define result object
     result = SeqResult(data.id, data.data)
 
@@ -53,7 +55,7 @@ def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=F
         return result
 
     # Create output sequence
-    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_length=barcode_length, barcode_field=barcode_field,
                       primer_field=primer_field, delimiter=delimiter)
     result.results = out_seq
     result.valid = True
@@ -148,7 +150,7 @@ def alignPrimers(data, primers, primers_regex=None, max_error=default_primer_max
 
 
 def scorePrimers(data, primers, max_error=default_primer_max_error, start=default_primer_start, rev_primer=False, mode='mask',
-                 barcode=False, barcode_field=default_barcode_field, primer_field=default_primer_field,
+                 barcode=False, barcode_length=None, barcode_field=default_barcode_field, primer_field=default_primer_field,
                  score_dict=getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0)),
                  delimiter=default_delimiter):
     """
@@ -162,6 +164,8 @@ def scorePrimers(data, primers, max_error=default_primer_max_error, start=defaul
       rev_primer : if True align with the tail end of the sequence.
       mode : defines the action taken; one of 'cut', 'mask', 'tag' or 'trim'.
       barcode : if True add sequence preceding primer to description.
+      barcode_length : length of the barcode sequence. If None (default), the barcode
+                       sequence is the full sequence preceding the primer sequence.
       barcode_field : name of the output barcode annotation.
       primer_field : name of the output primer annotation.
       score_dict : optional dictionary of {(char1, char2): score} alignment scores
@@ -182,7 +186,7 @@ def scorePrimers(data, primers, max_error=default_primer_max_error, start=defaul
         return result
 
     # Create output sequence
-    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_field=barcode_field,
+    out_seq = maskSeq(align, mode=mode, barcode=barcode, barcode_length=barcode_length, barcode_field=barcode_field,
                       primer_field=primer_field, delimiter=delimiter)
     result.results = out_seq
     result.valid = bool(align.error <= max_error) if len(out_seq) > 0 else False
