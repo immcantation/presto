@@ -253,6 +253,8 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
         log['BARCODE'] = align_args['barcode']
     if 'barcode' in align_args and align_args['barcode']:
         log['BARCODE_FIELD'] = align_args['barcode_field']
+    if 'barcode_length' in align_args and align_args['barcode_length']:
+        log['BARCODE_LENGTH'] = align_args['barcode_length']
     log['PRIMER_FIELD'] = align_args['primer_field']
     log['NPROC'] = nproc
     printLog(log)
