@@ -7,7 +7,6 @@ on:
     branches: [ "master" ]
 
 jobs:
-
   unittest:
     runs-on: ubuntu-latest
     container:
@@ -24,3 +23,31 @@ jobs:
       - name: Update container
         run: |
           curl -H "Content-Type:application/json" --data '{"docker_tag":"devel"}' -X POST https://hub.docker.com/api/build/v1/source/${{ secrets.DOCKERHUB_REPO }}/trigger/${{ secrets.DOCKERHUB_TRIGGER}}/call/
+  clitest:
+    runs-on: ubuntu-latest
+    steps:
+      # Get the repo code
+      - name: Check out source-code repository
+        uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install pRESTO
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+      # Get test data from Zenodo
+      - name: Download test data
+        run: |
+          wget https://zenodo.org/records/14679815/files/test.fastq.gz?download=1 -O test.fastq.gz
+          gunzip test.fastq.gz
+          rm test.fastq.gz
+      
+      # Run CLI tests
+      - name: MaskPrimers extract
+        run: |
+          MaskPrimers.py extract --help
+          MaskPrimers.py extract -s test.fastq --start 17 --len 10 --barcode --mode cut --log log.txt --nproc 4 --outdir output --outname MaskPrimers-extract --failed
+
