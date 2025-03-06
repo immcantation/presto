@@ -1,7 +1,7 @@
 Release Notes
 ================================================================================
 
-Version 0.7.3dev: Unreleased
+Version 0.7.3: March 6, 2025
 -------------------------------------------------------------------------------
 
 MaskPrimers:
@@ -14,6 +14,10 @@ SplitSeq:
 
 + Fixed a bug that caused SplitSeq to exit when the maximum number of sequences
   was not set.
+
+CollapseSeq:
+
++ Performance improvements.
 
 Version 0.7.2:  January 23, 2024
 -------------------------------------------------------------------------------
