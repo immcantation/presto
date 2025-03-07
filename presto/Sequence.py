@@ -626,8 +626,9 @@ def qualityConsensus(seq_list, min_qual=default_consensus_min_qual, min_freq=def
                          for c in qual_set}
 
         # Select character with highest consensus quality
-        cons = [(c, min(q, 90)) for c, q in qual_cons.items() \
-                if q == max(qual_cons.values())][0]
+        cons = sorted([(c, min(q, 90)) for c, q in qual_cons.items() \
+                if q == max(qual_cons.values())])[0]
+        
         # Assign N if consensus quality or frequency threshold is failed
         if cons[1] < min_qual or char_freq[cons[0]] < min_freq:
             cons = ('N', 0)
@@ -682,8 +683,9 @@ def frequencyConsensus(seq_list, min_freq=default_consensus_min_freq,
         freq_max = max(char_freq.values())
 
         # Assign consensus as most frequent character
-        cons = [c if char_freq[c] >= min_freq else 'N' \
-                for c in char_set if char_freq[c] == freq_max][0]
+        cons = sorted([c if char_freq[c] >= min_freq else 'N' \
+                for c in char_set if char_freq[c] == freq_max])[0]
+        
         consensus_seq.append(cons)
 
     # Define return SeqRecord

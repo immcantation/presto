@@ -1,6 +1,16 @@
 Release Notes
 ================================================================================
 
+Version 0.7.4dev: Unreleased
+-------------------------------------------------------------------------------
+
+BuildConsensus:
+
++ Updated the breaking of ties to be deterministic. The unordered dictionary in 
+  Python 3.6 and earlier versions caused the determination of the consensus 
+  sequence to be non-deterministic. This issue has been resolved by ordering 
+  the dictionary.
+
 Version 0.7.3: March 6, 2025
 -------------------------------------------------------------------------------
 
