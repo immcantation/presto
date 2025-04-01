@@ -7,8 +7,8 @@ import os
 import sys
 
 # Check setup requirements
-if sys.version_info < (3,4,0):
-    sys.exit('At least Python 3.4.0 is required.')
+if sys.version_info < (3,7,0):
+    sys.exit('At least Python 3.7.0 is required.')
 
 try:
     from setuptools import setup
@@ -83,5 +83,5 @@ setup(name='presto',
                    'Intended Audience :: Science/Research',
                    'Natural Language :: English',
                    'Operating System :: OS Independent',
-                   'Programming Language :: Python :: 3.4',
+                   'Programming Language :: Python :: 3.7',
                    'Topic :: Scientific/Engineering :: Bio-Informatics'])
