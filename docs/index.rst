@@ -13,6 +13,7 @@
 
     overview
     install
+    contributing
     news
 
 .. toctree::
