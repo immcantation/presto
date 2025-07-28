@@ -1,8 +1,16 @@
 Release Notes
 ================================================================================
 
-Version 0.7.5dev: Unreleased
+Version 0.7.5: July 28, 2025
 -------------------------------------------------------------------------------
+
+General:
+
++ Updated minimum required Python version to 3.7 to match dependency requirements.
+
+Documentation:
+
++ Added a "Contributing" section to the documentation menu for community guidelines.
 
 Version 0.7.4: March 10, 2025
 -------------------------------------------------------------------------------
