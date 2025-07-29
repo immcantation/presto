@@ -5,5 +5,5 @@ Version and authorship information
 __author__    = 'Jason Anthony Vander Heiden'
 __copyright__ = 'Copyright 2025 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'GNU Affero General Public License 3 (AGPL-3)'
-__version__   = '0.7.5'
-__date__      = '2025.07.28'
+__version__   = '0.7.6dev'
+__date__      = '2025.07.29'
