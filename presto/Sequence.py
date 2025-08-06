@@ -37,7 +37,6 @@ from presto.IO import printWarning, printError
 from presto.Multiprocessing import SeqResult
 
 # Constants
-qual_to_prob = tuple(10 ** (-qual / 10) for qual in range(128))
 # default_dna_matrix = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 # default_aa_matrix = getAAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
 
@@ -1278,13 +1277,13 @@ def filterRepeats(data, max_repeat=default_filter_max_repeat, include_missing=Fa
 
     return result
 
-def meanQuality(qual, prob=qual_to_prob):
+def meanQuality(qual):
     """
-    Calculate mean quality score
+    Calculate mean of quality scores.
+    Note: this is desired over mean of probabilities as the mean of probabilities gives higher weight to bad quality scores.
 
     Arguments:
       qual (list): numeric Phred quality scores.
-      prob (list): mapping of Phred score (index) to probability values
 
     Returns:
       int: floor of the mean Phred quality score.
@@ -1294,10 +1293,9 @@ def meanQuality(qual, prob=qual_to_prob):
         return 0
 
     qual_sum = 0.0
-    for q in qual:  qual_sum += prob[q]
-    p = qual_sum / len(qual)
+    for q in qual:  qual_sum += q
 
-    return math.floor(-10 * math.log10(p))
+    return math.floor(qual_sum / len(qual))
 
 
 def filterQuality(data, min_qual=default_consensus_min_qual, inner=True,

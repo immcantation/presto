@@ -52,10 +52,8 @@ class TestSequence(unittest.TestCase):
         # Mean quality
         self.qual_mean = list()
         for qual in qual_dna:
-            p = [10 ** (-q/10) for q in qual]
-            m = sum(p) / len(qual)
-            q = math.floor(-10 * math.log10(m))
-            self.qual_mean.append(q)
+            m = math.floor(sum(qual) / len(qual))
+            self.qual_mean.append(m)
 
         # Make sequence pairs
         self.seq_pairs = list(combinations(self.records_dna, 2))

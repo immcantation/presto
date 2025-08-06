@@ -4,6 +4,12 @@ Release Notes
 Version 0.7.6dev: Unreleased
 -------------------------------------------------------------------------------
 
+FilterSeq:
+
++ Reset to using mean of Phred quality scores instead of mean of probabilities
+  of incorrect base call for the average quality score calculation. The latter 
+  gave higher weight to bases with low qualities.
+
 Version 0.7.5: July 28, 2025
 -------------------------------------------------------------------------------
 
