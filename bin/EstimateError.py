@@ -25,7 +25,7 @@ from presto.IO import countSeqFile, getFileType, countSeqSets, getOutputHandle, 
                       printLog, printProgress, printError, printWarning
 from presto.Sequence import getDNAScoreDict, calculateDiversity, qualityConsensus, \
                             frequencyConsensus, indexSeqSets
-from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue
+from presto.Multiprocessing import SeqResult, manageProcesses, manageProcessesOrdered, feedSeqQueue
 from presto.Annotation import parseAnnotation
 
 # Defaults
@@ -530,7 +530,7 @@ def writeResults(results, seq_file, out_args):
 
 def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
                  set_field=default_barcode_field, min_count=default_min_count, max_diversity=None,
-                 out_args=default_out_args, nproc=None, queue_size=None):
+                 out_args=default_out_args, nproc=None, queue_size=None, ordered=False):
     """
     Calculates error rates of sequence sets
 
@@ -575,7 +575,8 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
                  'index_func': indexSeqSets,
-                 'index_args': index_args}
+                 'index_args': index_args,
+                 'ordered': ordered}
     # Define worker function and arguments
     work_func = processEEQueue
     work_args = {'cons_func': cons_func,
@@ -586,12 +587,18 @@ def estimateSets(seq_file, cons_func=frequencyConsensus, cons_args={},
     collect_func = collectEEQueue
     collect_args = {'seq_file': seq_file,
                     'out_args': out_args,
-                    'set_field': set_field}
+                    'set_field': set_field,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     result['log']['END'] = 'EstimateError'

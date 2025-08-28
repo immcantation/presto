@@ -26,7 +26,7 @@ from presto.Annotation import parseAnnotation
 from presto.Applications import runMuscle
 from presto.Sequence import calculateDiversity, indexSeqSets
 from presto.IO import readPrimerFile, getOutputHandle, printLog, printWarning, printError
-from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+from presto.Multiprocessing import SeqResult, manageProcesses, manageProcessesOrdered, feedSeqQueue, \
                                    collectSeqQueue
 
 
@@ -276,7 +276,7 @@ def processQueue(alive, data_queue, result_queue, align_func, align_args={},
 
 def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_field,
               calc_div=False, out_file=None, out_args=default_out_args,
-              nproc=None, queue_size=None):
+              nproc=None, queue_size=None, ordered=False):
     """
     Performs a multiple alignment on sets of sequences
 
@@ -316,7 +316,8 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
                  'index_func': indexSeqSets,
-                 'index_args': index_args}
+                 'index_args': index_args,
+                 'ordered': ordered}
     # Define worker function and arguments
     work_func = processQueue
     work_args = {'align_func': align_func,
@@ -329,12 +330,18 @@ def alignSets(seq_file, align_func, align_args, barcode_field=default_barcode_fi
                     'label': 'align',
                     'out_file': out_file,
                     'out_args': out_args,
-                    'index_field': barcode_field}
+                    'index_field': barcode_field,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     result['log']['END'] = 'AlignSets'

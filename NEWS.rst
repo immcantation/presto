@@ -1,6 +1,21 @@
 Release Notes
 ================================================================================
 
+Version 0.7.7dev: Issue 101
+-------------------------------------------------------------------------------
+
+General:
+
++ Added ``--ordered`` flag to all multiprocessing tools for deterministic output 
+  ordering. When enabled, this flag ensures that output sequences maintain the 
+  same order as input sequences, producing reproducible results across multiple 
+  runs. This is particularly useful for result comparison, testing, and when 
+  downstream analysis depends on sequence order. However, enabling ``--ordered`` 
+  reduces processing speed and increases memory usage due to additional indexing 
+  and sorting overhead, so it should only be used when deterministic output is 
+  required. Tools with new ``--ordered`` support: AlignSets, AssemblePairs, 
+  BuildConsensus, ClusterSets, EstimateError, FilterSeq, MaskPrimers, UnifyHeaders.
+
 Version 0.7.6dev: Unreleased
 -------------------------------------------------------------------------------
 

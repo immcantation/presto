@@ -261,7 +261,7 @@ def manageProcesses(feed_func, work_func, collect_func,
     return collected
 
 
-def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
+def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}, ordered=False):
     """
     Feeds the data queue with SeqRecord objects
 
@@ -273,6 +273,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
       index_func : Function to use to define sequence sets
                    if None do not index sets and feed individual records
       index_args : Dictionary of arguments to pass to index_func
+      ordered : if True assign sequence indices for deterministic output order
 
     Returns:
       None
@@ -281,12 +282,21 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
         # Read input file and index sequence sets if required
         if index_func is None:
             seq_iter = readSeqFile(seq_file)
-            data_iter = ((s.id, s) for s in seq_iter)
+            if ordered:
+                # Assign sequence indices for ordered processing
+                data_iter = ((i, s.id, s) for i, s in enumerate(seq_iter))
+            else:
+                data_iter = ((s.id, s) for s in seq_iter)
         else:
             seq_dict = readSeqFile(seq_file, index=True)
             index_dict = index_func(seq_dict, **index_args)
-            data_iter = ((k, [seq_dict[i] for i in v]) \
-                         for k, v in index_dict.items())
+            if ordered:
+                # Assign sequence indices for ordered processing
+                data_iter = ((i, k, [seq_dict[j] for j in v]) \
+                             for i, (k, v) in enumerate(index_dict.items()))
+            else:
+                data_iter = ((k, [seq_dict[i] for i in v]) \
+                             for k, v in index_dict.items())
     except:
         alive.value = False
         raise
@@ -301,7 +311,14 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
             if data is None:  break
 
             # Feed queue
-            data_queue.put(SeqData(*data))
+            if ordered:
+                # Extract sequence index and create SeqData with index
+                seq_index, seq_id, seq_data = data
+                seq_data_obj = SeqData(seq_id, seq_data)
+                seq_data_obj.seq_index = seq_index
+                data_queue.put(seq_data_obj)
+            else:
+                data_queue.put(SeqData(*data))
         else:
             sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
@@ -314,7 +331,7 @@ def feedSeqQueue(alive, data_queue, seq_file, index_func=None, index_args={}):
 
 
 def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
-                  coord_type=default_coord, delimiter=default_delimiter):
+                  coord_type=default_coord, delimiter=default_delimiter, ordered=False):
     """
     Feeds the data queue with sequence pairs for processQueue processes
 
@@ -351,7 +368,11 @@ def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
 
     try:
         # Open and parse input files
-        data_iter = _read_pairs(seq_file_1, seq_file_2)
+        if ordered:
+            # For ordered processing, enumerate the pairs to assign indices
+            data_iter = enumerate(_read_pairs(seq_file_1, seq_file_2))
+        else:
+            data_iter = _read_pairs(seq_file_1, seq_file_2)
 
         # Iterate over data_iter and feed data queue
         while alive.value:
@@ -362,7 +383,14 @@ def feedPairQueue(alive, data_queue, seq_file_1, seq_file_2,
             if data is None:  break
 
             # Feed queue
-            data_queue.put(SeqData(*data))
+            if ordered:
+                # Extract sequence index and create SeqData with index
+                seq_index, (key, seq_pair) = data
+                seq_data_obj = SeqData(key, seq_pair)
+                seq_data_obj.seq_index = seq_index
+                data_queue.put(seq_data_obj)
+            else:
+                data_queue.put(SeqData(*data))
         else:
             sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
                              % os.getpid())
@@ -400,6 +428,10 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
 
             # Perform work
             result = process_func(data, **process_args)
+            
+            # Propagate sequence index if present for ordered processing
+            if hasattr(data, 'seq_index'):
+                result.seq_index = data.seq_index
 
             #import cProfile
             #prof = cProfile.Profile()
@@ -421,7 +453,7 @@ def processSeqQueue(alive, data_queue, result_queue, process_func, process_args=
 
 
 def collectSeqQueue(alive, result_queue, collect_queue, seq_file, label,
-                    index_field=None, out_file=None, out_args=default_out_args):
+                    index_field=None, out_file=None, out_args=default_out_args, ordered=False):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
@@ -436,6 +468,7 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file, label,
       out_args : Common output argument dictionary from parseCommonArgs.
       index_field : Field defining set membership for sequence sets
                     if None data queue contained individual records.
+      ordered : if True maintain deterministic output order based on sequence indices.
 
     Returns:
       None: Adds a dictionary with key value pairs to collect_queue containing
@@ -477,49 +510,108 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file, label,
     try:
         # Initialize output handles
         pass_handle, fail_handle = None, None
+        
+        if ordered:
+            # For ordered processing, collect all results first, then sort by sequence index
+            results_dict = {}
+            expected_index = 0
+            
+            # Collect all results into dictionary keyed by sequence index
+            while alive.value:
+                # Get result from queue
+                if result_queue.empty():  continue
+                else:  result = result_queue.get()
+                # Exit upon reaching sentinel
+                if result is None:  break
+                
+                # Store result by sequence index
+                if hasattr(result, 'seq_index'):
+                    results_dict[result.seq_index] = result
+                else:
+                    # Fallback for results without sequence index
+                    results_dict[expected_index] = result
+                    expected_index += 1
+            
+            # Process results in order by sequence index
+            start_time = time()
+            set_count = seq_count = pass_count = fail_count = 0
+            
+            for seq_index in sorted(results_dict.keys()):
+                result = results_dict[seq_index]
+                
+                # Print progress for previous iteration
+                printProgress(set_count, result_count, 0.05, start_time=start_time)
 
-        # Iterator over results queue until sentinel object reached
-        start_time = time()
-        set_count = seq_count = pass_count = fail_count = 0
-        while alive.value:
-            # Get result from queue
-            if result_queue.empty():  continue
-            else:  result = result_queue.get()
-            # Exit upon reaching sentinel
-            if result is None:  break
+                # Update counts for current iteration
+                set_count += 1
+                seq_count += result.data_count
 
-            # Print progress for previous iteration
-            printProgress(set_count, result_count, 0.05, start_time=start_time)
+                # Write log
+                printLog(result.log, handle=log_handle)
 
-            # Update counts for current iteration
-            set_count += 1
-            seq_count += result.data_count
-
-            # Write log
-            printLog(result.log, handle=log_handle)
-
-            # Write records
-            if result:
-                pass_count += 1
-                try:
-                    SeqIO.write(result.results, pass_handle, out_type)
-                except AttributeError:
-                    # Open pass file
-                    pass_handle = _open('pass')
-                    SeqIO.write(result.results, pass_handle, out_type)
-            else:
-                fail_count += 1
-                if out_args['failed']:
+                # Write records
+                if result:
+                    pass_count += 1
                     try:
-                        SeqIO.write(result.data, fail_handle, out_type)
+                        SeqIO.write(result.results, pass_handle, out_type)
                     except AttributeError:
-                        # Open fail file
-                        fail_handle = _open('fail')
-                        SeqIO.write(result.data, fail_handle, out_type)
+                        # Open pass file
+                        pass_handle = _open('pass')
+                        SeqIO.write(result.results, pass_handle, out_type)
+                else:
+                    fail_count += 1
+                    if out_args['failed']:
+                        try:
+                            SeqIO.write(result.data, fail_handle, out_type)
+                        except AttributeError:
+                            # Open fail file
+                            fail_handle = _open('fail')
+                            SeqIO.write(result.data, fail_handle, out_type)
         else:
-            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
+            # Original unordered processing
+            # Iterator over results queue until sentinel object reached
+            start_time = time()
+            set_count = seq_count = pass_count = fail_count = 0
+            while alive.value:
+                # Get result from queue
+                if result_queue.empty():  continue
+                else:  result = result_queue.get()
+                # Exit upon reaching sentinel
+                if result is None:  break
+
+                # Print progress for previous iteration
+                printProgress(set_count, result_count, 0.05, start_time=start_time)
+
+                # Update counts for current iteration
+                set_count += 1
+                seq_count += result.data_count
+
+                # Write log
+                printLog(result.log, handle=log_handle)
+
+                # Write records
+                if result:
+                    pass_count += 1
+                    try:
+                        SeqIO.write(result.results, pass_handle, out_type)
+                    except AttributeError:
+                        # Open pass file
+                        pass_handle = _open('pass')
+                        SeqIO.write(result.results, pass_handle, out_type)
+                else:
+                    fail_count += 1
+                    if out_args['failed']:
+                        try:
+                            SeqIO.write(result.data, fail_handle, out_type)
+                        except AttributeError:
+                            # Open fail file
+                            fail_handle = _open('fail')
+                            SeqIO.write(result.data, fail_handle, out_type)
+            else:
+                # Only show error message for unordered processing
+                sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
+                                 % os.getpid())
+                return None
 
         # Print total counts
         printProgress(set_count, result_count, 0.05, start_time=start_time)
@@ -555,7 +647,7 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file, label,
 
 
 def collectPairQueue(alive, result_queue, collect_queue, seq_file_1, seq_file_2, label,
-                     out_file=None, out_args=default_out_args):
+                     out_file=None, out_args=default_out_args, ordered=False):
     """
     Pulls from results queue, assembles results and manages log and file IO
 
@@ -613,53 +705,115 @@ def collectPairQueue(alive, result_queue, collect_queue, seq_file_1, seq_file_2,
         # Initialize file handles
         pass_handle, fail_handle_1, fail_handle_2 = None, None, None
 
-        # Iterator over results queue until sentinel object reached
-        start_time = time()
-        iter_count = pass_count = fail_count = 0
-        while alive.value:
-            # Get result from queue
-            if result_queue.empty():
-                continue
-            else:
-                result = result_queue.get()
-            # Exit upon reaching sentinel
-            if result is None:  break
+        if ordered:
+            # For ordered processing, collect all results first, then sort by sequence index
+            results_dict = {}
+            expected_index = 0
+            
+            # Collect all results into dictionary keyed by sequence index
+            while alive.value:
+                # Get result from queue
+                if result_queue.empty():
+                    continue
+                else:
+                    result = result_queue.get()
+                # Exit upon reaching sentinel
+                if result is None:  break
+                
+                # Store result by sequence index
+                if hasattr(result, 'seq_index'):
+                    results_dict[result.seq_index] = result
+                else:
+                    # Fallback for results without sequence index
+                    results_dict[expected_index] = result
+                    expected_index += 1
+            
+            # Process results in order by sequence index
+            start_time = time()
+            iter_count = pass_count = fail_count = 0
+            
+            for seq_index in sorted(results_dict.keys()):
+                result = results_dict[seq_index]
+                
+                # Print progress for previous iteration
+                printProgress(iter_count, result_count, 0.05, start_time=start_time)
 
-            # Print progress for previous iteration
-            printProgress(iter_count, result_count, 0.05, start_time=start_time)
+                # Update counts for iteration
+                iter_count += 1
 
-            # Update counts for iteration
-            iter_count += 1
+                # Write log
+                printLog(result.log, handle=log_handle)
 
-            # Write log
-            printLog(result.log, handle=log_handle)
-
-            # Write assembled sequences
-            if result:
-                pass_count += 1
-                try:
-                    SeqIO.write(result.results, pass_handle, out_type)
-                except AttributeError:
-                    # Open pass file
-                    pass_handle = _open('pass', seq_file_1, out_args['out_name'])
-                    SeqIO.write(result.results, pass_handle, out_type)
-            else:
-                fail_count += 1
-                if out_args['failed']:
+                # Write assembled sequences
+                if result:
+                    pass_count += 1
                     try:
-                        SeqIO.write(result.data[0], fail_handle_1, out_type)
-                        SeqIO.write(result.data[1], fail_handle_2, out_type)
+                        SeqIO.write(result.results, pass_handle, out_type)
                     except AttributeError:
-                        # Open fail file
-                        fail_handle_1 = _open('fail', seq_file_1, out_name_1)
-                        fail_handle_2 = _open('fail', seq_file_2, out_name_2)
-                        SeqIO.write(result.data[0], fail_handle_1, out_type)
-                        SeqIO.write(result.data[1], fail_handle_2, out_type)
-
+                        # Open pass file
+                        pass_handle = _open('pass', seq_file_1, out_args['out_name'])
+                        SeqIO.write(result.results, pass_handle, out_type)
+                else:
+                    fail_count += 1
+                    if out_args['failed']:
+                        try:
+                            SeqIO.write(result.data[0], fail_handle_1, out_type)
+                            SeqIO.write(result.data[1], fail_handle_2, out_type)
+                        except AttributeError:
+                            # Open fail file
+                            fail_handle_1 = _open('fail', seq_file_1, out_name_1)
+                            fail_handle_2 = _open('fail', seq_file_2, out_name_2)
+                            SeqIO.write(result.data[0], fail_handle_1, out_type)
+                            SeqIO.write(result.data[1], fail_handle_2, out_type)
         else:
-            sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
-                             % os.getpid())
-            return None
+            # Original unordered processing
+            # Iterator over results queue until sentinel object reached
+            start_time = time()
+            iter_count = pass_count = fail_count = 0
+            while alive.value:
+                # Get result from queue
+                if result_queue.empty():
+                    continue
+                else:
+                    result = result_queue.get()
+                # Exit upon reaching sentinel
+                if result is None:  break
+
+                # Print progress for previous iteration
+                printProgress(iter_count, result_count, 0.05, start_time=start_time)
+
+                # Update counts for iteration
+                iter_count += 1
+
+                # Write log
+                printLog(result.log, handle=log_handle)
+
+                # Write assembled sequences
+                if result:
+                    pass_count += 1
+                    try:
+                        SeqIO.write(result.results, pass_handle, out_type)
+                    except AttributeError:
+                        # Open pass file
+                        pass_handle = _open('pass', seq_file_1, out_args['out_name'])
+                        SeqIO.write(result.results, pass_handle, out_type)
+                else:
+                    fail_count += 1
+                    if out_args['failed']:
+                        try:
+                            SeqIO.write(result.data[0], fail_handle_1, out_type)
+                            SeqIO.write(result.data[1], fail_handle_2, out_type)
+                        except AttributeError:
+                            # Open fail file
+                            fail_handle_1 = _open('fail', seq_file_1, out_name_1)
+                            fail_handle_2 = _open('fail', seq_file_2, out_name_2)
+                            SeqIO.write(result.data[0], fail_handle_1, out_type)
+                            SeqIO.write(result.data[1], fail_handle_2, out_type)
+            else:
+                # Only show error message for unordered processing
+                sys.stderr.write('PID %s> Error in sibling process detected. Cleaning up.\n' \
+                                 % os.getpid())
+                return None
 
         # Print total counts
         printProgress(iter_count, result_count, 0.05, start_time=start_time)
@@ -694,3 +848,93 @@ def collectPairQueue(alive, result_queue, collect_queue, seq_file_1, seq_file_2,
         raise
 
     return None
+# Convenience functions for ordered processing
+
+def manageProcessesOrdered(feed_func, work_func, collect_func,
+                          feed_args={}, work_args={}, collect_args={},
+                          nproc=None, queue_size=None):
+    """
+    Manages feeder, worker and collector processes with ordered output
+    
+    This is a wrapper around manageProcesses that enables ordered processing
+    by adding the 'ordered=True' parameter to feed and collect functions.
+
+    Arguments:
+      feed_func (function): Data Queue feeder function.
+      work_func (function): Worker function.
+      collect_func (function): Result Queue collector function.
+      feed_args (dict): Dictionary of arguments to pass to feed_func.
+      work_args (dict): Dictionary of arguments to pass to work_func.
+      collect_args (dict): Dictionary of arguments to pass to collect_func.
+      nproc (int): Number of processQueue processes;
+                   if None defaults to the number of CPUs
+      queue_size (int): Maximum size of the argument queue;
+                        if None defaults to 2*nproc
+
+    Returns:
+      dict: Dictionary of collector results
+    """
+    from presto.Multiprocessing import manageProcesses
+    
+    # Enable ordered processing in feed and collect functions
+    feed_args = dict(feed_args)
+    feed_args['ordered'] = True
+    
+    collect_args = dict(collect_args)
+    collect_args['ordered'] = True
+    
+    return manageProcesses(feed_func, work_func, collect_func,
+                          feed_args=feed_args, work_args=work_args, 
+                          collect_args=collect_args,
+                          nproc=nproc, queue_size=queue_size)
+
+
+def processSeqFileOrdered(seq_file, process_func, label, 
+                         index_func=None, index_args={}, process_args={},
+                         out_file=None, out_args=None, 
+                         nproc=None, queue_size=None):
+    """
+    Process sequences from a file with deterministic ordered output
+    
+    This function provides a high-level interface for processing sequences
+    with guaranteed deterministic output order regardless of multiprocessing.
+
+    Arguments:
+      seq_file (str): Input sequence file path
+      process_func (function): Function to process each sequence/sequence set
+      label (str): Label for output files
+      index_func (function): Function to group sequences into sets (optional)
+      index_args (dict): Arguments for index_func
+      process_args (dict): Arguments for process_func
+      out_file (str): Output file path (optional, auto-generated if None)
+      out_args (dict): Output arguments dictionary
+      nproc (int): Number of worker processes (optional)
+      queue_size (int): Queue size (optional)
+
+    Returns:
+      dict: Dictionary with processing results and output file paths
+    """
+    from presto.Multiprocessing import feedSeqQueue, processSeqQueue, collectSeqQueue
+    from presto.Defaults import default_out_args
+    
+    if out_args is None:
+        out_args = default_out_args
+    
+    # Determine index field for progress counting
+    index_field = None
+    if index_func is not None:
+        # Try to determine index field from function name or args
+        if 'field' in index_args:
+            index_field = index_args['field']
+    
+    # Setup function arguments
+    feed_args = {'seq_file': seq_file, 'index_func': index_func, 'index_args': index_args}
+    work_args = {'process_func': process_func, 'process_args': process_args}
+    collect_args = {'seq_file': seq_file, 'label': label, 'index_field': index_field,
+                   'out_file': out_file, 'out_args': out_args}
+    
+    # Run ordered processing
+    return manageProcessesOrdered(feedSeqQueue, processSeqQueue, collectSeqQueue,
+                                 feed_args=feed_args, work_args=work_args,
+                                 collect_args=collect_args, 
+                                 nproc=nproc, queue_size=queue_size)

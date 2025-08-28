@@ -18,7 +18,7 @@ from presto.Defaults import default_out_args, default_filter_min_qual, \
                             default_filter_max_repeat, default_filter_window
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, printLog, printError
-from presto.Multiprocessing import manageProcesses, feedSeqQueue, \
+from presto.Multiprocessing import manageProcesses, manageProcessesOrdered, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
 from presto.Sequence import filterLength, filterMissing, filterRepeats, filterQuality, \
                             trimQuality, maskQuality
@@ -26,7 +26,7 @@ from presto.Sequence import filterLength, filterMissing, filterRepeats, filterQu
 
 def filterSeq(seq_file, filter_func, filter_args={},
               out_file=None, out_args=default_out_args,
-              nproc=None, queue_size=None):
+              nproc=None, queue_size=None, ordered=False):
     """
     Filters sequences by fraction of ambiguous nucleotides
 
@@ -65,7 +65,7 @@ def filterSeq(seq_file, filter_func, filter_args={},
 
     # Define feeder function and arguments
     feed_func = feedSeqQueue
-    feed_args = {'seq_file': seq_file}
+    feed_args = {'seq_file': seq_file, 'ordered': ordered}
     # Define worker function and arguments
     work_func = processSeqQueue
     work_args = {'process_func': filter_func,
@@ -75,12 +75,18 @@ def filterSeq(seq_file, filter_func, filter_args={},
     collect_args = {'seq_file': seq_file,
                     'label': cmd_dict[filter_func],
                     'out_file': out_file,
-                    'out_args': out_args}
+                    'out_args': out_args,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     result['log']['END'] = 'FilterSeq'

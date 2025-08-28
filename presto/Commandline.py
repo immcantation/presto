@@ -141,6 +141,8 @@ def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False,
         group.add_argument('--nproc', action='store', dest='nproc', type=int, default=mp.cpu_count(),
                             help='The number of simultaneous computational processes to execute \
                                   (CPU cores to utilized).')
+        group.add_argument('--ordered', action='store_true', dest='ordered',
+                            help='Maintain deterministic output order for reproducible results.')
 
     return parser
 

@@ -23,7 +23,7 @@ from presto.IO import getFileType, printLog, printWarning, printError
 from presto.Sequence import subsetSeqSet, calculateDiversity, \
                             qualityConsensus, frequencyConsensus, indexSeqSets, \
                             calculateSetError, deleteSeqPositions, findGapPositions
-from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+from presto.Multiprocessing import SeqResult, manageProcesses, manageProcessesOrdered, feedSeqQueue, \
                                    collectSeqQueue
 
 
@@ -224,7 +224,7 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                    min_qual=default_consensus_min_qual, primer_field=None, primer_freq=None,
                    max_gap=None, max_error=None, max_diversity=None,
                    copy_fields=None, copy_actions=None, dependent=False,
-                   out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
+                   out_file=None, out_args=default_out_args, nproc=None, queue_size=None, ordered=False):
     """
     Generates consensus sequences
 
@@ -296,7 +296,8 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
                  'index_func': indexSeqSets,
-                 'index_args': index_args}
+                 'index_args': index_args,
+                 'ordered': ordered}
     # Define worker function and arguments
     work_func = processQueue
     work_args = {'cons_func': cons_func,
@@ -316,12 +317,18 @@ def buildConsensus(seq_file, barcode_field=default_barcode_field,
                     'label': 'consensus',
                     'out_file': out_file,
                     'out_args': out_args,
-                    'index_field': barcode_field}
+                    'index_field': barcode_field,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     result['log']['END'] = 'BuildConsensus'

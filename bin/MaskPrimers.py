@@ -19,7 +19,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Sequence import localAlignment, compilePrimers, extractAlignment, getDNAScoreDict, \
                             maskSeq, reverseComplement, scoreAlignment
 from presto.IO import readPrimerFile, printLog
-from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+from presto.Multiprocessing import SeqResult, manageProcesses, manageProcessesOrdered, feedSeqQueue, \
                                    processSeqQueue, collectSeqQueue
 
 def extractPrimers(data, start, length, rev_primer=False, mode='mask', barcode=False,
@@ -215,7 +215,7 @@ def scorePrimers(data, primers, max_error=default_primer_max_error, start=defaul
 
 def maskPrimers(seq_file, primer_file, align_func, align_args={},
                 out_file=None, out_args=default_out_args,
-                nproc=None, queue_size=None):
+                nproc=None, queue_size=None, ordered=False):
     """
     Masks or cuts primers from sample sequences using local alignment
 
@@ -230,6 +230,7 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
               if None defaults to the number of CPUs.
       queue_size : maximum size of the argument queue;
                    if None defaults to 2*nproc.
+      ordered : if True maintain deterministic output order for reproducible results.
 
     Returns:
       list: a list of successful output file names.
@@ -276,7 +277,7 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
 
     # Define feeder function and arguments
     feed_func = feedSeqQueue
-    feed_args = {'seq_file': seq_file}
+    feed_args = {'seq_file': seq_file, 'ordered': ordered}
     # Define worker function and arguments
     work_func = processSeqQueue
     work_args = {'process_func': align_func,
@@ -286,12 +287,18 @@ def maskPrimers(seq_file, primer_file, align_func, align_args={},
     collect_args = {'seq_file': seq_file,
                     'label': 'primers',
                     'out_file': out_file,
-                    'out_args': out_args}
+                    'out_args': out_args,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     result['log']['END'] = 'MaskPrimers'
