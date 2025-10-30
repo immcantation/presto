@@ -30,6 +30,7 @@ jobs:
         run: |
           python setup.py install
   unittest:
+    name: Run tests in immcantation/test:devel container
     runs-on: ubuntu-latest
     container:
       image: immcantation/test:devel
