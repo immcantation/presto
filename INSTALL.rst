@@ -17,7 +17,7 @@ pip3 command.
 Requirements
 --------------------------------------------------------------------------------
 
-+  `Python 3.4.0 <https://python.org>`__
++  `Python 3.7.0 <https://python.org>`__
 +  `setuptools 2.0 <https://github.com/pypa/setuptools>`__
 +  `NumPy 1.8 <https://numpy.org/>`__
 +  `SciPy 0.14 <https://scipy.org/>`__
@@ -55,7 +55,7 @@ Mac OS X
 3. Install Homebrew following the installation and post-installation
    `instructions <https://brew.sh>`__.
 
-4. Install Python 3.4.0+ and set the path to the python3 executable::
+4. Install Python 3.7.0+ and set the path to the python3 executable::
 
    > brew install python3
    > echo 'export PATH=/usr/local/bin:$PATH' >> ~/.profile
@@ -87,7 +87,7 @@ Mac OS X
 Windows
 --------------------------------------------------------------------------------
 
-1. Install Python 3.4.0+ from `Python <https://python.org/downloads>`__,
+1. Install Python 3.7.0+ from `Python <https://python.org/downloads>`__,
    selecting both the options 'pip' and 'Add python.exe to Path'.
 
 2. Install NumPy, SciPy, pandas and Biopython.
