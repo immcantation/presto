@@ -122,7 +122,7 @@ def getArgParser():
     subparsers.required = True
 
     # Parent parser
-    parser_parent = getCommonArgParser(annotation=True, log=True, multiproc=True)
+    parser_parent = getCommonArgParser(annotation=True, log=True, multiproc=True, seq_out=True)
     group_parent = parser_parent.add_argument_group('annotation arguments')
     group_parent.add_argument('-f', action='store', dest='set_field', type=str,
                              default=default_barcode_field,

@@ -62,13 +62,18 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=de
     seq_iter = readSeqFile(seq_file)
     if out_args['out_type'] is None:  out_args['out_type'] = in_type
     if out_file is not None:
-        out_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        from presto.IO import openFile
+        out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(seq_file,
                                      'reheader',
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_args['out_type'])
+                                     out_type=out_args['out_type'],
+                                     gzip_output=out_args.get('gzip_output', False))
     # Count records
     result_count = countSeqFile(seq_file)
 
@@ -127,13 +132,18 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
     # Open file handles
     seq_iter = readSeqFile(seq_file)
     if out_file is not None:
-        out_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        from presto.IO import openFile
+        out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(seq_file,
                                      'headers',
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type='tab')
+                                     out_type='tab',
+                                     gzip_output=out_args.get('gzip_output', False))
     # Count records
     result_count = countSeqFile(seq_file)
 

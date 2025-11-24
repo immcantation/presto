@@ -313,13 +313,18 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
 
     # Open output file handles
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        from presto.IO import openFile
+        pass_handle = openFile(out_file, 'w')
     else:
         pass_handle = getOutputHandle(seq_file,
                                       'cluster-pass',
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
-                                      out_type=out_args['out_type'])
+                                      out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output', False))
 
     # Open indexed sequence file
     seq_dict = readSeqFile(seq_file, index=True)
@@ -443,13 +448,18 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
 
     # Open output file handles
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        from presto.IO import openFile
+        pass_handle = openFile(out_file, 'w')
     else:
         pass_handle = getOutputHandle(seq_file,
                                       'cluster-pass',
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
-                                      out_type=out_args['out_type'])
+                                      out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output', False))
 
     # Open indexed sequence file
     seq_dict = readSeqFile(seq_file, index=True)

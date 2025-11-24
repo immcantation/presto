@@ -349,7 +349,7 @@ def getArgParser():
                                          description='Find primer matches using pairwise local alignment.')
     group_align = parser_align.add_argument_group('primer alignment arguments')
     group_align.add_argument('-p', action='store', dest='primer_file', required=True,
-                              help='A FASTA file containing primer sequences.')
+                              help='A FASTA file containing primer sequences. Supports both uncompressed and gzip-compressed (.gz) files.')
     group_align.add_argument('--maxerror', action='store', dest='max_error', type=float,
                              default=default_primer_max_error, help='Maximum allowable error rate.')
     group_align.add_argument('--maxlen', action='store', dest='max_len', type=int,
@@ -399,7 +399,7 @@ def getArgParser():
                                          description='Find primer matches by scoring primers at a fixed position.')
     group_score = parser_score.add_argument_group('primer scoring arguments')
     group_score.add_argument('-p', action='store', dest='primer_file', required=True,
-                              help='A FASTA file containing primer sequences.')
+                              help='A FASTA file containing primer sequences. Supports both uncompressed and gzip-compressed (.gz) files.')
     group_score.add_argument('--start', action='store', dest='start', type=int, default=default_primer_start,
                              help='The starting position of the primer.')
     group_score.add_argument('--maxerror', action='store', dest='max_error', type=float,

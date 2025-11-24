@@ -83,15 +83,19 @@ def pairSeq(seq_file_1, seq_file_2, fields_1=None, fields_2=None,
 
     # Open output file handles
     pass_handle_1 = getOutputHandle(seq_file_1, 'pair-pass', out_args['out_dir'],
-                                    out_name=out_name_1, out_type=out_type_1)
+                                    out_name=out_name_1, out_type=out_type_1, 
+                                    gzip_output=out_args.get('gzip_output', False))
     pass_handle_2 = getOutputHandle(seq_file_2, 'pair-pass', out_args['out_dir'],
-                                    out_name=out_name_2, out_type=out_type_2)
+                                    out_name=out_name_2, out_type=out_type_2,
+                                    gzip_output=out_args.get('gzip_output', False))
 
     if out_args['failed']:
         fail_handle_1 = getOutputHandle(seq_file_1, 'pair-fail', out_dir=out_args['out_dir'],
-                                        out_name=out_name_1, out_type=out_type_1)
+                                        out_name=out_name_1, out_type=out_type_1,
+                                        gzip_output=out_args.get('gzip_output', False))
         fail_handle_2 = getOutputHandle(seq_file_2, 'pair-fail', out_dir=out_args['out_dir'],
-                                        out_name=out_name_2, out_type=out_type_2)
+                                        out_name=out_name_2, out_type=out_type_2,
+                                        gzip_output=out_args.get('gzip_output', False))
         pass_keys = list()
 
     # Iterate over pairs and write to output files

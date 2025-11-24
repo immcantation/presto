@@ -57,7 +57,8 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
     start_time = time()
     seq_count, part_num = 0, 1
     out_handle = getOutputHandle(seq_file, 'part%06i' % part_num, out_dir=out_args['out_dir'],
-                                 out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                 out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                 gzip_output=out_args.get('gzip_output', False))
     out_files = [out_handle.name]
     for seq in seq_iter:
         # Print progress for previous iteration
@@ -77,7 +78,8 @@ def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
             out_handle.close()
             part_num += 1
             out_handle = getOutputHandle(seq_file, 'part%06i' % part_num, out_dir=out_args['out_dir'],
-                                         out_name=out_args['out_name'], out_type=out_args['out_type'])
+                                         out_name=out_args['out_name'], out_type=out_args['out_type'],
+                                         gzip_output=out_args.get('gzip_output', False))
             out_files.append(out_handle.name)
 
     # Print log
@@ -156,7 +158,8 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                                             '%s-%s' % (field, tag),
                                             out_dir=out_args['out_dir'],
                                             out_name=out_args['out_name'],
-                                            out_type=out_args['out_type'])
+                                            out_type=out_args['out_type'],
+                                            gzip_output=out_args.get('gzip_output', False))
                         for tag in tag_list}
 
         # Iterate over sequences
@@ -174,12 +177,14 @@ def groupSeqFile(seq_file, field, threshold=None, out_args=default_out_args):
                                                 'under-%.1g' % threshold,
                                                 out_dir=out_args['out_dir'],
                                                 out_name=out_args['out_name'],
-                                                out_type=out_args['out_type']),
+                                                out_type=out_args['out_type'],
+                                                gzip_output=out_args.get('gzip_output', False)),
                         'atleast':getOutputHandle(seq_file,
                                                   'atleast-%.1g' % threshold,
                                                   out_dir=out_args['out_dir'],
                                                   out_name=out_args['out_name'],
-                                                  out_type=out_args['out_type'])}
+                                                  out_type=out_args['out_type'],
+                                                  gzip_output=out_args.get('gzip_output', False))}
 
         # Iterate over sequences
         for seq in seq_iter:
@@ -282,7 +287,8 @@ def sampleSeqFile(seq_file, max_count, field=None, values=None, out_args=default
                              'sample%i-n%i' % (i + 1, sample_count),
                              out_dir=out_args['out_dir'],
                              out_name=out_args['out_name'],
-                             out_type=out_args['out_type']) as out_handle:
+                             out_type=out_args['out_type'],
+                             gzip_output=out_args.get('gzip_output', False)) as out_handle:
             for k in sample_keys:
                 SeqIO.write(seq_dict[k], out_handle, out_args['out_type'])
             out_files.append(out_handle.name)
@@ -411,12 +417,14 @@ def samplePairSeqFile(seq_file_1, seq_file_2, max_count, field=None, values=None
                                        'sample%i-n%i' % (i + 1, sample_count),
                                        out_dir=out_args['out_dir'],
                                        out_name=out_name_1,
-                                       out_type=out_type_1)
+                                       out_type=out_type_1,
+                                       gzip_output=out_args.get('gzip_output', False))
         out_handle_2 = getOutputHandle(seq_file_2,
                                        'sample%i-n%i' % (i + 1, sample_count),
                                        out_dir=out_args['out_dir'],
                                        out_name=out_name_2,
-                                       out_type=out_type_2)
+                                       out_type=out_type_2,
+                                       gzip_output=out_args.get('gzip_output', False))
         out_files.append((out_handle_1.name, out_handle_2.name))
 
         for k in sample_keys:
@@ -493,7 +501,8 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
                                  out_label,
                                  out_dir=out_args['out_dir'],
                                  out_name=out_args['out_name'],
-                                 out_type=out_args['out_type'])
+                                 out_type=out_args['out_type'],
+                                 gzip_output=out_args.get('gzip_output', False))
     out_files = [out_handle.name]
 
     # Loop through sorted sequence dictionary keys
@@ -519,7 +528,8 @@ def sortSeqFile(seq_file, field, numeric=False, max_count=None, out_args=default
                                              'sorted-part%06i' % file_count,
                                              out_dir=out_args['out_dir'],
                                              out_name=out_args['out_name'],
-                                             out_type=out_args['out_type'])
+                                             out_type=out_args['out_type'],
+                                             gzip_output=out_args.get('gzip_output', False))
                 # Append output file name to out_files
                 out_files.append(out_handle.name)
 
@@ -618,12 +628,17 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
 
     # Output output handle
     if out_file is not None:
-        out_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        from presto.IO import openFile
+        out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(seq_file, 'selected',
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_args['out_type'])
+                                     out_type=out_args['out_type'],
+                                     gzip_output=out_args.get('gzip_output', False))
 
     # Generate subset of records
     start_time = time()

@@ -41,13 +41,18 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
     # Open file handles
     log_handle = open(record_file)
     if out_file is not None:
-        out_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        from presto.IO import openFile
+        out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(record_file,
                                      'table',
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
-                                      out_type='tab')
+                                      out_type='tab',
+                                      gzip_output=out_args.get('gzip_output', False))
 
     # Open csv writer and write header
     out_writer = csv.DictWriter(out_handle, extrasaction='ignore', restval='',
