@@ -25,7 +25,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Annotation import parseAnnotation
 from presto.Applications import runMuscle
 from presto.Sequence import calculateDiversity, indexSeqSets
-from presto.IO import readPrimerFile, getOutputHandle, printLog, printWarning, printError
+from presto.IO import readPrimerFile, getOutputHandle, openFile, printLog, printWarning, printError
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
@@ -170,7 +170,6 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         out_handle = openFile(out_file, 'w')
     else:
         out_tag = 'reverse' if reverse else 'forward'

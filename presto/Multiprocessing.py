@@ -21,7 +21,8 @@ from Bio.SeqRecord import SeqRecord
 from presto.Defaults import default_coord, default_delimiter, default_out_args
 from presto.Annotation import getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, countSeqSets, \
-                      getOutputHandle, printLog, printProgress, printWarning, printError
+                      getOutputHandle, openFile, printLog, printProgress, \
+                      printWarning, printError
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -452,7 +453,6 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file, label,
             # For explicit output files, check if gzip is needed
             if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
                 out_file = out_file + '.gz'
-            from presto.IO import openFile
             handle = openFile(out_file, 'w')
         else:
             handle = getOutputHandle(seq_file,
@@ -593,7 +593,6 @@ def collectPairQueue(alive, result_queue, collect_queue, seq_file_1, seq_file_2,
     def _open(x, in_file, out_name, out_file=out_file):
         if out_file is not None and x == 'pass':
             # For explicit output files, use openFile directly to support gzip compression
-            from presto.IO import openFile
             handle = openFile(out_file, 'w')
         else:
             handle = getOutputHandle(in_file,

@@ -22,7 +22,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               collapseAnnotation
 from presto.Sequence import checkSeqEqual
-from presto.IO import getFileType, readSeqFile, getOutputHandle, printLog, printProgress
+from presto.IO import getFileType, readSeqFile, getOutputHandle, openFile, printLog, printProgress
 
 # Default parameters
 default_max_missing = 0
@@ -246,7 +246,6 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         pass_handle = openFile(out_file, 'w')
     else:
         pass_handle = getOutputHandle(seq_file,

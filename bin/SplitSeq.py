@@ -24,7 +24,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Sequence import indexSeqSets, subsetSeqIndex
 from presto.Annotation import parseAnnotation, getAnnotationValues, getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
-                      printLog, printMessage, printProgress, printCount, printWarning, printError
+                      openFile, printLog, printMessage, printProgress, printCount, printWarning, printError
 
 
 def downsizeSeqFile(seq_file, max_count, out_args=default_out_args):
@@ -631,7 +631,6 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(seq_file, 'selected',

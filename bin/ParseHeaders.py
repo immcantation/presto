@@ -22,7 +22,7 @@ from presto.Annotation import parseAnnotation, flattenAnnotation, \
                               addHeader, collapseHeader, copyHeader, deleteHeader, \
                               expandHeader, mergeHeader, renameHeader
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
-                      printLog, printProgress
+                      openFile, printLog, printProgress
 
 
 def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=default_out_args):
@@ -65,7 +65,6 @@ def modifyHeaders(seq_file, modify_func, modify_args, out_file=None, out_args=de
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(seq_file,
@@ -135,7 +134,6 @@ def tableHeaders(seq_file, fields, out_file=None, out_args=default_out_args):
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(seq_file,

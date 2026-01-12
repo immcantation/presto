@@ -25,7 +25,7 @@ from presto.Defaults import default_delimiter, default_barcode_field, \
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation
 from presto.Applications import runCDHit, runUClust, default_max_memory
-from presto.IO import countSeqFile, getFileType, getOutputHandle, printLog, printMessage, \
+from presto.IO import countSeqFile, getFileType, getOutputHandle, openFile, printLog, printMessage, \
                       printProgress, readSeqFile, printError, printWarning
 from presto.Sequence import indexSeqSets
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
@@ -316,7 +316,6 @@ def clusterAll(seq_file, ident=default_cluster_ident, length_ratio=default_lengt
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         pass_handle = openFile(out_file, 'w')
     else:
         pass_handle = getOutputHandle(seq_file,
@@ -451,7 +450,6 @@ def clusterBarcodes(seq_file, ident=default_cluster_ident, length_ratio=default_
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         pass_handle = openFile(out_file, 'w')
     else:
         pass_handle = getOutputHandle(seq_file,

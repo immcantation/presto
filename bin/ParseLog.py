@@ -17,7 +17,7 @@ from time import time
 from presto.Defaults import default_out_args
 from presto.Annotation import parseLog
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
-from presto.IO import getOutputHandle, printLog, printCount
+from presto.IO import getOutputHandle, openFile, printLog, printCount
 
 
 def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
@@ -44,7 +44,6 @@ def tableLog(record_file, fields, out_file=None, out_args=default_out_args):
         # For explicit output files, check if gzip is needed
         if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
             out_file = out_file + '.gz'
-        from presto.IO import openFile
         out_handle = openFile(out_file, 'w')
     else:
         out_handle = getOutputHandle(record_file,
