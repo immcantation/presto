@@ -31,7 +31,7 @@ def readPrimerFile(primer_file, replace_special=True):
     Returns:
       dict: Dictionary mapping primer ID to sequence.
     """
-    if replace_special:  parse_id = lambda x: re.sub('[\s,=|]+', '_', x)
+    if replace_special:  parse_id = lambda x: re.sub(r'[\s,=|]+', '_', x)
     else:  parse_id = lambda x: x
 
     with open(primer_file, 'r') as primer_handle:

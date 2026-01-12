@@ -4,6 +4,14 @@ Release Notes
 Version 0.7.6dev: Unreleased
 -------------------------------------------------------------------------------
 
+General:
+
++ Fixed ResourceWarning issues caused by unclosed file handles in sequence I/O
+  operations with ``ConvertHeaders.py`` and ``SplitSeq.py``.
+
+Version 0.7.6: August 28, 2025
+-------------------------------------------------------------------------------
+
 FilterSeq:
 
 + Reset to using mean of Phred quality scores instead of mean of probabilities

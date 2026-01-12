@@ -124,7 +124,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_a
     printLog(log)
 
     # Close file handles
-    if fail_handle is not None:  pass_handle.close()
+    if pass_handle is not None:  pass_handle.close()
     if fail_handle is not None:  fail_handle.close()
 
     return pass_handle.name
