@@ -89,7 +89,7 @@ class TestEstimateError(unittest.TestCase):
         
         
         
-        seq_list = [SeqRecord(seq_list[i], id='SEQ' + str(i+1), name='SEQ' + str(i+1), description='',
+        seq_list = [SeqRecord(seq_dna[i], id='SEQ' + str(i+1), name='SEQ' + str(i+1), description='',
                                       letter_annotations={'phred_quality':seq_qual[i]})
                             for i in range(len(seq_dna))]
         self.records_dna = seq_list
