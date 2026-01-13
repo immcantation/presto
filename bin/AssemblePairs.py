@@ -26,7 +26,7 @@ from presto.Applications import makeBlastnDb, makeUBlastDb
 from presto.IO import readReferenceFile, countSeqFile, printLog, printError
 from presto.Sequence import reverseComplement, AssemblyStats, \
                             referenceAssembly, joinAssembly, alignAssembly, sequentialAssembly
-from presto.Multiprocessing import SeqResult, manageProcesses, \
+from presto.Multiprocessing import SeqResult, manageProcesses, manageProcessesOrdered, \
                                    processSeqQueue, feedPairQueue, collectPairQueue
 
 # Defaults
@@ -133,7 +133,7 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                   coord_type=default_coord, rc='tail',
                   head_fields=None, tail_fields=None,
                   out_file=None, out_args=default_out_args,
-                  nproc=None, queue_size=None):
+                  nproc=None, queue_size=None, ordered=False):
     """
     Generates consensus sequences
 
@@ -222,7 +222,8 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
     feed_args = {'seq_file_1': head_file,
                  'seq_file_2': tail_file,
                  'coord_type': coord_type,
-                 'delimiter': out_args['delimiter']}
+                 'delimiter': out_args['delimiter'],
+                 'ordered': ordered}
     # Define worker function and arguments
     process_args = {'assemble_func': assemble_func,
                     'assemble_args': assemble_args,
@@ -239,12 +240,18 @@ def assemblePairs(head_file, tail_file, assemble_func, assemble_args={},
                     'seq_file_2': tail_file,
                     'label': 'assemble',
                     'out_file': out_file,
-                    'out_args': out_args}
+                    'out_args': out_args,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Close reference database handle
     if cmd_name in ('reference', 'sequential'):

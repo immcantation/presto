@@ -17,7 +17,7 @@ from presto.Defaults import default_barcode_field, default_out_args
 from presto.Commandline import checkArgs, CommonHelpFormatter, getCommonArgParser, parseCommonArgs
 from presto.IO import printLog
 from presto.Sequence import indexSeqSets, consensusUnify, deletionUnify
-from presto.Multiprocessing import manageProcesses, collectSeqQueue, feedSeqQueue, \
+from presto.Multiprocessing import manageProcesses, manageProcessesOrdered, collectSeqQueue, feedSeqQueue, \
                                    processSeqQueue
 
 # Defaults
@@ -26,7 +26,7 @@ default_unify_field = 'SAMPLE'
 
 def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
                  unify_field=default_unify_field, out_file=None, out_args=default_out_args,
-                 nproc=None, queue_size=None):
+                 nproc=None, queue_size=None, ordered=False):
     """
     Merges and filters annotation fields within groups
 
@@ -60,7 +60,8 @@ def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
                  'index_func': indexSeqSets,
-                 'index_args': index_args}
+                 'index_args': index_args,
+                 'ordered': ordered}
     # Define worker function and arguments
     collapse_args = {'field': unify_field,
                      'delimiter': out_args['delimiter']}
@@ -73,12 +74,18 @@ def unifyHeaders(seq_file, collapse_func, set_field=default_barcode_field,
                     'label': 'unify',
                     'out_file': out_file,
                     'out_args': out_args,
-                    'index_field': set_field}
+                    'index_field': set_field,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     log = OrderedDict()

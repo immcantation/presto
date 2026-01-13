@@ -28,7 +28,7 @@ from presto.Applications import runCDHit, runUClust, default_max_memory
 from presto.IO import countSeqFile, getFileType, getOutputHandle, printLog, printMessage, \
                       printProgress, readSeqFile, printError, printWarning
 from presto.Sequence import indexSeqSets
-from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
+from presto.Multiprocessing import SeqResult, manageProcesses, manageProcessesOrdered, feedSeqQueue, \
                                    collectSeqQueue
 
 # Defaults
@@ -137,7 +137,7 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
                 seq_start=0, seq_end=None, set_field=default_barcode_field, cluster_field=default_cluster_field,
                 cluster_prefix=default_cluster_prefix, cluster_memory=default_max_memory,
                 cluster_tool=default_cluster_tool, cluster_exec=default_cluster_exec,
-                out_file=None, out_args=default_out_args, nproc=None, queue_size=None):
+                out_file=None, out_args=default_out_args, nproc=None, queue_size=None, ordered=False):
     """
     Performs clustering on sets of sequences
 
@@ -202,7 +202,8 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
     feed_func = feedSeqQueue
     feed_args = {'seq_file': seq_file,
                  'index_func': indexSeqSets,
-                 'index_args': index_args}
+                 'index_args': index_args,
+                 'ordered': ordered}
     # Define worker function and arguments
     work_func = processQueue
     work_args = {'cluster_func': cluster_func,
@@ -216,12 +217,18 @@ def clusterSets(seq_file, ident=default_cluster_ident, length_ratio=default_leng
                     'label': 'cluster',
                     'out_file': out_file,
                     'out_args': out_args,
-                    'index_field': set_field}
+                    'index_field': set_field,
+                    'ordered': ordered}
 
     # Call process manager
-    result = manageProcesses(feed_func, work_func, collect_func,
-                             feed_args, work_args, collect_args,
-                             nproc, queue_size)
+    if ordered:
+        result = manageProcessesOrdered(feed_func, work_func, collect_func,
+                                       feed_args, work_args, collect_args,
+                                       nproc, queue_size)
+    else:
+        result = manageProcesses(feed_func, work_func, collect_func,
+                                feed_args, work_args, collect_args,
+                                nproc, queue_size)
 
     # Print log
     log = OrderedDict()
