@@ -290,7 +290,7 @@ def convertGenericHeader(desc, delimiter=default_delimiter):
       dict: a dictionary of header field and value pairs.
     """
     # Replace whitespace and delimiter characters
-    sub_regex = '[%s\s]+' % re.escape(''.join(delimiter))
+    sub_regex = r'[%s\s]+' % re.escape(''.join(delimiter))
     conv = re.sub(sub_regex, '_', desc)
     try:
         # Check if modified header is valid
@@ -365,7 +365,7 @@ def convertGenbankHeader(desc, delimiter=default_delimiter):
         >gi|568336023|gb|CM000663.2| Homo sapiens chromosome 1, GRCh38 reference primary assembly
     """
     # Define special characters to replace
-    sub_regex = '[%s\s]+' % re.escape(''.join(delimiter[1:]))
+    sub_regex = r'[%s\s]+' % re.escape(''.join(delimiter[1:]))
 
     # Split description and assign field names
     try:
@@ -488,10 +488,10 @@ def convertIMGTHeader(desc, simple=False):
         header['ID'] = fields[1]
 
         if not simple:
-            header['SPECIES'] = re.sub('\s', '_', fields[2])
+            header['SPECIES'] = re.sub(r'\s', '_', fields[2])
             header['REGION'] = fields[4]
-            header['FUNCTIONALITY'] = re.sub('[\(\)\[\]]', '', fields[3])
-            header['PARTIAL'] = 'FALSE' if re.sub('\s', '', fields[13]) == '' else 'TRUE'
+            header['FUNCTIONALITY'] = re.sub(r'[\(\)\[\]]', '', fields[3])
+            header['PARTIAL'] = 'FALSE' if re.sub(r'\s', '', fields[13]) == '' else 'TRUE'
             header['ACCESSION'] = fields[0]
 
         # Position and length data

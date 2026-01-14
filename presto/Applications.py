@@ -58,7 +58,7 @@ def getMuscleVersion(exec=default_muscle_exec):
     # stdout_str='muscle 5.1.linux64 [12f0e2]\nBuilt Jan 13 2022 23:17:13\n\n'
     version = stdout_str.split()[1]
     version = re.sub('^v','',version)
-    version = re.sub('\.linux.*$','',version)
+    version = re.sub(r'\.linux.*$','',version)
 
     return version
 
@@ -285,7 +285,7 @@ def runCDHit(seq_list, ident=default_cluster_ident, length_ratio=default_length_
     #   0	17nt, >S12|BARCODE=TTTTTTTTTTTTTTTTT... *
     # Parsing regex
     block_regex = re.compile('>Cluster [0-9]+')
-    id_regex = re.compile('([0-9]+\t[0-9]+nt, \>)(.+)(\.\.\.)')
+    id_regex = re.compile(r'([0-9]+\t[0-9]+nt, \>)(.+)(\.\.\.)')
 
     # Parse .clstr file
     cluster_dict = {}
