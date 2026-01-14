@@ -114,7 +114,7 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_a
                     SeqIO.write(seq, fail_handle, out_args['out_type'])
                 except AttributeError:
                     # Open output file
-                    pass_handle = _open('fail')
+                    fail_handle = _open('fail')
                     SeqIO.write(seq, fail_handle, out_args['out_type'])
 
     # Print counts
