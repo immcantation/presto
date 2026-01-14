@@ -485,7 +485,8 @@ def writeResults(results, seq_file, out_args):
     dist_df[['all']] = dist_df[['all']].astype(int)
 
     # Write to tab delimited files
-    file_args = {'out_dir': out_args['out_dir'], 'out_name': out_args['out_name'], 'out_type': 'tab'}
+    file_args = {'out_dir': out_args['out_dir'], 'out_name': out_args['out_name'], 'out_type': 'tab',
+                 'gzip_output': out_args.get('gzip_output', False)}
     with getOutputHandle(seq_file, 'error-position', **file_args) as pos_handle, \
             getOutputHandle(seq_file, 'error-quality', **file_args) as qual_handle, \
             getOutputHandle(seq_file, 'error-nucleotide', **file_args) as nuc_handle, \
@@ -654,7 +655,8 @@ def estimateBarcode(seq_file, barcode_field=default_barcode_field, distance_type
     thresh_df = pd.DataFrame.from_dict({'thresh': {'ALL': dist_df.index[int(np.mean([index for index in np.argsort(window) \
                                                                                      if dist[index] == np.min(window)]))]}
                                         })
-    file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab'}
+    file_args = {'out_dir':out_args['out_dir'], 'out_name':out_args['out_name'], 'out_type':'tab',
+                 'gzip_output': out_args.get('gzip_output', False)}
 
     # Output as tsv
     with getOutputHandle(seq_file, 'distance-barcode', **file_args) as dist_handle, \
@@ -755,7 +757,7 @@ def getArgParser():
     subparsers.required = True
 
     # Error profiling arguments for sets
-    parent_set = getCommonArgParser(failed=False, seq_out=False, log=True, out_file=False, multiproc=True)
+    parent_set = getCommonArgParser(failed=False, seq_out=True, log=True, out_file=False, multiproc=True)
     parser_set = subparsers.add_parser('set', parents=[parent_set],
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Estimates error statistics within annotation sets.',
@@ -785,7 +787,7 @@ def getArgParser():
     parser_set.set_defaults(func=estimateSets)
 
     # Error profiling arguments for barcodes
-    parent_barcode = getCommonArgParser(failed=False, seq_out=False, log=False, out_file=False, multiproc=False)
+    parent_barcode = getCommonArgParser(failed=False, seq_out=True, log=False, out_file=False, multiproc=False)
     parser_barcode = subparsers.add_parser('barcode', parents=[parent_barcode],
                                            formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Calculates pairwise distance metrics of barcode sequences.',

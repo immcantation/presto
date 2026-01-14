@@ -21,7 +21,7 @@ from presto.Annotation import flattenAnnotation, convertGenericHeader, convert45
                               convertSRAHeader, convertMIGECHeader
 from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParser, parseCommonArgs
 from presto.IO import getFileType, readSeqFile, countSeqFile, getOutputHandle, \
-                      printLog, printProgress
+                      openFile, printLog, printProgress
 
 
 def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_args=default_out_args):
@@ -61,13 +61,17 @@ def convertHeaders(seq_file, convert_func, convert_args={}, out_file=None, out_a
     # Wrapper for opening handles and writers
     def _open(x, out_file=out_file):
         if out_file is not None and x == 'pass':
-            handle = open(out_file, 'w')
+            # For explicit output files, check if gzip is needed
+            if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+                out_file = out_file + '.gz'
+            handle = openFile(out_file, 'w')
         else:
             handle = getOutputHandle(seq_file,
                                      'convert-%s' % x,
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_args['out_type'])
+                                     out_type=out_args['out_type'],
+                                     gzip_output=out_args.get('gzip_output', False))
         return handle
 
     # Count records

@@ -6,6 +6,7 @@ __author__ = 'Jason Anthony Vander Heiden'
 from presto import __version__, __date__
 
 # Imports
+import gzip
 import math
 import re
 import os
@@ -17,6 +18,23 @@ from Bio import SeqIO
 # Presto imports
 from presto.Defaults import default_delimiter, default_barcode_field
 from presto.Annotation import parseAnnotation
+
+
+def openFile(filename, mode='r'):
+    """
+    Opens a file with automatic gzip support
+    
+    Arguments:
+      filename (str): path to the file
+      mode (str): file opening mode
+      
+    Returns:
+      file handle: opened file handle
+    """
+    if filename.endswith('.gz'):
+        return gzip.open(filename, mode + 't')
+    else:
+        return open(filename, mode)
 
 
 def readPrimerFile(primer_file, replace_special=True):
@@ -34,7 +52,7 @@ def readPrimerFile(primer_file, replace_special=True):
     if replace_special:  parse_id = lambda x: re.sub(r'[\s,=|]+', '_', x)
     else:  parse_id = lambda x: x
 
-    with open(primer_file, 'r') as primer_handle:
+    with openFile(primer_file, 'r') as primer_handle:
         primer_iter = SeqIO.parse(primer_handle, 'fasta')
         primers = {parse_id(p.description): str(p.seq).upper() for p in primer_iter}
 
@@ -53,10 +71,24 @@ def getFileType(filename):
     """
     # Read and check file
     try:
-        file_type = os.path.splitext(filename)[1].lower().lstrip('.')
-        if file_type in ('fasta', 'fna', 'fa'):  file_type = 'fasta'
-        elif file_type in ('fastq', 'fq'):  file_type = 'fastq'
-        elif file_type in ('tab', 'tsv'):  file_type = 'tab'
+        # Handle .gz extensions
+        if filename.endswith('.gz'):
+            # Remove .gz and get the underlying file type
+            filename_no_gz = filename[:-3]
+            file_type = os.path.splitext(filename_no_gz)[1].lower().lstrip('.')
+        else:
+            file_type = os.path.splitext(filename)[1].lower().lstrip('.')
+            
+        if file_type in ('fasta', 'fna', 'fa'):  
+            file_type = 'fasta'
+        elif file_type in ('fastq', 'fq'):  
+            file_type = 'fastq'
+        elif file_type in ('tab', 'tsv'):  
+            file_type = 'tab'
+        else:
+            # Handle unrecognized extensions - return as-is for now
+            pass
+            
     except IOError:
         printError('File %s cannot be read.' % filename)
     except Exception as e:
@@ -87,9 +119,21 @@ def readSeqFile(seq_file, index=False, key_func=None):
             printError('File %s has an unrecognized type.' % seq_file)
 
         if index:
-            seq_records = SeqIO.index(seq_file, seq_type, key_function=key_func)
+            # For indexing, we need different approaches for gzip vs regular files
+            if seq_file.endswith('.gz'):
+                # For gzip files, we can't use SeqIO.index directly, so we'll read into memory.
+                # SeqIO.index() cannot index regular .gz files, only BGZF format.
+                with openFile(seq_file, 'r') as handle:
+                    seq_records = {rec.id: rec for rec in SeqIO.parse(handle, seq_type)}
+            else:
+                seq_records = SeqIO.index(seq_file, seq_type, key_function=key_func)
         else:
-            seq_records = SeqIO.parse(seq_file, seq_type)
+            # For non-index case, return iterator directly from SeqIO.parse
+            if seq_file.endswith('.gz'):
+                handle = openFile(seq_file, 'r')
+                seq_records = SeqIO.parse(handle, seq_type)
+            else:
+                seq_records = SeqIO.parse(seq_file, seq_type)
     except IOError:
         printError('File %s cannot be read.' % seq_file)
     except Exception as e:
@@ -170,7 +214,7 @@ def countSeqSets(seq_file, field=default_barcode_field, delimiter=default_delimi
     return result_count
 
 
-def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_type=None):
+def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_type=None, gzip_output=False):
     """
     Opens an output file handle
 
@@ -184,13 +228,21 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
                 if None use directory of input file
       out_name : the short filename to use for the output file;
                  if None use input file short name
+      gzip_output : if True, create gzip compressed output
 
     Returns:
       file : File handle
     """
     # Get in_file components
     dir_name, file_name = os.path.split(in_file)
-    short_name, ext_name = os.path.splitext(file_name)
+    
+    # Handle input files that might be gzipped
+    if file_name.endswith('.gz'):
+        short_name, ext_name = os.path.splitext(file_name[:-3])  # Remove .gz first
+        was_gzipped = True
+    else:
+        short_name, ext_name = os.path.splitext(file_name)
+        was_gzipped = False
 
     # Define output directory
     if out_dir is None:
@@ -198,21 +250,34 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
     else:
         out_dir = os.path.abspath(out_dir)
         if not os.path.exists(out_dir):  os.mkdir(out_dir)
+    
     # Define output file prefix
     if out_name is None:  out_name = short_name
-    # Define output file extension
-    if out_type is None:  out_type = ext_name.lstrip('.')
+    # Define output file extension - preserve original format if out_type is None
+    if out_type is None:  
+        out_type = ext_name.lstrip('.')
+    else:
+        # If out_type is specified, check if we should preserve original extension format
+        original_ext = ext_name.lstrip('.')
+        # Map standardized types back to original format when they match
+        if out_type == 'fastq' and original_ext in ('fq', 'fastq'):
+            out_type = original_ext
+        elif out_type == 'fasta' and original_ext in ('fa', 'fasta'):
+            out_type = original_ext
 
     # Define output file name
     if out_label is None:
         out_file = os.path.join(out_dir, '%s.%s' % (out_name, out_type))
     else:
         out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
+    
+    # Add .gz extension if gzip_output is True or if input was gzipped and gzip_output not explicitly False
+    if gzip_output or (was_gzipped and gzip_output is not False):
+        out_file += '.gz'
 
     # Open and return handle
     try:
-        # TODO:  mode may need to be 'wt'. or need universal_newlines=True all over the place. check tab file parsing.
-        return open(out_file, 'w')
+        return openFile(out_file, 'w')
     except:
         printError('File %s cannot be opened.' % out_file)
 

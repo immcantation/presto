@@ -79,14 +79,14 @@ def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False,
     # Sequence input arguments
     if seq_in and not seq_paired:
         group.add_argument('-s', nargs='+', action='store', dest='seq_files', required=True,
-                            help='A list of FASTA/FASTQ files containing sequences to process.')
+                            help='A list of FASTA/FASTQ files containing sequences to process. Supports both uncompressed and gzip-compressed (.gz) files.')
     elif seq_in and seq_paired:
         group.add_argument('-1', nargs='+', action='store', dest='seq_files_1', required=True,
                             help='''An ordered list of FASTA/FASTQ files containing
-                                 head/primary sequences.''')
+                                 head/primary sequences. Supports both uncompressed and gzip-compressed (.gz) files.''')
         group.add_argument('-2', nargs='+', action='store', dest='seq_files_2', required=True,
                             help='''An ordered list of FASTA/FASTQ files containing
-                                 tail/secondary sequences.''')
+                                 tail/secondary sequences. Supports both uncompressed and gzip-compressed (.gz) files.''')
 
     # Database arguments
     if db_in:
@@ -127,6 +127,8 @@ def getCommonArgParser(seq_in=True, seq_out=True, seq_paired=False, db_in=False,
     if seq_out:
         group.add_argument('--fasta', action='store_const', dest='out_type', const='fasta',
                             help='Specify to force output as FASTA rather than FASTQ.')
+        group.add_argument('--gzip-output', action='store_true', dest='gzip_output',
+                            help='Specify to force gzip compressed output files.')
 
     # Annotation arguments
     if annotation:
@@ -274,7 +276,7 @@ def parseCommonArgs(args, in_arg=None, in_types=None):
 
     # Redefine common output options as out_args dictionary
     out_args = ['log_file', 'delimiter', 'separator', 
-                'out_dir', 'out_name', 'out_type', 'failed']
+                'out_dir', 'out_name', 'out_type', 'failed', 'gzip_output']
     args_dict['out_args'] = {k:args_dict.setdefault(k, None) for k in out_args}
     for k in out_args: del args_dict[k]
     

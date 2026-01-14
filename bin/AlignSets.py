@@ -25,7 +25,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Annotation import parseAnnotation
 from presto.Applications import runMuscle
 from presto.Sequence import calculateDiversity, indexSeqSets
-from presto.IO import readPrimerFile, getOutputHandle, printLog, printWarning, printError
+from presto.IO import readPrimerFile, getOutputHandle, openFile, printLog, printWarning, printError
 from presto.Multiprocessing import SeqResult, manageProcesses, feedSeqQueue, \
                                    collectSeqQueue
 
@@ -167,14 +167,18 @@ def writeOffsetFile(primer_file, align_func=runMuscle, align_args={},
 
     # Open output handle
     if out_file is not None:
-        out_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        out_handle = openFile(out_file, 'w')
     else:
         out_tag = 'reverse' if reverse else 'forward'
         out_handle = getOutputHandle(primer_file,
                                      'offsets-%s' % out_tag,
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type='tab')
+                                     out_type='tab',
+                                     gzip_output=out_args.get('gzip_output', False))
 
     # Write offset table
     for k, v in offset_dict.items():
@@ -427,7 +431,7 @@ def getArgParser():
                                          description='Create a 5\' offset table by primer multiple alignment.')
     group_table = parser_table.add_argument_group('alignment table generation arguments')
     group_table.add_argument('-p', action='store', dest='primer_file', required=True,
-                               help='A FASTA file containing primer sequences.')
+                               help='A FASTA file containing primer sequences. Supports both uncompressed and gzip-compressed (.gz) files.')
     group_table.add_argument('-o', action='store', dest='out_file', default=None,
                              help='''Explicit output file name. Note, this argument cannot be used with
                                   the --failed, --outdir, or --outname arguments. If unspecified, then

@@ -22,7 +22,7 @@ from presto.Commandline import CommonHelpFormatter, checkArgs, getCommonArgParse
 from presto.Annotation import parseAnnotation, flattenAnnotation, mergeAnnotation, \
                               collapseAnnotation
 from presto.Sequence import checkSeqEqual
-from presto.IO import getFileType, readSeqFile, getOutputHandle, printLog, printProgress
+from presto.IO import getFileType, readSeqFile, getOutputHandle, openFile, printLog, printProgress
 
 # Default parameters
 default_max_missing = 0
@@ -243,13 +243,17 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
 
     # Open unique record output handle
     if out_file is not None:
-        pass_handle = open(out_file, 'w')
+        # For explicit output files, check if gzip is needed
+        if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+            out_file = out_file + '.gz'
+        pass_handle = openFile(out_file, 'w')
     else:
         pass_handle = getOutputHandle(seq_file,
                                       'collapse-unique',
                                       out_dir=out_args['out_dir'],
                                       out_name=out_args['out_name'],
-                                      out_type=out_args['out_type'])
+                                      out_type=out_args['out_type'],
+                                      gzip_output=out_args.get('gzip_output', False))
     # Define log handle
     if out_args['log_file'] is None:
         log_handle = None
@@ -319,7 +323,8 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     # Write sequence with high missing character counts
     if out_args['failed'] and not keep_missing:
         with getOutputHandle(seq_file, 'collapse-undetermined', out_dir=out_args['out_dir'],
-                             out_name=out_args['out_name'], out_type=out_args['out_type']) \
+                             out_name=out_args['out_name'], out_type=out_args['out_type'],
+                             gzip_output=out_args.get('gzip_output', False)) \
                 as missing_handle:
             for k in search_keys:
                 SeqIO.write(seq_dict[k], missing_handle, out_args['out_type'])
@@ -327,7 +332,8 @@ def collapseSeq(seq_file, max_missing=default_max_missing, uniq_fields=None,
     if out_args['failed']:
         # Write duplicate sequences
         with getOutputHandle(seq_file, 'collapse-duplicate', out_dir=out_args['out_dir'],
-                             out_name=out_args['out_name'], out_type=out_args['out_type']) \
+                             out_name=out_args['out_name'], out_type=out_args['out_type'],
+                             gzip_output=out_args.get('gzip_output', False)) \
                 as dup_handle:
             for k in dup_keys:
                 SeqIO.write(seq_dict[k], dup_handle, out_args['out_type'])

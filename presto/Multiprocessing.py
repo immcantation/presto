@@ -21,7 +21,8 @@ from Bio.SeqRecord import SeqRecord
 from presto.Defaults import default_coord, default_delimiter, default_out_args
 from presto.Annotation import getCoordKey
 from presto.IO import getFileType, readSeqFile, countSeqFile, countSeqSets, \
-                      getOutputHandle, printLog, printProgress, printWarning, printError
+                      getOutputHandle, openFile, printLog, printProgress, \
+                      printWarning, printError
 
 # Constants
 TERMINATION_SENTINEL = None
@@ -449,13 +450,17 @@ def collectSeqQueue(alive, result_queue, collect_queue, seq_file, label,
     # Wrapper for opening handles and writers
     def _open(x, label=label, out_file=out_file):
         if out_file is not None and x == 'pass':
-            handle = open(out_file, 'w')
+            # For explicit output files, check if gzip is needed
+            if out_args.get('gzip_output', False) and not out_file.endswith('.gz'):
+                out_file = out_file + '.gz'
+            handle = openFile(out_file, 'w')
         else:
             handle = getOutputHandle(seq_file,
                                      out_label='%s-%s' % (label, x),
                                      out_dir=out_args['out_dir'],
                                      out_name=out_args['out_name'],
-                                     out_type=out_type)
+                                     out_type=out_type,
+                                     gzip_output=out_args.get('gzip_output', False))
         return handle
 
     try:
@@ -587,13 +592,15 @@ def collectPairQueue(alive, result_queue, collect_queue, seq_file_1, seq_file_2,
     # Wrapper for opening handles and writers
     def _open(x, in_file, out_name, out_file=out_file):
         if out_file is not None and x == 'pass':
-            handle = open(out_file, 'w')
+            # For explicit output files, use openFile directly to support gzip compression
+            handle = openFile(out_file, 'w')
         else:
             handle = getOutputHandle(in_file,
                                      out_label='%s-%s' % (label, x),
                                      out_dir=out_args['out_dir'],
                                      out_name=out_name,
-                                     out_type=out_type)
+                                     out_type=out_type,
+                                     gzip_output=out_args.get('gzip_output', False))
         return handle
 
     try:
