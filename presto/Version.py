@@ -3,7 +3,7 @@ Version and authorship information
 """
 
 __author__    = 'Jason Anthony Vander Heiden'
-__copyright__ = 'Copyright 2025 Kleinstein Lab, Yale University. All rights reserved.'
+__copyright__ = 'Copyright 2026 Kleinstein Lab, Yale University. All rights reserved.'
 __license__   = 'GNU Affero General Public License 3 (AGPL-3)'
 __version__   = '0.7.6dev'
-__date__      = '2025.10.28'
+__date__      = '2026.01.14'
