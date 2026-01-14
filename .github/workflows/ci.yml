@@ -42,11 +42,51 @@ jobs:
       - name: Download test data
         run: |
           wget https://zenodo.org/records/14679815/files/test.fastq.gz?download=1 -O test.fastq.gz
-          gunzip test.fastq.gz
+          # Keep both gzipped and uncompressed versions for testing
+          gunzip -c test.fastq.gz > test.fastq
       
       # Run CLI tests
-      - name: MaskPrimers extract
+      - name: MaskPrimers extract (uncompressed)
         run: |
           MaskPrimers.py extract --help
           MaskPrimers.py extract -s test.fastq --start 17 --len 10 --barcode --mode cut --log log.txt --nproc 4 --outdir output --outname MaskPrimers-extract --failed
+      
+      # Test gzip functionality
+      - name: MaskPrimers extract (gzip input/output)
+        run: |
+          # Test gzip input with gzip output
+          MaskPrimers.py extract -s test.fastq.gz --start 17 --len 10 --barcode --mode cut --gzip-output --log log-gzip.txt --nproc 4 --outdir output --outname MaskPrimers-gzip --failed
+                
+          # Verify at least one output file was created
+          if [ ! -f "output/MaskPrimers-gzip_primers-pass.fastq.gz" ] && [ ! -f "output/MaskPrimers-gzip_primers-fail.fastq.gz" ]; then
+            echo "❌ ERROR: No compressed output files were created!"
+            exit 1
+          fi
+      
+      # Compare results between uncompressed and gzipped processing
+      - name: Compare uncompressed vs gzipped results
+        run: |
+          echo "Comparing results between uncompressed and gzipped processing..."
+          
+          python3 -c "
+          from Bio import SeqIO
+          from presto.IO import openFile
+          
+          # Read both files using Presto's openFile
+          with openFile('output/MaskPrimers-extract_primers-pass.fastq', 'r') as handle:
+              uncomp_records = {(rec.id, str(rec.seq)) for rec in SeqIO.parse(handle, 'fastq')}
+          
+          with openFile('output/MaskPrimers-gzip_primers-pass.fastq.gz', 'r') as handle:
+              gzip_records = {(rec.id, str(rec.seq)) for rec in SeqIO.parse(handle, 'fastq')}
+          
+          print(f'Uncompressed records: {len(uncomp_records)}')
+          print(f'Gzipped records: {len(gzip_records)}')
+          
+          if uncomp_records == gzip_records:
+              print('✅ SUCCESS: Files contain identical sequences')
+          else:
+              print('❌ ERROR: Files contain different sequences!')
+              exit(1)
+          "
+          
 
