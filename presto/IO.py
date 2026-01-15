@@ -130,13 +130,10 @@ def readSeqFile(seq_file, index=False, key_func=None):
         else:
             # For non-index case, return iterator directly from SeqIO.parse
             if seq_file.endswith('.gz'):
-                with openFile(seq_file, 'r') as handle:
-                    seq_records = list(SeqIO.parse(handle, seq_type))
+                handle = openFile(seq_file, 'r')
+                seq_records = SeqIO.parse(handle, seq_type)
             else:
-                def _iterator():
-                    with openFile(seq_file, 'r') as handle:
-                        yield from SeqIO.parse(handle, seq_type)
-                seq_records = _iterator()
+                seq_records = SeqIO.parse(seq_file, seq_type)
     except IOError:
         printError('File %s cannot be read.' % seq_file)
     except Exception as e:
