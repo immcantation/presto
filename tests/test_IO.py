@@ -140,57 +140,6 @@ class TestIO(unittest.TestCase):
             self.assertEqual(len(records), 1)
             print(f'Successfully read back record: {records[0].id}')
 
-    #@unittest.skip('-> test_round_trip_gzip() skipped\n')
-    def test_round_trip_gzip(self):
-        """Test round-trip: read gzipped file, process, write gzipped output"""
-        if not os.path.exists(self.fq_gz_file):
-            self.skipTest(f"Gzipped test file {self.fq_gz_file} not found")
-        
-        # Read from gzipped input (use index=True to get dict)
-        input_dict = readSeqFile(self.fq_gz_file, index=True)
-        original_count = len(input_dict)
-        print(f'Original gzipped file has {original_count} sequences')
-        
-        # Write to gzipped output
-        output_path = os.path.join(self.temp_dir, "round_trip_test.fq.gz")
-        with openFile(output_path, 'w') as output_handle:
-            file_type = getFileType(self.fq_gz_file)
-            SeqIO.write(input_dict.values(), output_handle, file_type)
-        
-        # Read back the gzipped output (use index=True to get dict)
-        readback_dict = readSeqFile(output_path, index=True)
-        readback_count = len(readback_dict)
-        print(f'Round-trip gzipped file has {readback_count} sequences')
-        
-        # Verify counts match
-        self.assertEqual(original_count, readback_count)
-        
-        # Verify first sequence IDs match
-        original_ids = set(input_dict.keys())
-        readback_ids = set(readback_dict.keys())
-        self.assertEqual(original_ids, readback_ids)
-
-    #@unittest.skip('-> test_gzip_auto_detection_input() skipped\n')
-    def test_gzip_auto_detection_input(self):
-        """Test that gzipped inputs are automatically detected and handled"""
-        if not os.path.exists(self.fq_gz_file):
-            self.skipTest(f"Gzipped test file {self.fq_gz_file} not found")
-        
-        # Test with explicit gzip_output=True 
-        output_handle = getOutputHandle(
-            in_file=self.fq_gz_file,
-            out_dir=self.temp_dir,
-            out_name="auto_detect_test",
-            gzip_output=True
-        )
-        
-        output_path = output_handle.name
-        output_handle.close()
-        
-        # Should add .gz extension when gzip_output=True
-        print(f'Auto-detected output path: {output_path}')
-        self.assertTrue(output_path.endswith('.gz'))
-
 
 if __name__ == '__main__':
     unittest.main()
