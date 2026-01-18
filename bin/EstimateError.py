@@ -757,7 +757,7 @@ def getArgParser():
     subparsers.required = True
 
     # Error profiling arguments for sets
-    parent_set = getCommonArgParser(failed=False, seq_out=True, log=True, out_file=False, multiproc=True)
+    parent_set = getCommonArgParser(failed=False, seq_out=False, log=True, out_file=False, multiproc=True)
     parser_set = subparsers.add_parser('set', parents=[parent_set],
                                        formatter_class=CommonHelpFormatter, add_help=False,
                                        help='Estimates error statistics within annotation sets.',
@@ -787,7 +787,7 @@ def getArgParser():
     parser_set.set_defaults(func=estimateSets)
 
     # Error profiling arguments for barcodes
-    parent_barcode = getCommonArgParser(failed=False, seq_out=True, log=False, out_file=False, multiproc=False)
+    parent_barcode = getCommonArgParser(failed=False, seq_out=False, log=False, out_file=False, multiproc=False)
     parser_barcode = subparsers.add_parser('barcode', parents=[parent_barcode],
                                            formatter_class=CommonHelpFormatter, add_help=False,
                                            help='Calculates pairwise distance metrics of barcode sequences.',
