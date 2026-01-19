@@ -9,8 +9,8 @@ General:
 + Updated minimum requirements: Python 3.7.0, numpy>=1.16.0, scipy>=1.2.0,
   pandas>=0.24.0, biopython>=1.78, packaging>=19.0.
 + Added option to read and write .gz compressed fasta and fastq files.
-+ Fixed ResourceWarning issues caused by unclosed file handles in sequence I/O
-  operations with ``ConvertHeaders.py`` and ``SplitSeq.py``.
++ Fixed warnings caused by unclosed file handles in sequence I/O
+  operations.
 
 
 Version 0.7.6: August 28, 2025
