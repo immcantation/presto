@@ -639,40 +639,36 @@ def selectSeqFile(seq_file, field, value_list=None, value_file=None, negate=Fals
                                      out_type=out_args['out_type'],
                                      gzip_output=out_args.get('gzip_output', False))
 
-    try:
-        # Generate subset of records
-        start_time = time()
-        pass_count, fail_count, rec_count = 0, 0, 0
-        value_set = set(value_list)
-        for rec in seq_iter:
-            printCount(rec_count, 1e5, start_time=start_time)
-            rec_count += 1
+#    try:
+    # Generate subset of records
+    start_time = time()
+    pass_count, fail_count, rec_count = 0, 0, 0
+    value_set = set(value_list)
+    for rec in seq_iter:
+        printCount(rec_count, 1e5, start_time=start_time)
+        rec_count += 1
 
-            # Parse annotations into a list of values
-            ann = parseAnnotation(rec.description, delimiter=out_args['delimiter'])[field]
-            ann = ann.split(out_args['delimiter'][2])
+        # Parse annotations into a list of values
+        ann = parseAnnotation(rec.description, delimiter=out_args['delimiter'])[field]
+        ann = ann.split(out_args['delimiter'][2])
 
+        # Write
+        if xor(negate, not value_set.isdisjoint(ann)):
             # Write
-            if xor(negate, not value_set.isdisjoint(ann)):
-                # Write
-                SeqIO.write(rec, out_handle, out_args['out_type'])
-                pass_count += 1
-            else:
-                fail_count += 1
+            SeqIO.write(rec, out_handle, out_args['out_type'])
+            pass_count += 1
+        else:
+            fail_count += 1
 
-        printCount(rec_count, 1e5, start_time=start_time, end=True)
+    printCount(rec_count, 1e5, start_time=start_time, end=True)
 
-        # Print log
-        log = OrderedDict()
-        log['OUTPUT'] = os.path.basename(out_handle.name)
-        log['PASS'] = pass_count
-        log['FAIL'] = fail_count
-        log['END'] = 'SplitSeq'
-        printLog(log)
-
-    finally:
-        # Close file handle
-        out_handle.close()
+    # Print log
+    log = OrderedDict()
+    log['OUTPUT'] = os.path.basename(out_handle.name)
+    log['PASS'] = pass_count
+    log['FAIL'] = fail_count
+    log['END'] = 'SplitSeq'
+    printLog(log)
 
     return out_handle.name
 
