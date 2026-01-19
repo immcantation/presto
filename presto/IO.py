@@ -275,8 +275,14 @@ def getOutputHandle(in_file, out_label=None, out_dir=None, out_name=None, out_ty
     else:
         out_file = os.path.join(out_dir, '%s_%s.%s' % (out_name, out_label, out_type))
     
-    # Add .gz extension if gzip_output is True or if input was gzipped and gzip_output not explicitly False
-    if gzip_output or (was_gzipped and gzip_output is not False):
+    # Add .gz extension if explicitly requested or if input was gzipped 
+    # (preserve compression by default). When gzip_output=True, force 
+    # compression; when False (default), auto-detect from input. Examples:
+    # - .fasta.gz in will output .fasta.gz
+    # - .fasta.gz in + --gzip-output will output .fasta.gz 
+    # - .fasta in will output .fasta
+    # - .fasta in + --gzip-output will output .fasta.gz
+    if gzip_output is True or (gzip_output is False and was_gzipped):
         out_file += '.gz'
 
     # Open and return handle
