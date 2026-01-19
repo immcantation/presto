@@ -7,7 +7,7 @@ Version 0.7.7: January 19, 2026
 General:
 
 + Updated minimum requirements: Python 3.7.0, numpy>=1.16.0, scipy>=1.2.0,
-  pandas>=0.24.0, biopython>=1.78, packaging>=19.0.
+  pandas>=0.24.0, biopython>=1.81, packaging>=19.0.
 + Added option to read and write .gz compressed fasta and fastq files.
 + Fixed warnings caused by unclosed file handles in sequence I/O
   operations.

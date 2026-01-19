@@ -1,5 +1,5 @@
 numpy>=1.16.0
 scipy>=1.2.0
 pandas>=0.24.0
-biopython>=1.78
+biopython>=1.81
 packaging>=19.0

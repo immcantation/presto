@@ -22,7 +22,7 @@ Requirements
 +  `NumPy 1.8 <https://numpy.org/>`__
 +  `SciPy 0.14 <https://scipy.org/>`__
 +  `pandas 0.24 <https://pandas.pydata.org>`__
-+  `Biopython 1.77 <https://biopython.org>`__
++  `Biopython 1.81 <https://biopython.org>`__
 +  AlignSets requires `MUSCLE v3.8 <https://www.drive5.com/muscle>`__
 +  ClusterSets requires `USEARCH v7.0 <https://www.drive5.com/usearch>`__,
    `vsearch v2.3.2 <https://github.com/torognes/vsearch>`__, or
