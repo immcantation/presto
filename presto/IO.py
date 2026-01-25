@@ -124,7 +124,11 @@ def readSeqFile(seq_file, index=False, key_func=None):
                 # For gzip files, we can't use SeqIO.index directly, so we'll read into memory.
                 # SeqIO.index() cannot index regular .gz files, only BGZF format.
                 with openFile(seq_file, 'r') as handle:
-                    seq_records = {rec.id: rec for rec in SeqIO.parse(handle, seq_type)}
+                    # Use key_func if possible for consistent behavior with non-.gz indexing
+                    if key_func is None:
+                        seq_records = {rec.id: rec for rec in SeqIO.parse(handle, seq_type)}
+                    else:
+                        seq_records = {key_func(rec.id): rec for rec in SeqIO.parse(handle, seq_type)}
             else:
                 seq_records = SeqIO.index(seq_file, seq_type, key_function=key_func)
         else:

@@ -140,6 +140,65 @@ class TestIO(unittest.TestCase):
             self.assertEqual(len(records), 1)
             print(f'Successfully read back record: {records[0].id}')
 
+    #@unittest.skip('-> test_readSeqFile_gzipped_with_key_func() skipped\n')
+    def test_readSeqFile_gzipped_with_key_func(self):
+        """
+        Test for issue #108: readSeqFile with .gz + index=True should respect key_func
+        
+        When using .gz FASTQ with index=True, readSeqFile should use key_func 
+        to create keys instead of using rec.id directly. This is essential for 
+        PairSeq --coord presto to work with gzipped consensus files.
+        
+        Issue: https://github.com/immcantation/presto/issues/108
+        """
+        # Test files with presto annotations (ID|CONSCOUNT=X|...)
+        presto_r1 = os.path.join(data_path, 'test_presto_R1.fastq.gz')
+        presto_r2 = os.path.join(data_path, 'test_presto_R2.fastq.gz')
+        
+        if not os.path.exists(presto_r1) or not os.path.exists(presto_r2):
+            self.skipTest(f"Test files not found: {presto_r1} or {presto_r2}")
+        
+        # Import getCoordKey to test with presto coordinate extraction
+        from presto.Annotation import getCoordKey
+        
+        # Define key function that extracts presto ID (strips annotations after |)
+        def presto_key_func(header):
+            return getCoordKey(header, coord_type='presto')
+        
+        # Read R1 file with index=True and key_func
+        r1_dict = readSeqFile(presto_r1, index=True, key_func=presto_key_func)
+        print(f'R1 sequences indexed: {len(r1_dict)}')
+        print(f'R1 keys: {list(r1_dict.keys())}')
+        
+        # Read R2 file with index=True and key_func
+        r2_dict = readSeqFile(presto_r2, index=True, key_func=presto_key_func)
+        print(f'R2 sequences indexed: {len(r2_dict)}')
+        print(f'R2 keys: {list(r2_dict.keys())}')
+        
+        # Verify that keys are clean IDs without annotations
+        # (not full headers like "SEQUENCE001|CONSCOUNT=2|...")
+        for key in r1_dict.keys():
+            self.assertNotIn('|', key, 
+                f"Key should not contain annotations: {key}")
+            self.assertNotIn('CONSCOUNT', key,
+                f"Key should not contain CONSCOUNT: {key}")
+        
+        # Verify that both R1 and R2 have the same keys (pairable sequences)
+        self.assertEqual(set(r1_dict.keys()), set(r2_dict.keys()),
+            "R1 and R2 should have matching keys when using presto key_func")
+        
+        # Expected keys based on our test data
+        expected_keys = {'SEQUENCE001', 'SEQUENCE002', 'SEQUENCE003'}
+        self.assertEqual(set(r1_dict.keys()), expected_keys,
+            f"Keys should be clean sequence IDs: {expected_keys}")
+        
+        # Verify the original full headers are preserved in the records
+        for key, record in r1_dict.items():
+            self.assertIn('|', record.id,
+                f"Original record.id should contain full header with annotations")
+            self.assertTrue(record.id.startswith(key),
+                f"Record ID should start with the key: {record.id} vs {key}")
+        
 
 if __name__ == '__main__':
     unittest.main()
