@@ -1,9 +1,13 @@
 Release Notes
 ================================================================================
 
-Version 0.7.8dev: Unreleased
+Version 0.7.8: January 28, 2026
 -------------------------------------------------------------------------------
 
+General:
+
++ Fixed incorrect header parsing when reading gzip-compressed fasta/fastq files
+  containing pRESTO coordinate annotations.
 
 Version 0.7.7: January 19, 2026
 -------------------------------------------------------------------------------
