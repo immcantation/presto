@@ -903,7 +903,7 @@ def localAlignment(seq_record, primers, primers_regex=None, max_error=default_as
             align.end = align_coord[0][-1]
         else:
             # Count position from tail and end gaps
-            rev_pos = rec_len - align_coord[0][-1]
+            rev_pos = rec_len - max_len if rec_len > max_len else 0
             align.start = rev_pos + align_coord[0][0]
             align.end = rev_pos + align_coord[0][-1]
 
