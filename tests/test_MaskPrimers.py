@@ -200,6 +200,45 @@ class TestMaskPrimers(unittest.TestCase):
         self.assertListEqual([(x, round(y, 4)) for x, y in self.align_indel],
                              [(x.primer, round(x.error, 4)) for x in align])
 
+    def test_issue110_revprimer_cut(self):
+        """Test reverse primer alignment with maxlen parameter (issue #110)"""
+        # Test case from issue #110: reverse primer alignment
+        # This is equivalent to:
+        # MaskPrimers.py align --mode cut --revpr --skiprc --maxerror 0.2 --maxlen 800
+        
+        # Input sequence
+        seq = Seq('ATGTCAGTTAGCTCGTTCAGGTAATAGTTGCCCACACAACGTCAAAATAAGAGAACGGTCGTAACATTATCCGTGATTTTCTCACTACTATCAGTACTCACGACTCGACTCTGCCGCAGCCACGTATCGCCTGAAAGCCAGTCAGCGTTAAGGAGTGCTCTGAGCAGGACAACTCGCGTAGTGAGAGTTACATGTTCGTTGGGCTCTTCCGACACGGACCTGAGTTGGCCAACGTCCCACCTGAGGTCTGTGCCCCGGTGATGAGAAGTGTGCATCTCGTTCTTGCAGCTCGTCAGTACTTTCAGAATCATGGCGTGCATGGTAGAATGACCCTTATAACGGACTTCGACATGGCAATAACCCCCCGTTTCTACTTCTAGAGGAGAAAAGTATTGACATGAGCGCTCCCGGCACAAGGGCCAAAGAAGTCTCCAATTTCTTATTTCCGAATGACATGCGTCTCCTTGCGGGTAAATCACCGACCGCAATTCATAGAAGCCTGGGGGAACAGATAGGTCTAATTAGCTTAAGAGAGTAAATCCTGGGATCATCGATACTAGTTGTTTTATATTTGTTGTAAAAAGTAGTAATTACTTCAGTAGTAACCATAAACTTACGCTGGGGCTTCTTCGGCGGATTTTTACAGTTACCAACCAGGAGATTTGAAGTAAATCAGTTGAGGATTTAGCCGCGCTATCCGGTAATCTCCAAATTAAAACATACCGTTCCATGAAGGCTAGAATTAC')
+        record = SeqRecord(seq, id='sample4')
+        
+        # PGK1 reverse complement primer - looking for it at the end of the sequence
+        primers = OrderedDict([('PGK1', 'CGATACTAGTTGTTTTATATTTGTTGTAAAAAGTAGATAATTACT')])
+        
+        # Test with maxlen parameter, rev_primer=True, skip_rc=True
+        score_dict = getDNAScoreDict(mask_score=(0, 1), gap_score=(0, 0))
+        result = localAlignment(record, primers, max_error=0.2, max_len=800, 
+                               rev_primer=True, skip_rc=True, score_dict=score_dict)
+        
+        print('\nTEST issue #110 reverse primer>')
+        print('       ID> %s' % result.seq.id)
+        print('   PRIMER> %s' % result.primer)
+        print(' REV_PRIM> %s' % result.rev_primer)
+        print('  PRSTART> %d' % result.start)
+        print('    ERROR> %.4f' % result.error)
+        
+        # Verify the alignment found the reverse primer
+        # Position should be 551 (1-based, as shown in the log output)
+        self.assertEqual(result.primer, 'PGK1')
+        self.assertTrue(result.rev_primer)
+        self.assertEqual(result.start, 551)
+        self.assertAlmostEqual(result.error, 0.0444, places=3)
+        self.assertTrue(result.valid)
+        
+        # Test the cut operation - verify the sequence is trimmed correctly
+        cut_seq = maskSeq(result, mode='cut', barcode=False)
+        expected_cut = 'ATGTCAGTTAGCTCGTTCAGGTAATAGTTGCCCACACAACGTCAAAATAAGAGAACGGTCGTAACATTATCCGTGATTTTCTCACTACTATCAGTACTCACGACTCGACTCTGCCGCAGCCACGTATCGCCTGAAAGCCAGTCAGCGTTAAGGAGTGCTCTGAGCAGGACAACTCGCGTAGTGAGAGTTACATGTTCGTTGGGCTCTTCCGACACGGACCTGAGTTGGCCAACGTCCCACCTGAGGTCTGTGCCCCGGTGATGAGAAGTGTGCATCTCGTTCTTGCAGCTCGTCAGTACTTTCAGAATCATGGCGTGCATGGTAGAATGACCCTTATAACGGACTTCGACATGGCAATAACCCCCCGTTTCTACTTCTAGAGGAGAAAAGTATTGACATGAGCGCTCCCGGCACAAGGGCCAAAGAAGTCTCCAATTTCTTATTTCCGAATGACATGCGTCTCCTTGCGGGTAAATCACCGACCGCAATTCATAGAAGCCTGGGGGAACAGATAGGTCTAATTAGCTTAAGAGAGTAAATCCTGGGATCAT'
+        print('  CUT_SEQ> %s' % cut_seq.seq)
+        self.assertEqual(str(cut_seq.seq), expected_cut)
+
     #@unittest.skip('-> maskSeq() skipped\n')
     def test_maskSeq(self):
         print('TEST CUT>')
