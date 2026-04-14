@@ -1,13 +1,14 @@
 Release Notes
 ================================================================================
 
-Version 0.7.9dev
+Version 0.7.9: April 14, 2026
 -------------------------------------------------------------------------------
 
 MaskPrimers:
 
-+ Fixed a bug in MaskPrimers align involving the reverse primer position offset 
-calculation.
++ Fixed a bug in ``MaskPrimers align`` where the reverse primer (``--revpr``)
+  position offset was incorrectly calculated when the ``--maxlen`` argument was
+  specified.
 
 Version 0.7.8: January 28, 2026
 -------------------------------------------------------------------------------
