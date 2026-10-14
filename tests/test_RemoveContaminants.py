@@ -1,5 +1,5 @@
 """
-Unit tests for FindContaminants
+Unit tests for RemoveContaminants
 """
 # Info
 __author__ = 'Gisela Gabernet'
@@ -24,10 +24,10 @@ data_path = os.path.join(test_path, 'data')
 
 # Import script
 sys.path.append(os.path.join(test_path, os.pardir, 'bin'))
-import FindContaminants
+import RemoveContaminants
 
 
-class TestFindContaminants(unittest.TestCase):
+class TestRemoveContaminants(unittest.TestCase):
     def setUp(self):
         print('-> %s()' % self._testMethodName)
         self.labels = ['A', 'B', 'C']
@@ -53,7 +53,7 @@ class TestFindContaminants(unittest.TestCase):
         out_args = dict(default_out_args)
         out_args.update({'out_dir': out_dir, 'failed': True, 'gzip_output': False})
         out_args['log_file'] = os.path.join(out_dir, 'log.txt')
-        FindContaminants.findContaminants(self.files_1, self.files_2, labels=self.labels,
+        RemoveContaminants.removeContaminants(self.files_1, self.files_2, labels=self.labels,
                                           out_args=out_args, **kwargs)
         result = {}
         for s in self.labels:
@@ -68,7 +68,7 @@ class TestFindContaminants(unittest.TestCase):
         return result, log
 
     def test_matchSeq(self):
-        match = FindContaminants.matchSeq
+        match = RemoveContaminants.matchSeq
         self.assertTrue(match('ACGTACGTAC', 'ACGTACGTAC'))
         # Ns are ignored, but different lengths never match
         self.assertTrue(match('ACGTACGTAC', 'ACGNACGTAC'))
@@ -86,7 +86,7 @@ class TestFindContaminants(unittest.TestCase):
                                     ('a3', 'AAAA', 'GGGG')]),
                              ('B', [('b1', 'AAAA', 'CCCC')]),
                              ('C', [('c1', 'AAAA', 'TTTT'), ('c2', 'AAAA', 'GGGG')])])
-        shared = FindContaminants.findSharedReads(reads)
+        shared = RemoveContaminants.findSharedReads(reads)
         self.assertEqual({'a1': ['B'], 'a2': ['B'], 'a3': ['C']}, shared['A'])
         self.assertEqual({'b1': ['A']}, shared['B'])
         self.assertEqual({'c2': ['A']}, shared['C'])
@@ -108,12 +108,12 @@ class TestFindContaminants(unittest.TestCase):
             for a, b in combinations(reads, 2):
                 for ka, a1, a2 in reads[a]:
                     for kb, b1, b2 in reads[b]:
-                        if FindContaminants.matchSeq(a1, b1, max_error) and \
-                                FindContaminants.matchSeq(a2, b2, max_error):
+                        if RemoveContaminants.matchSeq(a1, b1, max_error) and \
+                                RemoveContaminants.matchSeq(a2, b2, max_error):
                             expected[a].setdefault(ka, set()).add(b)
                             expected[b].setdefault(kb, set()).add(a)
             expected = {s: {k: sorted(v) for k, v in d.items()} for s, d in expected.items()}
-            self.assertEqual(expected, FindContaminants.findSharedReads(reads, max_error=max_error),
+            self.assertEqual(expected, RemoveContaminants.findSharedReads(reads, max_error=max_error),
                              msg=str(reads))
 
     def test_collectSampleReads(self):
@@ -121,23 +121,23 @@ class TestFindContaminants(unittest.TestCase):
         f1 = self._write_fastq('r1.fastq', [('S1|BARCODE=AAA', 'ACGT'), ('S2|BARCODE=CCC', 'TTTT'),
                                             ('S3|BARCODE=AAA', 'GGGG')])
         f2 = self._write_fastq('r2.fastq', [('S1', 'CCCC'), ('S2', 'AAAA')])
-        groups, conflicts = FindContaminants.collectSampleReads(f1, f2)
+        groups, conflicts = RemoveContaminants.collectSampleReads(f1, f2)
         self.assertEqual({'AAA': [('S1', 'ACGT', 'CCCC')], 'CCC': [('S2', 'TTTT', 'AAAA')]}, groups)
         self.assertEqual(0, conflicts)
-        groups, _ = FindContaminants.collectSampleReads(f1, f2, candidates={'CCC'})
+        groups, _ = RemoveContaminants.collectSampleReads(f1, f2, candidates={'CCC'})
         self.assertEqual({'CCC': [('S2', 'TTTT', 'AAAA')]}, groups)
 
         # Barcode on read 2 only, and a conflict where read 1 takes precedence
         f1 = self._write_fastq('r1b.fastq', [('S1', 'acgt'), ('S2|BARCODE=GGG', 'TTTT'), ('S3', 'GGGG')])
         f2 = self._write_fastq('r2b.fastq', [('S1|BARCODE=AAA', 'CCCC'), ('S2|BARCODE=CCC', 'AAAA'),
                                              ('S4|BARCODE=AAA', 'TTTT')])
-        groups, conflicts = FindContaminants.collectSampleReads(f1, f2)
+        groups, conflicts = RemoveContaminants.collectSampleReads(f1, f2)
         self.assertEqual({'AAA': [('S1', 'ACGT', 'CCCC')], 'GGG': [('S2', 'TTTT', 'AAAA')]}, groups)
         self.assertEqual(1, conflicts)
         self.assertEqual({'AAA', 'CCC', 'GGG'},
-                         FindContaminants.collectSampleBarcodes(f1, f2))
+                         RemoveContaminants.collectSampleBarcodes(f1, f2))
 
-    def test_findContaminants(self):
+    def test_removeContaminants(self):
         result, log = self._run()
         for r in ('R1', 'R2'):
             # Only the A read matching the B read with barcode CCCCAAAAGGGG is removed
@@ -161,7 +161,40 @@ class TestFindContaminants(unittest.TestCase):
                           'GGGGTTTTAAAA': ('B,C', '2,2', '2,2'),
                           'CCCCAAAAGGGG': ('A,B', '1,1', '2,1')}, found)
 
-    def test_findContaminantsMaxError(self):
+    def test_hammingDist(self):
+        self.assertEqual(0, RemoveContaminants.hammingDist('ACGT', 'ACGT'))
+        self.assertEqual(2, RemoveContaminants.hammingDist('ACGT', 'AGGA'))
+        # Missing characters are not counted
+        self.assertEqual(1, RemoveContaminants.hammingDist('ANGT', 'AGGA'))
+
+    def test_removeContaminantsDistances(self):
+        dist_file = os.path.join(self.out_dir, 'dist', 'dist.tab')
+        self._run(dist_file=dist_file)
+        with open(dist_file) as h:
+            header = h.readline().rstrip('\n').split('\t')
+            rows = [dict(zip(header, l.rstrip('\n').split('\t'))) for l in h]
+        self.assertEqual(['BARCODE', 'R1_LENGTH', 'R2_LENGTH', 'SAMPLE1', 'ID1',
+                          'SAMPLE2', 'ID2', 'R1_DIST', 'R2_DIST'], header)
+        # All pairs within each multi-sample barcode, including within-sample pairs
+        counts = {}
+        for r in rows:  counts[r['BARCODE']] = counts.get(r['BARCODE'], 0) + 1
+        self.assertEqual({'AAAACCCCGGGG': 6, 'CCCCGGGGTTTT': 1, 'GGGGTTTTAAAA': 6,
+                          'TTTTAAAACCCC': 1, 'CCCCAAAAGGGG': 3}, counts)
+        dist = {(r['ID1'], r['ID2']): (int(r['R1_DIST']), int(r['R2_DIST'])) for r in rows}
+        # One R1 mismatch, matching R2
+        self.assertEqual((1, 0), dist[('A_READ05', 'B_READ04')])
+        # Shared read pair, and its same-UMI neighbour with a different R2
+        self.assertEqual((0, 0), dist[('A_READ08', 'B_READ07')])
+        self.assertEqual(0, dist[('A_READ08', 'A_READ09')][0])
+        self.assertGreater(dist[('A_READ08', 'A_READ09')][1], 0)
+        # The masked N is not counted
+        self.assertEqual((0, 0), dist[('B_READ02', 'C_READ02')])
+        self.assertTrue(all(r['R1_LENGTH'] == '30' and r['R2_LENGTH'] == '30' for r in rows))
+        # Histogram plot written next to the table
+        with open(os.path.join(self.out_dir, 'dist', 'dist.png'), 'rb') as h:
+            self.assertEqual(b'\x89PNG', h.read(4))
+
+    def test_removeContaminantsMaxError(self):
         result, _ = self._run(max_error=0.05)
         # One mismatch over 30 bases is now allowed
         self.assertIn('A_READ05', result[('A', 'R1', 'fail')])

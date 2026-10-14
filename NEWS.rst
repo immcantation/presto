@@ -4,7 +4,7 @@ Release Notes
 Version 0.7.10dev: Unreleased
 -------------------------------------------------------------------------------
 
-FindContaminants:
+RemoveContaminants:
 
 + New tool to identify reads shared across samples, such as cross-sample
   contamination. It takes paired-end files from multiple samples after
@@ -12,7 +12,13 @@ FindContaminants:
   matching read 1 and read 2 sequences as a read pair in another sample.
   Matching read pairs are removed from all affected samples, and a log reports
   the number of removed read pairs for each UMI barcode in each sample. Input
-  files are read in three passes to keep memory usage low.
+  files are read in three passes to keep memory usage low. The ``--distlog``
+  option writes the pairwise Hamming distances within each UMI and read length
+  group to a table, and plots their histogram.
+
+General:
+
++ Added matplotlib as a dependency, used by ``RemoveContaminants --distlog``.
 
 Version 0.7.9: April 14, 2026
 -------------------------------------------------------------------------------

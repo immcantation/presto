@@ -44,11 +44,11 @@ scripts = ['AlignSets.py',
            'ConvertHeaders.py',
            'EstimateError.py',
            'FilterSeq.py',
-           'FindContaminants.py',
            'MaskPrimers.py',
            'PairSeq.py',
            'ParseHeaders.py',
            'ParseLog.py',
+           'RemoveContaminants.py',
            'SplitSeq.py',
            'UnifyHeaders.py']
 install_scripts = [os.path.join('bin', s) for s in scripts]

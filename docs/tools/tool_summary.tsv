@@ -32,7 +32,6 @@ Tool	Subcommand	Description
 	quality	Removes sequences with low Phred quality scores
 	repeats	Removes sequences with long repeats of a single nucleotide
 	trimqual	Trims sequences to segments with high Phred quality scores
-:ref:`FindContaminants`		Identifies reads shared across samples by UMI barcode and sequence
 :ref:`MaskPrimers`		Identifies and removes primer regions, MIDs and UMI barcodes
 	align	Matches primers by local alignment and reorients sequences
 	extract	Removes and annotates a fixed sequence region
@@ -48,6 +47,7 @@ Tool	Subcommand	Description
 	rename	Rename annotation fields
 	table	Outputs sequence annotations as a data table
 :ref:`ParseLog`		Converts the log output of pRESTO scripts into data tables
+:ref:`RemoveContaminants`		Identifies reads shared across samples by UMI barcode and sequence
 :ref:`SplitSeq`		Performs conversion, sorting, and subsetting of sequence files
 	count	Splits files into smaller files
 	group	Splits files based on numerical or categorical annotation

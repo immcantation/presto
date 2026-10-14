@@ -14,10 +14,10 @@ Commandline Usage
    tools/ConvertHeaders
    tools/EstimateError
    tools/FilterSeq
-   tools/FindContaminants
    tools/MaskPrimers
    tools/PairSeq
    tools/ParseHeaders
    tools/ParseLog
+   tools/RemoveContaminants
    tools/SplitSeq
    tools/UnifyHeaders

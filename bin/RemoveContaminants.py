@@ -293,6 +293,147 @@ def findSharedReads(sample_reads, max_error=default_contam_max_error,
     return shared
 
 
+def hammingDist(seq_1, seq_2, ignore_chars=default_missing_chars):
+    """
+    Calculates the Hamming distance between two sequences of equal length
+
+    Arguments:
+      seq_1 : first sequence as an uppercase string.
+      seq_2 : second sequence as an uppercase string, of the same length.
+      ignore_chars : set of missing characters; positions holding one in either
+                     sequence are not counted.
+
+    Returns:
+      int : the number of mismatched positions.
+    """
+    return sum(1 for a, b in zip(seq_1, seq_2)
+               if a != b and a not in ignore_chars and b not in ignore_chars)
+
+
+def writeGroupDistances(handle, tag, sample_reads, hist=None, ignore_chars=default_missing_chars):
+    """
+    Writes the pairwise Hamming distances of all read pairs within each UMI and length group
+
+    Read pairs with the same barcode are grouped by read 1 and read 2 length. Within each
+    group, one row is written for every pair of read pairs, from the same or different
+    samples. Distances are calculated once per pair of distinct sequences.
+
+    Arguments:
+      handle : open output handle of the tab-delimited distance table.
+      tag : the UMI barcode.
+      sample_reads : OrderedDict mapping sample label to a list of
+                     (coordinate, read 1 sequence, read 2 sequence) tuples.
+      hist : if a dictionary, distance counts are added to it, keyed by
+             ('R1' or 'R2', True if both read pairs are from the same sample)
+             and then by distance.
+      ignore_chars : set of missing characters not counted as mismatches.
+
+    Returns:
+      int : the number of rows written.
+    """
+    len_dict = OrderedDict()
+    for label, reads in sample_reads.items():
+        for key, seq_1, seq_2 in reads:
+            len_dict.setdefault((len(seq_1), len(seq_2)), []).append((label, key, seq_1, seq_2))
+
+    rows = 0
+    for (len_1, len_2), entries in len_dict.items():
+        # Index distinct read pairs so each distance is only calculated once
+        seq_index = {}
+        ids = [seq_index.setdefault((e[2], e[3]), len(seq_index)) for e in entries]
+        cache = {}
+        for i, (label_a, key_a, a_1, a_2) in enumerate(entries):
+            for j in range(i + 1, len(entries)):
+                label_b, key_b, b_1, b_2 = entries[j]
+                pair = (min(ids[i], ids[j]), max(ids[i], ids[j]))
+                dist = cache.get(pair, None)
+                if dist is None:
+                    dist = (hammingDist(a_1, b_1, ignore_chars), hammingDist(a_2, b_2, ignore_chars))
+                    cache[pair] = dist
+                handle.write('%s\t%i\t%i\t%s\t%s\t%s\t%s\t%i\t%i\n' %
+                             (tag, len_1, len_2, label_a, key_a, label_b, key_b, dist[0], dist[1]))
+                rows += 1
+                if hist is not None:
+                    same = label_a == label_b
+                    for read, d in (('R1', dist[0]), ('R2', dist[1])):
+                        counts = hist.setdefault((read, same), {})
+                        counts[d] = counts.get(d, 0) + 1
+
+    return rows
+
+
+def plotDistanceHistogram(hist, plot_file):
+    """
+    Plots histograms of the pairwise Hamming distances to a PNG file
+
+    Draws a grid of panels with one column per read and one row per comparison type:
+    pairs of read pairs from different samples and from the same sample. All panels
+    share a log-scaled count axis and a distance axis.
+
+    Arguments:
+      hist : dictionary of distance counts from writeGroupDistances.
+      plot_file : output PNG file name.
+
+    Returns:
+      str : the plot file name.
+    """
+    # Imported here so matplotlib is only loaded when a plot is requested
+    from matplotlib.figure import Figure
+
+    # Colors from a colorblind-validated categorical palette
+    surface, text_1, text_2, muted = '#fcfcfb', '#0b0b0b', '#52514e', '#898781'
+    grid, baseline = '#e1e0d9', '#c3c2b7'
+    rows = [(False, 'different samples', '#2a78d6'),
+            (True, 'same sample', '#eb6834')]
+    cols = [('R1', 'Read 1'), ('R2', 'Read 2')]
+
+    fig = Figure(figsize=(10, 6), dpi=150, facecolor=surface)
+    axes = fig.subplots(2, 2, sharex=True, sharey=True)
+    max_dist = max([d for counts in hist.values() for d in counts] or [0])
+    max_count = max([n for counts in hist.values() for n in counts.values()] or [1])
+
+    for r, (same, row_label, color) in enumerate(rows):
+        for c, (read, col_label) in enumerate(cols):
+            ax = axes[r][c]
+            ax.set_facecolor(surface)
+            counts = hist.get((read, same), {})
+            if counts:
+                dists = sorted(counts)
+                ax.bar(dists, [counts[d] for d in dists], width=0.9, color=color,
+                       linewidth=0, log=True)
+                # Label zero-distance pairs across samples, the signature of contamination
+                if not same and 0 in counts:
+                    ax.annotate('{:,} pairs at distance 0'.format(counts[0]), xy=(0, counts[0]),
+                                xytext=(6, 0), textcoords='offset points',
+                                va='center', ha='left', color=text_1, fontsize=8)
+            else:
+                ax.text(0.5, 0.5, 'No pairs', transform=ax.transAxes,
+                        ha='center', va='center', color=text_2, fontsize=9)
+            ax.set_title('%s, %s' % (col_label, row_label), loc='left',
+                         color=text_1, fontsize=10)
+            ax.set_yscale('log')
+            ax.grid(axis='y', color=grid, linewidth=0.6)
+            ax.set_axisbelow(True)
+            ax.tick_params(colors=muted, labelcolor=text_2, labelsize=8)
+            ax.tick_params(axis='y', which='minor', left=False)
+            for side in ('top', 'right', 'left'):
+                ax.spines[side].set_visible(False)
+            ax.spines['bottom'].set_color(baseline)
+            if r == len(rows) - 1:
+                ax.set_xlabel('Hamming distance (mismatched positions)', color=text_2, fontsize=9)
+            if c == 0:
+                ax.set_ylabel('Pairs of read pairs', color=text_2, fontsize=9)
+
+    axes[0][0].set_xlim(-1, max_dist + 1)
+    axes[0][0].set_ylim(0.8, max_count * 3)
+    fig.suptitle('Pairwise Hamming distances within UMI and length groups (log scale)',
+                 x=0.01, ha='left', color=text_1, fontsize=12)
+    fig.tight_layout()
+    fig.savefig(plot_file, facecolor=surface)
+
+    return plot_file
+
+
 def writeSampleReads(seq_file, flagged, shared_field=default_shared_field,
                      coord_type=default_coord, out_args=default_out_args):
     """
@@ -345,9 +486,9 @@ def writeSampleReads(seq_file, flagged, shared_field=default_shared_field,
     return pass_handle.name, pass_count, fail_count
 
 
-def findContaminants(seq_files_1, seq_files_2, labels=None,
+def removeContaminants(seq_files_1, seq_files_2, labels=None,
                      barcode_field=default_barcode_field, coord_type=default_coord,
-                     max_error=default_contam_max_error,
+                     max_error=default_contam_max_error, dist_file=None,
                      shared_field=default_shared_field, out_args=default_out_args):
     """
     Identifies reads shared across samples by UMI barcode and sequence
@@ -368,6 +509,10 @@ def findContaminants(seq_files_1, seq_files_2, labels=None,
       coord_type : the sequence header format used to match mates.
       max_error : the maximum read 1 and read 2 mismatch rate allowed between two
                   read pairs to consider them shared.
+      dist_file : if specified, write the pairwise Hamming distances of all read pairs
+                  within each UMI and length group to this tab-delimited file. Only barcodes
+                  with read pairs in multiple samples are included. A histogram of the
+                  distances is plotted to a PNG file with the same name and a .png extension.
       shared_field : the annotation field listing the samples a flagged read is shared with.
       out_args : common output argument dictionary from parseCommonArgs. The log_file entry
                  defines the contaminant log; if None it is written to contam_log.txt in the
@@ -383,13 +528,14 @@ def findContaminants(seq_files_1, seq_files_2, labels=None,
 
     # Print parameter info
     log = OrderedDict()
-    log['START'] = 'FindContaminants'
+    log['START'] = 'RemoveContaminants'
     log['FILES1'] = ','.join(os.path.basename(f) for f in seq_files_1)
     log['FILES2'] = ','.join(os.path.basename(f) for f in seq_files_2)
     log['SAMPLES'] = ','.join(labels)
     log['BARCODE_FIELD'] = barcode_field
     log['COORD_TYPE'] = coord_type
     log['MAX_ERROR'] = max_error
+    log['DIST_FILE'] = os.path.basename(dist_file) if dist_file is not None else None
     printLog(log)
 
     # Pass 1: find barcodes annotated in multiple samples
@@ -434,11 +580,23 @@ def findContaminants(seq_files_1, seq_files_2, labels=None,
     log_dir = os.path.dirname(log_file)
     if log_dir:  os.makedirs(log_dir, exist_ok=True)
 
+    dist_handle = dist_hist = plot_file = None
+    if dist_file is not None:
+        dist_hist = {}
+        plot_file = os.path.splitext(dist_file)[0] + '.png'
+        dist_dir = os.path.dirname(dist_file)
+        if dist_dir:  os.makedirs(dist_dir, exist_ok=True)
+        dist_handle = open(dist_file, 'w')
+        dist_handle.write('BARCODE\tR1_LENGTH\tR2_LENGTH\tSAMPLE1\tID1\tSAMPLE2\tID2'
+                          '\tR1_DIST\tR2_DIST\n')
+
     flagged = {label: {} for label in labels}
-    contam_count = 0
+    contam_count = dist_count = 0
     with open(log_file, 'w') as log_handle:
         for tag in multi_barcodes:
             tag_reads = OrderedDict((s, sample_groups[s][tag]) for s in barcode_samples[tag])
+            if dist_handle is not None:
+                dist_count += writeGroupDistances(dist_handle, tag, tag_reads, hist=dist_hist)
             shared = findSharedReads(tag_reads, max_error=max_error)
             sharing = [s for s in tag_reads if shared[s]]
             if not sharing:
@@ -454,6 +612,9 @@ def findContaminants(seq_files_1, seq_files_2, labels=None,
             rec_log['SEQCOUNT'] = ','.join(str(len(shared[s])) for s in sharing)
             rec_log['GROUPCOUNT'] = ','.join(str(len(tag_reads[s])) for s in sharing)
             printLog(rec_log, handle=log_handle)
+    if dist_handle is not None:
+        dist_handle.close()
+        plotDistanceHistogram(dist_hist, plot_file)
     del sample_groups
     printMessage('Done', start_time=start_time, end=True)
 
@@ -484,8 +645,11 @@ def findContaminants(seq_files_1, seq_files_2, labels=None,
     log['MULTISAMPLE'] = len(multi_barcodes)
     log['CONTAMINATED'] = contam_count
     log['LOG'] = os.path.basename(log_file)
+    if dist_file is not None:
+        log['DISTANCES'] = dist_count
+        log['DIST_PLOT'] = os.path.basename(plot_file)
     log.update(out_log)
-    log['END'] = 'FindContaminants'
+    log['END'] = 'RemoveContaminants'
     printLog(log)
 
     return out_files
@@ -534,6 +698,22 @@ def getArgParser():
                  GROUPCOUNT
                      the total number of read pairs with this barcode in each of those
                      samples, in the same order.
+
+             distance table fields:
+                 The --distlog table contains one row for every pair of read pairs within
+                 a UMI and length group, that is, read pairs with the same barcode, read 1
+                 length and read 2 length, from the same or different samples. Only
+                 barcodes with read pairs in multiple samples are included.
+                 BARCODE, R1_LENGTH, R2_LENGTH
+                     the UMI barcode and the read lengths defining the group.
+                 SAMPLE1, ID1, SAMPLE2, ID2
+                     the sample label and read identifier of the two read pairs.
+                 R1_DIST, R2_DIST
+                     the read 1 and read 2 Hamming distances. Positions with N or gap
+                     characters in either read are not counted.
+                 A histogram of the distances, split into pairs from the same sample and
+                 from different samples, is plotted to a PNG file with the same name as
+                 the table and a .png extension.
              ''')
 
     # Define ArgumentParser
@@ -567,6 +747,13 @@ def getArgParser():
                                    match. The default of 0 requires identical sequences and
                                    matches reads by hashing, as CollapseSeq does. Values above 0
                                    compare every pair of reads sharing a barcode and are slower.''')
+    group_contam.add_argument('--distlog', action='store', dest='dist_file', default=None,
+                              help='''Specify to write the pairwise Hamming distances of all read
+                                   pairs within each UMI and length group to this tab-delimited
+                                   file. Only barcodes with read pairs in multiple samples are
+                                   included. The file grows with the square of the group sizes.
+                                   A histogram of the distances is also plotted to a PNG file
+                                   with the same name and a .png extension.''')
     group_contam.add_argument('--sf', action='store', dest='shared_field', type=str,
                               default=default_shared_field,
                               help='''The annotation field added to flagged reads listing the
@@ -613,4 +800,4 @@ if __name__ == '__main__':
     # Move log file into output arguments
     args_dict['out_args']['log_file'] = args_dict.pop('contam_log')
 
-    findContaminants(**args_dict)
+    removeContaminants(**args_dict)
