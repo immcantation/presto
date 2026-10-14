@@ -488,9 +488,15 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     cmap = LinearSegmentedColormap.from_list('shared', ramp)
     cmap.set_bad(zero_color)
 
+    # Keep the matrix at most 10 inches wide; cells shrink as samples are added
     n = len(labels)
-    size = max(4.5, 0.55 * n + 2.5)
-    fig = Figure(figsize=(size + 1.2, size), dpi=150, facecolor=surface)
+    side = min(max(4.5, 0.75 * n), 10.0)
+    cell_pt = side * 72.0 / n
+    # Sample labels never go below 6 points; label every k-th sample if cells are smaller
+    label_size = max(6.0, min(10.0, cell_pt * 0.75))
+    label_step = max(1, int(-(-label_size * 1.15 // cell_pt)))
+    gap = min(2.0, cell_pt * 0.15)
+    fig = Figure(figsize=(side + 3.2, side + 2.2), dpi=150, facecolor=surface)
     ax = fig.subplots()
     ax.set_facecolor(surface)
 
@@ -506,47 +512,56 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     for i in range(n):
         ax.add_patch(Rectangle((i - 0.5, i - 0.5), 1, 1, facecolor=surface, edgecolor='none'))
         ax.add_patch(Rectangle((i - 0.45, i - 0.45), 0.9, 0.9, facecolor='none',
-                               edgecolor=baseline, linewidth=0.8))
+                               edgecolor=baseline, linewidth=min(0.8, cell_pt * 0.08)))
 
     # Cell borders as surface-colored gaps
     ax.set_xticks([x - 0.5 for x in range(1, n)], minor=True)
     ax.set_yticks([y - 0.5 for y in range(1, n)], minor=True)
-    ax.grid(which='minor', color=surface, linewidth=2)
+    ax.grid(which='minor', color=surface, linewidth=gap)
     ax.tick_params(which='minor', length=0)
+
+    def _cell_text(i, j, text, color):
+        # Shrink long numbers so they fit within the cell width
+        size = min(10.0, 0.8 * cell_pt / (0.6 * len(text)))
+        if size >= 5:
+            ax.text(j, i, text, ha='center', va='center', fontsize=size, color=color)
 
     if n <= max_annotate:
         for i in range(n):
             for j in range(n):
                 if i == j:
                     if totals is not None:
-                        ax.text(j, i, '{:,}'.format(totals[i]), ha='center',
-                                va='center', fontsize=8, color=text_2)
+                        _cell_text(i, j, '{:,}'.format(totals[i]), text_2)
                     continue
                 count = matrix[i][j]
                 if count > 0 and norm is not None:
                     dark = norm(count) > 0.5
                 else:
                     dark = count > 0
-                ax.text(j, i, '{:,}'.format(count), ha='center', va='center', fontsize=8,
-                        color='#ffffff' if dark else text_1)
+                _cell_text(i, j, '{:,}'.format(count), '#ffffff' if dark else text_1)
 
-    ax.set_xticks(range(n))
-    ax.set_yticks(range(n))
-    ax.set_xticklabels(labels, rotation=45 if n > 3 else 0, ha='right' if n > 3 else 'center')
-    ax.set_yticklabels(labels)
-    ax.tick_params(colors=muted, labelcolor=text_2, labelsize=8, length=0)
+    ticks = list(range(0, n, label_step))
+    ax.set_xticks(ticks)
+    ax.set_yticks(ticks)
+    # Vertical labels for many samples, so neighbouring labels never overlap
+    rotation = 90 if n > 12 else (45 if n > 3 else 0)
+    ax.set_xticklabels([labels[t] for t in ticks], rotation=rotation,
+                       ha='right' if rotation else 'center',
+                       va='center' if rotation == 90 else 'top', rotation_mode='anchor')
+    ax.set_yticklabels([labels[t] for t in ticks])
+    ax.tick_params(colors=muted, labelcolor=text_2, labelsize=label_size, length=0)
     for side in ax.spines.values():
         side.set_visible(False)
     title = 'Pairwise sample contaminants' if positive else \
             'Pairwise sample contaminants: none found'
-    ax.set_title(title, loc='left', color=text_1, fontsize=12)
+    ax.set_title(title, loc='left', color=text_1, fontsize=14, pad=10)
 
     if norm is not None:
-        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=9)
+        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.03, shrink=0.8)
+        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=11)
     elif positive:
-        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04, ticks=[1])
-        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=9)
+        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.03, shrink=0.8, ticks=[1])
+        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=11)
     else:
         cbar = None
     if cbar is not None:
@@ -558,7 +573,7 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
             cbar.set_ticklabels(['{:,}'.format(t) for t in ticks])
         cbar.ax.minorticks_off()
         cbar.outline.set_visible(False)
-        cbar.ax.tick_params(colors=muted, labelcolor=text_2, labelsize=8)
+        cbar.ax.tick_params(colors=muted, labelcolor=text_2, labelsize=10)
 
     fig.tight_layout()
     fig.savefig(plot_file, facecolor=surface)
