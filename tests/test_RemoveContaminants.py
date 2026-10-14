@@ -161,6 +161,24 @@ class TestRemoveContaminants(unittest.TestCase):
                           'GGGGTTTTAAAA': ('B,C', '2,2', '2,2'),
                           'CCCCAAAAGGGG': ('A,B', '1,1', '2,1')}, found)
 
+    def test_countSharedPairs(self):
+        flagged = {'A': {'a1': ['B'], 'a2': ['B', 'C']}, 'B': {'b1': ['A']}, 'C': {}}
+        self.assertEqual([[0, 2, 1], [1, 0, 0], [0, 0, 0]],
+                         RemoveContaminants.countSharedPairs(flagged, ['A', 'B', 'C']))
+
+    def test_removeContaminantsHeatmap(self):
+        self._run()
+        out_dir = [d for d in os.listdir(self.out_dir)][0]
+        with open(os.path.join(self.out_dir, out_dir, 'log_heatmap.png'), 'rb') as h:
+            self.assertEqual(b'\x89PNG', h.read(4))
+        # Plotting must also work when nothing is shared or counts are all one
+        RemoveContaminants.plotSharedHeatmap([[0, 0], [0, 0]], ['A', 'B'],
+                                             os.path.join(self.out_dir, 'none.png'))
+        RemoveContaminants.plotSharedHeatmap([[0, 1], [1, 0]], ['A', 'B'],
+                                             os.path.join(self.out_dir, 'ones.png'),
+                                             totals=[10, 20])
+        self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'ones.png')))
+
     def test_hammingDist(self):
         self.assertEqual(0, RemoveContaminants.hammingDist('ACGT', 'ACGT'))
         self.assertEqual(2, RemoveContaminants.hammingDist('ACGT', 'AGGA'))

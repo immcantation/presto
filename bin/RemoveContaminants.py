@@ -434,6 +434,138 @@ def plotDistanceHistogram(hist, plot_file):
     return plot_file
 
 
+def countSharedPairs(flagged, labels):
+    """
+    Counts shared read pairs between every pair of samples
+
+    Arguments:
+      flagged : dictionary mapping each sample label to a dictionary of flagged read
+                coordinates and the list of other samples each read matched.
+      labels : ordered list of sample labels.
+
+    Returns:
+      list : a square matrix as a list of lists, where row i, column j holds the number
+             of read pairs of sample i that matched a read pair in sample j. Matching read
+             pairs are removed from both samples, so cell (j, i) holds the matching read
+             pairs of sample j. A read pair matching several samples is counted once for
+             each of them.
+    """
+    index = {label: i for i, label in enumerate(labels)}
+    matrix = [[0] * len(labels) for _ in labels]
+    for label in labels:
+        row = matrix[index[label]]
+        for others in flagged.get(label, {}).values():
+            for other in others:
+                row[index[other]] += 1
+
+    return matrix
+
+
+def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
+    """
+    Plots a heatmap of the read pairs shared between every pair of samples to a PNG file
+
+    Arguments:
+      matrix : square count matrix from countSharedPairs.
+      labels : ordered list of sample labels.
+      plot_file : output PNG file name.
+      totals : optional list of the total number of reads of each sample, written in the
+               diagonal cells. Diagonal cells are not part of the color scale.
+      max_annotate : the maximum number of samples for which counts are written in the cells.
+
+    Returns:
+      str : the plot file name.
+    """
+    # Imported here so matplotlib is only loaded when a plot is requested
+    from matplotlib.figure import Figure
+    from matplotlib.colors import LinearSegmentedColormap, LogNorm
+    from matplotlib.patches import Rectangle
+
+    # Sequential single-hue ramp and neutral colors from a validated palette
+    ramp = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b']
+    surface, text_1, text_2, muted, zero_color = '#fcfcfb', '#0b0b0b', '#52514e', '#898781', '#f0efec'
+    baseline = '#c3c2b7'
+    cmap = LinearSegmentedColormap.from_list('shared', ramp)
+    cmap.set_bad(zero_color)
+
+    n = len(labels)
+    size = max(4.5, 0.55 * n + 2.5)
+    fig = Figure(figsize=(size + 1.2, size), dpi=150, facecolor=surface)
+    ax = fig.subplots()
+    ax.set_facecolor(surface)
+
+    # Mask zero counts and the diagonal so they are not drawn on the color scale
+    values = [[float('nan') if i == j or matrix[i][j] == 0 else matrix[i][j]
+               for j in range(n)] for i in range(n)]
+    positive = [matrix[i][j] for i in range(n) for j in range(n) if i != j and matrix[i][j] > 0]
+    norm = LogNorm(vmin=1, vmax=max(positive)) if positive and max(positive) > 1 else None
+    image = ax.imshow(values, cmap=cmap, norm=norm, aspect='equal',
+                      vmin=None if norm else 0, vmax=None if norm else 1)
+
+    # Diagonal cells are drawn as blank surface with a hairline border, off the color scale
+    for i in range(n):
+        ax.add_patch(Rectangle((i - 0.5, i - 0.5), 1, 1, facecolor=surface, edgecolor='none'))
+        ax.add_patch(Rectangle((i - 0.45, i - 0.45), 0.9, 0.9, facecolor='none',
+                               edgecolor=baseline, linewidth=0.8))
+
+    # Cell borders as surface-colored gaps
+    ax.set_xticks([x - 0.5 for x in range(1, n)], minor=True)
+    ax.set_yticks([y - 0.5 for y in range(1, n)], minor=True)
+    ax.grid(which='minor', color=surface, linewidth=2)
+    ax.tick_params(which='minor', length=0)
+
+    if n <= max_annotate:
+        for i in range(n):
+            for j in range(n):
+                if i == j:
+                    if totals is not None:
+                        ax.text(j, i, '{:,}'.format(totals[i]), ha='center',
+                                va='center', fontsize=8, color=text_2)
+                    continue
+                count = matrix[i][j]
+                if count > 0 and norm is not None:
+                    dark = norm(count) > 0.5
+                else:
+                    dark = count > 0
+                ax.text(j, i, '{:,}'.format(count), ha='center', va='center', fontsize=8,
+                        color='#ffffff' if dark else text_1)
+
+    ax.set_xticks(range(n))
+    ax.set_yticks(range(n))
+    ax.set_xticklabels(labels, rotation=45 if n > 3 else 0, ha='right' if n > 3 else 'center')
+    ax.set_yticklabels(labels)
+    ax.tick_params(colors=muted, labelcolor=text_2, labelsize=8, length=0)
+    for side in ax.spines.values():
+        side.set_visible(False)
+    title = 'Pairwise sample contaminants' if positive else \
+            'Pairwise sample contaminants: none found'
+    ax.set_title(title, loc='left', color=text_1, fontsize=12)
+
+    if norm is not None:
+        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=9)
+    elif positive:
+        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04, ticks=[1])
+        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=9)
+    else:
+        cbar = None
+    if cbar is not None:
+        if norm is not None:
+            # Label powers of ten and the maximum as plain numbers
+            vmax = int(norm.vmax)
+            ticks = [10 ** k for k in range(len(str(vmax))) if 2 * 10 ** k <= vmax] + [vmax]
+            cbar.set_ticks(ticks)
+            cbar.set_ticklabels(['{:,}'.format(t) for t in ticks])
+        cbar.ax.minorticks_off()
+        cbar.outline.set_visible(False)
+        cbar.ax.tick_params(colors=muted, labelcolor=text_2, labelsize=8)
+
+    fig.tight_layout()
+    fig.savefig(plot_file, facecolor=surface)
+
+    return plot_file
+
+
 def writeSampleReads(seq_file, flagged, shared_field=default_shared_field,
                      coord_type=default_coord, out_args=default_out_args):
     """
@@ -516,7 +648,9 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
       shared_field : the annotation field listing the samples a flagged read is shared with.
       out_args : common output argument dictionary from parseCommonArgs. The log_file entry
                  defines the contaminant log; if None it is written to contam_log.txt in the
-                 output directory, or in the directory of the first read 1 file.
+                 output directory, or in the directory of the first read 1 file. A heatmap
+                 of the read pairs shared between samples is plotted next to it, with the
+                 same name followed by _heatmap.png.
 
     Returns:
       list : a list of tuples holding the (read 1, read 2) pass file names for each sample.
@@ -616,6 +750,7 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
         dist_handle.close()
         plotDistanceHistogram(dist_hist, plot_file)
     del sample_groups
+
     printMessage('Done', start_time=start_time, end=True)
 
     # Pass 3: write output files
@@ -623,10 +758,11 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     printMessage('Writing output', start_time=start_time)
     out_files = []
     out_log = OrderedDict()
+    read_totals = []
     for label, files in sample_files.items():
         pass_names = []
         pass_total = fail_total = 0
-        for seq_file in files:
+        for i, seq_file in enumerate(files):
             name, pass_count, fail_count = writeSampleReads(seq_file, flagged[label],
                                                             shared_field=shared_field,
                                                             coord_type=coord_type,
@@ -634,10 +770,17 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
             pass_names.append(name)
             pass_total += pass_count
             fail_total += fail_count
+            # Read 1 count, one read per read pair, for the heatmap diagonal
+            if i == 0:  read_totals.append(pass_count + fail_count)
         out_files.append(tuple(pass_names))
         out_log['%s_PASS' % label] = pass_total
         out_log['%s_FAIL' % label] = fail_total
     printMessage('Done', start_time=start_time, end=True)
+
+    # Plot read pairs shared between each pair of samples
+    heatmap_file = os.path.splitext(log_file)[0] + '_heatmap.png'
+    plotSharedHeatmap(countSharedPairs(flagged, labels), labels, heatmap_file,
+                      totals=read_totals)
 
     # Print log
     log = OrderedDict()
@@ -645,6 +788,7 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     log['MULTISAMPLE'] = len(multi_barcodes)
     log['CONTAMINATED'] = contam_count
     log['LOG'] = os.path.basename(log_file)
+    log['HEATMAP'] = os.path.basename(heatmap_file)
     if dist_file is not None:
         log['DISTANCES'] = dist_count
         log['DIST_PLOT'] = os.path.basename(plot_file)
@@ -679,6 +823,14 @@ def getArgParser():
                  contam-fail
                      reads shared with another sample, one file per input file.
                      Only written with --failed.
+                 <log>_heatmap.png
+                     heatmap of the read pairs shared between every pair of samples,
+                     written next to the contaminant log. The cell in row i and column j
+                     is the number of read pairs of sample i that matched a read pair in
+                     sample j. Matching read pairs are removed from both samples, and
+                     cell (j, i) holds those of sample j. The diagonal shows the total
+                     number of read 1 reads of each sample and is not part of the color
+                     scale.
 
              output annotation fields:
                  SHARED
