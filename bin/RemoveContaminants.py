@@ -7,7 +7,9 @@ __author__ = 'Gisela Gabernet'
 from presto import __version__, __date__
 
 # Imports
+import io
 import os
+import multiprocessing as mp
 from argparse import ArgumentParser
 from collections import OrderedDict
 from itertools import chain, combinations
@@ -633,10 +635,99 @@ def writeSampleReads(seq_file, flagged, shared_field=default_shared_field,
     return pass_handle.name, pass_count, fail_count
 
 
+def runTasks(func, tasks, nproc=1, initializer=None, initargs=(), chunksize=1):
+    """
+    Applies a function to tasks in order, optionally in a pool of processes
+
+    Arguments:
+      func : a module level function taking a single task argument.
+      tasks : an iterable of tasks.
+      nproc : the number of processes; if 1 or less, tasks run in the current process.
+      initializer : optional function called once in each process before its tasks.
+      initargs : arguments for initializer.
+      chunksize : the number of tasks sent to a process at a time.
+
+    Returns:
+      iter : the results, in the order of the tasks.
+    """
+    if nproc <= 1:
+        if initializer is not None:  initializer(*initargs)
+        for task in tasks:
+            yield func(task)
+    else:
+        with mp.Pool(nproc, initializer=initializer, initargs=initargs) as pool:
+            for result in pool.imap(func, tasks, chunksize):
+                yield result
+
+
+def _barcodeTask(task):
+    """
+    Pass 1 task: collects the barcodes of one sample
+    """
+    seq_file_1, seq_file_2, field, delimiter = task
+    return collectSampleBarcodes(seq_file_1, seq_file_2, field=field, delimiter=delimiter)
+
+
+# Candidate barcodes shared with pass 2 tasks, set once per process
+_candidates = None
+
+def _setCandidates(candidates):
+    """
+    Sets the candidate barcodes used by pass 2 tasks in the current process
+    """
+    global _candidates
+    _candidates = candidates
+
+
+def _readTask(task):
+    """
+    Pass 2 task: collects the reads of candidate barcodes in one sample
+    """
+    seq_file_1, seq_file_2, field, coord_type, delimiter = task
+    return collectSampleReads(seq_file_1, seq_file_2, candidates=_candidates, field=field,
+                              coord_type=coord_type, delimiter=delimiter)
+
+
+def compareBarcode(task):
+    """
+    Compares the read pairs of one barcode across all samples containing it
+
+    Arguments:
+      task : a tuple of (barcode, sample_reads, max_error, distances), where sample_reads
+             is an OrderedDict mapping each sample label to its list of
+             (coordinate, read 1 sequence, read 2 sequence) tuples for the barcode, and
+             distances is True to also calculate pairwise Hamming distances.
+
+    Returns:
+      tuple : (barcode, shared, dist_text, dist_rows, hist), where shared is the result of
+              findSharedReads, and dist_text, dist_rows and hist are the distance table
+              rows, their count and the distance histogram counts, or None, 0 and None
+              when distances is False.
+    """
+    tag, sample_reads, max_error, distances = task
+    dist_text, dist_rows, hist = None, 0, None
+    if distances:
+        handle, hist = io.StringIO(), {}
+        dist_rows = writeGroupDistances(handle, tag, sample_reads, hist=hist)
+        dist_text = handle.getvalue()
+    shared = findSharedReads(sample_reads, max_error=max_error)
+
+    return tag, shared, dist_text, dist_rows, hist
+
+
+def _writeTask(task):
+    """
+    Pass 3 task: writes the pass and fail files of one input file
+    """
+    seq_file, flagged, shared_field, coord_type, out_args = task
+    return writeSampleReads(seq_file, flagged, shared_field=shared_field,
+                            coord_type=coord_type, out_args=out_args)
+
+
 def removeContaminants(seq_files_1, seq_files_2, labels=None,
                      barcode_field=default_barcode_field, coord_type=default_coord,
                      max_error=default_contam_max_error, dist_file=None,
-                     shared_field=default_shared_field, out_args=default_out_args):
+                     shared_field=default_shared_field, out_args=default_out_args, nproc=1):
     """
     Identifies reads shared across samples by UMI barcode and sequence
 
@@ -647,6 +738,11 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     To limit memory usage the input files are read in three passes. The first pass
     collects only the barcodes of each sample. The second keeps only the read pairs whose
     barcode occurs in multiple samples. The third writes the output files.
+
+    With multiple processes, the samples are read in parallel in the first two passes and
+    the files are written in parallel in the third. Samples are only combined in the main
+    process, and each barcode is compared across all samples containing it by a single
+    process, so the results do not depend on the number of processes.
 
     Arguments:
       seq_files_1 : list of read 1 sequence files, one per sample.
@@ -666,6 +762,7 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                  output directory, or in the directory of the first read 1 file. A heatmap
                  of the read pairs shared between samples is plotted next to it, with the
                  same name followed by _heatmap.png.
+      nproc : the number of processes to use.
 
     Returns:
       list : a list of tuples holding the (read 1, read 2) pass file names for each sample.
@@ -685,14 +782,16 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     log['COORD_TYPE'] = coord_type
     log['MAX_ERROR'] = max_error
     log['DIST_FILE'] = os.path.basename(dist_file) if dist_file is not None else None
+    log['NPROC'] = nproc
     printLog(log)
 
     # Pass 1: find barcodes annotated in multiple samples
     start_time = time()
     printMessage('Collecting barcodes', start_time=start_time)
     barcode_count = {}
-    for f1, f2 in sample_files.values():
-        for tag in collectSampleBarcodes(f1, f2, field=barcode_field, delimiter=delimiter):
+    tasks = [(f1, f2, barcode_field, delimiter) for f1, f2 in sample_files.values()]
+    for barcodes in runTasks(_barcodeTask, tasks, nproc=min(nproc, len(tasks))):
+        for tag in barcodes:
             barcode_count[tag] = barcode_count.get(tag, 0) + 1
     candidates = {t for t, n in barcode_count.items() if n > 1}
     del barcode_count
@@ -702,13 +801,16 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     start_time = time()
     printMessage('Collecting reads', start_time=start_time)
     sample_groups = OrderedDict()
-    for label, (f1, f2) in sample_files.items():
-        groups, conflicts = collectSampleReads(f1, f2, candidates=candidates, field=barcode_field,
-                                               coord_type=coord_type, delimiter=delimiter)
+    tasks = [(f1, f2, barcode_field, coord_type, delimiter) for f1, f2 in sample_files.values()]
+    results = runTasks(_readTask, tasks, nproc=min(nproc, len(tasks)),
+                       initializer=_setCandidates, initargs=(candidates,))
+    for label, (groups, conflicts) in zip(sample_files, results):
         if conflicts > 0:
             printWarning('%i read pairs in sample %s have different barcodes in read 1 and read 2. '
                          'The read 1 barcode was used.' % (conflicts, label))
         sample_groups[label] = groups
+    _setCandidates(None)
+    del candidates
     printMessage('Done', start_time=start_time, end=True)
 
     # Find barcodes with paired reads in multiple samples
@@ -741,12 +843,22 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
 
     flagged = {label: {} for label in labels}
     contam_count = dist_count = 0
+    # Each barcode is compared across all samples containing it within a single task
+    tasks = ((tag, OrderedDict((s, sample_groups[s][tag]) for s in barcode_samples[tag]),
+              max_error, dist_handle is not None) for tag in multi_barcodes)
+    compare_nproc = min(nproc, len(multi_barcodes))
+    chunksize = max(1, len(multi_barcodes) // (max(1, compare_nproc) * 8))
     with open(log_file, 'w') as log_handle:
-        for tag in multi_barcodes:
+        for tag, shared, dist_text, dist_rows, hist in \
+                runTasks(compareBarcode, tasks, nproc=compare_nproc, chunksize=chunksize):
             tag_reads = OrderedDict((s, sample_groups[s][tag]) for s in barcode_samples[tag])
             if dist_handle is not None:
-                dist_count += writeGroupDistances(dist_handle, tag, tag_reads, hist=dist_hist)
-            shared = findSharedReads(tag_reads, max_error=max_error)
+                dist_handle.write(dist_text)
+                dist_count += dist_rows
+                for key, counts in hist.items():
+                    merged = dist_hist.setdefault(key, {})
+                    for d, c in counts.items():
+                        merged[d] = merged.get(d, 0) + c
             sharing = [s for s in tag_reads if shared[s]]
             if not sharing:
                 continue
@@ -774,14 +886,14 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     out_files = []
     out_log = OrderedDict()
     read_totals = []
-    for label, files in sample_files.items():
+    tasks = [(seq_file, flagged[label], shared_field, coord_type, out_args)
+             for label, files in sample_files.items() for seq_file in files]
+    results = list(runTasks(_writeTask, tasks, nproc=min(nproc, len(tasks))))
+    for k, (label, files) in enumerate(sample_files.items()):
         pass_names = []
         pass_total = fail_total = 0
         for i, seq_file in enumerate(files):
-            name, pass_count, fail_count = writeSampleReads(seq_file, flagged[label],
-                                                            shared_field=shared_field,
-                                                            coord_type=coord_type,
-                                                            out_args=out_args)
+            name, pass_count, fail_count = results[2 * k + i]
             pass_names.append(name)
             pass_total += pass_count
             fail_total += fail_count
@@ -830,7 +942,9 @@ def getArgParser():
              compared individually, so other reads with the same barcode are retained.
              To limit memory usage, the input files are read in three passes: the first
              collects only barcodes, the second keeps only reads whose barcode occurs in
-             multiple samples, and the third writes the output.
+             multiple samples, and the third writes the output. With --nproc, samples
+             are read and files are written in parallel, and barcodes are compared in
+             parallel, each barcode across all samples within one process.
 
              output files:
                  contam-pass
@@ -885,7 +999,8 @@ def getArgParser():
 
     # Define ArgumentParser
     parser = ArgumentParser(description=__doc__, epilog=fields,
-                            parents=[getCommonArgParser(seq_paired=True, out_file=False, log=False)],
+                            parents=[getCommonArgParser(seq_paired=True, out_file=False, log=False,
+                                                        multiproc=True)],
                             formatter_class=CommonHelpFormatter, add_help=False)
 
     group_contam = parser.add_argument_group('contaminant identification arguments')

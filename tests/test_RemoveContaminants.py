@@ -212,6 +212,25 @@ class TestRemoveContaminants(unittest.TestCase):
         with open(os.path.join(self.out_dir, 'dist', 'dist.png'), 'rb') as h:
             self.assertEqual(b'\x89PNG', h.read(4))
 
+    def test_removeContaminantsParallel(self):
+        # Results must not depend on the number of processes
+        outputs = {}
+        for nproc in (1, 3):
+            out_dir = os.path.join(self.out_dir, 'nproc%i' % nproc)
+            out_args = dict(default_out_args)
+            out_args.update({'out_dir': out_dir, 'failed': True, 'gzip_output': False,
+                             'log_file': os.path.join(out_dir, 'log.txt')})
+            RemoveContaminants.removeContaminants(self.files_1, self.files_2, labels=self.labels,
+                                                  dist_file=os.path.join(out_dir, 'dist.tab'),
+                                                  out_args=out_args, nproc=nproc)
+            outputs[nproc] = {}
+            for name in sorted(os.listdir(out_dir)):
+                if not name.endswith('.png'):
+                    with open(os.path.join(out_dir, name)) as h:
+                        outputs[nproc][name] = h.read()
+        self.assertEqual(14, len(outputs[1]))
+        self.assertEqual(outputs[1], outputs[3])
+
     def test_removeContaminantsMaxError(self):
         result, _ = self._run(max_error=0.05)
         # One mismatch over 30 bases is now allowed
