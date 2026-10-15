@@ -1548,7 +1548,7 @@ def getArgParser():
                                    columns of the heatmaps. Each sample label is matched to the
                                    sample column, first as is and then without a trailing _R1,
                                    _1 or .R1. Samples without a batch are shown as NA.''')
-    group_contam.add_argument('--samplecol', action='store', dest='sample_col', default='sample',
+    group_contam.add_argument('--samplecol', action='store', dest='sample_col', default='sample_id',
                               help='''The samplesheet column holding the sample names.''')
     group_contam.add_argument('--batchcol', action='store', dest='batch_col', default='batch',
                               help='''The samplesheet column holding the batches.''')
