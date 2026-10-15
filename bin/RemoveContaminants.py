@@ -469,6 +469,19 @@ def countSharedPairs(flagged, labels):
     return matrix
 
 
+def addMatrix(total, matrix):
+    """
+    Adds the counts of a shared read pair matrix to a running total in place
+
+    Arguments:
+      total : the square matrix, as a list of lists, holding the running total.
+      matrix : the square matrix of counts to add, as returned by countSharedPairs.
+    """
+    for total_row, row in zip(total, matrix):
+        for j, count in enumerate(row):
+            total_row[j] += count
+
+
 def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     """
     Plots a heatmap of the read pairs shared between every pair of samples to a PNG file
@@ -715,6 +728,56 @@ def _distFile(tmp_dir, shard):
     return os.path.join(tmp_dir, 'shard%i_dist.tab' % shard)
 
 
+def _flaggedFile(tmp_dir, shard, sample):
+    """
+    Returns the file name holding the flagged reads of one sample in one shard
+    """
+    return os.path.join(tmp_dir, 'shard%i_flagged%i.pkl' % (shard, sample))
+
+
+def _logFile(tmp_dir, shard):
+    """
+    Returns the file name holding the log records of one shard
+    """
+    return os.path.join(tmp_dir, 'shard%i_log.tab' % shard)
+
+
+def _orderKey(line):
+    """
+    Returns the barcode order prefixed to a line of a shard distance or log file
+    """
+    i, rank, _ = line.split('\t', 2)
+    return int(i), int(rank)
+
+
+def loadFlagged(tmp_dir, shards, sample):
+    """
+    Loads the flagged reads of one sample from all shards
+
+    Arguments:
+      tmp_dir : the temporary shard directory.
+      shards : the number of shards.
+      sample : the sample index.
+
+    Returns:
+      dict : maps the flagged read coordinates to the list of samples each read matched.
+    """
+    flagged = {}
+    for shard in range(shards):
+        path = _flaggedFile(tmp_dir, shard, sample)
+        if not os.path.exists(path):
+            continue
+        with open(path, 'rb') as handle:
+            # Each shard file holds one pickled dictionary per contaminated barcode
+            while True:
+                try:
+                    flagged.update(pickle.load(handle))
+                except EOFError:
+                    break
+
+    return flagged
+
+
 def _readTask(task):
     """
     Pass 2 task: collects the reads of candidate barcodes in one sample and writes them to shards
@@ -746,17 +809,23 @@ def compareShard(task):
     first sample containing them and then by their position in that sample, which is the
     order of the barcodes when all samples are read sequentially.
 
+    The flagged reads of each sample are written to the shard flagged files, and a log
+    record for each barcode with shared read pairs is written to the shard log file, prefixed
+    by the barcode order. Only counts are returned, so the reads are never sent between
+    processes.
+
     Arguments:
       task : a tuple of (shard, tmp_dir, labels, max_error, distances), where distances is
              True to also write the pairwise Hamming distances to the shard distance file,
              each row prefixed by the barcode order.
 
     Returns:
-      tuple : (multi_count, records, dist_rows, hist), where multi_count is the number of
-              barcodes found in multiple samples, records is a list of
-              (order, barcode, sharing samples, shared reads by sample, group sizes) tuples for
-              the barcodes with shared read pairs, dist_rows is the number of distance rows,
-              and hist is the distance histogram counts, or None when distances is False.
+      tuple : (multi_count, contam_count, matrix, dist_rows, hist), where multi_count is
+              the number of barcodes found in multiple samples, contam_count is the number
+              of barcodes with shared read pairs, matrix holds the shared read pair counts
+              between samples as returned by countSharedPairs, dist_rows is the number of
+              distance rows, and hist is the distance histogram counts, or None when
+              distances is False.
     """
     shard, tmp_dir, labels, max_error, distances = task
 
@@ -778,36 +847,56 @@ def compareShard(task):
     multi = sorted((t for t, r in barcode_reads.items() if len(r) > 1), key=order.get)
     barcode_reads = {t: barcode_reads[t] for t in multi}
 
-    records = []
-    dist_rows, hist, dist_handle = 0, None, None
+    index = {label: i for i, label in enumerate(labels)}
+    matrix = [[0] * len(labels) for _ in labels]
+    contam_count = dist_rows = 0
+    hist, dist_handle, flagged_handles = None, None, {}
+    log_handle = open(_logFile(tmp_dir, shard), 'w')
     if distances:
         hist = {}
         dist_handle = open(_distFile(tmp_dir, shard), 'w')
     try:
         for tag in multi:
             sample_reads = barcode_reads.pop(tag)
+            prefix = '%i\t%i\t' % order[tag]
             if dist_handle is not None:
                 buffer = io.StringIO()
                 dist_rows += writeGroupDistances(buffer, tag, sample_reads, hist=hist)
-                prefix = '%i\t%i\t' % order[tag]
                 for line in buffer.getvalue().splitlines(True):
                     dist_handle.write(prefix + line)
             shared = findSharedReads(sample_reads, max_error=max_error)
             sharing = [s for s in sample_reads if shared[s]]
-            if sharing:
-                records.append((order[tag], tag, sharing, {s: shared[s] for s in sharing},
-                                [len(sample_reads[s]) for s in sharing]))
+            if not sharing:
+                continue
+            contam_count += 1
+            for s in sharing:
+                handle = flagged_handles.get(s, None)
+                if handle is None:
+                    handle = flagged_handles[s] = open(_flaggedFile(tmp_dir, shard, index[s]),
+                                                       'wb')
+                pickle.dump(shared[s], handle, protocol=pickle.HIGHEST_PROTOCOL)
+            addMatrix(matrix, countSharedPairs(shared, labels))
+            log_handle.write(prefix + '\t'.join([
+                tag, ','.join(sharing),
+                ','.join(str(len(shared[s])) for s in sharing),
+                ','.join(str(len(sample_reads[s])) for s in sharing)]) + '\n')
     finally:
+        log_handle.close()
         if dist_handle is not None:  dist_handle.close()
+        for handle in flagged_handles.values():  handle.close()
 
-    return len(multi), records, dist_rows, hist
+    return len(multi), contam_count, matrix, dist_rows, hist
 
 
 def _writeTask(task):
     """
     Pass 3 task: writes the pass and fail files of one input file
+
+    The flagged reads of the sample are loaded from the shard files, so they are never sent
+    between processes.
     """
-    seq_file, flagged, shared_field, coord_type, out_args = task
+    seq_file, sample, tmp_dir, shards, shared_field, coord_type, out_args = task
+    flagged = loadFlagged(tmp_dir, shards, sample)
     return writeSampleReads(seq_file, flagged, shared_field=shared_field,
                             coord_type=coord_type, out_args=out_args)
 
@@ -831,8 +920,10 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     The second pass writes the kept read pairs to temporary shard files, split by barcode,
     in a directory created in the output directory, or in the directory of the first read 1
     file. Each shard is then compared separately, so all read pairs of a barcode are compared
-    together while the main process never holds the reads. The directory is removed at the
-    end of the run.
+    together. The flagged reads and log records of each shard are also written to the
+    directory, and the third pass loads the flagged reads of each sample from it, so the
+    main process never holds reads and only counts are sent between processes. The
+    directory is removed at the end of the run.
 
     With multiple processes, the samples are read in parallel in the first two passes, the
     shards are compared in parallel, and the files are written in parallel in the third pass.
@@ -931,13 +1022,14 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
 
         distances = dist_file is not None
         dist_hist = {} if distances else None
-        multi_count = dist_count = 0
-        records = []
+        multi_count = contam_count = dist_count = 0
+        shared_matrix = [[0] * len(labels) for _ in labels]
         tasks = [(shard, tmp_dir, labels, max_error, distances) for shard in range(shards)]
-        for shard_multi, shard_records, dist_rows, hist in \
+        for shard_multi, shard_contam, matrix, dist_rows, hist in \
                 runTasks(compareShard, tasks, nproc=min(nproc, shards)):
             multi_count += shard_multi
-            records.extend(shard_records)
+            contam_count += shard_contam
+            addMatrix(shared_matrix, matrix)
             if distances:
                 dist_count += dist_rows
                 for key, counts in hist.items():
@@ -945,23 +1037,23 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                     for d, c in counts.items():
                         merged[d] = merged.get(d, 0) + c
 
-        # Restore the barcode order of a sequential run
-        records.sort(key=lambda r: r[0])
-        flagged = {label: {} for label in labels}
-        with open(log_file, 'w') as log_handle:
-            for _, tag, sharing, shared, group_counts in records:
-                for s in sharing:
-                    flagged[s].update(shared[s])
-
-                # Write a log record with the read counts of each contaminated sample
-                rec_log = OrderedDict()
-                rec_log['BARCODE'] = tag
-                rec_log['SAMPLES'] = ','.join(sharing)
-                rec_log['SEQCOUNT'] = ','.join(str(len(shared[s])) for s in sharing)
-                rec_log['GROUPCOUNT'] = ','.join(str(n) for n in group_counts)
-                printLog(rec_log, handle=log_handle)
-        contam_count = len(records)
-        del records
+        # Merge the sorted log records of all shards, restoring the barcode order of a
+        # sequential run, and write a log record with the read counts of each
+        # contaminated sample
+        shard_handles = [open(_logFile(tmp_dir, shard)) for shard in range(shards)]
+        try:
+            with open(log_file, 'w') as log_handle:
+                for line in heapq.merge(*shard_handles, key=_orderKey):
+                    tag, sharing, seq_counts, group_counts = \
+                        line.rstrip('\n').split('\t')[2:]
+                    rec_log = OrderedDict()
+                    rec_log['BARCODE'] = tag
+                    rec_log['SAMPLES'] = sharing
+                    rec_log['SEQCOUNT'] = seq_counts
+                    rec_log['GROUPCOUNT'] = group_counts
+                    printLog(rec_log, handle=log_handle)
+        finally:
+            for handle in shard_handles:  handle.close()
 
         # Merge the sorted distance rows of all shards
         plot_file = None
@@ -974,47 +1066,43 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                 with open(dist_file, 'w') as dist_handle:
                     dist_handle.write('BARCODE\tR1_LENGTH\tR2_LENGTH\tSAMPLE1\tID1\tSAMPLE2'
                                       '\tID2\tR1_DIST\tR2_DIST\n')
-                    def _order(line):
-                        i, rank, _ = line.split('\t', 2)
-                        return int(i), int(rank)
-                    for line in heapq.merge(*shard_handles, key=_order):
+                    for line in heapq.merge(*shard_handles, key=_orderKey):
                         dist_handle.write(line.split('\t', 2)[2])
             finally:
                 for handle in shard_handles:  handle.close()
             plotDistanceHistogram(dist_hist, plot_file)
 
         printMessage('Done', start_time=start_time, end=True)
+
+        # Pass 3: write output files, loading the flagged reads of each sample from the shards
+        start_time = time()
+        printMessage('Writing output', start_time=start_time)
+        out_files = []
+        out_log = OrderedDict()
+        read_totals = []
+        tasks = [(seq_file, k, tmp_dir, shards, shared_field, coord_type, out_args)
+                 for k, files in enumerate(sample_files.values()) for seq_file in files]
+        results = list(runTasks(_writeTask, tasks, nproc=min(nproc, len(tasks))))
+        for k, (label, files) in enumerate(sample_files.items()):
+            pass_names = []
+            pass_total = fail_total = 0
+            for i, seq_file in enumerate(files):
+                name, pass_count, fail_count = results[2 * k + i]
+                pass_names.append(name)
+                pass_total += pass_count
+                fail_total += fail_count
+                # Read 1 count, one read per read pair, for the heatmap diagonal
+                if i == 0:  read_totals.append(pass_count + fail_count)
+            out_files.append(tuple(pass_names))
+            out_log['%s_PASS' % label] = pass_total
+            out_log['%s_FAIL' % label] = fail_total
+        printMessage('Done', start_time=start_time, end=True)
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-    # Pass 3: write output files
-    start_time = time()
-    printMessage('Writing output', start_time=start_time)
-    out_files = []
-    out_log = OrderedDict()
-    read_totals = []
-    tasks = [(seq_file, flagged[label], shared_field, coord_type, out_args)
-             for label, files in sample_files.items() for seq_file in files]
-    results = list(runTasks(_writeTask, tasks, nproc=min(nproc, len(tasks))))
-    for k, (label, files) in enumerate(sample_files.items()):
-        pass_names = []
-        pass_total = fail_total = 0
-        for i, seq_file in enumerate(files):
-            name, pass_count, fail_count = results[2 * k + i]
-            pass_names.append(name)
-            pass_total += pass_count
-            fail_total += fail_count
-            # Read 1 count, one read per read pair, for the heatmap diagonal
-            if i == 0:  read_totals.append(pass_count + fail_count)
-        out_files.append(tuple(pass_names))
-        out_log['%s_PASS' % label] = pass_total
-        out_log['%s_FAIL' % label] = fail_total
-    printMessage('Done', start_time=start_time, end=True)
-
     # Plot read pairs shared between each pair of samples
     heatmap_file = os.path.splitext(log_file)[0] + '_heatmap.png'
-    plotSharedHeatmap(countSharedPairs(flagged, labels), labels, heatmap_file,
-                      totals=read_totals)
+    plotSharedHeatmap(shared_matrix, labels, heatmap_file, totals=read_totals)
 
     # Print log
     log = OrderedDict()

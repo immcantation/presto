@@ -6,6 +6,7 @@ __author__ = 'Gisela Gabernet'
 
 # Imports
 import os
+import pickle
 import shutil
 import subprocess
 import sys
@@ -256,6 +257,26 @@ class TestRemoveContaminants(unittest.TestCase):
         self.assertEqual(14, len(expected))
         for key, result in outputs.items():
             self.assertEqual(expected, result, key)
+
+    def test_removeContaminantsNoReadTransfer(self):
+        # Only counts are sent between processes, never reads or read coordinates
+        sent = []
+        original = RemoveContaminants.runTasks
+        def _record(func, tasks, **kwargs):
+            tasks = list(tasks)
+            sent.extend(pickle.dumps(t) for t in tasks)
+            for result in original(func, tasks, **kwargs):
+                sent.append(pickle.dumps(result))
+                yield result
+        RemoveContaminants.runTasks = _record
+        try:
+            outputs = self._runOutputs(os.path.join(self.out_dir, 'transfer'), nproc=1)
+        finally:
+            RemoveContaminants.runTasks = original
+        # Make sure reads were flagged, so their coordinates could have been sent
+        self.assertIn('_READ', outputs['contam_sampleA_R1_contam-fail.fastq'])
+        for data in sent:
+            self.assertNotIn(b'_READ', data)
 
     def test_removeContaminantsCleanup(self):
         # The temporary shard directory is removed when a comparison fails
