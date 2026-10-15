@@ -12,6 +12,7 @@ import io
 import os
 import pickle
 import shutil
+import sys
 import tempfile
 import zlib
 import multiprocessing as mp
@@ -482,9 +483,53 @@ def addMatrix(total, matrix):
             total_row[j] += count
 
 
+def clusterSamples(matrix, totals=None):
+    """
+    Hierarchically clusters samples by the read pairs they share
+
+    The similarity of two samples is the number of read pairs they share in either direction,
+    divided by their combined number of reads when totals are given, so large samples do not
+    dominate. Distances are one minus the similarity relative to the most similar pair, and
+    samples are clustered by average linkage with optimal leaf ordering.
+
+    Arguments:
+      matrix : square count matrix from countSharedPairs.
+      totals : optional list of the total number of reads of each sample.
+
+    Returns:
+      tuple : (order, linkage), where order is the list of sample indices in leaf order and
+              linkage is the scipy linkage matrix, or the input order and None when there are
+              fewer than three samples or no shared read pairs.
+    """
+    n = len(matrix)
+    similarity = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            shared = matrix[i][j] + matrix[j][i]
+            if totals is not None:
+                size = totals[i] + totals[j]
+                shared = shared / size if size > 0 else 0.0
+            similarity[i][j] = similarity[j][i] = shared
+    top = max((max(row) for row in similarity), default=0.0)
+    if n < 3 or top <= 0:
+        return list(range(n)), None
+
+    # Imported here so scipy is only loaded when a plot is requested
+    from scipy.cluster.hierarchy import leaves_list, linkage
+    from scipy.spatial.distance import squareform
+    distance = [[0.0 if i == j else 1.0 - similarity[i][j] / top for j in range(n)]
+                for i in range(n)]
+    tree = linkage(squareform(distance, checks=False), method='average', optimal_ordering=True)
+
+    return [int(i) for i in leaves_list(tree)], tree
+
+
 def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     """
     Plots a heatmap of the read pairs shared between every pair of samples to a PNG file
+
+    Samples are ordered by clusterSamples, so samples sharing many read pairs are placed
+    next to each other, and the clustering dendrogram is drawn above the heatmap.
 
     Arguments:
       matrix : square count matrix from countSharedPairs.
@@ -501,6 +546,13 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     from matplotlib.figure import Figure
     from matplotlib.colors import LinearSegmentedColormap, LogNorm
     from matplotlib.patches import Rectangle
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    # Reorder the samples by cluster
+    order, tree = clusterSamples(matrix, totals=totals)
+    matrix = [[matrix[i][j] for j in order] for i in order]
+    labels = [labels[i] for i in order]
+    if totals is not None:  totals = [totals[i] for i in order]
 
     # Sequential single-hue ramp and neutral colors from a validated palette
     ramp = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b']
@@ -517,9 +569,30 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     label_size = max(6.0, min(10.0, cell_pt * 0.75))
     label_step = max(1, int(-(-label_size * 1.15 // cell_pt)))
     gap = min(2.0, cell_pt * 0.15)
-    fig = Figure(figsize=(side + 3.2, side + 2.2), dpi=150, facecolor=surface)
+    tree_height = min(1.2, 0.2 * side) if tree is not None else 0.0
+    fig = Figure(figsize=(side + 3.2, side + 2.2 + tree_height), dpi=150, facecolor=surface)
     ax = fig.subplots()
     ax.set_facecolor(surface)
+    divider = make_axes_locatable(ax)
+
+    # Dendrogram above the heatmap, its leaves aligned with the columns. Rows and columns
+    # share the same order, so one tree describes both.
+    top_ax = ax
+    if tree is not None:
+        from scipy.cluster.hierarchy import dendrogram
+        top_ax = divider.append_axes('top', size=tree_height, pad=0.05)
+        # The most similar pair merges at height 0, so all merges are raised by the same
+        # offset to keep every link visible. The height axis is not shown.
+        plot_tree = tree.copy()
+        height = plot_tree[:, 2].max()
+        plot_tree[:, 2] += 0.08 * height if height > 0 else 1.0
+        dendrogram(plot_tree, ax=top_ax, no_labels=True, link_color_func=lambda k: muted)
+        for line in top_ax.collections:
+            line.set_linewidth(1.0)
+        # Leaves are drawn at 5, 15, 25, ...; cells span 10 dendrogram units
+        top_ax.set_xlim(0, 10 * n)
+        top_ax.set_ylim(0, 1.02 * plot_tree[:, 2].max())
+        top_ax.set_axis_off()
 
     # Mask zero counts and the diagonal so they are not drawn on the color scale
     values = [[float('nan') if i == j or matrix[i][j] == 0 else matrix[i][j]
@@ -575,13 +648,15 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
         side.set_visible(False)
     title = 'Pairwise sample contaminants' if positive else \
             'Pairwise sample contaminants: none found'
-    ax.set_title(title, loc='left', color=text_1, fontsize=14, pad=10)
+    top_ax.set_title(title, loc='left', color=text_1, fontsize=14,
+                     pad=26 if tree is not None else 10)
+    if tree is not None:
+        top_ax.text(0, 1.0, 'Samples clustered by shared read pairs',
+                    transform=top_ax.transAxes, ha='left', va='bottom', color=text_2, fontsize=10)
 
-    if norm is not None:
-        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.03, shrink=0.8)
-        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=11)
-    elif positive:
-        cbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.03, shrink=0.8, ticks=[1])
+    if positive:
+        cax = divider.append_axes('right', size=0.25, pad=0.25)
+        cbar = fig.colorbar(image, cax=cax, ticks=None if norm is not None else [1])
         cbar.set_label('Number of contaminants removed', color=text_2, fontsize=11)
     else:
         cbar = None
@@ -667,16 +742,26 @@ def runTasks(func, tasks, nproc=1, initializer=None, initargs=(), chunksize=1):
       chunksize : the number of tasks sent to a process at a time.
 
     Returns:
-      iter : the results, in the order of the tasks.
+      iter : the results, in the order of the tasks. The pool is shut down once all
+             results are consumed, so callers must consume every result.
     """
     if nproc <= 1:
         if initializer is not None:  initializer(*initargs)
         for task in tasks:
             yield func(task)
     else:
-        with mp.Pool(nproc, initializer=initializer, initargs=initargs) as pool:
+        pool = mp.Pool(nproc, initializer=initializer, initargs=initargs)
+        finished = False
+        try:
             for result in pool.imap(func, tasks, chunksize):
                 yield result
+            # Let the workers exit normally once all results are consumed
+            pool.close()
+            pool.join()
+            finished = True
+        finally:
+            # Stop the workers if a task failed or the results were not all consumed
+            if not finished:  pool.terminate()
 
 
 def _barcodeTask(task):
@@ -999,8 +1084,8 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
         printMessage('Collecting reads', start_time=start_time)
         tasks = [(i, f1, f2, barcode_field, coord_type, delimiter, tmp_dir, shards)
                  for i, (f1, f2) in enumerate(sample_files.values())]
-        results = runTasks(_readTask, tasks, nproc=min(nproc, len(tasks)),
-                           initializer=_setCandidates, initargs=(candidates,))
+        results = list(runTasks(_readTask, tasks, nproc=min(nproc, len(tasks)),
+                                initializer=_setCandidates, initargs=(candidates,)))
         for label, conflicts in zip(sample_files, results):
             if conflicts > 0:
                 printWarning('%i read pairs in sample %s have different barcodes in read 1 and '
@@ -1117,6 +1202,8 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     log.update(out_log)
     log['END'] = 'RemoveContaminants'
     printLog(log)
+    # Write the log now, as standard out is buffered when redirected to a file
+    sys.stdout.flush()
 
     return out_files
 

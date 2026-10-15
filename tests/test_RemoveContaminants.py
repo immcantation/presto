@@ -5,6 +5,7 @@ Unit tests for RemoveContaminants
 __author__ = 'Gisela Gabernet'
 
 # Imports
+import multiprocessing as mp
 import os
 import pickle
 import shutil
@@ -180,6 +181,33 @@ class TestRemoveContaminants(unittest.TestCase):
                                              os.path.join(self.out_dir, 'ones.png'),
                                              totals=[10, 20])
         self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'ones.png')))
+        # Clustered plots, including tied merges at height 0
+        RemoveContaminants.plotSharedHeatmap([[0, 5, 5], [5, 0, 5], [5, 5, 0]], ['A', 'B', 'C'],
+                                             os.path.join(self.out_dir, 'tied.png'),
+                                             totals=[10, 10, 10])
+        self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'tied.png')))
+
+    def test_clusterSamples(self):
+        # A and C share many read pairs, as do B and D, so each pair ends up adjacent
+        matrix = [[0, 1, 90, 0],
+                  [2, 0, 0, 80],
+                  [70, 0, 0, 1],
+                  [0, 60, 2, 0]]
+        order, tree = RemoveContaminants.clusterSamples(matrix, totals=[1000] * 4)
+        self.assertIsNotNone(tree)
+        self.assertEqual(sorted(order), [0, 1, 2, 3])
+        self.assertEqual(1, abs(order.index(0) - order.index(2)))
+        self.assertEqual(1, abs(order.index(1) - order.index(3)))
+        # Shared counts are relative to sample size, so the large sample A is not grouped
+        # with C when C shares a larger fraction of its reads with B
+        matrix = [[0, 0, 100], [0, 0, 50], [100, 50, 0]]
+        order, _ = RemoveContaminants.clusterSamples(matrix, totals=[100000, 100, 100])
+        self.assertEqual(1, abs(order.index(1) - order.index(2)))
+        self.assertEqual(0, min(order.index(0), 2 - order.index(0)))
+        # Fewer than three samples or nothing shared keeps the input order
+        self.assertEqual(([0, 1], None), RemoveContaminants.clusterSamples([[0, 3], [5, 0]]))
+        self.assertEqual(([0, 1, 2], None),
+                         RemoveContaminants.clusterSamples([[0] * 3 for _ in range(3)]))
 
     def test_hammingDist(self):
         self.assertEqual(0, RemoveContaminants.hammingDist('ACGT', 'ACGT'))
@@ -277,6 +305,31 @@ class TestRemoveContaminants(unittest.TestCase):
         self.assertIn('_READ', outputs['contam_sampleA_R1_contam-fail.fastq'])
         for data in sent:
             self.assertNotIn(b'_READ', data)
+
+    def test_removeContaminantsNoLeftoverWorkers(self):
+        # Each pool is shut down before the next starts, and none remain after the run
+        live = []
+        original = RemoveContaminants.runTasks
+        def _record(func, tasks, **kwargs):
+            live.append((func.__name__, len(mp.active_children())))
+            return original(func, tasks, **kwargs)
+        RemoveContaminants.runTasks = _record
+        try:
+            self._runOutputs(os.path.join(self.out_dir, 'workers'), nproc=2)
+        finally:
+            RemoveContaminants.runTasks = original
+        live.append(('return', len(mp.active_children())))
+        self.assertEqual(['_barcodeTask', '_readTask', 'compareShard', '_writeTask', 'return'],
+                         [name for name, _ in live])
+        self.assertEqual([0] * 5, [n for _, n in live], live)
+
+    def test_runTasksStopped(self):
+        # Workers are stopped when the results are not all consumed
+        results = RemoveContaminants.runTasks(abs, range(-100, 0), nproc=2)
+        self.assertEqual(100, next(results))
+        self.assertTrue(mp.active_children())
+        results.close()
+        self.assertEqual([], mp.active_children())
 
     def test_removeContaminantsCleanup(self):
         # The temporary shard directory is removed when a comparison fails
