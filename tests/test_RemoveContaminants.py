@@ -172,8 +172,9 @@ class TestRemoveContaminants(unittest.TestCase):
     def test_removeContaminantsHeatmap(self):
         self._run()
         out_dir = [d for d in os.listdir(self.out_dir)][0]
-        with open(os.path.join(self.out_dir, out_dir, 'log_heatmap.png'), 'rb') as h:
-            self.assertEqual(b'\x89PNG', h.read(4))
+        for name in ('log_heatmap.png', 'log_heatmap_percent.png'):
+            with open(os.path.join(self.out_dir, out_dir, name), 'rb') as h:
+                self.assertEqual(b'\x89PNG', h.read(4))
         # Plotting must also work when nothing is shared or counts are all one
         RemoveContaminants.plotSharedHeatmap([[0, 0], [0, 0]], ['A', 'B'],
                                              os.path.join(self.out_dir, 'none.png'))
@@ -187,6 +188,19 @@ class TestRemoveContaminants(unittest.TestCase):
                                              os.path.join(self.out_dir, 'tied.png'),
                                              totals=[10, 10, 10, 10])
         self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'tied.png')))
+
+    def test_heatmapPercent(self):
+        self.assertEqual(['0%', '0.001%', '0.0001%', '0.004%', '0.05%', '2.5%', '33%'],
+                         [RemoveContaminants.formatPercent(v)
+                          for v in (0, 0.001, 0.0001, 0.004, 0.0512, 2.5, 33.3)])
+        matrix = [[0, 5, 1, 0], [4, 0, 0, 2], [1, 0, 0, 3], [0, 2, 3, 0]]
+        plot_file = os.path.join(self.out_dir, 'percent.png')
+        RemoveContaminants.plotSharedHeatmap(matrix, list('ABCD'), plot_file,
+                                             totals=[100, 50, 1000, 10], percent=True)
+        self.assertTrue(os.path.isfile(plot_file))
+        # Percentages need the read totals
+        with self.assertRaises(ValueError):
+            RemoveContaminants.plotSharedHeatmap(matrix, list('ABCD'), plot_file, percent=True)
 
     def test_batchColors(self):
         # Natural sort order, missing batches last and gray
@@ -206,6 +220,29 @@ class TestRemoveContaminants(unittest.TestCase):
                                              plot_file, totals=[10, 10, 10],
                                              batches=['x', None, 'y'])
         self.assertTrue(os.path.isfile(plot_file))
+
+    def test_readBatches(self):
+        sheet = os.path.join(self.out_dir, 'samples.csv')
+        with open(sheet, 'w') as h:
+            h.write('sample , batch\nA,run1\nB_R1,run2\nC,\n\n')
+        batches = RemoveContaminants.readBatches(sheet)
+        self.assertEqual({'A': 'run1', 'B_R1': 'run2', 'C': ''}, batches)
+        # Labels match as is, then without a trailing read 1 suffix
+        self.assertEqual(['run1', 'run1', 'run2', None],
+                         [RemoveContaminants.matchBatch(l, batches)
+                          for l in ('A', 'A_R1', 'B_R1', 'D')])
+        with self.assertRaises(ValueError):
+            RemoveContaminants.readBatches(sheet, batch_col='run')
+        with open(sheet, 'a') as h:
+            h.write('A,run2\n')
+        with self.assertRaises(ValueError):
+            RemoveContaminants.readBatches(sheet)
+
+    def test_removeContaminantsBatches(self):
+        self._run(batches=['run1', None, 'run2'])
+        out_dir = [d for d in os.listdir(self.out_dir)][0]
+        for name in ('log_heatmap.png', 'log_heatmap_percent.png'):
+            self.assertTrue(os.path.isfile(os.path.join(self.out_dir, out_dir, name)))
 
     def test_clusterSamples(self):
         # A and B share no reads with each other but both contaminate E, and C and D both

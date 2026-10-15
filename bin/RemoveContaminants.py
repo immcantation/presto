@@ -7,6 +7,7 @@ __author__ = 'Gisela Gabernet'
 from presto import __version__, __date__
 
 # Imports
+import csv
 import heapq
 import io
 import math
@@ -538,6 +539,63 @@ def clusterSamples(matrix, totals=None):
     return [int(i) for i in leaves_list(tree)], tree
 
 
+def readBatches(samplesheet, sample_col='sample_id', batch_col='batch'):
+    """
+    Reads the batch of each sample from a samplesheet
+
+    Arguments:
+      samplesheet : CSV file, if the name ends with .csv, or else tab-delimited file.
+      sample_col : the column holding the sample names.
+      batch_col : the column holding the batches.
+
+    Returns:
+      dict : maps each sample name to its batch.
+
+    Raises:
+      ValueError : if a column is missing or a sample has more than one batch.
+    """
+    delimiter = ',' if samplesheet.lower().endswith('.csv') else '\t'
+    batches = {}
+    with open(samplesheet, newline='') as handle:
+        reader = csv.DictReader(handle, delimiter=delimiter)
+        columns = [c.strip() for c in reader.fieldnames or []]
+        reader.fieldnames = columns
+        missing = [c for c in (sample_col, batch_col) if c not in columns]
+        if missing:
+            raise ValueError('Column %s is not in the samplesheet %s, which has columns: %s.' %
+                             (missing[0], samplesheet, ','.join(columns)))
+        for row in reader:
+            sample = (row[sample_col] or '').strip()
+            batch = (row[batch_col] or '').strip()
+            if not sample:
+                continue
+            if batches.get(sample, batch) != batch:
+                raise ValueError('Sample %s has more than one batch in %s: %s and %s.' %
+                                 (sample, samplesheet, batches[sample], batch))
+            batches[sample] = batch
+
+    return batches
+
+
+def matchBatch(label, batches):
+    """
+    Returns the batch of a sample label
+
+    Arguments:
+      label : sample label inferred from the file name.
+      batches : dictionary mapping samplesheet sample names to batches.
+
+    Returns:
+      str : the batch of the label, or of the label without a trailing _R1, _1 or .R1;
+            None if neither is in the samplesheet.
+    """
+    for name in (label, re.sub(r'[._-]R?1$', '', label)):
+        if name in batches:
+            return batches[name]
+
+    return None
+
+
 def batchColors(batches, missing='NA'):
     """
     Assigns a color to each batch
@@ -591,7 +649,10 @@ def formatPercent(value):
       str : the formatted percentage.
     """
     if value == 0:  return '0%'
-    if value < 0.01:  return '<0.01%'
+    # Values below 0.01% keep one significant digit, e.g. 0.004% or 0.0001%
+    if value < 0.01:
+        decimals = -math.floor(math.log10(value))
+        return ('%.*f' % (decimals, value)).rstrip('0').rstrip('.') + '%'
     if value < 1:  return '%.2f%%' % value
     if value < 10:  return '%.1f%%' % value
     return '%.0f%%' % value
@@ -1136,8 +1197,8 @@ def _writeTask(task):
 def removeContaminants(seq_files_1, seq_files_2, labels=None,
                      barcode_field=default_barcode_field, coord_type=default_coord,
                      max_error=default_contam_max_error, dist_file=None,
-                     shared_field=default_shared_field, out_args=default_out_args, nproc=1,
-                     shards=None):
+                     shared_field=default_shared_field, batches=None,
+                     out_args=default_out_args, nproc=1, shards=None):
     """
     Identifies reads shared across samples by UMI barcode and sequence
 
@@ -1175,6 +1236,9 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                   with read pairs in multiple samples are included. A histogram of the
                   distances is plotted to a PNG file with the same name and a .png extension.
       shared_field : the annotation field listing the samples a flagged read is shared with.
+      batches : optional list of the batch of each sample, in the order of the input files,
+                drawn as a colored strip along the rows and columns of the heatmaps; None
+                or empty batches are shown as NA.
       out_args : common output argument dictionary from parseCommonArgs. The log_file entry
                  defines the contaminant log; if None it is written to contam_log.txt in the
                  output directory, or in the directory of the first read 1 file. A heatmap
@@ -1335,9 +1399,10 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
 
     # Plot read pairs shared between each pair of samples
     heatmap_file = os.path.splitext(log_file)[0] + '_heatmap.png'
-    plotSharedHeatmap(shared_matrix, labels, heatmap_file, totals=read_totals)
+    plotSharedHeatmap(shared_matrix, labels, heatmap_file, totals=read_totals, batches=batches)
     percent_file = os.path.splitext(log_file)[0] + '_heatmap_percent.png'
-    plotSharedHeatmap(shared_matrix, labels, percent_file, totals=read_totals, percent=True)
+    plotSharedHeatmap(shared_matrix, labels, percent_file, totals=read_totals, batches=batches,
+                      percent=True)
 
     # Print log
     log = OrderedDict()
@@ -1477,6 +1542,16 @@ def getArgParser():
                               default=default_shared_field,
                               help='''The annotation field added to flagged reads listing the
                                    samples sharing the read pair.''')
+    group_contam.add_argument('--samplesheet', action='store', dest='samplesheet', default=None,
+                              help='''A CSV (.csv) or tab-delimited samplesheet with the batch of
+                                   each sample, shown as a colored strip along the rows and
+                                   columns of the heatmaps. Each sample label is matched to the
+                                   sample column, first as is and then without a trailing _R1,
+                                   _1 or .R1. Samples without a batch are shown as NA.''')
+    group_contam.add_argument('--samplecol', action='store', dest='sample_col', default='sample',
+                              help='''The samplesheet column holding the sample names.''')
+    group_contam.add_argument('--batchcol', action='store', dest='batch_col', default='batch',
+                              help='''The samplesheet column holding the batches.''')
 
     return parser
 
@@ -1511,6 +1586,28 @@ if __name__ == '__main__':
         if any(d in l for d in delimiter) or ':' in l:
             parser.error('Sample label %s must not contain annotation delimiters or ":".' % l)
     args_dict['labels'] = labels
+
+    # Read the batch of each sample before processing, so samplesheet errors are found early
+    samplesheet = args_dict.pop('samplesheet')
+    sample_col, batch_col = args_dict.pop('sample_col'), args_dict.pop('batch_col')
+    if samplesheet is not None:
+        try:
+            sheet = readBatches(samplesheet, sample_col=sample_col, batch_col=batch_col)
+        except (OSError, ValueError) as e:
+            parser.error(str(e))
+        batches = [matchBatch(l, sheet) for l in labels]
+        unmatched = [l for l, b in zip(labels, batches) if b is None]
+        if len(unmatched) == len(labels):
+            parser.error('No sample label matches the %s column of %s, which holds e.g. %s.' %
+                         (sample_col, samplesheet, ','.join(list(sheet)[:3])))
+        if unmatched:
+            sys.stderr.write('Warning: samples without a batch, shown as NA: %s\n' %
+                             ','.join(unmatched))
+        try:
+            batchColors([b if b is not None else 'NA' for b in batches])
+        except ValueError as e:
+            parser.error(str(e))
+        args_dict['batches'] = batches
 
     # Convert case of fields
     args_dict['barcode_field'] = args_dict['barcode_field'].upper()
