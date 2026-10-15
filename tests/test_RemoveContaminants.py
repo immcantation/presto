@@ -181,10 +181,11 @@ class TestRemoveContaminants(unittest.TestCase):
                                              os.path.join(self.out_dir, 'ones.png'),
                                              totals=[10, 20])
         self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'ones.png')))
-        # Clustered plots, including tied merges at height 0
-        RemoveContaminants.plotSharedHeatmap([[0, 5, 5], [5, 0, 5], [5, 5, 0]], ['A', 'B', 'C'],
+        # Clustered plots, including tied merges
+        RemoveContaminants.plotSharedHeatmap([[0 if i == j else 5 for j in range(4)]
+                                              for i in range(4)], ['A', 'B', 'C', 'D'],
                                              os.path.join(self.out_dir, 'tied.png'),
-                                             totals=[10, 10, 10])
+                                             totals=[10, 10, 10, 10])
         self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'tied.png')))
 
     def test_batchColors(self):
@@ -207,26 +208,32 @@ class TestRemoveContaminants(unittest.TestCase):
         self.assertTrue(os.path.isfile(plot_file))
 
     def test_clusterSamples(self):
-        # A and C share many read pairs, as do B and D, so each pair ends up adjacent
-        matrix = [[0, 1, 90, 0],
-                  [2, 0, 0, 80],
-                  [70, 0, 0, 1],
-                  [0, 60, 2, 0]]
-        order, tree = RemoveContaminants.clusterSamples(matrix, totals=[1000] * 4)
+        # A and B share no reads with each other but both contaminate E, and C and D both
+        # contaminate F at very different levels, so A and B are adjacent, as are C and D
+        #          A    B    C    D    E    F
+        matrix = [[0,   0,   0,   0,   100, 0],
+                  [0,   0,   0,   0,   80,  2],
+                  [0,   0,   0,   0,   1,   100],
+                  [0,   0,   0,   0,   0,   10],
+                  [90,  70,  0,   0,   0,   0],
+                  [0,   1,   95,  9,   0,   0]]
+        order, tree = RemoveContaminants.clusterSamples(matrix, totals=[1000] * 6)
         self.assertIsNotNone(tree)
-        self.assertEqual(sorted(order), [0, 1, 2, 3])
-        self.assertEqual(1, abs(order.index(0) - order.index(2)))
-        self.assertEqual(1, abs(order.index(1) - order.index(3)))
-        # Shared counts are relative to sample size, so the large sample A is not grouped
-        # with C when C shares a larger fraction of its reads with B
-        matrix = [[0, 0, 100], [0, 0, 50], [100, 50, 0]]
-        order, _ = RemoveContaminants.clusterSamples(matrix, totals=[100000, 100, 100])
-        self.assertEqual(1, abs(order.index(1) - order.index(2)))
-        self.assertEqual(0, min(order.index(0), 2 - order.index(0)))
-        # Fewer than three samples or nothing shared keeps the input order
-        self.assertEqual(([0, 1], None), RemoveContaminants.clusterSamples([[0, 3], [5, 0]]))
+        self.assertEqual(sorted(order), list(range(6)))
+        self.assertEqual(1, abs(order.index(0) - order.index(1)))
+        self.assertEqual(1, abs(order.index(2) - order.index(3)))
+        # Correlation ignores the scale of each profile, so totals do not change the clustering
+        for totals in (None, [10, 1000, 50, 100000, 7, 300]):
+            self.assertEqual(order, RemoveContaminants.clusterSamples(matrix, totals=totals)[0])
+        # Profiles without variation are at distance 1 from all others, so ties do not fail
+        order, tree = RemoveContaminants.clusterSamples([[0 if i == j else 5 for j in range(4)]
+                                                         for i in range(4)])
+        self.assertEqual([1.0] * 3, list(tree[:, 2]))
+        # Fewer than four samples or nothing shared keeps the input order
         self.assertEqual(([0, 1, 2], None),
-                         RemoveContaminants.clusterSamples([[0] * 3 for _ in range(3)]))
+                         RemoveContaminants.clusterSamples([[0, 4, 1], [3, 0, 0], [1, 0, 0]]))
+        self.assertEqual(([0, 1, 2, 3], None),
+                         RemoveContaminants.clusterSamples([[0] * 4 for _ in range(4)]))
 
     def test_hammingDist(self):
         self.assertEqual(0, RemoveContaminants.hammingDist('ACGT', 'ACGT'))

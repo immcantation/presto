@@ -486,12 +486,16 @@ def addMatrix(total, matrix):
 
 def clusterSamples(matrix, totals=None):
     """
-    Hierarchically clusters samples by the read pairs they share
+    Hierarchically clusters samples by their contamination profiles
 
-    The similarity of two samples is the number of read pairs they share in either direction,
-    divided by their combined number of reads when totals are given, so large samples do not
-    dominate. Distances are one minus the similarity relative to the most similar pair, and
-    samples are clustered by average linkage with optimal leaf ordering.
+    The profile of a sample is its row of the shared read pair matrix: the fraction of its
+    reads shared with each other sample, or the counts when totals are not given. Two samples
+    are compared on the samples other than themselves, and their distance is one minus the
+    Pearson correlation of their profiles, so samples contaminating the same partners are
+    close regardless of their overall contamination level. Correlation does not change when a
+    profile is scaled, so fractions and counts give the same clustering. Profiles without
+    variation, such as a sample sharing no reads, have distance 1 to all other samples.
+    Samples are clustered by average linkage with optimal leaf ordering.
 
     Arguments:
       matrix : square count matrix from countSharedPairs.
@@ -500,26 +504,34 @@ def clusterSamples(matrix, totals=None):
     Returns:
       tuple : (order, linkage), where order is the list of sample indices in leaf order and
               linkage is the scipy linkage matrix, or the input order and None when there are
-              fewer than three samples or no shared read pairs.
+              fewer than four samples, as two samples are compared on at least two others,
+              or no shared read pairs.
     """
     n = len(matrix)
-    similarity = [[0.0] * n for _ in range(n)]
-    for i in range(n):
-        for j in range(i + 1, n):
-            shared = matrix[i][j] + matrix[j][i]
-            if totals is not None:
-                size = totals[i] + totals[j]
-                shared = shared / size if size > 0 else 0.0
-            similarity[i][j] = similarity[j][i] = shared
-    top = max((max(row) for row in similarity), default=0.0)
-    if n < 3 or top <= 0:
+    if n < 4 or not any(matrix[i][j] for i in range(n) for j in range(n) if i != j):
         return list(range(n)), None
 
-    # Imported here so scipy is only loaded when a plot is requested
+    # Imported here so numpy and scipy are only loaded when a plot is requested
+    import numpy as np
     from scipy.cluster.hierarchy import leaves_list, linkage
     from scipy.spatial.distance import squareform
-    distance = [[0.0 if i == j else 1.0 - similarity[i][j] / top for j in range(n)]
-                for i in range(n)]
+    profiles = np.array(matrix, dtype=float)
+    if totals is not None:
+        sizes = np.array(totals, dtype=float)
+        profiles = np.divide(profiles, sizes[:, None], out=np.zeros_like(profiles),
+                             where=sizes[:, None] > 0)
+
+    # Correlation distance of each pair, leaving out the columns of the pair itself
+    distance = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i + 1, n):
+            keep = np.ones(n, dtype=bool)
+            keep[[i, j]] = False
+            x = profiles[i, keep] - profiles[i, keep].mean()
+            y = profiles[j, keep] - profiles[j, keep].mean()
+            norm = np.sqrt((x * x).sum() * (y * y).sum())
+            d = 1.0 - (x * y).sum() / norm if norm > 0 else 1.0
+            distance[i, j] = distance[j, i] = min(max(d, 0.0), 2.0)
     tree = linkage(squareform(distance, checks=False), method='average', optimal_ordering=True)
 
     return [int(i) for i in leaves_list(tree)], tree
@@ -571,8 +583,8 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
     """
     Plots a heatmap of the read pairs shared between every pair of samples to a PNG file
 
-    Samples are ordered by clusterSamples, so samples sharing many read pairs are placed
-    next to each other, and the clustering dendrogram is drawn above the heatmap.
+    Samples are ordered by clusterSamples, so samples contaminating the same partners are
+    placed next to each other, and the clustering dendrogram is drawn above the heatmap.
 
     Arguments:
       matrix : square count matrix from countSharedPairs.
@@ -733,7 +745,7 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
     top_ax.set_title(title, loc='left', color=text_1, fontsize=14,
                      pad=26 if tree is not None else 10)
     if tree is not None:
-        top_ax.text(0, 1.0, 'Samples clustered by shared read pairs',
+        top_ax.text(0, 1.0, 'Samples clustered by contamination profile',
                     transform=top_ax.transAxes, ha='left', va='bottom', color=text_2, fontsize=10)
 
     if positive:
