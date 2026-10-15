@@ -7,6 +7,7 @@ __author__ = 'Gisela Gabernet'
 # Imports
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -230,6 +231,59 @@ class TestRemoveContaminants(unittest.TestCase):
                         outputs[nproc][name] = h.read()
         self.assertEqual(14, len(outputs[1]))
         self.assertEqual(outputs[1], outputs[3])
+
+    def _runOutputs(self, out_dir, **kwargs):
+        out_args = dict(default_out_args)
+        out_args.update({'out_dir': out_dir, 'failed': True, 'gzip_output': False,
+                         'log_file': os.path.join(out_dir, 'log.txt')})
+        RemoveContaminants.removeContaminants(self.files_1, self.files_2, labels=self.labels,
+                                              dist_file=os.path.join(out_dir, 'dist.tab'),
+                                              out_args=out_args, **kwargs)
+        outputs = {}
+        for name in sorted(os.listdir(out_dir)):
+            if not name.endswith('.png'):
+                with open(os.path.join(out_dir, name)) as h:
+                    outputs[name] = h.read()
+        return outputs
+
+    def test_removeContaminantsShards(self):
+        # Results must not depend on the number of shards, and no temporary files remain
+        outputs = {}
+        for nproc, shards in ((1, 1), (1, 5), (2, 3), (3, 64)):
+            out_dir = os.path.join(self.out_dir, 'shards%i_%i' % (nproc, shards))
+            outputs[(nproc, shards)] = self._runOutputs(out_dir, nproc=nproc, shards=shards)
+        expected = outputs[(1, 1)]
+        self.assertEqual(14, len(expected))
+        for key, result in outputs.items():
+            self.assertEqual(expected, result, key)
+
+    def test_removeContaminantsCleanup(self):
+        # The temporary shard directory is removed when a comparison fails
+        out_dir = os.path.join(self.out_dir, 'fail')
+        original = RemoveContaminants.findSharedReads
+        def _fail(*args, **kwargs):
+            raise RuntimeError('comparison failed')
+        RemoveContaminants.findSharedReads = _fail
+        try:
+            with self.assertRaises(RuntimeError):
+                self._runOutputs(out_dir, nproc=1)
+        finally:
+            RemoveContaminants.findSharedReads = original
+        self.assertEqual([], [n for n in os.listdir(out_dir) if n.startswith('contam_tmp_')])
+
+    def test_getShard(self):
+        # Shards must not depend on the per-process string hash seed
+        tags = ['AAAACCCCGGGG', 'TTTTGGGGCCCC', 'ACGTACGTACGT']
+        expected = [RemoveContaminants.getShard(t, 16) for t in tags]
+        self.assertTrue(all(0 <= s < 16 for s in expected))
+        code = ('import sys; sys.path.append(%r); import RemoveContaminants as R; '
+                'print([R.getShard(t, 16) for t in %r])' %
+                (os.path.join(test_path, os.pardir, 'bin'), tags))
+        for seed in ('1', '2'):
+            env = dict(os.environ, PYTHONHASHSEED=seed)
+            out = subprocess.run([sys.executable, '-c', code], env=env, check=True,
+                                 capture_output=True, text=True).stdout
+            self.assertEqual(str(expected), out.strip())
 
     def test_removeContaminantsMaxError(self):
         result, _ = self._run(max_error=0.05)

@@ -7,8 +7,13 @@ __author__ = 'Gisela Gabernet'
 from presto import __version__, __date__
 
 # Imports
+import heapq
 import io
 import os
+import pickle
+import shutil
+import tempfile
+import zlib
 import multiprocessing as mp
 from argparse import ArgumentParser
 from collections import OrderedDict
@@ -29,6 +34,7 @@ from presto.IO import openFile, getFileType, getOutputHandle, printLog, printMes
 # Defaults
 default_contam_max_error = 0.0
 default_shared_field = 'SHARED'
+default_contam_shards = 16
 
 
 def getSampleLabel(seq_file):
@@ -679,40 +685,122 @@ def _setCandidates(candidates):
     _candidates = candidates
 
 
-def _readTask(task):
+def getShard(tag, shards):
     """
-    Pass 2 task: collects the reads of candidate barcodes in one sample
-    """
-    seq_file_1, seq_file_2, field, coord_type, delimiter = task
-    return collectSampleReads(seq_file_1, seq_file_2, candidates=_candidates, field=field,
-                              coord_type=coord_type, delimiter=delimiter)
+    Assigns a UMI barcode to a shard
 
-
-def compareBarcode(task):
-    """
-    Compares the read pairs of one barcode across all samples containing it
+    Uses a checksum instead of the built-in hash, which differs between processes.
 
     Arguments:
-      task : a tuple of (barcode, sample_reads, max_error, distances), where sample_reads
-             is an OrderedDict mapping each sample label to its list of
-             (coordinate, read 1 sequence, read 2 sequence) tuples for the barcode, and
-             distances is True to also calculate pairwise Hamming distances.
+      tag : the UMI barcode.
+      shards : the number of shards.
 
     Returns:
-      tuple : (barcode, shared, dist_text, dist_rows, hist), where shared is the result of
-              findSharedReads, and dist_text, dist_rows and hist are the distance table
-              rows, their count and the distance histogram counts, or None, 0 and None
-              when distances is False.
+      int : the shard index, from 0 to shards - 1.
     """
-    tag, sample_reads, max_error, distances = task
-    dist_text, dist_rows, hist = None, 0, None
-    if distances:
-        handle, hist = io.StringIO(), {}
-        dist_rows = writeGroupDistances(handle, tag, sample_reads, hist=hist)
-        dist_text = handle.getvalue()
-    shared = findSharedReads(sample_reads, max_error=max_error)
+    return zlib.crc32(tag.encode('utf-8')) % shards
 
-    return tag, shared, dist_text, dist_rows, hist
+
+def _shardFile(tmp_dir, shard, sample):
+    """
+    Returns the file name holding the reads of one sample in one shard
+    """
+    return os.path.join(tmp_dir, 'shard%i_sample%i.pkl' % (shard, sample))
+
+
+def _distFile(tmp_dir, shard):
+    """
+    Returns the file name holding the distance table rows of one shard
+    """
+    return os.path.join(tmp_dir, 'shard%i_dist.tab' % shard)
+
+
+def _readTask(task):
+    """
+    Pass 2 task: collects the reads of candidate barcodes in one sample and writes them to shards
+
+    Each shard file holds a list of (barcode, rank, reads) tuples, where rank is the position
+    of the barcode within the sample, used to restore the barcode order after comparison.
+    Only the conflict count is returned, so the reads are never sent between processes.
+    """
+    sample, seq_file_1, seq_file_2, field, coord_type, delimiter, tmp_dir, shards = task
+    groups, conflicts = collectSampleReads(seq_file_1, seq_file_2, candidates=_candidates,
+                                           field=field, coord_type=coord_type,
+                                           delimiter=delimiter)
+    shard_groups = {}
+    for rank, (tag, reads) in enumerate(groups.items()):
+        shard_groups.setdefault(getShard(tag, shards), []).append((tag, rank, reads))
+    del groups
+    for shard, entries in shard_groups.items():
+        with open(_shardFile(tmp_dir, shard, sample), 'wb') as handle:
+            pickle.dump(entries, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return conflicts
+
+
+def compareShard(task):
+    """
+    Compares the read pairs of each barcode of one shard found in multiple samples
+
+    Each barcode is compared across all samples containing it. Barcodes are ordered by the
+    first sample containing them and then by their position in that sample, which is the
+    order of the barcodes when all samples are read sequentially.
+
+    Arguments:
+      task : a tuple of (shard, tmp_dir, labels, max_error, distances), where distances is
+             True to also write the pairwise Hamming distances to the shard distance file,
+             each row prefixed by the barcode order.
+
+    Returns:
+      tuple : (multi_count, records, dist_rows, hist), where multi_count is the number of
+              barcodes found in multiple samples, records is a list of
+              (order, barcode, sharing samples, shared reads by sample, group sizes) tuples for
+              the barcodes with shared read pairs, dist_rows is the number of distance rows,
+              and hist is the distance histogram counts, or None when distances is False.
+    """
+    shard, tmp_dir, labels, max_error, distances = task
+
+    # Combine the reads of each barcode across samples
+    barcode_reads, order = {}, {}
+    for i, label in enumerate(labels):
+        path = _shardFile(tmp_dir, shard, i)
+        if not os.path.exists(path):
+            continue
+        with open(path, 'rb') as handle:
+            entries = pickle.load(handle)
+        for tag, rank, reads in entries:
+            sample_reads = barcode_reads.get(tag, None)
+            if sample_reads is None:
+                sample_reads = barcode_reads[tag] = OrderedDict()
+                order[tag] = (i, rank)
+            sample_reads[label] = reads
+        del entries
+    multi = sorted((t for t, r in barcode_reads.items() if len(r) > 1), key=order.get)
+    barcode_reads = {t: barcode_reads[t] for t in multi}
+
+    records = []
+    dist_rows, hist, dist_handle = 0, None, None
+    if distances:
+        hist = {}
+        dist_handle = open(_distFile(tmp_dir, shard), 'w')
+    try:
+        for tag in multi:
+            sample_reads = barcode_reads.pop(tag)
+            if dist_handle is not None:
+                buffer = io.StringIO()
+                dist_rows += writeGroupDistances(buffer, tag, sample_reads, hist=hist)
+                prefix = '%i\t%i\t' % order[tag]
+                for line in buffer.getvalue().splitlines(True):
+                    dist_handle.write(prefix + line)
+            shared = findSharedReads(sample_reads, max_error=max_error)
+            sharing = [s for s in sample_reads if shared[s]]
+            if sharing:
+                records.append((order[tag], tag, sharing, {s: shared[s] for s in sharing},
+                                [len(sample_reads[s]) for s in sharing]))
+    finally:
+        if dist_handle is not None:  dist_handle.close()
+
+    return len(multi), records, dist_rows, hist
 
 
 def _writeTask(task):
@@ -727,7 +815,8 @@ def _writeTask(task):
 def removeContaminants(seq_files_1, seq_files_2, labels=None,
                      barcode_field=default_barcode_field, coord_type=default_coord,
                      max_error=default_contam_max_error, dist_file=None,
-                     shared_field=default_shared_field, out_args=default_out_args, nproc=1):
+                     shared_field=default_shared_field, out_args=default_out_args, nproc=1,
+                     shards=None):
     """
     Identifies reads shared across samples by UMI barcode and sequence
 
@@ -739,10 +828,16 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     collects only the barcodes of each sample. The second keeps only the read pairs whose
     barcode occurs in multiple samples. The third writes the output files.
 
-    With multiple processes, the samples are read in parallel in the first two passes and
-    the files are written in parallel in the third. Samples are only combined in the main
-    process, and each barcode is compared across all samples containing it by a single
-    process, so the results do not depend on the number of processes.
+    The second pass writes the kept read pairs to temporary shard files, split by barcode,
+    in a directory created in the output directory, or in the directory of the first read 1
+    file. Each shard is then compared separately, so all read pairs of a barcode are compared
+    together while the main process never holds the reads. The directory is removed at the
+    end of the run.
+
+    With multiple processes, the samples are read in parallel in the first two passes, the
+    shards are compared in parallel, and the files are written in parallel in the third pass.
+    Results are restored to the barcode order of a sequential run, so they do not depend on
+    the number of processes or shards.
 
     Arguments:
       seq_files_1 : list of read 1 sequence files, one per sample.
@@ -763,6 +858,8 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                  of the read pairs shared between samples is plotted next to it, with the
                  same name followed by _heatmap.png.
       nproc : the number of processes to use.
+      shards : the number of shards the candidate read pairs are split into; if None use
+               the larger of 16 and four times nproc.
 
     Returns:
       list : a list of tuples holding the (read 1, read 2) pass file names for each sample.
@@ -797,88 +894,98 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     del barcode_count
     printMessage('Done', start_time=start_time, end=True)
 
-    # Pass 2: group paired reads of candidate barcodes
-    start_time = time()
-    printMessage('Collecting reads', start_time=start_time)
-    sample_groups = OrderedDict()
-    tasks = [(f1, f2, barcode_field, coord_type, delimiter) for f1, f2 in sample_files.values()]
-    results = runTasks(_readTask, tasks, nproc=min(nproc, len(tasks)),
-                       initializer=_setCandidates, initargs=(candidates,))
-    for label, (groups, conflicts) in zip(sample_files, results):
-        if conflicts > 0:
-            printWarning('%i read pairs in sample %s have different barcodes in read 1 and read 2. '
-                         'The read 1 barcode was used.' % (conflicts, label))
-        sample_groups[label] = groups
-    _setCandidates(None)
-    del candidates
-    printMessage('Done', start_time=start_time, end=True)
+    # Candidate reads are passed between passes in shard files, split by barcode, so the
+    # main process never holds them
+    if shards is None:
+        shards = max(default_contam_shards, 4 * nproc)
+    tmp_parent = out_args['out_dir'] if out_args['out_dir'] is not None \
+                 else (os.path.dirname(seq_files_1[0]) or '.')
+    os.makedirs(tmp_parent, exist_ok=True)
+    tmp_dir = tempfile.mkdtemp(prefix='contam_tmp_', dir=tmp_parent)
+    try:
+        # Pass 2: group paired reads of candidate barcodes into shards
+        start_time = time()
+        printMessage('Collecting reads', start_time=start_time)
+        tasks = [(i, f1, f2, barcode_field, coord_type, delimiter, tmp_dir, shards)
+                 for i, (f1, f2) in enumerate(sample_files.values())]
+        results = runTasks(_readTask, tasks, nproc=min(nproc, len(tasks)),
+                           initializer=_setCandidates, initargs=(candidates,))
+        for label, conflicts in zip(sample_files, results):
+            if conflicts > 0:
+                printWarning('%i read pairs in sample %s have different barcodes in read 1 and '
+                             'read 2. The read 1 barcode was used.' % (conflicts, label))
+        _setCandidates(None)
+        del candidates
+        printMessage('Done', start_time=start_time, end=True)
 
-    # Find barcodes with paired reads in multiple samples
-    barcode_samples = OrderedDict()
-    for label, groups in sample_groups.items():
-        for tag in groups:
-            barcode_samples.setdefault(tag, []).append(label)
-    multi_barcodes = [t for t, s in barcode_samples.items() if len(s) > 1]
+        # Compare reads sharing a barcode, one shard per task
+        start_time = time()
+        printMessage('Comparing reads', start_time=start_time)
+        log_file = out_args['log_file']
+        if log_file is None:
+            log_dir = out_args['out_dir'] if out_args['out_dir'] is not None \
+                      else os.path.dirname(seq_files_1[0])
+            log_file = os.path.join(log_dir, 'contam_log.txt')
+        log_dir = os.path.dirname(log_file)
+        if log_dir:  os.makedirs(log_dir, exist_ok=True)
 
-    # Compare reads sharing a barcode
-    start_time = time()
-    printMessage('Comparing reads', start_time=start_time)
-    log_file = out_args['log_file']
-    if log_file is None:
-        log_dir = out_args['out_dir'] if out_args['out_dir'] is not None \
-                  else os.path.dirname(seq_files_1[0])
-        log_file = os.path.join(log_dir, 'contam_log.txt')
-    log_dir = os.path.dirname(log_file)
-    if log_dir:  os.makedirs(log_dir, exist_ok=True)
-
-    dist_handle = dist_hist = plot_file = None
-    if dist_file is not None:
-        dist_hist = {}
-        plot_file = os.path.splitext(dist_file)[0] + '.png'
-        dist_dir = os.path.dirname(dist_file)
-        if dist_dir:  os.makedirs(dist_dir, exist_ok=True)
-        dist_handle = open(dist_file, 'w')
-        dist_handle.write('BARCODE\tR1_LENGTH\tR2_LENGTH\tSAMPLE1\tID1\tSAMPLE2\tID2'
-                          '\tR1_DIST\tR2_DIST\n')
-
-    flagged = {label: {} for label in labels}
-    contam_count = dist_count = 0
-    # Each barcode is compared across all samples containing it within a single task
-    tasks = ((tag, OrderedDict((s, sample_groups[s][tag]) for s in barcode_samples[tag]),
-              max_error, dist_handle is not None) for tag in multi_barcodes)
-    compare_nproc = min(nproc, len(multi_barcodes))
-    chunksize = max(1, len(multi_barcodes) // (max(1, compare_nproc) * 8))
-    with open(log_file, 'w') as log_handle:
-        for tag, shared, dist_text, dist_rows, hist in \
-                runTasks(compareBarcode, tasks, nproc=compare_nproc, chunksize=chunksize):
-            tag_reads = OrderedDict((s, sample_groups[s][tag]) for s in barcode_samples[tag])
-            if dist_handle is not None:
-                dist_handle.write(dist_text)
+        distances = dist_file is not None
+        dist_hist = {} if distances else None
+        multi_count = dist_count = 0
+        records = []
+        tasks = [(shard, tmp_dir, labels, max_error, distances) for shard in range(shards)]
+        for shard_multi, shard_records, dist_rows, hist in \
+                runTasks(compareShard, tasks, nproc=min(nproc, shards)):
+            multi_count += shard_multi
+            records.extend(shard_records)
+            if distances:
                 dist_count += dist_rows
                 for key, counts in hist.items():
                     merged = dist_hist.setdefault(key, {})
                     for d, c in counts.items():
                         merged[d] = merged.get(d, 0) + c
-            sharing = [s for s in tag_reads if shared[s]]
-            if not sharing:
-                continue
-            contam_count += 1
-            for s in sharing:
-                flagged[s].update(shared[s])
 
-            # Write a log record with the read counts of each contaminated sample
-            rec_log = OrderedDict()
-            rec_log['BARCODE'] = tag
-            rec_log['SAMPLES'] = ','.join(sharing)
-            rec_log['SEQCOUNT'] = ','.join(str(len(shared[s])) for s in sharing)
-            rec_log['GROUPCOUNT'] = ','.join(str(len(tag_reads[s])) for s in sharing)
-            printLog(rec_log, handle=log_handle)
-    if dist_handle is not None:
-        dist_handle.close()
-        plotDistanceHistogram(dist_hist, plot_file)
-    del sample_groups
+        # Restore the barcode order of a sequential run
+        records.sort(key=lambda r: r[0])
+        flagged = {label: {} for label in labels}
+        with open(log_file, 'w') as log_handle:
+            for _, tag, sharing, shared, group_counts in records:
+                for s in sharing:
+                    flagged[s].update(shared[s])
 
-    printMessage('Done', start_time=start_time, end=True)
+                # Write a log record with the read counts of each contaminated sample
+                rec_log = OrderedDict()
+                rec_log['BARCODE'] = tag
+                rec_log['SAMPLES'] = ','.join(sharing)
+                rec_log['SEQCOUNT'] = ','.join(str(len(shared[s])) for s in sharing)
+                rec_log['GROUPCOUNT'] = ','.join(str(n) for n in group_counts)
+                printLog(rec_log, handle=log_handle)
+        contam_count = len(records)
+        del records
+
+        # Merge the sorted distance rows of all shards
+        plot_file = None
+        if distances:
+            plot_file = os.path.splitext(dist_file)[0] + '.png'
+            dist_dir = os.path.dirname(dist_file)
+            if dist_dir:  os.makedirs(dist_dir, exist_ok=True)
+            shard_handles = [open(_distFile(tmp_dir, shard)) for shard in range(shards)]
+            try:
+                with open(dist_file, 'w') as dist_handle:
+                    dist_handle.write('BARCODE\tR1_LENGTH\tR2_LENGTH\tSAMPLE1\tID1\tSAMPLE2'
+                                      '\tID2\tR1_DIST\tR2_DIST\n')
+                    def _order(line):
+                        i, rank, _ = line.split('\t', 2)
+                        return int(i), int(rank)
+                    for line in heapq.merge(*shard_handles, key=_order):
+                        dist_handle.write(line.split('\t', 2)[2])
+            finally:
+                for handle in shard_handles:  handle.close()
+            plotDistanceHistogram(dist_hist, plot_file)
+
+        printMessage('Done', start_time=start_time, end=True)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     # Pass 3: write output files
     start_time = time()
@@ -912,7 +1019,7 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = ','.join(os.path.basename(f) for p in out_files for f in p)
-    log['MULTISAMPLE'] = len(multi_barcodes)
+    log['MULTISAMPLE'] = multi_count
     log['CONTAMINATED'] = contam_count
     log['LOG'] = os.path.basename(log_file)
     log['HEATMAP'] = os.path.basename(heatmap_file)
@@ -942,9 +1049,10 @@ def getArgParser():
              compared individually, so other reads with the same barcode are retained.
              To limit memory usage, the input files are read in three passes: the first
              collects only barcodes, the second keeps only reads whose barcode occurs in
-             multiple samples, and the third writes the output. With --nproc, samples
-             are read and files are written in parallel, and barcodes are compared in
-             parallel, each barcode across all samples within one process.
+             multiple samples, and the third writes the output. The kept reads are stored
+             in a temporary directory within the output directory, split into shards by
+             barcode, and each shard is compared separately. With --nproc, samples are
+             read, shards are compared and files are written in parallel.
 
              output files:
                  contam-pass

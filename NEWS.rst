@@ -17,7 +17,9 @@ RemoveContaminants:
   the log. The ``--distlog`` option writes the pairwise Hamming distances
   within each UMI and read length group to a table, and plots their histogram.
   The ``--nproc`` option reads samples, compares barcodes and writes files in
-  parallel.
+  parallel. Read pairs of candidate barcodes are passed between processes in
+  temporary shard files in the output directory, split by barcode, so the
+  main process no longer holds the reads of all samples.
 
 General:
 
