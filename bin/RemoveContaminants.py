@@ -9,6 +9,7 @@ from presto import __version__, __date__
 # Imports
 import heapq
 import io
+import math
 import os
 import pickle
 import re
@@ -579,7 +580,25 @@ def batchColors(batches, missing='NA'):
     return colors
 
 
-def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_annotate=20):
+def formatPercent(value):
+    """
+    Formats a percentage with fewer decimals for larger values
+
+    Arguments:
+      value : the percentage.
+
+    Returns:
+      str : the formatted percentage.
+    """
+    if value == 0:  return '0%'
+    if value < 0.01:  return '<0.01%'
+    if value < 1:  return '%.2f%%' % value
+    if value < 10:  return '%.1f%%' % value
+    return '%.0f%%' % value
+
+
+def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, percent=False,
+                      max_annotate=20):
     """
     Plots a heatmap of the read pairs shared between every pair of samples to a PNG file
 
@@ -595,6 +614,8 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
       batches : optional list of the batch of each sample, in the order of labels, drawn as a
                 colored strip along the rows and columns with a legend; None or empty
                 batches are shown as NA.
+      percent : if True, show each count as a percentage of the read pairs of the row sample
+                instead; requires totals. Samples are clustered as for the counts.
       max_annotate : the maximum number of samples for which counts are written in the cells.
 
     Returns:
@@ -606,8 +627,14 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
     from matplotlib.patches import Patch, Rectangle
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+    if percent and totals is None:
+        raise ValueError('Percentages require the total number of reads of each sample.')
+
     # Reorder the samples by cluster
     order, tree = clusterSamples(matrix, totals=totals)
+    if percent:
+        matrix = [[100.0 * c / totals[i] if totals[i] > 0 else 0.0 for c in row]
+                  for i, row in enumerate(matrix)]
     matrix = [[matrix[i][j] for j in order] for i in order]
     labels = [labels[i] for i in order]
     if totals is not None:  totals = [totals[i] for i in order]
@@ -687,9 +714,13 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
     values = [[float('nan') if i == j or matrix[i][j] == 0 else matrix[i][j]
                for j in range(n)] for i in range(n)]
     positive = [matrix[i][j] for i in range(n) for j in range(n) if i != j and matrix[i][j] > 0]
-    norm = LogNorm(vmin=1, vmax=max(positive)) if positive and max(positive) > 1 else None
+    # Counts start at one read pair; percentages at the smallest shared percentage
+    low = min(positive, default=1) if percent else 1
+    norm = LogNorm(vmin=low, vmax=max(positive)) if positive and max(positive) > low else None
     image = ax.imshow(values, cmap=cmap, norm=norm, aspect='equal',
-                      vmin=None if norm else 0, vmax=None if norm else 1)
+                      vmin=None if norm else 0,
+                      vmax=None if norm else (max(positive, default=1) if percent else 1))
+    fmt = formatPercent if percent else '{:,}'.format
 
     # Diagonal cells are drawn as blank surface with a hairline border, off the color scale
     for i in range(n):
@@ -721,7 +752,7 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
                     dark = norm(count) > 0.5
                 else:
                     dark = count > 0
-                _cell_text(i, j, '{:,}'.format(count), '#ffffff' if dark else text_1)
+                _cell_text(i, j, fmt(count), '#ffffff' if dark else text_1)
 
     ticks = list(range(0, n, label_step))
     ax.set_xticks(ticks)
@@ -740,8 +771,8 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
         row_ax.tick_params(colors=muted, labelcolor=text_2, labelsize=label_size, length=0)
     for side in ax.spines.values():
         side.set_visible(False)
-    title = 'Pairwise sample contaminants' if positive else \
-            'Pairwise sample contaminants: none found'
+    title = 'Pairwise sample contaminants' + (' (% of reads)' if percent else '')
+    if not positive:  title += ': none found'
     top_ax.set_title(title, loc='left', color=text_1, fontsize=14,
                      pad=26 if tree is not None else 10)
     if tree is not None:
@@ -750,17 +781,24 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_
 
     if positive:
         cax = divider.append_axes('right', size=0.25, pad=0.25)
-        cbar = fig.colorbar(image, cax=cax, ticks=None if norm is not None else [1])
-        cbar.set_label('Number of contaminants removed', color=text_2, fontsize=11)
+        cbar = fig.colorbar(image, cax=cax,
+                            ticks=None if norm is not None else [max(positive)])
+        cbar.set_label('Read pairs shared, % of row sample' if percent else
+                       'Number of contaminants removed', color=text_2, fontsize=11)
     else:
         cbar = None
     if cbar is not None:
         if norm is not None:
-            # Label powers of ten and the maximum as plain numbers
-            vmax = int(norm.vmax)
-            ticks = [10 ** k for k in range(len(str(vmax))) if 2 * 10 ** k <= vmax] + [vmax]
+            # Label the powers of ten within the scale, and its ends, as plain numbers
+            k_low = math.ceil(math.log10(norm.vmin))
+            k_high = math.floor(math.log10(norm.vmax))
+            ticks = [10.0 ** k for k in range(k_low, k_high + 1)
+                     if 10.0 ** k >= 2 * norm.vmin and 2 * 10.0 ** k <= norm.vmax]
+            ticks = [norm.vmin] + ticks + [norm.vmax]
             cbar.set_ticks(ticks)
-            cbar.set_ticklabels(['{:,}'.format(t) for t in ticks])
+            cbar.set_ticklabels([fmt(t) if percent else fmt(int(round(t))) for t in ticks])
+        else:
+            cbar.set_ticklabels([fmt(max(positive)) if percent else '1'])
         cbar.ax.minorticks_off()
         cbar.outline.set_visible(False)
         cbar.ax.tick_params(colors=muted, labelcolor=text_2, labelsize=10)
@@ -1141,7 +1179,8 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                  defines the contaminant log; if None it is written to contam_log.txt in the
                  output directory, or in the directory of the first read 1 file. A heatmap
                  of the read pairs shared between samples is plotted next to it, with the
-                 same name followed by _heatmap.png.
+                 same name followed by _heatmap.png, and as percentages of the reads of
+                 each sample followed by _heatmap_percent.png.
       nproc : the number of processes to use.
       shards : the number of shards the candidate read pairs are split into; if None use
                the larger of 16 and four times nproc.
@@ -1297,6 +1336,8 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     # Plot read pairs shared between each pair of samples
     heatmap_file = os.path.splitext(log_file)[0] + '_heatmap.png'
     plotSharedHeatmap(shared_matrix, labels, heatmap_file, totals=read_totals)
+    percent_file = os.path.splitext(log_file)[0] + '_heatmap_percent.png'
+    plotSharedHeatmap(shared_matrix, labels, percent_file, totals=read_totals, percent=True)
 
     # Print log
     log = OrderedDict()
@@ -1305,6 +1346,7 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     log['CONTAMINATED'] = contam_count
     log['LOG'] = os.path.basename(log_file)
     log['HEATMAP'] = os.path.basename(heatmap_file)
+    log['HEATMAP_PERCENT'] = os.path.basename(percent_file)
     if dist_file is not None:
         log['DISTANCES'] = dist_count
         log['DIST_PLOT'] = os.path.basename(plot_file)
@@ -1352,6 +1394,9 @@ def getArgParser():
                      cell (j, i) holds those of sample j. The diagonal shows the total
                      number of read 1 reads of each sample and is not part of the color
                      scale.
+                 <log>_heatmap_percent.png
+                     the same heatmap, with each cell as a percentage of the read pairs
+                     of the row sample. Samples are in the same order in both heatmaps.
 
              output annotation fields:
                  SHARED
