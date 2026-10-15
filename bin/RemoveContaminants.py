@@ -11,6 +11,7 @@ import heapq
 import io
 import os
 import pickle
+import re
 import shutil
 import sys
 import tempfile
@@ -524,7 +525,49 @@ def clusterSamples(matrix, totals=None):
     return [int(i) for i in leaves_list(tree)], tree
 
 
-def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
+def batchColors(batches, missing='NA'):
+    """
+    Assigns a color to each batch
+
+    Batches are colored in natural sort order, so a batch keeps its color across plots with
+    the same batches. Up to seven batches use a validated categorical palette without blue,
+    which is the heatmap color scale. More batches use the tab20, tab20b and tab20c palettes
+    without their grays, which are reserved for samples without a batch.
+
+    Arguments:
+      batches : list of batch names.
+      missing : the batch name of samples without a batch, colored gray.
+
+    Returns:
+      OrderedDict : maps each batch name to a hex color, in legend order with the missing
+                    batch last.
+    """
+    from matplotlib.colors import to_hex
+    try:
+        from matplotlib import colormaps
+        tab = lambda name: colormaps[name].colors
+    except ImportError:
+        from matplotlib.cm import get_cmap
+        tab = lambda name: get_cmap(name).colors
+
+    def _natural(name):
+        return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', name)]
+
+    names = sorted({b for b in batches if b != missing}, key=_natural)
+    palette = ['#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948']
+    if len(names) > len(palette):
+        palette = [to_hex(c) for name in ('tab20', 'tab20b', 'tab20c') for c in tab(name)
+                   if not c[0] == c[1] == c[2]]
+    if len(names) > len(palette):
+        raise ValueError('At most %i batches can be shown, but %i were given.' %
+                         (len(palette), len(names)))
+    colors = OrderedDict(zip(names, palette))
+    if missing in batches:  colors[missing] = '#c3c2b7'
+
+    return colors
+
+
+def plotSharedHeatmap(matrix, labels, plot_file, totals=None, batches=None, max_annotate=20):
     """
     Plots a heatmap of the read pairs shared between every pair of samples to a PNG file
 
@@ -537,6 +580,9 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
       plot_file : output PNG file name.
       totals : optional list of the total number of reads of each sample, written in the
                diagonal cells. Diagonal cells are not part of the color scale.
+      batches : optional list of the batch of each sample, in the order of labels, drawn as a
+                colored strip along the rows and columns with a legend; None or empty
+                batches are shown as NA.
       max_annotate : the maximum number of samples for which counts are written in the cells.
 
     Returns:
@@ -544,8 +590,8 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     """
     # Imported here so matplotlib is only loaded when a plot is requested
     from matplotlib.figure import Figure
-    from matplotlib.colors import LinearSegmentedColormap, LogNorm
-    from matplotlib.patches import Rectangle
+    from matplotlib.colors import LinearSegmentedColormap, LogNorm, to_rgb
+    from matplotlib.patches import Patch, Rectangle
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     # Reorder the samples by cluster
@@ -553,6 +599,8 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     matrix = [[matrix[i][j] for j in order] for i in order]
     labels = [labels[i] for i in order]
     if totals is not None:  totals = [totals[i] for i in order]
+    if batches is not None:
+        batches = [str(batches[i]) if batches[i] not in (None, '') else 'NA' for i in order]
 
     # Sequential single-hue ramp and neutral colors from a validated palette
     ramp = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b']
@@ -570,14 +618,43 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
     label_step = max(1, int(-(-label_size * 1.15 // cell_pt)))
     gap = min(2.0, cell_pt * 0.15)
     tree_height = min(1.2, 0.2 * side) if tree is not None else 0.0
-    fig = Figure(figsize=(side + 3.2, side + 2.2 + tree_height), dpi=150, facecolor=surface)
+
+    # Batch strips and legend, with the legend in columns when it is taller than the heatmap
+    strip, legend_width, batch_colors = 0.0, 0.0, None
+    if batches is not None:
+        batch_colors = batchColors(batches)
+        strip = 0.16
+        legend_rows = max(4, int(side * 72 / (9 * 1.9)))
+        legend_cols = -(-len(batch_colors) // legend_rows)
+        legend_width = legend_cols * (0.55 + 0.075 * max(len(b) for b in batch_colors))
+    fig = Figure(figsize=(side + 3.2 + strip + (legend_width + 0.9 if legend_width else 0),
+                          side + 2.2 + tree_height + strip),
+                 dpi=150, facecolor=surface)
     ax = fig.subplots()
     ax.set_facecolor(surface)
     divider = make_axes_locatable(ax)
 
+    # Batch of each column above the heatmap and of each row to its left
+    top_ax = ax
+    if batches is not None:
+        colors = [to_rgb(batch_colors[b]) for b in batches]
+        top_ax = divider.append_axes('top', size=strip, pad=0.04)
+        top_ax.imshow([colors], aspect='auto')
+        row_ax = divider.append_axes('left', size=strip, pad=0.04)
+        row_ax.imshow([[c] for c in colors], aspect='auto')
+        for strip_ax in (top_ax, row_ax):
+            strip_ax.set_facecolor(surface)
+            for side_spine in strip_ax.spines.values():
+                side_spine.set_visible(False)
+            strip_ax.set_xticks([])
+            strip_ax.set_yticks([])
+        # Surface-colored gaps between samples, as between heatmap cells
+        for x in range(1, n):
+            top_ax.axvline(x - 0.5, color=surface, linewidth=gap)
+            row_ax.axhline(x - 0.5, color=surface, linewidth=gap)
+
     # Dendrogram above the heatmap, its leaves aligned with the columns. Rows and columns
     # share the same order, so one tree describes both.
-    top_ax = ax
     if tree is not None:
         from scipy.cluster.hierarchy import dendrogram
         top_ax = divider.append_axes('top', size=tree_height, pad=0.05)
@@ -644,6 +721,11 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
                        va='center' if rotation == 90 else 'top', rotation_mode='anchor')
     ax.set_yticklabels([labels[t] for t in ticks])
     ax.tick_params(colors=muted, labelcolor=text_2, labelsize=label_size, length=0)
+    if batches is not None:
+        ax.tick_params(labelleft=False)
+        row_ax.set_yticks(ticks)
+        row_ax.set_yticklabels([labels[t] for t in ticks])
+        row_ax.tick_params(colors=muted, labelcolor=text_2, labelsize=label_size, length=0)
     for side in ax.spines.values():
         side.set_visible(False)
     title = 'Pairwise sample contaminants' if positive else \
@@ -670,6 +752,21 @@ def plotSharedHeatmap(matrix, labels, plot_file, totals=None, max_annotate=20):
         cbar.ax.minorticks_off()
         cbar.outline.set_visible(False)
         cbar.ax.tick_params(colors=muted, labelcolor=text_2, labelsize=10)
+
+    if batch_colors is not None:
+        legend_ax = divider.append_axes('right', size=legend_width,
+                                        pad=0.9 if cbar is not None else 0.3)
+        legend_ax.set_axis_off()
+        handles = [Patch(facecolor=c, edgecolor='none', label=b) for b, c in batch_colors.items()]
+        legend = legend_ax.legend(handles=handles, title='Batch', loc='upper left',
+                                  ncol=legend_cols, frameon=False, fontsize=9,
+                                  title_fontsize=11, handlelength=1.0, handleheight=1.0,
+                                  borderaxespad=0)
+        # Left-align the title; Legend.set_alignment needs matplotlib 3.6
+        if hasattr(legend, 'set_alignment'):  legend.set_alignment('left')
+        legend.get_title().set_color(text_2)
+        for text in legend.get_texts():
+            text.set_color(text_2)
 
     fig.tight_layout()
     fig.savefig(plot_file, facecolor=surface)

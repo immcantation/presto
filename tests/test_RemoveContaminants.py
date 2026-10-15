@@ -187,6 +187,25 @@ class TestRemoveContaminants(unittest.TestCase):
                                              totals=[10, 10, 10])
         self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'tied.png')))
 
+    def test_batchColors(self):
+        # Natural sort order, missing batches last and gray
+        colors = RemoveContaminants.batchColors(['run10', 'run2', 'NA', 'run1', 'run2'])
+        self.assertEqual(['run1', 'run2', 'run10', 'NA'], list(colors))
+        self.assertEqual('#c3c2b7', colors['NA'])
+        self.assertEqual(4, len(set(colors.values())))
+        # More than seven batches switch to a larger palette, still without repeats
+        colors = RemoveContaminants.batchColors(['b%i' % i for i in range(30)])
+        self.assertEqual(30, len(set(colors.values())))
+        self.assertNotIn('#c3c2b7', colors.values())
+        with self.assertRaises(ValueError):
+            RemoveContaminants.batchColors(['b%i' % i for i in range(100)])
+        # Plotting with batches, including samples without a batch
+        plot_file = os.path.join(self.out_dir, 'batches.png')
+        RemoveContaminants.plotSharedHeatmap([[0, 5, 1], [4, 0, 0], [1, 0, 0]], ['A', 'B', 'C'],
+                                             plot_file, totals=[10, 10, 10],
+                                             batches=['x', None, 'y'])
+        self.assertTrue(os.path.isfile(plot_file))
+
     def test_clusterSamples(self):
         # A and C share many read pairs, as do B and D, so each pair ends up adjacent
         matrix = [[0, 1, 90, 0],
