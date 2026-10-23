@@ -189,6 +189,46 @@ class TestRemoveContaminants(unittest.TestCase):
                                              totals=[10, 10, 10, 10])
         self.assertTrue(os.path.isfile(os.path.join(self.out_dir, 'tied.png')))
 
+    def test_removeContaminantsTables(self):
+        # The matrix tables hold the matrix of the heatmap, and the sample table the removed reads
+        plotted = {}
+        original = RemoveContaminants.plotSharedHeatmap
+        def _record(matrix, labels, plot_file, totals=None, **kwargs):
+            plotted.update(matrix=matrix, labels=labels, totals=totals)
+        RemoveContaminants.plotSharedHeatmap = _record
+        try:
+            result, _ = self._run(max_error=0.05)
+        finally:
+            RemoveContaminants.plotSharedHeatmap = original
+        out_dir = [d for d in os.listdir(self.out_dir)][0]
+        def _read(name):
+            with open(os.path.join(self.out_dir, out_dir, 'log_%s.csv' % name)) as h:
+                return [line.rstrip('\n').split(',') for line in h]
+
+        samples = _read('samples')
+        self.assertEqual(['SAMPLE', 'READ_PAIRS', 'CONTAMINANT_READ_PAIRS', 'CONTAMINANT_PERCENT'],
+                         samples[0])
+        for row, label, total in zip(samples[1:], self.labels, plotted['totals']):
+            removed = len(result[(label, 'R1', 'fail')])
+            self.assertEqual([label, str(total), str(removed)], row[:3])
+            self.assertAlmostEqual(100.0 * removed / total, float(row[3]), places=4)
+
+        counts, percents = _read('matrix'), _read('matrix_percent')
+        self.assertEqual(['SAMPLE'] + self.labels, counts[0])
+        self.assertEqual(counts[0], percents[0])
+        self.assertTrue(any(any(row) for row in plotted['matrix']))
+        for i, label in enumerate(self.labels):
+            self.assertEqual(label, counts[i + 1][0])
+            for j in range(len(self.labels)):
+                if i == j:
+                    self.assertEqual('NA', counts[i + 1][j + 1])
+                    self.assertEqual('NA', percents[i + 1][j + 1])
+                    continue
+                count = plotted['matrix'][i][j]
+                self.assertEqual(str(count), counts[i + 1][j + 1])
+                self.assertAlmostEqual(100.0 * count / plotted['totals'][i],
+                                       float(percents[i + 1][j + 1]), places=4)
+
     def test_heatmapPercent(self):
         self.assertEqual(['0%', '0.001%', '0.0001%', '0.004%', '0.05%', '2.5%', '33%'],
                          [RemoveContaminants.formatPercent(v)
@@ -321,7 +361,8 @@ class TestRemoveContaminants(unittest.TestCase):
                 if not name.endswith('.png'):
                     with open(os.path.join(out_dir, name)) as h:
                         outputs[nproc][name] = h.read()
-        self.assertEqual(14, len(outputs[1]))
+        # 12 sequence files, the contaminant log, the distance table and the three CSV tables
+        self.assertEqual(17, len(outputs[1]))
         self.assertEqual(outputs[1], outputs[3])
 
     def _runOutputs(self, out_dir, **kwargs):
@@ -345,7 +386,7 @@ class TestRemoveContaminants(unittest.TestCase):
             out_dir = os.path.join(self.out_dir, 'shards%i_%i' % (nproc, shards))
             outputs[(nproc, shards)] = self._runOutputs(out_dir, nproc=nproc, shards=shards)
         expected = outputs[(1, 1)]
-        self.assertEqual(14, len(expected))
+        self.assertEqual(17, len(expected))
         for key, result in outputs.items():
             self.assertEqual(expected, result, key)
 

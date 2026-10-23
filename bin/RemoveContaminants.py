@@ -473,6 +473,49 @@ def countSharedPairs(flagged, labels):
     return matrix
 
 
+def writeSharedTables(matrix, labels, totals, removed, prefix):
+    """
+    Writes the contaminants of each sample and of each pair of samples to CSV files
+
+    Arguments:
+      matrix : square count matrix from countSharedPairs.
+      labels : ordered list of sample labels.
+      totals : list of the total number of read pairs of each sample.
+      removed : list of the number of read pairs removed from each sample. A read pair
+                matching several samples is removed once, so this can be lower than the
+                sum of its matrix row.
+      prefix : output file name prefix.
+
+    Returns:
+      tuple : (sample file, count matrix file, percent matrix file), named prefix followed by
+              _samples.csv, _matrix.csv and _matrix_percent.csv. Percentages are of the read
+              pairs of the sample, or of the row sample in the matrix. Diagonal matrix cells
+              are NA.
+    """
+    def _percent(count, total):
+        return '%.6g' % (100.0 * count / total) if total > 0 else 'NA'
+
+    sample_file = prefix + '_samples.csv'
+    with open(sample_file, 'w', newline='') as handle:
+        writer = csv.writer(handle)
+        writer.writerow(['SAMPLE', 'READ_PAIRS', 'CONTAMINANT_READ_PAIRS', 'CONTAMINANT_PERCENT'])
+        for label, total, count in zip(labels, totals, removed):
+            writer.writerow([label, total, count, _percent(count, total)])
+
+    matrix_file, percent_file = prefix + '_matrix.csv', prefix + '_matrix_percent.csv'
+    with open(matrix_file, 'w', newline='') as count_handle, \
+            open(percent_file, 'w', newline='') as percent_handle:
+        count_writer, percent_writer = csv.writer(count_handle), csv.writer(percent_handle)
+        for writer in (count_writer, percent_writer):
+            writer.writerow(['SAMPLE'] + list(labels))
+        for i, (label, row) in enumerate(zip(labels, matrix)):
+            count_writer.writerow([label] + ['NA' if i == j else c for j, c in enumerate(row)])
+            percent_writer.writerow([label] + ['NA' if i == j else _percent(c, totals[i])
+                                               for j, c in enumerate(row)])
+
+    return sample_file, matrix_file, percent_file
+
+
 def addMatrix(total, matrix):
     """
     Adds the counts of a shared read pair matrix to a running total in place
@@ -1244,7 +1287,9 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                  output directory, or in the directory of the first read 1 file. A heatmap
                  of the read pairs shared between samples is plotted next to it, with the
                  same name followed by _heatmap.png, and as percentages of the reads of
-                 each sample followed by _heatmap_percent.png.
+                 each sample followed by _heatmap_percent.png. The contaminants of each
+                 sample and the heatmap matrix are written next to it as CSV tables, followed
+                 by _samples.csv, _matrix.csv and _matrix_percent.csv.
       nproc : the number of processes to use.
       shards : the number of shards the candidate read pairs are split into; if None use
                the larger of 16 and four times nproc.
@@ -1376,7 +1421,7 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
         printMessage('Writing output', start_time=start_time)
         out_files = []
         out_log = OrderedDict()
-        read_totals = []
+        read_totals, removed_pairs = [], []
         tasks = [(seq_file, k, tmp_dir, shards, shared_field, coord_type, out_args)
                  for k, files in enumerate(sample_files.values()) for seq_file in files]
         results = list(runTasks(_writeTask, tasks, nproc=min(nproc, len(tasks))))
@@ -1388,8 +1433,10 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
                 pass_names.append(name)
                 pass_total += pass_count
                 fail_total += fail_count
-                # Read 1 count, one read per read pair, for the heatmap diagonal
-                if i == 0:  read_totals.append(pass_count + fail_count)
+                # Read 1 counts, one read per read pair, for the heatmap diagonal and tables
+                if i == 0:
+                    read_totals.append(pass_count + fail_count)
+                    removed_pairs.append(fail_count)
             out_files.append(tuple(pass_names))
             out_log['%s_PASS' % label] = pass_total
             out_log['%s_FAIL' % label] = fail_total
@@ -1404,6 +1451,10 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     plotSharedHeatmap(shared_matrix, labels, percent_file, totals=read_totals, batches=batches,
                       percent=True)
 
+    # Tables of the contaminants of each sample and of each pair of samples
+    table_files = writeSharedTables(shared_matrix, labels, read_totals, removed_pairs,
+                                    os.path.splitext(log_file)[0])
+
     # Print log
     log = OrderedDict()
     log['OUTPUT'] = ','.join(os.path.basename(f) for p in out_files for f in p)
@@ -1412,6 +1463,9 @@ def removeContaminants(seq_files_1, seq_files_2, labels=None,
     log['LOG'] = os.path.basename(log_file)
     log['HEATMAP'] = os.path.basename(heatmap_file)
     log['HEATMAP_PERCENT'] = os.path.basename(percent_file)
+    log['SAMPLE_TABLE'] = os.path.basename(table_files[0])
+    log['MATRIX'] = os.path.basename(table_files[1])
+    log['MATRIX_PERCENT'] = os.path.basename(table_files[2])
     if dist_file is not None:
         log['DISTANCES'] = dist_count
         log['DIST_PLOT'] = os.path.basename(plot_file)
@@ -1462,6 +1516,15 @@ def getArgParser():
                  <log>_heatmap_percent.png
                      the same heatmap, with each cell as a percentage of the read pairs
                      of the row sample. Samples are in the same order in both heatmaps.
+                 <log>_samples.csv
+                     the read pairs of each sample, and the number and percentage of
+                     them removed as contaminants.
+                 <log>_matrix.csv
+                     the matrix of the heatmap, in the input sample order: row i and
+                     column j hold the read pairs of sample i that matched a read pair in
+                     sample j. Diagonal cells are NA.
+                 <log>_matrix_percent.csv
+                     the same matrix as percentages of the read pairs of the row sample.
 
              output annotation fields:
                  SHARED
