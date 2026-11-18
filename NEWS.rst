@@ -4,6 +4,13 @@ Release Notes
 Version 0.7.10dev: Unreleased
 -------------------------------------------------------------------------------
 
+Documentation:
+
++ Fixed the Illumina MiSeq 2x250 BCR mRNA (Greiff et al, 2014) example
+  instructions. The example data is now downloaded from ENA instead of with
+  ``fastq-dump``, which swaps read 1 and read 2 for this run and caused all
+  reads to fail the V-segment primer step (issue #112).
+
 Version 0.7.9: April 14, 2026
 -------------------------------------------------------------------------------
 
