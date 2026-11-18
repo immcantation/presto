@@ -14,7 +14,7 @@ downloaded using fastq-dump from the
 Note: Recent versions of the SRA Toolkit may return SRA Lite data by default,
 in which quality scores are replaced by simplified placeholder values. The workflow
 begins with quality filtering, so real quality scores are required. Disable
-SRA Lite before downloading::
+SRA Lite before downloading:
 
     vdb-config --simplified-quality-scores no
     fastq-dump -X 50000 SRR765688
