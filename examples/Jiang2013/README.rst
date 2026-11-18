@@ -7,11 +7,20 @@ This example uses publicly available data from:
 
 Which may be downloaded from the NCBI Sequence Read Archive under
 accession ID: SRX190717. For this example, we will use the first
-50,000 sequences of sample 43 (accession: SRR765688), which may downloaded
+50,000 sequences of sample 43 (accession: SRR765688), which may be
 downloaded using fastq-dump from the
-`SRA Toolkit <http://www.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software>`__::
+`SRA Toolkit <http://www.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software>`__.
 
+Note: Recent versions of the SRA Toolkit may return SRA Lite data by default,
+in which quality scores are replaced by simplified placeholder values. The workflow
+begins with quality filtering, so real quality scores are required. Disable
+SRA Lite before downloading::
+
+    vdb-config --simplified-quality-scores no
     fastq-dump -X 50000 SRR765688
+
+Do not use the FASTQ download from the NCBI SRA website, which also returns
+SRA Lite data without real quality scores.
 
 Primer and sample barcode (referred to as MID in Jiang, He and Weinstein et al, 2013)
 sequences are available in the published manuscript. This example assumes that the sample
