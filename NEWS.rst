@@ -14,7 +14,7 @@ Documentation:
   and UMI Barcoded Illumina MiSeq 2x250 BCR mRNA (Stern, Yaari and Vander
   Heiden et al, 2014) example instructions to disable SRA Lite before running
   ``fastq-dump``. SRA Lite replaces quality scores with simplified values, so
-  the initial quality filtering step had no effect (issue #114).
+  the initial quality filtering step had no effect.
 + Fixed the accession of the example data in the UMI Barcoded Illumina MiSeq
   325+275 paired-end 5'RACE BCR mRNA (Vander Heiden et al, 2017) workflow
   documentation. It is SRR4026043, not SRR1383456 (issue #114). The correct
