@@ -24,7 +24,7 @@ Read Configuration
 Example Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We have hosted a small subset of the data (Accession: SRR1383456) on the
+We have hosted a small subset of the data (Accession: SRR4026043) on the
 pRESTO website in FASTQ format with accompanying primer files. The sample data
 set and workflow script may be downloaded from here:
 
